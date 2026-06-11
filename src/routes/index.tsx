@@ -1,10 +1,66 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, Button, Icons } from '../components/ui'
+import { Logo, Wordmark, Input, Icons } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
 type ActivePage = 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'producao' | 'config'
+
+const DashboardPreview = () => {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [nome, setNome] = useState('Ana Paula')
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
+      <div className={`scrim${drawerOpen ? ' show' : ''}`} onClick={() => setDrawerOpen(false)} />
+      <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <TopBar onMenuOpen={() => setDrawerOpen(true)} />
+        <div style={{ padding: 24, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>Inputs — Preview C-005</h2>
+
+          <Input
+            label="E-mail"
+            type="email"
+            placeholder="ana@artesanato.com"
+            value={email}
+            onChange={setEmail}
+            icon={<Icons.mail />}
+          />
+
+          <Input
+            label="Senha"
+            type="password"
+            placeholder="Mínimo 8 caracteres"
+            value={senha}
+            onChange={setSenha}
+            icon={<Icons.lock />}
+          />
+
+          <Input
+            label="Nome completo"
+            type="text"
+            placeholder="Seu nome"
+            value={nome}
+            onChange={setNome}
+            error="Este campo é obrigatório"
+          />
+
+          <Input
+            label="Campo desabilitado"
+            type="text"
+            placeholder="Não editável"
+            value="Valor fixo"
+            onChange={() => {}}
+            disabled
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const AppShell = ({ active, nome }: { active: ActivePage; nome: string }) => {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -21,35 +77,10 @@ const AppShell = ({ active, nome }: { active: ActivePage; nome: string }) => {
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        {active === 'dashboard' ? (
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <h2 style={{ color: '#3A372F', margin: 0 }}>Botões — Preview C-004</h2>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Button variant="primary">Nova Cliente</Button>
-              <Button variant="primary" icon={<Icons.plus />}>Novo Orçamento</Button>
-              <Button variant="secondary">Confirmar</Button>
-              <Button variant="ghost">Cancelar</Button>
-              <Button variant="danger">Cancelar orçamento</Button>
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Button variant="primary" size="sm">Pequeno</Button>
-              <Button variant="primary" size="md">Médio</Button>
-              <Button variant="primary" size="lg">Grande</Button>
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Button variant="primary" disabled>Desabilitado</Button>
-              <Button variant="ghost" disabled>Desabilitado</Button>
-            </div>
-            <div style={{ maxWidth: 320 }}>
-              <Button variant="primary" fullWidth>Botão largo</Button>
-            </div>
-          </div>
-        ) : (
-          <div style={{ padding: 24 }}>
-            <h2 style={{ color: '#3A372F', margin: 0 }}>{nome}</h2>
-            <p style={{ color: '#A29E96' }}>Tela em construção</p>
-          </div>
-        )}
+        <div style={{ padding: 24 }}>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>{nome}</h2>
+          <p style={{ color: '#A29E96' }}>Tela em construção</p>
+        </div>
       </div>
     </div>
   )
@@ -72,7 +103,7 @@ export const router = createBrowserRouter([
   { path: '/cadastro',   element: <AuthShell nome="Cadastro" /> },
   { path: '/onboarding', element: <AuthShell nome="Onboarding" /> },
 
-  { path: '/dashboard',  element: <AppShell active="dashboard"  nome="Dashboard" /> },
+  { path: '/dashboard',  element: <DashboardPreview /> },
   { path: '/clientes',   element: <AppShell active="clientes"   nome="Clientes" /> },
 
   { path: '/orcamentos',          element: <AppShell active="orcamentos" nome="Lista de Orçamentos" /> },

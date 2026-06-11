@@ -161,6 +161,38 @@ export const Icons = {
       <path d="M13 3.5V9h5"/>
     </svg>
   ),
+  mail: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="3" y="5" width="18" height="14" rx="3"/>
+      <path d="m4 7 8 6 8-6"/>
+    </svg>
+  ),
+  lock: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/>
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>
+    </svg>
+  ),
+  eye: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  eyeOff: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 4l16 16"/>
+      <path d="M9.5 5.9A9.8 9.8 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.8 3.4M6.2 7.3A15.6 15.6 0 0 0 2.5 12S6 18.5 12 18.5c1.1 0 2.1-.2 3-.5"/>
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+    </svg>
+  ),
+  alertCircle: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" {...p}>
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7.5v5.5" strokeWidth="1.9"/>
+      <circle cx="12" cy="16.3" r="1.05" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons
