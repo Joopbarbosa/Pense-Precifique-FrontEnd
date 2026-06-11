@@ -1,8 +1,13 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { Logo, Wordmark } from '../components/ui'
 
 const Placeholder = ({ nome }: { nome: string }) => (
-  <div style={{ padding: 32, fontFamily: 'sans-serif', color: '#3A372F' }}>
-    <h2>{nome}</h2>
+  <div style={{ padding: 32, fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+      <Logo size={36} />
+      <Wordmark size={18} />
+    </div>
+    <h2 style={{ color: '#3A372F', margin: 0 }}>{nome}</h2>
     <p style={{ color: '#888' }}>Tela em construção</p>
   </div>
 )
