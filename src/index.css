@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --teal: #2A9D8F;
+  --teal-deep: #1E7268;
+  --orange: #F97316;
+  --dark: #3A372F;
+  --line: #EFEDE8;
+  --r-btn: 10px;
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #FAFAF8;
+  color: #3A372F;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+}
