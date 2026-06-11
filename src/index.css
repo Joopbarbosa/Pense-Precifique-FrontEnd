@@ -22,3 +22,56 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
 }
+
+/* Sidebar layout */
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  background: #FAFAF8;
+  border-right: 1px solid #EFEDE8;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+}
+
+.nav-item:hover {
+  background: #FAF8F5 !important;
+}
+
+/* Mobile: drawer */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.10);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 49;
+  }
+  .scrim.show {
+    display: block;
+  }
+}
+
+/* Desktop: botão fechar fica oculto */
+@media (min-width: 768px) {
+  .drawer-close {
+    display: none;
+  }
+  .scrim {
+    display: none !important;
+  }
+}
