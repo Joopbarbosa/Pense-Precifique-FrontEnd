@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark } from '../components/ui'
+import { Logo, Wordmark, Button, Icons } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -21,10 +21,35 @@ const AppShell = ({ active, nome }: { active: ActivePage; nome: string }) => {
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>{nome}</h2>
-          <p style={{ color: '#A29E96' }}>Tela em construção</p>
-        </div>
+        {active === 'dashboard' ? (
+          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <h2 style={{ color: '#3A372F', margin: 0 }}>Botões — Preview C-004</h2>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Button variant="primary">Nova Cliente</Button>
+              <Button variant="primary" icon={<Icons.plus />}>Novo Orçamento</Button>
+              <Button variant="secondary">Confirmar</Button>
+              <Button variant="ghost">Cancelar</Button>
+              <Button variant="danger">Cancelar orçamento</Button>
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Button variant="primary" size="sm">Pequeno</Button>
+              <Button variant="primary" size="md">Médio</Button>
+              <Button variant="primary" size="lg">Grande</Button>
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Button variant="primary" disabled>Desabilitado</Button>
+              <Button variant="ghost" disabled>Desabilitado</Button>
+            </div>
+            <div style={{ maxWidth: 320 }}>
+              <Button variant="primary" fullWidth>Botão largo</Button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 24 }}>
+            <h2 style={{ color: '#3A372F', margin: 0 }}>{nome}</h2>
+            <p style={{ color: '#A29E96' }}>Tela em construção</p>
+          </div>
+        )}
       </div>
     </div>
   )
