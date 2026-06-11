@@ -75,3 +75,22 @@ body {
     display: none !important;
   }
 }
+
+/* TopBar — apenas mobile */
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #EFEDE8;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+@media (min-width: 768px) {
+  .mobile-topbar {
+    display: none;
+  }
+}
