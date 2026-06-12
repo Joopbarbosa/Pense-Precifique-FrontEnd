@@ -247,6 +247,25 @@ export const Icons = {
       <path d="m5 12.5 4.2 4.2L19 7"/>
     </svg>
   ),
+  dollar: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3v18M16 7.2c-.7-1.4-2.3-2.2-4-2.2-2.2 0-4 1.3-4 3.1 0 4.3 8.4 2.3 8.4 6.7 0 1.9-2 3.2-4.4 3.2-1.9 0-3.6-.8-4.3-2.3"/>
+    </svg>
+  ),
+  fileStack: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M8 3.5h6l4 4V17a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/>
+      <path d="M14 3.5V8h4"/>
+      <path d="M5 7v12.5a1 1 0 0 0 1 1h9"/>
+    </svg>
+  ),
+  alertTriangle: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 4.5 21 19.5H3L12 4.5Z"/>
+      <path d="M12 10v4.2" strokeWidth="1.9"/>
+      <circle cx="12" cy="17.4" r=".4" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons

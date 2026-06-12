@@ -155,6 +155,26 @@ body {
   .two-col { grid-template-columns: 1fr; }
 }
 
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.lower-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 980px) {
+  .lower-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .metrics { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 760px) {
   .login-card { grid-template-columns: 1fr !important; }
   .brand-col { display: none !important; }
