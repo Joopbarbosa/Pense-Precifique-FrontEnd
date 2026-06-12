@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, StatusBadge, TipoProdutoBadge, VencidoBadge } from '../components/ui'
+import { Logo, Wordmark, Button, Icons, ModalShell } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -8,6 +8,8 @@ type ActivePage = 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produto
 
 const DashboardPreview = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [modal1, setModal1] = useState(false)
+  const [modal2, setModal2] = useState(false)
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
@@ -15,47 +17,50 @@ const DashboardPreview = () => {
       <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>Badges — Preview C-006</h2>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>Modal — Preview C-007</h2>
 
-          <div>
-            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Status de Orçamento</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <StatusBadge status="Rascunho" />
-              <StatusBadge status="Enviado" />
-              <StatusBadge status="Aprovado" />
-              <StatusBadge status="Aguardando Sinal" />
-              <StatusBadge status="Sinal Pago" />
-              <StatusBadge status="Em Produção" />
-              <StatusBadge status="Finalizado" />
-              <StatusBadge status="Entregue" />
-              <StatusBadge status="Pago" />
-              <StatusBadge status="Cancelado" />
-            </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Button variant="primary" onClick={() => setModal1(true)}>
+              Abrir modal com ícone
+            </Button>
+            <Button variant="ghost" onClick={() => setModal2(true)}>
+              Abrir modal simples
+            </Button>
           </div>
 
-          <div>
-            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Tamanho sm</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <StatusBadge status="Em Produção" size="sm" />
-              <StatusBadge status="Pago" size="sm" />
-              <StatusBadge status="Cancelado" size="sm" />
-            </div>
-          </div>
+          <ModalShell
+            open={modal1}
+            onClose={() => setModal1(false)}
+            title="Kit Convite Casamento"
+            subtitle="Customizações"
+            icon={<Icons.layers />}
+            iconBg="rgba(249,115,22,0.10)"
+            iconColor="#F97316"
+            footer={
+              <>
+                <Button variant="ghost" onClick={() => setModal1(false)}>Cancelar</Button>
+                <Button variant="primary" onClick={() => setModal1(false)}>Confirmar</Button>
+              </>
+            }
+          >
+            <p style={{ color: '#5C594F', margin: 0 }}>
+              Conteúdo do modal. Aqui ficará o conteúdo específico de cada modal do sistema.
+            </p>
+          </ModalShell>
 
-          <div>
-            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Tipo de Produto</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <TipoProdutoBadge tipo="Produto" />
-              <TipoProdutoBadge tipo="Produto Base" />
-              <TipoProdutoBadge tipo="Customização" />
-            </div>
-          </div>
-
-          <div>
-            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Badge especial</p>
-            <VencidoBadge />
-          </div>
+          <ModalShell
+            open={modal2}
+            onClose={() => setModal2(false)}
+            title="Confirmar ação"
+            footer={
+              <Button variant="danger" onClick={() => setModal2(false)}>Cancelar orçamento</Button>
+            }
+          >
+            <p style={{ color: '#5C594F', margin: 0 }}>
+              Modal simples sem ícone e sem subtitle.
+            </p>
+          </ModalShell>
         </div>
       </div>
     </div>
