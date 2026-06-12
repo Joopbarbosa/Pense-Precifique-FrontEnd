@@ -145,6 +145,16 @@ body {
 .brand-col { display: flex; }
 .mobile-logo { display: none; }
 
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 760px) {
   .login-card { grid-template-columns: 1fr !important; }
   .brand-col { display: none !important; }
