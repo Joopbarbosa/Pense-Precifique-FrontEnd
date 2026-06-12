@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, Icons, EmptyState } from '../components/ui'
+import { Logo, Wordmark, Icons, Button, Spinner } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -8,6 +8,12 @@ type ActivePage = 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produto
 
 const DashboardPreview = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const simularLoading = () => {
+    setLoading(true)
+    setTimeout(() => setLoading(false), 2500)
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
@@ -16,37 +22,31 @@ const DashboardPreview = () => {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 680 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>EmptyState — Preview C-009</h2>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>Spinner — Preview C-010</h2>
 
-          <EmptyState
-            title="Nenhum insumo cadastrado ainda"
-            description="Cadastre o primeiro para começar a montar suas fichas técnicas."
-            action={{
-              label: 'Cadastrar primeiro insumo',
-              icon: <Icons.plus />,
-              onClick: () => alert('Navegar para cadastro'),
-            }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+            <div style={{ background: '#F97316', padding: '12px 20px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Spinner size={16} color="#fff" trackColor="rgba(255,255,255,0.45)" />
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>Entrando…</span>
+            </div>
 
-          <EmptyState
-            icon={<Icons.doc />}
-            iconColor="#F97316"
-            iconBg="rgba(249,115,22,0.10)"
-            title="Nenhum orçamento criado"
-            description="Crie seu primeiro orçamento para um cliente."
-            action={{
-              label: 'Criar orçamento',
-              icon: <Icons.plus />,
-              onClick: () => {},
-            }}
-          />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Spinner size={18} color="#2A9D8F" trackColor="rgba(42,157,143,0.25)" />
+              <span style={{ color: '#5C594F', fontSize: 14 }}>Carregando…</span>
+            </div>
 
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 16 }}>
-            <EmptyState
-              compact
-              title="Nenhum insumo encontrado"
-              description="Ajuste os filtros ou a busca."
-            />
+            <Spinner size={32} color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" thickness={3} />
+          </div>
+
+          <div>
+            <Button
+              variant="primary"
+              onClick={simularLoading}
+              icon={loading ? <Spinner size={16} /> : undefined}
+              disabled={loading}
+            >
+              {loading ? 'Salvando…' : 'Simular loading (2,5s)'}
+            </Button>
           </div>
         </div>
       </div>

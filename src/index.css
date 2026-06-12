@@ -94,6 +94,10 @@ body {
   66%       { transform: translateY(6px) rotate(-2deg); }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* TopBar — apenas mobile */
 .mobile-topbar {
   display: flex;
