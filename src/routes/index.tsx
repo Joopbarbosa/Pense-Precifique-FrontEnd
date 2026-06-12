@@ -3,6 +3,7 @@ import { Logo, Wordmark } from '../components/ui'
 import AppLayout from '../components/layout/AppLayout'
 import LoginPage from '../pages/auth/LoginPage'
 import CadastroPage from '../pages/auth/CadastroPage'
+import OnboardingPage from '../pages/auth/OnboardingPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -33,7 +34,7 @@ export const router = createBrowserRouter([
   { path: '/',      element: <LoginPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/cadastro',   element: <CadastroPage /> },
-  { path: '/onboarding', element: <AuthPlaceholder nome="Onboarding" /> },
+  { path: '/onboarding', element: <OnboardingPage /> },
 
   { path: '/dashboard',           element: <Placeholder nome="Dashboard" active="dashboard" /> },
   { path: '/clientes',            element: <Placeholder nome="Clientes" active="clientes" /> },

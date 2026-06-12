@@ -231,6 +231,22 @@ export const Icons = {
       <path d="M6.5 6.5l11 11"/>
     </svg>
   ),
+  trendUp: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 14.5 9 9l3.2 3L20 4.2"/>
+      <path d="M15.5 4.2H20V8.7"/>
+    </svg>
+  ),
+  bulb: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M9 21h6M12 3a6 6 0 0 1 6 6c0 2.4-1.4 4.5-3 5.7V17H9v-2.3C7.4 13.5 6 11.4 6 9a6 6 0 0 1 6-6Z"/>
+    </svg>
+  ),
+  checkSmall: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="m5 12.5 4.2 4.2L19 7"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons
