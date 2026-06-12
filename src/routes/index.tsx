@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { Logo, Wordmark, Icons, Button, Spinner } from '../components/ui'
+import { SectionTitle } from '../components/shared'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -21,33 +22,38 @@ const DashboardPreview = () => {
       <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 680 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>Spinner — Preview C-010</h2>
+        <div style={{ padding: 24, maxWidth: 560 }}>
+          <h2 style={{ color: '#3A372F', marginBottom: 32 }}>SectionTitle — Preview C-011</h2>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ background: '#F97316', padding: '12px 20px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Spinner size={16} color="#fff" trackColor="rgba(255,255,255,0.45)" />
-              <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>Entrando…</span>
-            </div>
+          <SectionTitle
+            number={1}
+            title="Identificação"
+            subtitle="Como você reconhece este insumo."
+          />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Spinner size={18} color="#2A9D8F" trackColor="rgba(42,157,143,0.25)" />
-              <span style={{ color: '#5C594F', fontSize: 14 }}>Carregando…</span>
-            </div>
+          <SectionTitle
+            number={2}
+            title="Medida e fracionamento"
+            subtitle="Como este insumo é medido e consumido."
+          />
 
-            <Spinner size={32} color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" thickness={3} />
-          </div>
+          <SectionTitle
+            number={3}
+            title="Estoque e custo"
+            subtitle="O custo unitário é calculado automaticamente."
+          />
 
-          <div>
-            <Button
-              variant="primary"
-              onClick={simularLoading}
-              icon={loading ? <Spinner size={16} /> : undefined}
-              disabled={loading}
-            >
-              {loading ? 'Salvando…' : 'Simular loading (2,5s)'}
-            </Button>
-          </div>
+          <SectionTitle
+            title="Ficha Técnica"
+            subtitle="Componentes que formam este produto."
+          />
+
+          <SectionTitle
+            number="→"
+            title="Configuração inicial"
+            subtitle="Defina seu valor/hora e margem padrão."
+            color="#F97316"
+          />
         </div>
       </div>
     </div>
