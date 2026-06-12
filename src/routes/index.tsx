@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, Button, Icons, ModalShell } from '../components/ui'
+import { Logo, Wordmark, Button, Card, CardHeader, CardFooter } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -8,8 +8,6 @@ type ActivePage = 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produto
 
 const DashboardPreview = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [modal1, setModal1] = useState(false)
-  const [modal2, setModal2] = useState(false)
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
@@ -17,50 +15,29 @@ const DashboardPreview = () => {
       <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>Modal — Preview C-007</h2>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 600 }}>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>Card — Preview C-008</h2>
 
-          <div style={{ display: 'flex', gap: 12 }}>
-            <Button variant="primary" onClick={() => setModal1(true)}>
-              Abrir modal com ícone
-            </Button>
-            <Button variant="ghost" onClick={() => setModal2(true)}>
-              Abrir modal simples
-            </Button>
-          </div>
+          <Card padding="20px 22px">
+            <p style={{ margin: 0, color: '#5C594F' }}>Card simples com padding.</p>
+          </Card>
 
-          <ModalShell
-            open={modal1}
-            onClose={() => setModal1(false)}
-            title="Kit Convite Casamento"
-            subtitle="Customizações"
-            icon={<Icons.layers />}
-            iconBg="rgba(249,115,22,0.10)"
-            iconColor="#F97316"
-            footer={
-              <>
-                <Button variant="ghost" onClick={() => setModal1(false)}>Cancelar</Button>
-                <Button variant="primary" onClick={() => setModal1(false)}>Confirmar</Button>
-              </>
-            }
-          >
-            <p style={{ color: '#5C594F', margin: 0 }}>
-              Conteúdo do modal. Aqui ficará o conteúdo específico de cada modal do sistema.
-            </p>
-          </ModalShell>
+          <Card>
+            <CardHeader>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#3A372F' }}>Resumo do Insumo</span>
+            </CardHeader>
+            <div style={{ padding: '18px 20px', color: '#5C594F' }}>
+              Conteúdo do card com header e footer separados por bordas.
+            </div>
+            <CardFooter>
+              <Button variant="primary" size="sm">Registrar compra</Button>
+              <Button variant="ghost" size="sm">Baixa manual</Button>
+            </CardFooter>
+          </Card>
 
-          <ModalShell
-            open={modal2}
-            onClose={() => setModal2(false)}
-            title="Confirmar ação"
-            footer={
-              <Button variant="danger" onClick={() => setModal2(false)}>Cancelar orçamento</Button>
-            }
-          >
-            <p style={{ color: '#5C594F', margin: 0 }}>
-              Modal simples sem ícone e sem subtitle.
-            </p>
-          </ModalShell>
+          <Card hoverable padding="20px 22px">
+            <p style={{ margin: 0, color: '#5C594F' }}>Card com efeito hover — passe o mouse.</p>
+          </Card>
         </div>
       </div>
     </div>
