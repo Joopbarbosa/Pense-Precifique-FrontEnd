@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, Input, Icons } from '../components/ui'
+import { Logo, Wordmark, StatusBadge, TipoProdutoBadge, VencidoBadge } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -8,9 +8,6 @@ type ActivePage = 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produto
 
 const DashboardPreview = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [email, setEmail] = useState('')
-  const [senha, setSenha] = useState('')
-  const [nome, setNome] = useState('Ana Paula')
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
@@ -18,44 +15,47 @@ const DashboardPreview = () => {
       <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>Inputs — Preview C-005</h2>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>Badges — Preview C-006</h2>
 
-          <Input
-            label="E-mail"
-            type="email"
-            placeholder="ana@artesanato.com"
-            value={email}
-            onChange={setEmail}
-            icon={<Icons.mail />}
-          />
+          <div>
+            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Status de Orçamento</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <StatusBadge status="Rascunho" />
+              <StatusBadge status="Enviado" />
+              <StatusBadge status="Aprovado" />
+              <StatusBadge status="Aguardando Sinal" />
+              <StatusBadge status="Sinal Pago" />
+              <StatusBadge status="Em Produção" />
+              <StatusBadge status="Finalizado" />
+              <StatusBadge status="Entregue" />
+              <StatusBadge status="Pago" />
+              <StatusBadge status="Cancelado" />
+            </div>
+          </div>
 
-          <Input
-            label="Senha"
-            type="password"
-            placeholder="Mínimo 8 caracteres"
-            value={senha}
-            onChange={setSenha}
-            icon={<Icons.lock />}
-          />
+          <div>
+            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Tamanho sm</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <StatusBadge status="Em Produção" size="sm" />
+              <StatusBadge status="Pago" size="sm" />
+              <StatusBadge status="Cancelado" size="sm" />
+            </div>
+          </div>
 
-          <Input
-            label="Nome completo"
-            type="text"
-            placeholder="Seu nome"
-            value={nome}
-            onChange={setNome}
-            error="Este campo é obrigatório"
-          />
+          <div>
+            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Tipo de Produto</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <TipoProdutoBadge tipo="Produto" />
+              <TipoProdutoBadge tipo="Produto Base" />
+              <TipoProdutoBadge tipo="Customização" />
+            </div>
+          </div>
 
-          <Input
-            label="Campo desabilitado"
-            type="text"
-            placeholder="Não editável"
-            value="Valor fixo"
-            onChange={() => {}}
-            disabled
-          />
+          <div>
+            <p style={{ color: '#A29E96', fontSize: 13, marginBottom: 10, marginTop: 0 }}>Badge especial</p>
+            <VencidoBadge />
+          </div>
         </div>
       </div>
     </div>

@@ -193,6 +193,13 @@ export const Icons = {
       <circle cx="12" cy="16.3" r="1.05" fill="currentColor" stroke="none"/>
     </svg>
   ),
+  alertFilled: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" {...p}>
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7.5v5.5" strokeWidth="1.9"/>
+      <circle cx="12" cy="16.3" r="1.05" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons
