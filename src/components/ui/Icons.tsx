@@ -193,6 +193,13 @@ export const Icons = {
       <circle cx="12" cy="16.3" r="1.05" fill="currentColor" stroke="none"/>
     </svg>
   ),
+  emptyBox: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6L12 3.2Z"/>
+      <path d="M4 7.6 12 12l8-4.4M12 12v8.8"/>
+      <path d="M8 5.4 16 9.8"/>
+    </svg>
+  ),
   alertFilled: (p?: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" {...p}>
       <circle cx="12" cy="12" r="9"/>

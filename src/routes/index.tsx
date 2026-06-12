@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, Button, Card, CardHeader, CardFooter } from '../components/ui'
+import { Logo, Wordmark, Icons, EmptyState } from '../components/ui'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
@@ -15,29 +15,39 @@ const DashboardPreview = () => {
       <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 600 }}>
-          <h2 style={{ color: '#3A372F', margin: 0 }}>Card — Preview C-008</h2>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 680 }}>
+          <h2 style={{ color: '#3A372F', margin: 0 }}>EmptyState — Preview C-009</h2>
 
-          <Card padding="20px 22px">
-            <p style={{ margin: 0, color: '#5C594F' }}>Card simples com padding.</p>
-          </Card>
+          <EmptyState
+            title="Nenhum insumo cadastrado ainda"
+            description="Cadastre o primeiro para começar a montar suas fichas técnicas."
+            action={{
+              label: 'Cadastrar primeiro insumo',
+              icon: <Icons.plus />,
+              onClick: () => alert('Navegar para cadastro'),
+            }}
+          />
 
-          <Card>
-            <CardHeader>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#3A372F' }}>Resumo do Insumo</span>
-            </CardHeader>
-            <div style={{ padding: '18px 20px', color: '#5C594F' }}>
-              Conteúdo do card com header e footer separados por bordas.
-            </div>
-            <CardFooter>
-              <Button variant="primary" size="sm">Registrar compra</Button>
-              <Button variant="ghost" size="sm">Baixa manual</Button>
-            </CardFooter>
-          </Card>
+          <EmptyState
+            icon={<Icons.doc />}
+            iconColor="#F97316"
+            iconBg="rgba(249,115,22,0.10)"
+            title="Nenhum orçamento criado"
+            description="Crie seu primeiro orçamento para um cliente."
+            action={{
+              label: 'Criar orçamento',
+              icon: <Icons.plus />,
+              onClick: () => {},
+            }}
+          />
 
-          <Card hoverable padding="20px 22px">
-            <p style={{ margin: 0, color: '#5C594F' }}>Card com efeito hover — passe o mouse.</p>
-          </Card>
+          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 16 }}>
+            <EmptyState
+              compact
+              title="Nenhum insumo encontrado"
+              description="Ajuste os filtros ou a busca."
+            />
+          </div>
         </div>
       </div>
     </div>

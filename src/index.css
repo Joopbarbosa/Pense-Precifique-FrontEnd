@@ -88,6 +88,12 @@ body {
   to   { opacity: 1; transform: scale(1); }
 }
 
+@keyframes floaty {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%       { transform: translateY(-12px) rotate(3deg); }
+  66%       { transform: translateY(6px) rotate(-2deg); }
+}
+
 /* TopBar — apenas mobile */
 .mobile-topbar {
   display: flex;
