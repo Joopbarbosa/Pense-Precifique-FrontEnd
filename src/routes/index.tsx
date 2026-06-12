@@ -1,20 +1,28 @@
 import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark, Icons, Button, Spinner } from '../components/ui'
-import { SectionTitle } from '../components/shared'
+import { Logo, Wordmark, Icons } from '../components/ui'
+import { ActionMenu, SectionTitle } from '../components/shared'
+import type { ActionMenuItem } from '../components/shared'
 import Sidebar from '../components/layout/Sidebar'
 import TopBar from '../components/layout/TopBar'
 
 type ActivePage = 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'producao' | 'config'
 
+const menuItemsOrcamento: ActionMenuItem[] = [
+  { label: 'Ver detalhes', icon: <Icons.eye />, onClick: () => alert('Ver detalhes') },
+  { label: 'Duplicar', icon: <Icons.copy />, onClick: () => alert('Duplicar') },
+  { label: 'Cancelar', icon: <Icons.ban />, onClick: () => alert('Cancelar'), danger: true, dividerBefore: true },
+]
+
+const menuItemsProduto: ActionMenuItem[] = [
+  { label: 'Ver detalhes', icon: <Icons.eye />, onClick: () => {} },
+  { label: 'Editar', icon: <Icons.edit />, onClick: () => {} },
+  { label: 'Duplicar', icon: <Icons.copy />, onClick: () => {} },
+  { label: 'Desativar', icon: <Icons.power />, onClick: () => {}, danger: true, dividerBefore: true },
+]
+
 const DashboardPreview = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const simularLoading = () => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 2500)
-  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF8' }}>
@@ -22,38 +30,20 @@ const DashboardPreview = () => {
       <Sidebar active="dashboard" open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div style={{ padding: 24, maxWidth: 560 }}>
-          <h2 style={{ color: '#3A372F', marginBottom: 32 }}>SectionTitle — Preview C-011</h2>
+        <div style={{ padding: 24 }}>
+          <h2 style={{ color: '#3A372F', marginBottom: 24 }}>ActionMenu — Preview C-012</h2>
 
-          <SectionTitle
-            number={1}
-            title="Identificação"
-            subtitle="Como você reconhece este insumo."
-          />
+          <div style={{ display: 'flex', gap: 40, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16, minWidth: 320 }}>
+              <span style={{ flex: 1, fontWeight: 600, color: '#3A372F' }}>#0042 — Mariana Costa</span>
+              <ActionMenu items={menuItemsOrcamento} />
+            </div>
 
-          <SectionTitle
-            number={2}
-            title="Medida e fracionamento"
-            subtitle="Como este insumo é medido e consumido."
-          />
-
-          <SectionTitle
-            number={3}
-            title="Estoque e custo"
-            subtitle="O custo unitário é calculado automaticamente."
-          />
-
-          <SectionTitle
-            title="Ficha Técnica"
-            subtitle="Componentes que formam este produto."
-          />
-
-          <SectionTitle
-            number="→"
-            title="Configuração inicial"
-            subtitle="Defina seu valor/hora e margem padrão."
-            color="#F97316"
-          />
+            <div style={{ background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16, minWidth: 280 }}>
+              <span style={{ flex: 1, fontWeight: 600, color: '#3A372F' }}>Kit Convite Casamento</span>
+              <ActionMenu items={menuItemsProduto} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

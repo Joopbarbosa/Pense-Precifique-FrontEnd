@@ -207,6 +207,30 @@ export const Icons = {
       <circle cx="12" cy="16.3" r="1.05" fill="currentColor" stroke="none"/>
     </svg>
   ),
+  dots: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" {...p}>
+      <circle cx="12" cy="5" r="1.6"/>
+      <circle cx="12" cy="12" r="1.6"/>
+      <circle cx="12" cy="19" r="1.6"/>
+    </svg>
+  ),
+  copy: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="9" y="9" width="12" height="12" rx="2.5"/>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </svg>
+  ),
+  power: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3v6M6.3 6.3a8.5 8.5 0 1 0 11.4 0"/>
+    </svg>
+  ),
+  ban: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" {...p}>
+      <circle cx="12" cy="12" r="8.5"/>
+      <path d="M6.5 6.5l11 11"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons
