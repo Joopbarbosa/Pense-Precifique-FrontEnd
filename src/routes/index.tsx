@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { Logo, Wordmark } from '../components/ui'
 import AppLayout from '../components/layout/AppLayout'
+import LoginPage from '../pages/auth/LoginPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -28,8 +29,8 @@ const AuthPlaceholder = ({ nome }: { nome: string }) => (
 )
 
 export const router = createBrowserRouter([
-  { path: '/',           element: <AuthPlaceholder nome="Login" /> },
-  { path: '/login',      element: <AuthPlaceholder nome="Login" /> },
+  { path: '/',      element: <LoginPage /> },
+  { path: '/login', element: <LoginPage /> },
   { path: '/cadastro',   element: <AuthPlaceholder nome="Cadastro" /> },
   { path: '/onboarding', element: <AuthPlaceholder nome="Onboarding" /> },
 
