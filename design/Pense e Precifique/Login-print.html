@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — Pense &amp; Precifique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font, 'Inter'), -apple-system, BlinkMacSystemFont, sans-serif;
+    background:
+      radial-gradient(1100px 700px at 18% -10%, rgba(42,157,143,0.06), transparent 60%),
+      radial-gradient(900px 600px at 100% 110%, rgba(249,115,22,0.05), transparent 55%),
+      #F8F8F8;
+    color: #2D2A26;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  #root { min-height: 100vh; }
+  :root {
+    --orange: #F97316;
+    --orange-soft: #FFF1E8;
+    --teal: #2A9D8F;
+    --teal-deep: #1F7A6F;
+    --ink: #2D2A26;
+    --muted: #8A8780;
+    --line: #ECEAE5;
+    --r-card: 24px;
+    --r-input: 10px;
+    --r-btn: 10px;
+  }
+  ::placeholder { color: #B7B4AD; }
+  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #fff inset; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes shake {
+    10%,90% { transform: translateX(-1px); }
+    20%,80% { transform: translateX(2px); }
+    30%,50%,70% { transform: translateX(-4px); }
+    40%,60% { transform: translateX(4px); }
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .brand-col { display: flex; }
+  @media (max-width: 760px) {
+    .login-card { grid-template-columns: 1fr !important; }
+    .brand-col { display: none !important; }
+    .mobile-logo { display: flex !important; }
+  }
+  @media (max-width: 760px) {
+    body { background: #F8F8F8; }
+  }
+
+  /* ──────────────  PRINT  ────────────── */
+  @page { size: landscape; margin: 0.6cm; }
+  @media print {
+    html, body, #root {
+      min-height: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      background: #FFFFFF !important;
+    }
+    /* freeze animations at end state */
+    *, *::before, *::after {
+      animation-delay: -99s !important;
+      animation-duration: .001s !important;
+      animation-iteration-count: 1 !important;
+      animation-fill-mode: both !important;
+      animation-play-state: running !important;
+      transition-duration: 0s !important;
+    }
+    /* hide the tweaks panel if present */
+    .tweaks-panel, [data-tweaks-panel], #tweaks-root { display: none !important; }
+    #root > div { min-height: 0 !important; padding: 0 !important; }
+    .login-card {
+      box-shadow: 0 0 0 1px #F0EEE9 !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="login-app.jsx"></script>
+<script type="text/babel">
+  // Auto-print once React has rendered and fonts are ready.
+  (function () {
+    function ready() {
+      var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+      fontsReady.then(function () {
+        // wait for the login card to mount
+        var tries = 0;
+        (function wait() {
+          if (document.querySelector('.login-card') || tries > 40) {
+            setTimeout(function () { window.print(); }, 500);
+          } else {
+            tries++;
+            setTimeout(wait, 100);
+          }
+        })();
+      });
+    }
+    if (document.readyState === 'complete') ready();
+    else window.addEventListener('load', ready);
+  })();
+</script>
+</body>
+</html>

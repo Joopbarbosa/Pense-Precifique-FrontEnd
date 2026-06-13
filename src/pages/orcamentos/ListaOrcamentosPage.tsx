@@ -313,7 +313,7 @@ export default function ListaOrcamentosPage() {
           </div>
 
           {/* TABELA */}
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <div className="q-head">
               {['Número', 'Cliente', 'Total', 'Criação', 'Status', ''].map((h, k) => (
                 <div key={k} style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#B7B4AD' }}>

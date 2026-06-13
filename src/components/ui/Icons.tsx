@@ -315,6 +315,52 @@ export const Icons = {
       <path d="M15 3h6v6M10 14 21 3"/>
     </svg>
   ),
+  back: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" {...sw} {...p}>
+      <path d="M11 6.5 5.5 12 11 17.5M5.5 12H19"/>
+    </svg>
+  ),
+  download: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" {...sw} {...p}>
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>
+    </svg>
+  ),
+  send: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" {...sw} {...p}>
+      <path d="M20 4 3.5 11l6.5 2.5M20 4l-6 16-4-6.5M20 4 10 13.5"/>
+    </svg>
+  ),
+  checkCircle: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="12" cy="12" r="8.5" strokeWidth={1.7}/>
+      <path d="m8.3 12.2 2.5 2.5 4.9-5" strokeWidth={2}/>
+    </svg>
+  ),
+  pix: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" {...sw} {...p}>
+      <path d="M12 3.8 8.6 7.2a2 2 0 0 0 0 2.8L12 13.4l3.4-3.4a2 2 0 0 0 0-2.8L12 3.8Z"/>
+      <path d="M12 20.2 8.6 16.8a2 2 0 0 1 0-2.8L12 10.6l3.4 3.4a2 2 0 0 1 0 2.8L12 20.2Z"/>
+      <path d="M3.8 12 7.2 8.6a2 2 0 0 1 2.8 0M16 8.6 19.4 12l-3.4 3.4"/>
+    </svg>
+  ),
+  bag: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="15" height="15" {...sw} {...p}>
+      <path d="M6 8.5h12l-1 11.5a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8.5Z"/>
+      <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/>
+    </svg>
+  ),
+  sparkles: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" {...sw} {...p}>
+      <path d="M12 3.5 13.6 9 19 10.6 13.6 12.2 12 17.7 10.4 12.2 5 10.6 10.4 9 12 3.5Z"/>
+      <path d="M18.5 15.5l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"/>
+    </svg>
+  ),
+  whats: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="13" height="13" {...sw} {...p}>
+      <path d="M4 20.5 5.4 16a8 8 0 1 1 3.1 3.1L4 20.5Z"/>
+      <path d="M9 9.2c.2-.6.5-.6.8-.6h.6c.2 0 .5 0 .7.5l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.1.2-.2.3 0 .6a6 6 0 0 0 2.6 2.3c.3.1.4 0 .6-.1l.6-.7c.2-.2.4-.2.6-.1l1.5.8c.3.1.4.3.4.5s0 .9-.4 1.3c-.4.4-1.2.8-1.8.8a7 7 0 0 1-5-2.6 6.7 6.7 0 0 1-1.9-3.8c0-.8.3-1.5.5-1.7Z"/>
+    </svg>
+  ),
   save: (p?: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/>

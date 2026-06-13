@@ -5,9 +5,10 @@ import TopBar from './TopBar'
 interface AppLayoutProps {
   active: 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'producao' | 'config'
   children: React.ReactNode
+  noPad?: boolean
 }
 
-export default function AppLayout({ active, children }: AppLayoutProps) {
+export default function AppLayout({ active, children, noPad }: AppLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
@@ -23,9 +24,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
       />
       <div className="main-area">
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
-        <div className="content">
-          {children}
-        </div>
+        {noPad ? children : <div className="content">{children}</div>}
       </div>
     </div>
   )

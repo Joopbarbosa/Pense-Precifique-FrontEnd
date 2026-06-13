@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — Pense & Precifique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font, 'Inter'), -apple-system, BlinkMacSystemFont, sans-serif;
+    background:
+      radial-gradient(1100px 700px at 18% -10%, rgba(42,157,143,0.06), transparent 60%),
+      radial-gradient(900px 600px at 100% 110%, rgba(249,115,22,0.05), transparent 55%),
+      #F8F8F8;
+    color: #2D2A26;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  #root { min-height: 100vh; }
+  :root {
+    --orange: #F97316;
+    --orange-soft: #FFF1E8;
+    --teal: #2A9D8F;
+    --teal-deep: #1F7A6F;
+    --ink: #2D2A26;
+    --muted: #8A8780;
+    --line: #ECEAE5;
+    --r-card: 24px;
+    --r-input: 10px;
+    --r-btn: 10px;
+  }
+  ::placeholder { color: #B7B4AD; }
+  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #fff inset; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes shake {
+    10%,90% { transform: translateX(-1px); }
+    20%,80% { transform: translateX(2px); }
+    30%,50%,70% { transform: translateX(-4px); }
+    40%,60% { transform: translateX(4px); }
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* responsivo: 2 colunas → 1 coluna */
+  .brand-col { display: flex; }
+  @media (max-width: 760px) {
+    .login-card { grid-template-columns: 1fr !important; }
+    .brand-col { display: none !important; }
+    .mobile-logo { display: flex !important; }
+  }
+  @media (max-width: 760px) {
+    body { background: #F8F8F8; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(150deg,#2A9D8F,#1F7A6F);">
+    <svg width="60%" height="60%" viewBox="0 0 100 100" fill="none">
+      <path d="M41 62 C31 60 20 53 20 39 C20 24 32 15 46 15 C52 15 57 17 61 21" stroke="#EAFBF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M59 62 C70 59 73 50 72 41 C71 34 68 30 64 27" stroke="#EAFBF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M47 45 C47 38 40 36 38 41 C36 46 42 48 46 43" stroke="#EAFBF7" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M53 45 C53 38 60 36 62 41 C64 46 58 48 54 43" stroke="#EAFBF7" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M47 45 L46 59" stroke="#EAFBF7" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M53 45 L54 59" stroke="#EAFBF7" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M40 63 L60 63" stroke="#EAFBF7" stroke-width="5" stroke-linecap="round"/>
+      <path d="M43 70 L57 70" stroke="#EAFBF7" stroke-width="5" stroke-linecap="round"/>
+      <path d="M44 76 L56 76 L50 87 Z" stroke="#EAFBF7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="71" cy="18" r="3.4" fill="#FFC9A8"/><circle cx="80" cy="23" r="2.6" fill="#FFC9A8"/>
+      <circle cx="72" cy="30" r="2.4" fill="#FFC9A8"/><circle cx="82" cy="33" r="2" fill="#FFC9A8"/>
+      <circle cx="66" cy="14" r="1.8" fill="#FFC9A8"/>
+    </svg>
+  </div>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="login-app.jsx"></script>
+</body>
+</html>
