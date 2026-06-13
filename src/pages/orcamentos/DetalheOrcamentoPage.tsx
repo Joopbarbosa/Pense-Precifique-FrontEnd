@@ -829,6 +829,8 @@ export default function DetalheOrcamentoPage() {
   const [modalCancel, setModalCancel] = useState(false)
   const cancelaComWizard  = current === 'Em Produção' || current === 'Finalizado'
   const cancelaComEstorno = current === 'Sinal Pago'
+  const sinalRecebido = ['Sinal Pago', 'Em Produção', 'Finalizado', 'Entregue', 'Pago'].includes(current)
+  const sinalAtivado  = ['Aguardando Sinal', 'Sinal Pago', 'Em Produção', 'Finalizado', 'Entregue', 'Pago'].includes(current)
 
   return (
     <AppLayout active="orcamentos">
@@ -947,18 +949,25 @@ export default function DetalheOrcamentoPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 140, padding: '10px 13px', borderRadius: 10, background: 'rgba(42,157,143,0.07)', border: '1px solid rgba(42,157,143,0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', color: '#2A9D8F', whiteSpace: 'nowrap' }}>
-                  <Icons.check /> Sinal recebido
+            {sinalAtivado && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 140, padding: '10px 13px', borderRadius: 10, background: sinalRecebido ? 'rgba(42,157,143,0.07)' : 'rgba(249,115,22,0.07)', border: `1px solid ${sinalRecebido ? 'rgba(42,157,143,0.2)' : 'rgba(249,115,22,0.2)'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', color: sinalRecebido ? '#2A9D8F' : '#B5701F', whiteSpace: 'nowrap' }}>
+                    {sinalRecebido ? <Icons.check /> : <Icons.clock width={12} height={12} />}
+                    {sinalRecebido ? 'Sinal recebido' : 'Sinal aguardado'}
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: sinalRecebido ? '#2A9D8F' : '#B5701F', fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>
+                    {BRL(91.80)}
+                  </div>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{BRL(91.80)}</div>
+                <div style={{ flex: 1, minWidth: 140, padding: '10px 13px', borderRadius: 10, background: '#FCFBF9', border: '1px solid #EFEDE8' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', color: '#A8A49C', whiteSpace: 'nowrap' }}>Restante</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>
+                    {sinalRecebido ? BRL(91.80) : BRL(183.60)}
+                  </div>
+                </div>
               </div>
-              <div style={{ flex: 1, minWidth: 140, padding: '10px 13px', borderRadius: 10, background: '#FCFBF9', border: '1px solid #EFEDE8' }}>
-                <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', color: '#A8A49C', whiteSpace: 'nowrap' }}>Restante</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{BRL(91.80)}</div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
