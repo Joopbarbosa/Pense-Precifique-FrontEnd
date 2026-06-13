@@ -38,7 +38,7 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
   }, [open])
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} style={{ position: 'relative', zIndex: open ? 100 : undefined }}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}
         aria-label="Mais ações"

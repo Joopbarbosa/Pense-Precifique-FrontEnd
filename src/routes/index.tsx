@@ -5,6 +5,7 @@ import LoginPage from '../pages/auth/LoginPage'
 import CadastroPage from '../pages/auth/CadastroPage'
 import OnboardingPage from '../pages/auth/OnboardingPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
+import ClientesPage from '../pages/clientes/ClientesPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -38,7 +39,7 @@ export const router = createBrowserRouter([
   { path: '/onboarding', element: <OnboardingPage /> },
 
   { path: '/dashboard',           element: <DashboardPage /> },
-  { path: '/clientes',            element: <Placeholder nome="Clientes" active="clientes" /> },
+  { path: '/clientes',            element: <ClientesPage /> },
   { path: '/orcamentos',          element: <Placeholder nome="Lista de Orçamentos" active="orcamentos" /> },
   { path: '/orcamentos/novo',     element: <Placeholder nome="Criar Orçamento" active="orcamentos" /> },
   { path: '/orcamentos/:id',      element: <Placeholder nome="Detalhe do Orçamento" active="orcamentos" /> },

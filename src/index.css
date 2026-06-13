@@ -181,6 +181,41 @@ body {
   .mobile-logo { display: flex !important; }
 }
 
+.client-head, .client-row {
+  display: grid;
+  grid-template-columns: 1.8fr 1.1fr 1.3fr 46px;
+  gap: 16px;
+  align-items: center;
+}
+.cell-label { display: none; }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@media (max-width: 720px) {
+  .client-head { display: none; }
+  .client-row {
+    display: block;
+    background: #fff;
+    border: 1px solid #F0EEE9;
+    border-radius: var(--r-card);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .cell-label {
+    display: inline;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #B7B4AD;
+    margin-right: 6px;
+  }
+}
+
 /* TopBar — apenas mobile */
 .mobile-topbar {
   display: flex;

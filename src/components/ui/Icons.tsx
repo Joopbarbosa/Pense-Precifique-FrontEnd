@@ -266,6 +266,28 @@ export const Icons = {
       <circle cx="12" cy="17.4" r=".4" fill="currentColor" stroke="none"/>
     </svg>
   ),
+  phone: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M6.6 4.5c.3.8.8 1.6 1.3 2.4L6.5 8.3a10.5 10.5 0 0 0 5.2 5.2l1.4-1.4c.8.5 1.6 1 2.4 1.3v3A1.5 1.5 0 0 1 14 18C8.4 18 4 13.6 4 8a1.5 1.5 0 0 1 1.5-1.5h1.1z"/>
+    </svg>
+  ),
+  user: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20a8 8 0 0 1 16 0"/>
+    </svg>
+  ),
+  list: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+    </svg>
+  ),
+  refresh: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 12a9 9 0 0 1-15 6.7L3 16"/>
+      <path d="M21 4v4h-4M3 20v-4h4"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons
