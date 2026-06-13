@@ -456,6 +456,9 @@ function PagamentoSection({
   tipo, setTipo,
   valor, setValor,
   sinalAplicado, restante,
+  prazoDias, setPrazoDias,
+  inicioImediato, setInicioImediato,
+  dataInicioEstimada, setDataInicioEstimada,
 }: {
   metodoPagamento: string
   setMetodoPagamento: (v: string) => void
@@ -469,8 +472,16 @@ function PagamentoSection({
   setValor: (v: string) => void
   sinalAplicado: number
   restante: number
+  prazoDias: string
+  setPrazoDias: (v: string) => void
+  inicioImediato: boolean
+  setInicioImediato: (v: boolean) => void
+  dataInicioEstimada: string
+  setDataInicioEstimada: (v: string) => void
 }) {
   const [focus, setFocus] = useState<string | null>(null)
+  const [prazoDiasFocus, setPrazoDiasFocus] = useState(false)
+  const [dataInicioFocus, setDataInicioFocus] = useState(false)
   const obsCharCount = metodoPagamentoObs.length
   const obsValida = metodoPagamento !== 'outro' || obsCharCount >= 50
 
@@ -545,6 +556,105 @@ function PagamentoSection({
             </label>
           </div>
         )}
+      </div>
+
+      {/* DIVISOR */}
+      <div style={{ height: 1, background: '#EFEDE8' }} />
+
+      {/* PRAZO DE PRODUÇÃO */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <span style={{ display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+            <Icons.clock2 />
+          </span>
+          <div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Prazo de produção</div>
+            <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 1 }}>Quantos dias úteis para finalizar este pedido.</div>
+          </div>
+        </div>
+
+        {/* Campo de dias */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ position: 'relative', width: 120 }}>
+            <input
+              type="number"
+              min={1}
+              value={prazoDias}
+              onChange={e => setPrazoDias(e.target.value.replace(/[^0-9]/g, ''))}
+              onFocus={() => setPrazoDiasFocus(true)}
+              onBlur={() => setPrazoDiasFocus(false)}
+              placeholder="Ex: 10"
+              style={{
+                width: '100%', height: 46, padding: '0 14px',
+                border: `1.5px solid ${prazoDiasFocus ? '#2A9D8F' : '#EFEDE8'}`,
+                borderRadius: 10, fontSize: 16, fontWeight: 600, color: '#3A372F',
+                background: '#fff', outline: 'none', fontFamily: 'inherit',
+                boxShadow: prazoDiasFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+                transition: 'border-color .15s',
+              }}
+            />
+          </div>
+          <span style={{ fontSize: 14, color: '#5C594F', fontWeight: 500, whiteSpace: 'nowrap' }}>
+            dias úteis
+          </span>
+        </div>
+
+        {/* Início estimado */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => setInicioImediato(!inicioImediato)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', padding: 0, textAlign: 'left',
+            }}
+          >
+            <span style={{
+              width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+              border: `2px solid ${inicioImediato ? '#2A9D8F' : '#D4D0C8'}`,
+              background: inicioImediato ? '#2A9D8F' : 'transparent',
+              display: 'grid', placeItems: 'center', transition: 'all .14s',
+            }}>
+              {inicioImediato && (
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m4 12.5 4.2 4.2L19 7"/>
+                </svg>
+              )}
+            </span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>Início assim que aprovado</div>
+              <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 1 }}>A produção começa logo após a aprovação do cliente.</div>
+            </div>
+          </button>
+
+          {!inicioImediato && (
+            <div style={{ animation: 'fadeUp .2s ease both', paddingLeft: 32 }}>
+              <label style={{ display: 'block' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
+                  <Icons.calendar style={{ color: '#2A9D8F' }} /> Data estimada de início
+                </span>
+                <input
+                  type="date"
+                  value={dataInicioEstimada}
+                  onChange={e => setDataInicioEstimada(e.target.value)}
+                  onFocus={() => setDataInicioFocus(true)}
+                  onBlur={() => setDataInicioFocus(false)}
+                  style={{
+                    width: '100%', height: 46, padding: '0 14px',
+                    border: `1.5px solid ${dataInicioFocus ? '#2A9D8F' : '#EFEDE8'}`,
+                    borderRadius: 10, fontSize: 14.5, color: '#3A372F',
+                    background: '#fff', outline: 'none', fontFamily: 'inherit',
+                    boxShadow: dataInicioFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+                  }}
+                />
+              </label>
+              <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#A29E96' }}>
+                Informe quando você estima começar a produção deste pedido.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* DIVISOR */}
@@ -769,6 +879,9 @@ export default function CriarOrcamentoPage() {
   const [descValor, setDescValor] = useState('10')
   const [metodoPagamento, setMetodoPagamento] = useState('pix')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
+  const [prazoDias, setPrazoDias] = useState('')
+  const [inicioImediato, setInicioImediato] = useState(true)
+  const [dataInicioEstimada, setDataInicioEstimada] = useState('')
   const [sinalAtivo, setSinalAtivo] = useState(true)
   const [sinalTipo, setSinalTipo] = useState<'%' | 'R$'>('%')
   const [sinalValor, setSinalValor] = useState('50')
@@ -903,6 +1016,9 @@ export default function CriarOrcamentoPage() {
               tipo={sinalTipo} setTipo={setSinalTipo}
               valor={sinalValor} setValor={setSinalValor}
               sinalAplicado={sinalAplicado} restante={restante}
+              prazoDias={prazoDias} setPrazoDias={setPrazoDias}
+              inicioImediato={inicioImediato} setInicioImediato={setInicioImediato}
+              dataInicioEstimada={dataInicioEstimada} setDataInicioEstimada={setDataInicioEstimada}
             />
           </QuoteCard>
 

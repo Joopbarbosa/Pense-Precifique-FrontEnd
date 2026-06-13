@@ -121,6 +121,12 @@ export const Icons = {
       <path d="M12 7.5V12l3 1.8"/>
     </svg>
   ),
+  clock2: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <circle cx="12" cy="12" r="8.5"/>
+      <path d="M12 7.5V12l3 2"/>
+    </svg>
+  ),
   tag: (p?: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="17" height="17" {...sw} {...p}>
       <path d="M3.5 11.5 11 4h7.5v7.5L11 19a1.4 1.4 0 0 1-2 0l-5.5-5.5a1.4 1.4 0 0 1 0-2Z"/>
