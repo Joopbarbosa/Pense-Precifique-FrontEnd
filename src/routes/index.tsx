@@ -9,6 +9,8 @@ import ClientesPage from '../pages/clientes/ClientesPage'
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
 import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
+import PreviewPdfPage from '../pages/orcamentos/PreviewPdfPage'
+import ReciboSinalPage from '../pages/orcamentos/ReciboSinalPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -46,6 +48,8 @@ export const router = createBrowserRouter([
   { path: '/orcamentos',          element: <ListaOrcamentosPage /> },
   { path: '/orcamentos/novo',     element: <CriarOrcamentoPage /> },
   { path: '/orcamentos/:id',      element: <DetalheOrcamentoPage /> },
+  { path: '/orcamentos/:id/preview', element: <PreviewPdfPage /> },
+  { path: '/orcamentos/:id/recibo-sinal', element: <ReciboSinalPage /> },
   { path: '/insumos',             element: <Placeholder nome="Lista de Insumos" active="insumos" /> },
   { path: '/insumos/novo',        element: <Placeholder nome="Cadastrar Insumo" active="insumos" /> },
   { path: '/insumos/:id',         element: <Placeholder nome="Detalhe do Insumo" active="insumos" /> },
