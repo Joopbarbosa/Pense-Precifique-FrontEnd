@@ -34,6 +34,12 @@ const ITENS = [
   { nome: 'Etiqueta personalizada', custom: '—', qtd: 10, unit: 4.5, total: 45 },
 ]
 
+const PRAZO = {
+  dias: 10,
+  inicioImediato: true,
+  dataInicioEstimada: '',
+}
+
 const TEAL = '#2A9D8F'
 const ORANGE = '#F97316'
 
@@ -66,12 +72,21 @@ function DocumentoPDF({ sinal }: { sinal: boolean }) {
       </div>
 
       {/* META + CLIENTE */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '22px 0', borderBottom: '1px solid #F0EEE9' }}>
+      <div className="a4-meta-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '22px 0', borderBottom: '1px solid #F0EEE9' }}>
         <div>
           <Label>Datas</Label>
           <div style={{ fontSize: 13, color: '#3A372F', lineHeight: 1.7 }}>
             <div>Emissão: <strong style={{ fontWeight: 600 }}>{ORCAMENTO.emissao}</strong></div>
             <div>Validade: <strong style={{ fontWeight: 600 }}>{ORCAMENTO.validade}</strong></div>
+          </div>
+        </div>
+        <div>
+          <Label>Prazo de produção</Label>
+          <div style={{ fontSize: 13, color: '#3A372F', lineHeight: 1.7 }}>
+            <div style={{ fontWeight: 600, color: TEAL, fontSize: 14 }}>{PRAZO.dias} dias úteis</div>
+            <div style={{ color: '#7C786F', marginTop: 2 }}>
+              Início: {PRAZO.inicioImediato ? 'Assim que aprovado' : PRAZO.dataInicioEstimada}
+            </div>
           </div>
         </div>
         <div>

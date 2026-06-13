@@ -392,3 +392,9 @@ body:has(.drawer-open) {
     min-height: 0;
   }
 }
+
+@media (max-width: 600px) {
+  .a4-meta-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
