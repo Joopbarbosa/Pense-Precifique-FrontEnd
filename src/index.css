@@ -234,3 +234,7 @@ body {
     display: none;
   }
 }
+
+body:has(.drawer-open) {
+  overflow: hidden;
+}

@@ -116,7 +116,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           gap: 8,
           whiteSpace: 'nowrap',
           transition: 'filter .15s, transform .12s, background .15s',
-          flexShrink: 0,
+          flexShrink: fullWidth ? 1 : 0,
           width: fullWidth ? '100%' : undefined,
           opacity: disabled ? 0.5 : 1,
           ...dynamicStyle,

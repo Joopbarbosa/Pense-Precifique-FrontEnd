@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, Input } from '../../components/ui'
 import { Icons } from '../../components/ui/Icons'
@@ -132,6 +132,11 @@ function NovaClienteDrawer({ onClose, editData }: {
   const isEdit = !!editData
   const [form, setForm] = useState(editData ?? { nome: '', whats: '', email: '', obs: '', orc: null, data: null })
 
+  useEffect(() => {
+    document.body.classList.add('drawer-open')
+    return () => document.body.classList.remove('drawer-open')
+  }, [])
+
   const maskPhone = (v: string) => {
     const d = v.replace(/\D/g, '').slice(0, 11)
     if (d.length <= 2) return `(${d}`
@@ -141,16 +146,15 @@ function NovaClienteDrawer({ onClose, editData }: {
 
   return (
     <>
-      {/* Overlay */}
       <div onClick={onClose} style={{
         position: 'fixed', inset: 0, zIndex: 80,
         background: 'rgba(20,18,16,0.34)', animation: 'fadeIn .2s ease both',
       }} />
 
-      {/* Drawer */}
       <div style={{
-        position: 'fixed', zIndex: 90, top: 0, right: 0,
-        height: '100vh', width: 'min(440px, 100%)',
+        position: 'fixed', zIndex: 90,
+        top: 0, right: 0, bottom: 0,
+        left: 'max(0px, calc(100vw - 440px))',
         background: '#fff', display: 'flex', flexDirection: 'column',
         boxShadow: '-12px 0 40px -12px rgba(0,0,0,0.22)',
         animation: 'slideInRight .3s cubic-bezier(.4,0,.2,1) both',
@@ -158,7 +162,7 @@ function NovaClienteDrawer({ onClose, editData }: {
 
         {/* Header teal */}
         <div style={{
-          position: 'relative', overflow: 'hidden', padding: '24px 26px',
+          flexShrink: 0, position: 'relative', overflow: 'hidden', padding: '24px 26px',
           background: 'linear-gradient(150deg, #2A9D8F 0%, rgba(42,157,143,0.92) 70%, #1F7A6F 100%)',
           color: '#fff',
         }}>
@@ -169,7 +173,7 @@ function NovaClienteDrawer({ onClose, editData }: {
                 background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)',
                 fontWeight: 700, fontSize: 17,
               }}>
-                {isEdit ? form.nome.trim().charAt(0).toUpperCase() || '?' : <Icons.user />}
+                {isEdit ? (form.nome.trim().charAt(0).toUpperCase() || '?') : <Icons.user />}
               </span>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>
@@ -190,10 +194,8 @@ function NovaClienteDrawer({ onClose, editData }: {
           </div>
         </div>
 
-        {/* Body */}
+        {/* Body scrollável */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-
-          {/* Campo Nome */}
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
               <Icons.user width={14} height={14} /> Nome completo <span style={{ color: '#F97316' }}>*</span>
@@ -201,7 +203,6 @@ function NovaClienteDrawer({ onClose, editData }: {
             <Input label="" type="text" placeholder="Beatriz Santos" value={form.nome} onChange={(v) => setForm(f => ({ ...f, nome: v }))} />
           </div>
 
-          {/* Campo WhatsApp */}
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
               <Icons.phone /> WhatsApp <span style={{ color: '#F97316' }}>*</span>
@@ -211,7 +212,6 @@ function NovaClienteDrawer({ onClose, editData }: {
             <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#A29E96' }}>Usado para enviar orçamentos diretamente.</p>
           </div>
 
-          {/* Campo E-mail */}
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
               <Icons.mail width={14} height={14} /> E-mail <span style={{ fontSize: 12, color: '#A29E96', fontWeight: 400 }}>opcional</span>
@@ -219,7 +219,6 @@ function NovaClienteDrawer({ onClose, editData }: {
             <Input label="" type="email" placeholder="beatriz@email.com" value={form.email} onChange={(v) => setForm(f => ({ ...f, email: v }))} />
           </div>
 
-          {/* Campo Observações */}
           <div>
             <label style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7, display: 'block' }}>
               Observações
@@ -233,18 +232,24 @@ function NovaClienteDrawer({ onClose, editData }: {
                 border: '1.5px solid #EFEDE8', borderRadius: 10,
                 fontSize: 15, color: '#3A372F', background: '#fff',
                 outline: 'none', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.5,
+                boxSizing: 'border-box',
               }}
             />
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 10 }}>
+        {/* Footer fixo */}
+        <div style={{
+          flexShrink: 0, padding: '16px 24px',
+          borderTop: '1px solid #EFEDE8',
+          display: 'flex', gap: 10, background: '#fff',
+        }}>
           <Button variant="ghost" onClick={onClose} fullWidth>Cancelar</Button>
           <Button variant="primary" onClick={onClose} fullWidth>
             {isEdit ? 'Salvar alterações' : 'Adicionar cliente'}
           </Button>
         </div>
+
       </div>
     </>
   )
