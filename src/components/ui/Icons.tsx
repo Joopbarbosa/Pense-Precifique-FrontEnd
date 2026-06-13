@@ -288,6 +288,23 @@ export const Icons = {
       <path d="M21 4v4h-4M3 20v-4h4"/>
     </svg>
   ),
+  filter: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 6h16M7 12h10M10 18h4"/>
+    </svg>
+  ),
+  calendar: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="3" y="4" width="18" height="18" rx="3"/>
+      <path d="M16 2v4M8 2v4M3 10h18"/>
+    </svg>
+  ),
+  externalLink: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+      <path d="M15 3h6v6M10 14 21 3"/>
+    </svg>
+  ),
 }
 
 export type IconName = keyof typeof Icons

@@ -238,3 +238,32 @@ body {
 body:has(.drawer-open) {
   overflow: hidden;
 }
+
+.q-head {
+  display: grid;
+  grid-template-columns: 92px 1.4fr 1fr 1.1fr 1.2fr 44px;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 18px;
+  border-bottom: 1px solid #EFEDE8;
+}
+
+.q-row {
+  display: grid;
+  grid-template-columns: 92px 1.4fr 1fr 1.1fr 1.2fr 44px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #EFEDE8;
+  transition: background .12s;
+}
+
+.q-row:last-child { border-bottom: none; }
+.q-row:hover { background: #FCFBF9; }
+.q-card-mobile { display: none; }
+
+@media (max-width: 680px) {
+  .q-head { display: none; }
+  .q-row { display: none; }
+  .q-card-mobile { display: block; }
+}
