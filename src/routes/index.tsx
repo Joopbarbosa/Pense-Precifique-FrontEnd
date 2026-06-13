@@ -7,6 +7,8 @@ import OnboardingPage from '../pages/auth/OnboardingPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
 import ClientesPage from '../pages/clientes/ClientesPage'
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
+import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
+import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -42,8 +44,8 @@ export const router = createBrowserRouter([
   { path: '/dashboard',           element: <DashboardPage /> },
   { path: '/clientes',            element: <ClientesPage /> },
   { path: '/orcamentos',          element: <ListaOrcamentosPage /> },
-  { path: '/orcamentos/novo',     element: <Placeholder nome="Criar Orçamento" active="orcamentos" /> },
-  { path: '/orcamentos/:id',      element: <Placeholder nome="Detalhe do Orçamento" active="orcamentos" /> },
+  { path: '/orcamentos/novo',     element: <CriarOrcamentoPage /> },
+  { path: '/orcamentos/:id',      element: <DetalheOrcamentoPage /> },
   { path: '/insumos',             element: <Placeholder nome="Lista de Insumos" active="insumos" /> },
   { path: '/insumos/novo',        element: <Placeholder nome="Cadastrar Insumo" active="insumos" /> },
   { path: '/insumos/:id',         element: <Placeholder nome="Detalhe do Insumo" active="insumos" /> },
