@@ -11,6 +11,7 @@ import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
 import PreviewPdfPage from '../pages/orcamentos/PreviewPdfPage'
 import ReciboSinalPage from '../pages/orcamentos/ReciboSinalPage'
+import PreviewMultaPage from '../pages/orcamentos/PreviewMultaPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
   { path: '/orcamentos/:id',      element: <DetalheOrcamentoPage /> },
   { path: '/orcamentos/:id/preview', element: <PreviewPdfPage /> },
   { path: '/orcamentos/:id/recibo-sinal', element: <ReciboSinalPage /> },
+  { path: '/orcamentos/:id/multa', element: <PreviewMultaPage /> },
   { path: '/insumos',             element: <Placeholder nome="Lista de Insumos" active="insumos" /> },
   { path: '/insumos/novo',        element: <Placeholder nome="Cadastrar Insumo" active="insumos" /> },
   { path: '/insumos/:id',         element: <Placeholder nome="Detalhe do Insumo" active="insumos" /> },
