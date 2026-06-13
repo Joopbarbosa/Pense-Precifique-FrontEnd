@@ -28,6 +28,16 @@ const INSUMOS_BAIXA = [
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
+const METODOS_PAGAMENTO = [
+  { id: 'pix',           label: 'Pix' },
+  { id: 'dinheiro',      label: 'Dinheiro' },
+  { id: 'credito',       label: 'Crédito' },
+  { id: 'debito',        label: 'Débito' },
+  { id: 'transferencia', label: 'Transferência' },
+  { id: 'boleto',        label: 'Boleto Bancário' },
+  { id: 'outro',         label: 'Outro' },
+]
+
 const CATALOGO_CANCEL = [
   'Papel couchê 180g',
   'Fita dupla face 12mm',
@@ -185,10 +195,14 @@ function ModalFinalizacao({ onClose }: { onClose: () => void }) {
 // ─── ModalSinal ───────────────────────────────────────────────────────────────
 
 function ModalSinal({ onClose }: { onClose: () => void }) {
-  const [forma, setForma] = useState('PIX')
-  const [data,  setData]  = useState('2026-06-05')
-  const [focus, setFocus] = useState(false)
-  const formas = ['PIX', 'Dinheiro', 'Cartão', 'Outro']
+  const [forma, setForma] = useState('pix')
+  const [formaObs, setFormaObs] = useState('')
+  const [data, setData] = useState('2026-06-05')
+  const [focus, setFocus] = useState<string | null>(null)
+
+  const obsCharCount = formaObs.length
+  const obsValida = forma !== 'outro' || obsCharCount >= 50
+  const podeConfirmar = obsValida
 
   return (
     <ModalShell
@@ -202,35 +216,77 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={onClose}>Confirmar e gerar recibo →</Button>
+          <Button variant="primary" disabled={!podeConfirmar} onClick={onClose}>
+            Confirmar e gerar recibo →
+          </Button>
         </>
       }
     >
       {/* Valor esperado */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.07)', border: '1px solid rgba(42,157,143,0.2)', marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.07)', border: '1px solid rgba(42,157,143,0.2)', marginBottom: 20 }}>
         <span style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F' }}>Valor esperado</span>
         <span style={{ fontSize: 20, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums' }}>
           {BRL(91.8)} <span style={{ fontSize: 13, fontWeight: 600, color: '#A29E96' }}>(50%)</span>
         </span>
       </div>
 
-      {/* Forma de pagamento */}
+      {/* Forma de pagamento — chips */}
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 9 }}>Forma de pagamento</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {formas.map(fp => {
-            const on = forma === fp
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 9 }}>
+          Forma de pagamento recebida
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {METODOS_PAGAMENTO.map(m => {
+            const on = forma === m.id
             return (
-              <button key={fp} onClick={() => setForma(fp)} style={{
-                flex: '1 1 100px', height: 44, borderRadius: 10, cursor: 'pointer',
-                fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
+              <button key={m.id} onClick={() => setForma(m.id)} style={{
+                height: 38, padding: '0 14px', borderRadius: 999, cursor: 'pointer',
+                fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit',
                 border: `1.5px solid ${on ? '#2A9D8F' : '#EFEDE8'}`,
-                background: on ? 'rgba(42,157,143,0.08)' : '#fff',
-                color: on ? '#2A9D8F' : '#5C594F', transition: 'all .14s',
-              }}>{fp}</button>
+                background: on ? '#2A9D8F' : '#fff',
+                color: on ? '#fff' : '#5C594F',
+                transition: 'all .14s',
+              }}
+                onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#FAF8F5' }}
+                onMouseLeave={e => { if (!on) e.currentTarget.style.background = '#fff' }}
+              >
+                {m.label}
+              </button>
             )
           })}
         </div>
+
+        {forma === 'outro' && (
+          <div style={{ marginTop: 12, animation: 'fadeUp .2s ease both' }}>
+            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
+              <span>Descreva a forma de pagamento <span style={{ color: '#F97316' }}>*</span></span>
+              <span style={{ fontWeight: 400, color: obsCharCount >= 50 ? '#3E9D5A' : '#A29E96' }}>
+                {obsCharCount}/50 mín.
+              </span>
+            </span>
+            <textarea
+              value={formaObs}
+              onChange={e => setFormaObs(e.target.value)}
+              onFocus={() => setFocus('obs')}
+              onBlur={() => setFocus(null)}
+              placeholder="Ex: cheque à vista, app de pagamento..."
+              rows={2}
+              style={{
+                width: '100%', padding: '10px 14px',
+                border: `1.5px solid ${focus === 'obs' ? '#2A9D8F' : obsCharCount > 0 && obsCharCount < 50 ? '#F2B8A6' : '#EFEDE8'}`,
+                borderRadius: 10, fontSize: 13.5, color: '#3A372F',
+                background: '#fff', outline: 'none', fontFamily: 'inherit',
+                resize: 'none', lineHeight: 1.5, boxSizing: 'border-box',
+                boxShadow: focus === 'obs' ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+              }}
+            />
+            {obsCharCount > 0 && obsCharCount < 50 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, fontSize: 12.5, color: '#C0492B' }}>
+                <Icons.alertCircle width={13} height={13} /> Mínimo de 50 caracteres. Faltam {50 - obsCharCount}.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Data */}
@@ -239,17 +295,16 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
           <Icons.calendar style={{ color: '#2A9D8F' }} /> Data do recebimento
         </span>
         <input
-          type="date"
-          value={data}
+          type="date" value={data}
           onChange={e => setData(e.target.value)}
-          onFocus={() => setFocus(true)}
-          onBlur={() => setFocus(false)}
+          onFocus={() => setFocus('d')}
+          onBlur={() => setFocus(null)}
           style={{
             width: '100%', height: 46, padding: '0 14px',
-            border: `1.5px solid ${focus ? '#2A9D8F' : '#EFEDE8'}`,
+            border: `1.5px solid ${focus === 'd' ? '#2A9D8F' : '#EFEDE8'}`,
             borderRadius: 10, fontSize: 14.5, color: '#3A372F',
             background: '#fff', outline: 'none', fontFamily: 'inherit',
-            boxShadow: focus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+            boxShadow: focus === 'd' ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
           }}
         />
       </label>
@@ -258,7 +313,7 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
       <div style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)' }}>
         <Icons.receipt style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
         <p style={{ margin: 0, fontSize: 12.5, color: '#5C594F', lineHeight: 1.55 }}>
-          Após confirmar, o sistema avançará para <strong style={{ fontWeight: 600, color: '#3A372F' }}>Em Produção</strong> e gerará o recibo do sinal.
+          Após confirmar, o sistema avançará para <strong style={{ fontWeight: 600, color: '#3A372F' }}>Em Produção</strong> e gerará o recibo do sinal com a forma de pagamento registrada.
         </p>
       </div>
     </ModalShell>
@@ -722,9 +777,6 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                   <div style={{ fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', wordBreak: 'break-word' }}>
                     {BRL(valorSinal)}
                   </div>
-                  <div style={{ marginTop: 10, fontSize: 13.5, color: 'rgba(255,255,255,0.88)' }}>
-                    {nomeCliente} · {dataEstorno.split('-').reverse().join('/')}
-                  </div>
                 </div>
               </div>
 
@@ -769,7 +821,7 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function DetalheOrcamentoPage() {
-  const current = 'Sinal Pago'
+  const current = 'Aguardando Sinal'
   const idx  = STEPS.indexOf(current as StatusOrcamento)
   const next = STEPS[idx + 1]
   const meta = STATUS_META[current]
@@ -825,7 +877,11 @@ export default function DetalheOrcamentoPage() {
             <Icons.ban width={15} height={15} /> Cancelar orçamento
           </button>
 
-          <Button variant="primary" size="lg" iconRight={<Icons.arrowRight />} onClick={() => setModal('finalizacao')}>
+          <Button variant="primary" size="lg" iconRight={<Icons.arrowRight />} onClick={() => {
+            if (current === 'Aguardando Sinal') setModal('sinal')
+            else if (current === 'Em Produção' || current === 'Finalizado') setModal('finalizacao')
+            else setModal('finalizacao')
+          }}>
             Avançar para: {next}
           </Button>
         </div>
