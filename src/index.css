@@ -333,6 +333,7 @@ body:has(.drawer-open) {
   flex: 1;
   overflow: auto;
   padding: 28px 36px 56px;
+  background: #EDECEA;
 }
 
 .doc-wrap {
