@@ -712,14 +712,14 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                 padding: '20px 22px',
                 color: '#fff',
                 position: 'relative',
-                overflow: 'hidden',
+                minHeight: 110,
               }}>
                 <div style={{ position: 'absolute', width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', top: -40, right: -30, pointerEvents: 'none' }} />
                 <div style={{ position: 'relative' }}>
                   <div style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
                     Recibo de Estorno
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>
+                  <div style={{ fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', wordBreak: 'break-word' }}>
                     {BRL(valorSinal)}
                   </div>
                   <div style={{ marginTop: 10, fontSize: 13.5, color: 'rgba(255,255,255,0.88)' }}>
