@@ -347,16 +347,8 @@ function CancelarProducaoModal({ prod, onClose, onConfirm }: { prod: ProducaoHis
 
 /* ── ProducaoDetalhe ────────────────────────────────────────── */
 
-function ProducaoDetalhe({ prod, onBack, onCancelar }: { prod: ProducaoHist; onBack: () => void; onCancelar: (motivo: string) => void }) {
-  const [modalCancelar, setModalCancelar] = useState(false)
+function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoHist; onBack: () => void }) {
   const cancelada = prod.status === 'cancelada'
-
-  const menuItems: ActionMenuItem[] = cancelada
-    ? [{ label: 'Ver detalhes', icon: <Icons.eye />, onClick: () => {} }]
-    : [
-        { label: 'Ver detalhes', icon: <Icons.eye />, onClick: () => {} },
-        { label: 'Desativar', icon: <Icons.power />, onClick: () => setModalCancelar(true), danger: true, dividerBefore: true },
-      ]
 
   return (
     <div style={{ animation: 'fadeUp .35s ease both' }}>
@@ -367,7 +359,6 @@ function ProducaoDetalhe({ prod, onBack, onCancelar }: { prod: ProducaoHist; onB
         >
           <span style={{ display: 'flex', transform: 'rotate(180deg)' }}><Icons.chevron /></span> Voltar para Produção
         </button>
-        <ActionMenu items={menuItems} align="right" />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22, flexWrap: 'wrap' }}>
@@ -430,13 +421,6 @@ function ProducaoDetalhe({ prod, onBack, onCancelar }: { prod: ProducaoHist; onB
         ))}
       </div>
 
-      {modalCancelar && (
-        <CancelarProducaoModal
-          prod={prod}
-          onClose={() => setModalCancelar(false)}
-          onConfirm={motivo => { onCancelar(motivo); setModalCancelar(false) }}
-        />
-      )}
     </div>
   )
 }
@@ -456,14 +440,6 @@ export default function RegistroProducaoPage() {
 
   const detalhe = numero ? (historico.find(h => h.num === Number(numero)) ?? null) : null
 
-  const cancelarProducao = (motivo: string) => {
-    if (!detalhe) return
-    mockHistorico = mockHistorico.map(h =>
-      h.num === detalhe.num ? { ...h, status: 'cancelada' as const, motivoCancelamento: motivo } : h
-    )
-    setHistorico([...mockHistorico])
-  }
-
   const menuItemsLinha = (h: ProducaoHist): ActionMenuItem[] =>
     h.status === 'cancelada'
       ? [{ label: 'Ver detalhes', icon: <Icons.eye />, onClick: () => navigate(`/producao/${h.num}`) }]
@@ -479,7 +455,7 @@ export default function RegistroProducaoPage() {
   if (detalhe) {
     return (
       <AppLayout active="producao">
-        <ProducaoDetalhe prod={detalhe} onBack={() => navigate('/producao')} onCancelar={cancelarProducao} />
+        <ProducaoDetalhe prod={detalhe} onBack={() => navigate('/producao')} />
       </AppLayout>
     )
   }
@@ -526,7 +502,7 @@ export default function RegistroProducaoPage() {
         <h2 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: '#5C594F', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Histórico de produções</h2>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
         <div className="prod-head">
           {['Data', 'Produto', 'Quantidade', 'Insumos consumidos', ''].map((h, k) => (
             <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C', textAlign: k === 4 ? 'right' : 'left' }}>{h}</div>
