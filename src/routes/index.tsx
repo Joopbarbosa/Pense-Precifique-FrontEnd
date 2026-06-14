@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import ProtectedRoute from '../components/shared/ProtectedRoute'
 import LoginPage from '../pages/auth/LoginPage'
 import CadastroPage from '../pages/auth/CadastroPage'
 import OnboardingPage from '../pages/auth/OnboardingPage'
@@ -21,29 +22,42 @@ import RegistroProducaoPage from '../pages/producao/RegistroProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 
 export const router = createBrowserRouter([
-  { path: '/',      element: <LoginPage /> },
-  { path: '/login', element: <LoginPage /> },
-  { path: '/cadastro',   element: <CadastroPage /> },
-  { path: '/onboarding', element: <OnboardingPage /> },
+  // Rotas públicas
+  { path: '/',         element: <LoginPage /> },
+  { path: '/login',    element: <LoginPage /> },
+  { path: '/cadastro', element: <CadastroPage /> },
 
-  { path: '/dashboard',           element: <DashboardPage /> },
-  { path: '/clientes',            element: <ClientesPage /> },
-  { path: '/orcamentos',          element: <ListaOrcamentosPage /> },
-  { path: '/orcamentos/novo',     element: <CriarOrcamentoPage /> },
-  { path: '/orcamentos/:id',      element: <DetalheOrcamentoPage /> },
-  { path: '/orcamentos/:id/preview', element: <PreviewPdfPage /> },
-  { path: '/orcamentos/:id/recibo-sinal', element: <ReciboSinalPage /> },
-  { path: '/orcamentos/:id/multa', element: <PreviewMultaPage /> },
-  { path: '/orcamentos/:id/recibo-pagamento', element: <ReciboPagamentoPage /> },
-  { path: '/insumos',             element: <ListaInsumosPage /> },
-  { path: '/insumos/novo',        element: <FormInsumoPage /> },
-  { path: '/insumos/:id/editar',  element: <FormInsumoPage /> },
-  { path: '/insumos/:id',         element: <DetalheInsumoPage /> },
-  { path: '/produtos',            element: <ListaProdutosPage /> },
-  { path: '/produtos/novo',       element: <CadastrarProdutoPage /> },
-  { path: '/produtos/:id/editar', element: <CadastrarProdutoPage /> },
-  { path: '/produtos/:id',        element: <DetalheProdutoPage /> },
-  { path: '/producao',            element: <RegistroProducaoPage /> },
-  { path: '/producao/:numero',    element: <RegistroProducaoPage /> },
-  { path: '/configuracoes',       element: <ConfiguracoesPage /> },
+  // Rotas protegidas — exigem autenticação
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: '/onboarding', element: <OnboardingPage /> },
+
+      { path: '/dashboard',  element: <DashboardPage /> },
+      { path: '/clientes',   element: <ClientesPage /> },
+
+      { path: '/orcamentos',                          element: <ListaOrcamentosPage /> },
+      { path: '/orcamentos/novo',                     element: <CriarOrcamentoPage /> },
+      { path: '/orcamentos/:id',                      element: <DetalheOrcamentoPage /> },
+      { path: '/orcamentos/:id/preview',              element: <PreviewPdfPage /> },
+      { path: '/orcamentos/:id/recibo-sinal',         element: <ReciboSinalPage /> },
+      { path: '/orcamentos/:id/multa',                element: <PreviewMultaPage /> },
+      { path: '/orcamentos/:id/recibo-pagamento',     element: <ReciboPagamentoPage /> },
+
+      { path: '/insumos',              element: <ListaInsumosPage /> },
+      { path: '/insumos/novo',         element: <FormInsumoPage /> },
+      { path: '/insumos/:id/editar',   element: <FormInsumoPage /> },
+      { path: '/insumos/:id',          element: <DetalheInsumoPage /> },
+
+      { path: '/produtos',             element: <ListaProdutosPage /> },
+      { path: '/produtos/novo',        element: <CadastrarProdutoPage /> },
+      { path: '/produtos/:id/editar',  element: <CadastrarProdutoPage /> },
+      { path: '/produtos/:id',         element: <DetalheProdutoPage /> },
+
+      { path: '/producao',             element: <RegistroProducaoPage /> },
+      { path: '/producao/:numero',     element: <RegistroProducaoPage /> },
+
+      { path: '/configuracoes',        element: <ConfiguracoesPage /> },
+    ],
+  },
 ])

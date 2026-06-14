@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Logo, Wordmark, Icons, Button, Input, Spinner } from '../../components/ui'
 import { authService } from '../../services/authService'
 import { useAuthStore } from '../../store/authStore'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const setAuth = useAuthStore((s) => s.setAuth)
 
   const [email, setEmail] = useState('')
@@ -28,7 +29,8 @@ export default function LoginPage() {
     try {
       const response = await authService.login({ email: email.trim(), senha })
       setAuth(response.token, { id: response.usuarioId, email: response.email })
-      navigate('/dashboard')
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
+      navigate(from, { replace: true })
     } catch (error: any) {
       setAuthError(error.response?.data?.message ?? 'Erro ao entrar. Tente novamente.')
     } finally {
