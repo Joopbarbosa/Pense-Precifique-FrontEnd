@@ -12,6 +12,15 @@ import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
 import PreviewPdfPage from '../pages/orcamentos/PreviewPdfPage'
 import ReciboSinalPage from '../pages/orcamentos/ReciboSinalPage'
 import PreviewMultaPage from '../pages/orcamentos/PreviewMultaPage'
+import ReciboPagamentoPage from '../pages/orcamentos/ReciboPagamentoPage'
+import ListaInsumosPage from '../pages/insumos/ListaInsumosPage'
+import ListaProdutosPage from '../pages/produtos/ListaProdutosPage'
+import CadastrarProdutoPage from '../pages/produtos/CadastrarProdutoPage'
+import FormInsumoPage from '../pages/insumos/FormInsumoPage'
+import DetalheInsumoPage from '../pages/insumos/DetalheInsumoPage'
+import DetalheProdutoPage from '../pages/produtos/DetalheProdutoPage'
+import RegistroProducaoPage from '../pages/producao/RegistroProducaoPage'
+import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 
 const Placeholder = ({ nome, active }: {
   nome: string
@@ -52,13 +61,16 @@ export const router = createBrowserRouter([
   { path: '/orcamentos/:id/preview', element: <PreviewPdfPage /> },
   { path: '/orcamentos/:id/recibo-sinal', element: <ReciboSinalPage /> },
   { path: '/orcamentos/:id/multa', element: <PreviewMultaPage /> },
-  { path: '/insumos',             element: <Placeholder nome="Lista de Insumos" active="insumos" /> },
-  { path: '/insumos/novo',        element: <Placeholder nome="Cadastrar Insumo" active="insumos" /> },
-  { path: '/insumos/:id',         element: <Placeholder nome="Detalhe do Insumo" active="insumos" /> },
-  { path: '/produtos',            element: <Placeholder nome="Lista de Produtos" active="produtos" /> },
-  { path: '/produtos/novo',       element: <Placeholder nome="Cadastrar Produto" active="produtos" /> },
-  { path: '/produtos/:id/editar', element: <Placeholder nome="Editar Produto" active="produtos" /> },
-  { path: '/produtos/:id',        element: <Placeholder nome="Detalhe do Produto" active="produtos" /> },
-  { path: '/producao',            element: <Placeholder nome="Registro de Produção" active="producao" /> },
-  { path: '/configuracoes',       element: <Placeholder nome="Configurações" active="config" /> },
+  { path: '/orcamentos/:id/recibo-pagamento', element: <ReciboPagamentoPage /> },
+  { path: '/insumos',             element: <ListaInsumosPage /> },
+  { path: '/insumos/novo',        element: <FormInsumoPage /> },
+  { path: '/insumos/:id/editar',  element: <FormInsumoPage /> },
+  { path: '/insumos/:id',         element: <DetalheInsumoPage /> },
+  { path: '/produtos',            element: <ListaProdutosPage /> },
+  { path: '/produtos/novo',       element: <CadastrarProdutoPage /> },
+  { path: '/produtos/:id/editar', element: <CadastrarProdutoPage /> },
+  { path: '/produtos/:id',        element: <DetalheProdutoPage /> },
+  { path: '/producao',            element: <RegistroProducaoPage /> },
+  { path: '/producao/:numero',    element: <RegistroProducaoPage /> },
+  { path: '/configuracoes',       element: <ConfiguracoesPage /> },
 ])

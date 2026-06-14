@@ -49,6 +49,12 @@ export const Icons = {
       <path d="M3.5 20.5h17"/>
     </svg>
   ),
+  factorySm: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M3.5 20.5V10l5 3V10l5 3V8.5l5 2.5v9.5z"/>
+      <path d="M3.5 20.5h17"/>
+    </svg>
+  ),
   gear: (p?: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" width="20" height="20" {...sw} {...p}>
       <circle cx="12" cy="12" r="3"/>
@@ -172,9 +178,15 @@ export const Icons = {
     </svg>
   ),
   fileText: (p?: React.SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" width="17" height="17" {...sw} {...p}>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M6 3.5h7l5 5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/>
       <path d="M13 3.5V9h5"/>
+      <path d="M8.5 13.5h7M8.5 16.5h5"/>
+    </svg>
+  ),
+  spark: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3.5 9.5 10.4l-6.9.5 5.3 4.5L6 22l6-3.5 6 3.5-1.9-6.6 5.3-4.5-6.9-.5L12 3.5Z"/>
     </svg>
   ),
   mail: (p?: React.SVGProps<SVGSVGElement>) => (
@@ -385,9 +397,27 @@ export const Icons = {
     </svg>
   ),
   cart: (p?: React.SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-      <path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M3 4h2l2.2 11.2a1.4 1.4 0 0 0 1.4 1.1h8.1a1.4 1.4 0 0 0 1.4-1.1L20 7.5H6"/>
+      <circle cx="9.5" cy="20" r="1.2" fill="currentColor" stroke="none"/>
+      <circle cx="17" cy="20" r="1.2" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
+  minus: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M5 12h14"/>
+    </svg>
+  ),
+  arrowDown: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 5v14M12 19l5-5M12 19l-5-5"/>
+    </svg>
+  ),
+  history: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M3.5 12a8.5 8.5 0 1 1 2.6 6.1"/>
+      <path d="M3.5 18v-4h4"/>
+      <path d="M12 7.5V12l3 1.8"/>
     </svg>
   ),
   pdf: (p?: React.SVGProps<SVGSVGElement>) => (
@@ -402,6 +432,47 @@ export const Icons = {
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
       <path d="M14 2v6h6M8 13h8M8 17h5"/>
+    </svg>
+  ),
+  cubeSmall: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M21 7.5 12 3 3 7.5 12 12l9-4.5ZM3 7.5v9L12 21l9-4.5v-9"/>
+      <path d="M12 12v9"/>
+    </svg>
+  ),
+  seal: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 2l2.4 3.2 3.9-.8-.8 3.9L20 10.8l-3.2 2.4.8 3.9-3.9-.8L12 19.2l-2.4-3.2-3.9.8.8-3.9L3 10.8l3.2-2.4-.8-3.9 3.9.8L12 2Z"/>
+      <path d="m9 12 2 2 4-4" strokeWidth={2}/>
+    </svg>
+  ),
+  camera: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 7.5h3l1.5-2h7l1.5 2h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1Z"/>
+      <circle cx="12" cy="13" r="3.5"/>
+    </svg>
+  ),
+  stack: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 2 21.5 6.5 12 11 2.5 6.5 12 2Z"/>
+      <path d="M2.5 12 12 16.5 21.5 12M2.5 17 12 21.5 21.5 17"/>
+    </svg>
+  ),
+  cubeBig: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 2.8 20.5 7v10L12 21.2 3.5 17V7L12 2.8Z"/>
+      <path d="M3.5 7 12 11.4 20.5 7M12 11.4V21.2"/>
+    </svg>
+  ),
+  building: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M5 20.5V5a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 15 5v15.5M15 9.5h3.5A1.5 1.5 0 0 1 20 11v9.5M3.5 20.5h17M8 7.5h4M8 11h4M8 14.5h4"/>
+    </svg>
+  ),
+  shield: (p?: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3.5 19 6v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-2.5Z"/>
+      <path d="m9 12 2 2 4-4"/>
     </svg>
   ),
 }
