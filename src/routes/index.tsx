@@ -1,6 +1,4 @@
 import { createBrowserRouter } from 'react-router-dom'
-import { Logo, Wordmark } from '../components/ui'
-import AppLayout from '../components/layout/AppLayout'
 import LoginPage from '../pages/auth/LoginPage'
 import CadastroPage from '../pages/auth/CadastroPage'
 import OnboardingPage from '../pages/auth/OnboardingPage'
@@ -21,31 +19,6 @@ import DetalheInsumoPage from '../pages/insumos/DetalheInsumoPage'
 import DetalheProdutoPage from '../pages/produtos/DetalheProdutoPage'
 import RegistroProducaoPage from '../pages/producao/RegistroProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
-
-const Placeholder = ({ nome, active }: {
-  nome: string
-  active: 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'producao' | 'config'
-}) => (
-  <AppLayout active={active}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-      <Logo size={36} />
-      <Wordmark size={18} />
-    </div>
-    <h2 style={{ margin: 0, color: '#3A372F' }}>{nome}</h2>
-    <p style={{ color: '#A29E96', marginTop: 8 }}>Tela em construção</p>
-  </AppLayout>
-)
-
-const AuthPlaceholder = ({ nome }: { nome: string }) => (
-  <div style={{ padding: 32, fontFamily: 'sans-serif', color: '#3A372F' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-      <Logo size={36} />
-      <Wordmark size={18} />
-    </div>
-    <h2 style={{ margin: 0 }}>{nome}</h2>
-    <p style={{ color: '#888' }}>Tela em construção</p>
-  </div>
-)
 
 export const router = createBrowserRouter([
   { path: '/',      element: <LoginPage /> },

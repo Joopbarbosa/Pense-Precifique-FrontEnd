@@ -576,8 +576,6 @@ function PagamentoSection({
 }) {
   const [focus, setFocus] = useState<string | null>(null)
   const obsCharCount = metodoPagamentoObs.length
-  const obsValida = metodoPagamento !== 'outro' || obsCharCount >= 50
-
   return (
     <div style={{ padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 

@@ -347,7 +347,7 @@ export default function ConfiguracoesPage() {
   const [aba, setAba] = useState<SubAba>('precificacao')
 
   return (
-    <AppLayout active="configuracoes">
+    <AppLayout active="config">
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
         <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>

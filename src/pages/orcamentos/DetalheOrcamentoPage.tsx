@@ -1858,7 +1858,7 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function DetalheOrcamentoPage() {
-  const current = "Aguardando Sinal";
+  const current = "Aguardando Sinal" as StatusOrcamento;
   const idx = STEPS.indexOf(current as StatusOrcamento);
   const next = STEPS[idx + 1];
   const meta = STATUS_META[current];

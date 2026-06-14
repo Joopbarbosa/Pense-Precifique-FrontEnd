@@ -508,7 +508,7 @@ export default function RegistroProducaoPage() {
             <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C', textAlign: k === 4 ? 'right' : 'left' }}>{h}</div>
           ))}
         </div>
-        {filtrado.map((h, i) => (
+        {filtrado.map((h) => (
           <React.Fragment key={h.num}>
             {/* desktop row */}
             <div className="prod-row" style={{ animation: 'fadeUp .35s ease both', opacity: h.status === 'cancelada' ? 0.65 : 1 }}>
