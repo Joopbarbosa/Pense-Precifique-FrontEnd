@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Logo, Wordmark, Icons, Button, Input, Spinner } from '../../components/ui'
-
-const EMAIL_EM_USO = ['ana@atelier.com', 'teste@teste.com']
+import { authService } from '../../services/authService'
+import { useAuthStore } from '../../store/authStore'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 function Stepper() {
@@ -182,6 +183,9 @@ function SuccessNote({ nome }: { nome: string }) {
 
 // ── CadastroPage ───────────────────────────────────────────────────────────
 export default function CadastroPage() {
+  const navigate = useNavigate()
+  const setAuth = useAuthStore((s) => s.setAuth)
+
   const [nome, setNome] = useState('')
   const [empresa, setEmpresa] = useState('')
   const [email, setEmail] = useState('')
@@ -192,6 +196,7 @@ export default function CadastroPage() {
     nome: false, empresa: false, email: false, senha: false, senha2: false,
   })
   const [emailEmUso, setEmailEmUso] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -208,23 +213,35 @@ export default function CadastroPage() {
     senha2:  touched.senha2 && senha2 !== senha   ? 'As senhas não coincidem.' : '',
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setTouched({ nome: true, empresa: true, email: true, senha: true, senha2: true })
     setEmailEmUso(false)
+    setApiError(null)
 
     if (!nome.trim() || !empresa.trim() || !email.trim() || !emailValido || senha.length < 8 || senha2 !== senha) return
 
-    if (EMAIL_EM_USO.includes(email.trim().toLowerCase())) {
-      setEmailEmUso(true)
-      return
-    }
-
     setLoading(true)
-    setTimeout(() => {
+    try {
+      const response = await authService.register({
+        email: email.trim(),
+        senha,
+        confirmarSenha: senha2,
+      })
+      setAuth(response.token, { id: response.usuarioId, email: response.email })
+      // TODO: Épico 2 — passar nome/empresa para onboarding e salvar via EmpresaService
+      navigate('/onboarding')
+    } catch (error: any) {
+      const msg: string = error.response?.data?.message ?? 'Erro ao criar conta. Tente novamente.'
+      if (msg.toLowerCase().includes('e-mail já cadastrado') || msg.toLowerCase().includes('email')) {
+        setEmailEmUso(true)
+      } else {
+        setApiError(msg)
+      }
+      setDone(false)
+    } finally {
       setLoading(false)
-      setDone(true)
-    }, 1000)
+    }
   }
 
   return (
@@ -347,6 +364,19 @@ export default function CadastroPage() {
               <p style={{ margin: '0 0 22px', fontSize: 14, color: '#A29E96', lineHeight: 1.55 }}>
                 Leva menos de 2 minutos. Sem cartão de crédito.
               </p>
+
+              {apiError && (
+                <div role="alert" style={{
+                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                  background: '#FEF3F0', border: '1.5px solid #F6C6B7',
+                  color: '#C0492B', borderRadius: 10, padding: '12px 14px',
+                  marginBottom: 4, fontSize: 13.5, lineHeight: 1.45,
+                  animation: 'shake .45s ease',
+                }}>
+                  <Icons.alertCircle width={18} height={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
+                  <span>{apiError}</span>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {/* Nome + Empresa */}

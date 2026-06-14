@@ -1,11 +1,17 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Logo, Wordmark, Icons, Button, Input, Spinner } from '../../components/ui'
+import { authService } from '../../services/authService'
+import { useAuthStore } from '../../store/authStore'
 
 export default function LoginPage() {
+  const navigate = useNavigate()
+  const setAuth = useAuthStore((s) => s.setAuth)
+
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [touched, setTouched] = useState({ email: false, senha: false })
-  const [authError, setAuthError] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
@@ -13,16 +19,21 @@ export default function LoginPage() {
     : touched.email && !emailValido ? 'E-mail inválido.' : ''
   const senhaErr = touched.senha && senha === '' ? 'Informe sua senha.' : ''
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setTouched({ email: true, senha: true })
-    setAuthError(false)
+    setAuthError(null)
     if (!emailValido || senha === '') return
     setLoading(true)
-    setTimeout(() => {
+    try {
+      const response = await authService.login({ email: email.trim(), senha })
+      setAuth(response.token, { id: response.usuarioId, email: response.email })
+      navigate('/dashboard')
+    } catch (error: any) {
+      setAuthError(error.response?.data?.message ?? 'Erro ao entrar. Tente novamente.')
+    } finally {
       setLoading(false)
-      setAuthError(true)
-    }, 950)
+    }
   }
 
   return (
@@ -153,7 +164,7 @@ export default function LoginPage() {
               animation: 'shake .45s ease',
             }}>
               <Icons.alertCircle width={18} height={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
-              <span><strong style={{ fontWeight: 600 }}>E-mail ou senha incorretos.</strong> Tente novamente.</span>
+              <span>{authError}</span>
             </div>
           )}
 
