@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import { Icons } from '../../components/ui/Icons'
+import { empresaService } from '../../services/empresaService'
+import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -10,6 +12,17 @@ const hexA = (hex: string, a: number) => {
   const n = parseInt(h, 16)
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
 }
+
+const parseDecimal = (s: string) => {
+  if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0
+  return parseFloat(s) || 0
+}
+
+const formatHora = (v: number) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const formatMargem = (v: number) =>
+  Number.isInteger(v) ? v.toString() : v.toLocaleString('pt-BR')
 
 /* ── AffixInput ──────────────────────────────────────────────── */
 
@@ -102,7 +115,7 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
 
 /* ── PerfilCard ──────────────────────────────────────────────── */
 
-function PerfilCard() {
+function PerfilCard({ nome, email }: { nome?: string; email?: string }) {
   const dots: [string, string, number, string][] = [
     ['18%', '40%', 5, '#F97316'],
     ['82%', '30%', 6, '#2A9D8F'],
@@ -123,8 +136,8 @@ function PerfilCard() {
             <img src="/logo.png" width={42} height={42} alt="Logo" style={{ objectFit: 'contain' }} />
           </span>
         </div>
-        <h3 style={{ margin: '13px 0 0', fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Ateliê da Ana</h3>
-        <p style={{ margin: '3px 0 0', fontSize: 13.5, color: '#A29E96' }}>ana@atelier.com</p>
+        <h3 style={{ margin: '13px 0 0', fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{nome || '—'}</h3>
+        <p style={{ margin: '3px 0 0', fontSize: 13.5, color: '#A29E96' }}>{email || ''}</p>
         <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 16, fontSize: 13.5, fontWeight: 600, color: '#2A9D8F', background: 'transparent', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', padding: 0 }}
           onMouseEnter={e => e.currentTarget.style.gap = '9px'} onMouseLeave={e => e.currentTarget.style.gap = '6px'}
         >
@@ -137,21 +150,44 @@ function PerfilCard() {
 
 /* ── Precificacao ─────────────────────────────────────────────── */
 
-function Precificacao() {
-  const HORA0 = '25,00', MARGEM0 = '40'
-  const [hora, setHora] = useState(HORA0)
-  const [margem, setMargem] = useState(MARGEM0)
+function Precificacao({
+  initialValorHora,
+  initialMargemPadrao,
+  onSave,
+  saving,
+  empresaNome,
+  empresaEmail,
+}: {
+  initialValorHora: number
+  initialMargemPadrao: number
+  onSave: (valorHora: number, margemPadrao: number) => Promise<void>
+  saving: boolean
+  empresaNome?: string
+  empresaEmail?: string
+}) {
+  const [hora, setHora] = useState(formatHora(initialValorHora))
+  const [margem, setMargem] = useState(formatMargem(initialMargemPadrao))
   const [toast, setToast] = useState(false)
-  const [saved, setSaved] = useState({ hora: HORA0, margem: MARGEM0 })
+  const [saved, setSaved] = useState({ hora: formatHora(initialValorHora), margem: formatMargem(initialMargemPadrao) })
   const dirty = hora !== saved.hora || margem !== saved.margem
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
-  const salvar = () => {
+  useEffect(() => {
+    const h = formatHora(initialValorHora)
+    const m = formatMargem(initialMargemPadrao)
+    setHora(h)
+    setMargem(m)
+    setSaved({ hora: h, margem: m })
+  }, [initialValorHora, initialMargemPadrao])
+
+  const salvar = async () => {
+    await onSave(parseDecimal(hora), parseDecimal(margem))
     setSaved({ hora, margem })
     setToast(true)
     clearTimeout(timer.current)
     timer.current = setTimeout(() => setToast(false), 3200)
   }
+
   useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
@@ -193,14 +229,14 @@ function Precificacao() {
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: dirty ? '#E8913B' : '#CFCBC3', boxShadow: dirty ? '0 0 0 4px rgba(232,145,59,0.18)' : 'none' }} />
               {dirty ? 'Você tem alterações não salvas' : 'Tudo salvo'}
             </span>
-            <Button variant="primary" icon={<Icons.check />} disabled={!dirty} onClick={salvar}>
-              Salvar alterações
+            <Button variant="primary" icon={<Icons.check />} disabled={!dirty || saving} onClick={salvar}>
+              {saving ? 'Salvando…' : 'Salvar alterações'}
             </Button>
           </div>
         </div>
       </div>
 
-      <PerfilCard />
+      <PerfilCard nome={empresaNome} email={empresaEmail} />
       <Toast show={toast} />
     </div>
   )
@@ -219,16 +255,23 @@ function CfgField({ label, opt, children }: { label: string; opt?: boolean; chil
   )
 }
 
-function CfgInput({ defaultValue = '', type = 'text', placeholder, readOnly, inputMode }: {
+function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', type = 'text', placeholder, readOnly, inputMode }: {
+  value?: string; onChange?: (v: string) => void
   defaultValue?: string; type?: string; placeholder?: string; readOnly?: boolean
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
 }) {
-  const [v, setV] = useState(defaultValue)
+  const [internalV, setInternalV] = useState(defaultValue)
   const [f, setF] = useState(false)
+  const isControlled = extValue !== undefined
+  const v = isControlled ? extValue : internalV
+
   return (
     <input
       type={type} value={v} placeholder={placeholder} readOnly={readOnly} inputMode={inputMode}
-      onChange={e => setV(e.target.value)}
+      onChange={e => {
+        if (isControlled) extOnChange?.(e.target.value)
+        else setInternalV(e.target.value)
+      }}
       onFocus={() => setF(true)} onBlur={() => setF(false)}
       style={{
         width: '100%', height: 48, padding: '0 14px',
@@ -255,7 +298,50 @@ function SectionHead({ icon, titulo }: { icon: React.ReactNode; titulo: string }
 
 /* ── PerfilEmpresa ───────────────────────────────────────────── */
 
-function PerfilEmpresa() {
+function PerfilEmpresa({
+  initialNome,
+  initialEmail,
+  initialWhatsapp,
+  initialEndereco,
+  onSave,
+  saving,
+}: {
+  initialNome: string
+  initialEmail: string
+  initialWhatsapp: string
+  initialEndereco: string
+  onSave: (nome: string, email: string, whatsapp: string, endereco: string) => Promise<void>
+  saving: boolean
+}) {
+  const [nome, setNome] = useState(initialNome)
+  const [email, setEmail] = useState(initialEmail)
+  const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
+  const [endereco, setEndereco] = useState(initialEndereco)
+  const [toast, setToast] = useState(false)
+  const [error, setError] = useState('')
+  const timer = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    setNome(initialNome)
+    setEmail(initialEmail)
+    setWhatsapp(initialWhatsapp)
+    setEndereco(initialEndereco)
+  }, [initialNome, initialEmail, initialWhatsapp, initialEndereco])
+
+  const salvar = async () => {
+    setError('')
+    try {
+      await onSave(nome, email, whatsapp, endereco)
+      setToast(true)
+      clearTimeout(timer.current)
+      timer.current = setTimeout(() => setToast(false), 3200)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao salvar. Tente novamente.')
+    }
+  }
+
+  useEffect(() => () => clearTimeout(timer.current), [])
+
   return (
     <div style={{ maxWidth: 640, animation: 'fadeUp .35s ease both' }}>
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px' }}>
@@ -272,10 +358,18 @@ function PerfilEmpresa() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <CfgField label="Nome da empresa"><CfgInput defaultValue="Pense & Crie Studio" /></CfgField>
-          <CfgField label="E-mail de contato"><CfgInput defaultValue="penseecrie@email.com" type="email" /></CfgField>
-          <CfgField label="WhatsApp / Telefone"><CfgInput defaultValue="(11) 98888-1234" inputMode="tel" /></CfgField>
-          <CfgField label="Endereço" opt><CfgInput placeholder="Rua, número, bairro, cidade" /></CfgField>
+          <CfgField label="Nome da empresa">
+            <CfgInput value={nome} onChange={setNome} placeholder="Nome do seu ateliê ou negócio" />
+          </CfgField>
+          <CfgField label="E-mail de contato">
+            <CfgInput value={email} onChange={setEmail} type="email" placeholder="email@contato.com" />
+          </CfgField>
+          <CfgField label="WhatsApp / Telefone">
+            <CfgInput value={whatsapp} onChange={setWhatsapp} inputMode="tel" placeholder="(00) 00000-0000" />
+          </CfgField>
+          <CfgField label="Endereço" opt>
+            <CfgInput value={endereco} onChange={setEndereco} placeholder="Rua, número, bairro, cidade" />
+          </CfgField>
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 22, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', borderLeft: '3px solid #2A9D8F' }}>
@@ -285,10 +379,20 @@ function PerfilEmpresa() {
           </p>
         </div>
 
+        {error && (
+          <p style={{ margin: '12px 0 0', fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+            {error}
+          </p>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingTop: 22, borderTop: '1px solid #EFEDE8' }}>
-          <Button variant="primary" icon={<Icons.check />}>Salvar alterações</Button>
+          <Button variant="primary" icon={<Icons.check />} disabled={saving} onClick={salvar}>
+            {saving ? 'Salvando…' : 'Salvar alterações'}
+          </Button>
         </div>
       </div>
+
+      <Toast show={toast} />
     </div>
   )
 }
@@ -315,6 +419,7 @@ function ContaSeguranca() {
             <CfgField label="Nova senha"><CfgInput type="password" placeholder="Mínimo 8 caracteres" /></CfgField>
             <CfgField label="Confirmar nova senha"><CfgInput type="password" placeholder="Repita a nova senha" /></CfgField>
           </div>
+          {/* TODO: conectar ao endpoint PUT /usuarios/me/senha (Épico 1) */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
             <Button variant="primary">Atualizar senha</Button>
           </div>
@@ -345,6 +450,42 @@ function ContaSeguranca() {
 
 export default function ConfiguracoesPage() {
   const [aba, setAba] = useState<SubAba>('precificacao')
+  const [empresa, setEmpresa] = useState<EmpresaResponse | null>(null)
+  const [configuracao, setConfiguracao] = useState<ConfiguracaoResponse | null>(null)
+  const [loadingData, setLoadingData] = useState(true)
+  const [savingPrecif, setSavingPrecif] = useState(false)
+  const [savingPerfil, setSavingPerfil] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      empresaService.getEmpresa(),
+      empresaService.getConfiguracao(),
+    ]).then(([emp, cfg]) => {
+      setEmpresa(emp)
+      setConfiguracao(cfg)
+    }).catch(console.error)
+      .finally(() => setLoadingData(false))
+  }, [])
+
+  const handleSavePrecificacao = async (valorHora: number, margemPadrao: number) => {
+    setSavingPrecif(true)
+    try {
+      const result = await empresaService.upsertConfiguracao({ valorHora, margemPadrao })
+      setConfiguracao(result)
+    } finally {
+      setSavingPrecif(false)
+    }
+  }
+
+  const handleSavePerfil = async (nome: string, email: string, whatsapp: string, endereco: string) => {
+    setSavingPerfil(true)
+    try {
+      const result = await empresaService.upsertEmpresa({ nome, email, whatsapp, endereco })
+      setEmpresa(result)
+    } finally {
+      setSavingPerfil(false)
+    }
+  }
 
   return (
     <AppLayout active="config">
@@ -361,9 +502,36 @@ export default function ConfiguracoesPage() {
 
       <SubNav aba={aba} setAba={setAba} />
 
-      {aba === 'precificacao' && <Precificacao />}
-      {aba === 'perfil'       && <PerfilEmpresa />}
-      {aba === 'conta'        && <ContaSeguranca />}
+      {loadingData ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
+          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+          Carregando configurações…
+        </div>
+      ) : (
+        <>
+          {aba === 'precificacao' && (
+            <Precificacao
+              initialValorHora={configuracao?.valorHora ?? 0}
+              initialMargemPadrao={configuracao?.margemPadrao ?? 0}
+              onSave={handleSavePrecificacao}
+              saving={savingPrecif}
+              empresaNome={empresa?.nome}
+              empresaEmail={empresa?.email}
+            />
+          )}
+          {aba === 'perfil' && (
+            <PerfilEmpresa
+              initialNome={empresa?.nome ?? ''}
+              initialEmail={empresa?.email ?? ''}
+              initialWhatsapp={empresa?.whatsapp ?? ''}
+              initialEndereco={empresa?.endereco ?? ''}
+              onSave={handleSavePerfil}
+              saving={savingPerfil}
+            />
+          )}
+          {aba === 'conta' && <ContaSeguranca />}
+        </>
+      )}
 
     </AppLayout>
   )

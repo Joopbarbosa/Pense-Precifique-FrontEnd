@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Logo, Wordmark, Icons, Button, Spinner } from '../../components/ui'
+import { empresaService } from '../../services/empresaService'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 function Stepper() {
@@ -129,16 +131,31 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
 
 // ── OnboardingPage ─────────────────────────────────────────────────────────
 export default function OnboardingPage() {
+  const navigate = useNavigate()
   const [hora, setHora] = useState('')
   const [margem, setMargem] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    empresaService.getEmpresa().then(empresa => {
+      if (empresa) navigate('/dashboard', { replace: true })
+    }).catch(() => {})
+  }, [navigate])
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
+    setError('')
+    try {
+      const valorHora = parseFloat(hora.replace(/\./g, '').replace(',', '.')) || 0
+      const margemPadrao = parseFloat(margem.replace(',', '.')) || 0
+      await empresaService.upsertConfiguracao({ valorHora, margemPadrao })
+      navigate('/dashboard', { replace: true })
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao salvar configurações. Tente novamente.')
       setLoading(false)
-    }, 1100)
+    }
   }
 
   return (
@@ -283,6 +300,12 @@ export default function OnboardingPage() {
               value={margem}
               onChange={setMargem}
             />
+
+            {error && (
+              <p style={{ margin: 0, fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+                {error}
+              </p>
+            )}
 
             <Button
               variant="primary"
