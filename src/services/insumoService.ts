@@ -35,4 +35,9 @@ export const insumoService = {
     const response = await api.get(`/insumos/${id}/movimentacoes`, { params: { page, size } })
     return response.data
   },
+
+  buscarParaCarrinho: async (busca: string): Promise<InsumoResponse[]> => {
+    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome' } })
+    return response.data.content
+  },
 }

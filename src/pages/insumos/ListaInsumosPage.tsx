@@ -7,23 +7,14 @@ import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { Icons } from '../../components/ui/Icons'
 import type { InsumoResponse } from '../../types/insumo'
+import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
+import { loteCompraService } from '../../services/loteCompraService'
 
-interface ItemCompra {
-  id: string
-  nome: string
-  un: string
-  custoAtual: number
+interface ItemCarrinho {
+  insumo: InsumoResponse
   qtd: string
   preco: string
-}
-
-// TODO P-029: remover após conectar endpoint de lote com fichas técnicas reais
-const FICHAS_POR_INSUMO: Record<string, { nome: string; consumo: string; preco: number; novoPreco: (novoCusto: number) => number }[]> = {
-  'Papel couchê 180g': [
-    { nome: 'Kit Convite Casamento', consumo: '4 folhas/un', preco: 45.00, novoPreco: c => 45 - (0.45 - c) * 4 },
-    { nome: 'Etiqueta personalizada', consumo: '1 folha/un', preco: 4.50,  novoPreco: c => 4.5 - (0.45 - c) * 1 },
-  ],
 }
 
 const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo']
@@ -178,41 +169,71 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
   )
 }
 
-function CompraLoteModal({ insumos, onClose, onConfirm }: {
-  insumos: InsumoResponse[]
+function CompraLoteModal({ onClose, onSuccess }: {
   onClose: () => void
-  onConfirm: (itens: ItemCompra[]) => void
+  onSuccess: (impacto: ImpactoAgregadoResponse) => void
 }) {
-  const [itens, setItens] = useState<ItemCompra[]>([])
+  const [itens, setItens] = useState<ItemCarrinho[]>([])
   const [busca, setBusca] = useState('')
+  const [resultadosBusca, setResultadosBusca] = useState<InsumoResponse[]>([])
   const [openList, setOpenList] = useState(false)
+  const [loadingConfirm, setLoadingConfirm] = useState(false)
 
-  const disponiveis = insumos.filter(i =>
-    i.ativo &&
-    !itens.find(it => it.id === i.id) &&
-    i.nome.toLowerCase().includes(busca.toLowerCase())
+  useEffect(() => {
+    if (!busca.trim()) {
+      setResultadosBusca([])
+      setOpenList(false)
+      return
+    }
+    const timer = setTimeout(() => {
+      insumoService.buscarParaCarrinho(busca)
+        .then(data => {
+          setResultadosBusca(data)
+          setOpenList(true)
+        })
+        .catch(console.error)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [busca])
+
+  const disponiveis = resultadosBusca.filter(i =>
+    i.ativo && !itens.find(it => it.insumo.id === i.id)
   )
 
   const addItem = (insumo: InsumoResponse) => {
-    setItens(prev => [...prev, {
-      id: insumo.id,
-      nome: insumo.nome,
-      un: insumo.unidadeMedida,
-      custoAtual: insumo.custoUnitario,
-      qtd: '',
-      preco: '',
-    }])
+    setItens(prev => [...prev, { insumo, qtd: '', preco: '' }])
     setBusca('')
     setOpenList(false)
+    setResultadosBusca([])
   }
 
   const updateItem = (id: string, field: 'qtd' | 'preco', value: string) => {
-    setItens(prev => prev.map(it => it.id === id ? { ...it, [field]: value.replace(/[^\d.,]/g, '') } : it))
+    setItens(prev => prev.map(it =>
+      it.insumo.id === id ? { ...it, [field]: value.replace(/[^\d.,]/g, '') } : it
+    ))
   }
 
-  const removeItem = (id: string) => setItens(prev => prev.filter(it => it.id !== id))
+  const removeItem = (id: string) => setItens(prev => prev.filter(it => it.insumo.id !== id))
 
   const podeConfirmar = itens.length > 0 && itens.every(it => num(it.qtd) > 0 && num(it.preco) > 0)
+
+  const confirmar = async () => {
+    setLoadingConfirm(true)
+    try {
+      const response = await loteCompraService.registrar({
+        itens: itens.map(it => ({
+          insumoId: it.insumo.id,
+          quantidadeComprada: num(it.qtd),
+          precoTotalPago: num(it.preco),
+        })),
+      })
+      onSuccess(response)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingConfirm(false)
+    }
+  }
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
@@ -242,8 +263,9 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
               </span>
               <input
                 value={busca}
-                onChange={e => { setBusca(e.target.value); setOpenList(true) }}
-                onFocus={() => setOpenList(true)}
+                onChange={e => setBusca(e.target.value)}
+                onFocus={() => { if (busca.trim() && resultadosBusca.length > 0) setOpenList(true) }}
+                onBlur={() => setTimeout(() => setOpenList(false), 150)}
                 placeholder="Buscar insumo para adicionar…"
                 style={{
                   width: '100%', height: 46, padding: '0 14px 0 40px',
@@ -251,10 +273,9 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
                   color: '#3A372F', background: '#fff', outline: 'none', fontFamily: 'inherit',
                 }}
                 onFocusCapture={e => { e.target.style.borderColor = '#2A9D8F'; e.target.style.boxShadow = '0 0 0 4px rgba(42,157,143,0.12)' }}
-                onBlur={e => { e.target.style.borderColor = '#EFEDE8'; e.target.style.boxShadow = 'none' }}
               />
             </div>
-            {openList && busca && disponiveis.length > 0 && (
+            {openList && disponiveis.length > 0 && (
               <div style={{ position: 'absolute', top: 50, left: 0, right: 0, zIndex: 20, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both', maxHeight: 200, overflowY: 'auto' }}>
                 {disponiveis.slice(0, 6).map(i => (
                   <button key={i.id} onMouseDown={() => addItem(i)} style={{
@@ -285,10 +306,10 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
                 const novoCusto = q > 0 ? p / q : null
 
                 return (
-                  <div key={it.id} style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid #EFEDE8', background: '#FCFBF9' }}>
+                  <div key={it.insumo.id} style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid #EFEDE8', background: '#FCFBF9' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{it.nome}</span>
-                      <button onClick={() => removeItem(it.id)} style={{ border: 'none', background: 'transparent', color: '#B7B4AD', cursor: 'pointer', display: 'flex' }}
+                      <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{it.insumo.nome}</span>
+                      <button onClick={() => removeItem(it.insumo.id)} style={{ border: 'none', background: 'transparent', color: '#B7B4AD', cursor: 'pointer', display: 'flex' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#C0492B'}
                         onMouseLeave={e => e.currentTarget.style.color = '#B7B4AD'}
                       >
@@ -299,18 +320,18 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
                       <div style={{ position: 'relative', flex: '1 1 110px' }}>
                         <input
                           value={it.qtd}
-                          onChange={e => updateItem(it.id, 'qtd', e.target.value)}
+                          onChange={e => updateItem(it.insumo.id, 'qtd', e.target.value)}
                           inputMode="decimal"
                           placeholder="Qtd"
                           style={{ width: '100%', height: 42, padding: '0 50px 0 12px', border: '1.5px solid #EFEDE8', borderRadius: 9, fontSize: 14, color: '#3A372F', outline: 'none', fontFamily: 'inherit' }}
                         />
-                        <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, fontWeight: 600, color: '#A8A49C' }}>{it.un}</span>
+                        <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, fontWeight: 600, color: '#A8A49C' }}>{it.insumo.unidadeMedida}</span>
                       </div>
                       <div style={{ position: 'relative', flex: '1 1 130px' }}>
                         <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 38, display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 600, color: '#6B6860', background: '#FAF8F5', borderRadius: '9px 0 0 9px', borderRight: '1px solid #EFEDE8' }}>R$</span>
                         <input
                           value={it.preco}
-                          onChange={e => updateItem(it.id, 'preco', e.target.value)}
+                          onChange={e => updateItem(it.insumo.id, 'preco', e.target.value)}
                           inputMode="decimal"
                           placeholder="0,00"
                           style={{ width: '100%', height: 42, padding: '0 12px 0 46px', border: '1.5px solid #EFEDE8', borderRadius: 9, fontSize: 14, color: '#3A372F', outline: 'none', fontFamily: 'inherit' }}
@@ -319,7 +340,7 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
                       <div style={{ flex: '1 1 130px', textAlign: 'right' }}>
                         {novoCusto != null ? (
                           <span style={{ fontSize: 13, fontWeight: 700, color: '#2A9D8F' }}>
-                            {moeda(novoCusto)} /{it.un}
+                            {moeda(novoCusto)} /{it.insumo.unidadeMedida}
                           </span>
                         ) : (
                           <span style={{ fontSize: 12.5, color: '#A29E96' }}>—</span>
@@ -335,9 +356,12 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" disabled={!podeConfirmar} iconRight={<Icons.arrowRight />} onClick={() => onConfirm(itens)}>
-            Confirmar {itens.length > 0 ? `(${itens.length})` : ''} e ver impacto
+          <Button variant="ghost" onClick={onClose} disabled={loadingConfirm}>Cancelar</Button>
+          <Button variant="primary" disabled={!podeConfirmar || loadingConfirm} iconRight={loadingConfirm ? undefined : <Icons.arrowRight />} onClick={confirmar}>
+            {loadingConfirm
+              ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Registrando…</span>
+              : `Confirmar${itens.length > 0 ? ` (${itens.length})` : ''} e ver impacto`
+            }
           </Button>
         </div>
       </div>
@@ -345,14 +369,11 @@ function CompraLoteModal({ insumos, onClose, onConfirm }: {
   )
 }
 
-function ImpactoLoteModal({ itens, onClose }: { itens: ItemCompra[]; onClose: () => void }) {
-  const linhas = itens.flatMap(it => {
-    const q = num(it.qtd)
-    const p = num(it.preco)
-    const novoCusto = q > 0 ? p / q : it.custoAtual
-    const fichas = FICHAS_POR_INSUMO[it.nome] || []
-    return fichas.map(f => ({ ...f, novoPreco: f.novoPreco(novoCusto), insumo: it.nome }))
-  })
+function ImpactoLoteModal({ impacto, onClose }: {
+  impacto: ImpactoAgregadoResponse
+  onClose: () => void
+}) {
+  const { insumosAtualizados } = impacto
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
@@ -365,7 +386,9 @@ function ImpactoLoteModal({ itens, onClose }: { itens: ItemCompra[]; onClose: ()
             </span>
             <div>
               <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Compra registrada!</div>
-              <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>{itens.length} {itens.length === 1 ? 'insumo atualizado' : 'insumos atualizados'}.</div>
+              <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>
+                {insumosAtualizados.length} {insumosAtualizados.length === 1 ? 'insumo atualizado' : 'insumos atualizados'}.
+              </div>
             </div>
           </div>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
@@ -374,43 +397,48 @@ function ImpactoLoteModal({ itens, onClose }: { itens: ItemCompra[]; onClose: ()
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-          {linhas.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#A29E96', fontSize: 13.5 }}>
-              Estoque atualizado. Nenhum produto teve o custo afetado.
+          <div style={{ border: '1px solid #EFEDE8', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '11px 16px', background: '#FBFAF8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
+              <span>Insumo</span><span style={{ textAlign: 'right' }}>Custo unitário</span>
             </div>
-          ) : (
-            <>
-              <div style={{ border: '1px solid #EFEDE8', borderRadius: 14, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '11px 16px', background: '#FBFAF8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
-                  <span>Produto</span><span style={{ textAlign: 'right' }}>Custo do insumo</span>
-                </div>
-                {linhas.map((f, i) => (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', padding: '14px 16px', borderTop: '1px solid #EFEDE8' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{f.nome}</div>
-                      <div style={{ fontSize: 11.5, color: '#A29E96', marginTop: 2 }}>{f.insumo}</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, justifyContent: 'flex-end', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
-                      <span style={{ fontSize: 13.5, color: '#A29E96', textDecoration: 'line-through' }}>{moeda(f.preco, 2)}</span>
-                      <Icons.arrowRight style={{ color: '#A8A49C' }} />
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14.5, fontWeight: 700, color: f.novoPreco < f.preco ? '#1F8A5B' : '#C0492B' }}>
-                        {f.novoPreco < f.preco
-                          ? <Icons.arrowDown />
-                          : <Icons.arrowDown style={{ transform: 'rotate(180deg)' }} />}
-                        {moeda(f.novoPreco, 2)}
-                      </span>
+            {insumosAtualizados.map((item, i) => {
+              const subiu = item.custoUnitarioNovo > item.custoUnitarioAnterior
+              const igual = item.custoUnitarioNovo === item.custoUnitarioAnterior
+              return (
+                <div key={item.insumoId} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', padding: '14px 16px', borderTop: '1px solid #EFEDE8' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{item.nomeInsumo}</div>
+                    <div style={{ fontSize: 11.5, color: '#A29E96', marginTop: 2 }}>
+                      +{item.quantidadeAdicionada} {item.unidadeMedida}
+                      {item.marca ? ` · ${item.marca}` : ''}
                     </div>
                   </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 16, padding: '13px 15px', borderRadius: 12, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                <Icons.info style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
-                <p style={{ margin: 0, fontSize: 12.8, color: '#7A5A33', lineHeight: 1.55 }}>
-                  Os <strong style={{ fontWeight: 700 }}>preços de venda</strong> não foram alterados. Acesse cada ficha para atualizar manualmente.
-                </p>
-              </div>
-            </>
-          )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, justifyContent: 'flex-end', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: 13.5, color: '#A29E96', textDecoration: igual ? 'none' : 'line-through' }}>
+                      {BRL4(item.custoUnitarioAnterior)}
+                    </span>
+                    {!igual && (
+                      <>
+                        <Icons.arrowRight style={{ color: '#A8A49C' }} />
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14.5, fontWeight: 700, color: subiu ? '#C0492B' : '#1F8A5B' }}>
+                          {subiu
+                            ? <Icons.arrowDown style={{ transform: 'rotate(180deg)' }} />
+                            : <Icons.arrowDown />
+                          }
+                          {BRL4(item.custoUnitarioNovo)}
+                        </span>
+                      </>
+                    )}
+                    {igual && (
+                      <span style={{ fontSize: 14.5, fontWeight: 700, color: '#3A372F' }}>
+                        {BRL4(item.custoUnitarioNovo)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', justifyContent: 'flex-end' }}>
@@ -432,7 +460,7 @@ export default function ListaInsumosPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [modalCompra, setModalCompra] = useState(false)
-  const [itensComprados, setItensComprados] = useState<ItemCompra[] | null>(null)
+  const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
 
   const carregar = useCallback((resetar: boolean) => {
     if (resetar) {
@@ -453,7 +481,6 @@ export default function ListaInsumosPage() {
     carregar(true)
   }, [carregar])
 
-  // Reseta para página 0 ao alterar busca (RN-034)
   const handleQueryChange = (novaQuery: string) => {
     setQuery(novaQuery)
     setInsumos([])
@@ -490,7 +517,16 @@ export default function ListaInsumosPage() {
     }
   }
 
-  // Filtros aplicados client-side sobre os itens acumulados
+  const handleCompraSuccess = (impacto: ImpactoAgregadoResponse) => {
+    setModalCompra(false)
+    setImpactoLote(impacto)
+  }
+
+  const handleImpactoClose = () => {
+    setImpactoLote(null)
+    carregar(true)
+  }
+
   let lista = insumos
   if (filtro === 'Ativos')        lista = lista.filter(o => o.ativo)
   if (filtro === 'Inativos')      lista = lista.filter(o => !o.ativo)
@@ -654,13 +690,12 @@ export default function ListaInsumosPage() {
 
       {modalCompra && (
         <CompraLoteModal
-          insumos={insumos}
           onClose={() => setModalCompra(false)}
-          onConfirm={itens => { setModalCompra(false); setItensComprados(itens) }}
+          onSuccess={handleCompraSuccess}
         />
       )}
-      {itensComprados && (
-        <ImpactoLoteModal itens={itensComprados} onClose={() => setItensComprados(null)} />
+      {impactoLote && (
+        <ImpactoLoteModal impacto={impactoLote} onClose={handleImpactoClose} />
       )}
 
     </AppLayout>
