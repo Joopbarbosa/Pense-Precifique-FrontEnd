@@ -19,6 +19,24 @@ export interface InsumoResponse {
   updatedAt: string
 }
 
+export interface BaixaManualInsumoRequest {
+  quantidade: number
+  motivo: 'BAIXA_MANUAL'
+  observacao: string  // mín. 50 chars
+}
+
+export interface MovimentacaoInsumoResponse {
+  id: string
+  tipo: 'ENTRADA' | 'SAIDA'
+  motivo: string
+  quantidade: number
+  observacao?: string
+  referenciaId?: string
+  referenciaTipo?: string
+  estornada: boolean
+  createdAt: string
+}
+
 // Matches Spring Data Page format
 export interface PageResponse<T> {
   content: T[]

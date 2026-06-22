@@ -1,5 +1,5 @@
 import api from './api'
-import type { InsumoRequest, InsumoResponse, PageResponse } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, PageResponse } from '../types/insumo'
 
 export const insumoService = {
   listar: async (page: number, size = 20): Promise<PageResponse<InsumoResponse>> => {
@@ -24,5 +24,15 @@ export const insumoService = {
 
   inativar: async (id: string): Promise<void> => {
     await api.delete(`/insumos/${id}`)
+  },
+
+  baixaManual: async (id: string, data: BaixaManualInsumoRequest): Promise<MovimentacaoInsumoResponse> => {
+    const response = await api.post(`/insumos/${id}/baixa-manual`, data)
+    return response.data
+  },
+
+  listarMovimentacoes: async (id: string, page: number, size = 20): Promise<PageResponse<MovimentacaoInsumoResponse>> => {
+    const response = await api.get(`/insumos/${id}/movimentacoes`, { params: { page, size } })
+    return response.data
   },
 }

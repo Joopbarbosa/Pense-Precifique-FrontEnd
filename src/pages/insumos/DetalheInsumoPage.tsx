@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import { Icons } from '../../components/ui/Icons'
+import type { InsumoResponse, MovimentacaoInsumoResponse } from '../../types/insumo'
+import { insumoService } from '../../services/insumoService'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -10,43 +12,18 @@ const moeda = (n: number, dec?: number) =>
     maximumFractionDigits: dec != null ? dec : 3,
   })
 
-const INSUMO = { nome: 'Papel couchê 180g', marca: 'Suzano', un: 'folha', fracao: false, saldo: 24, minimo: 10, custo: 0.45 }
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('pt-BR')
 
-interface HistItem {
-  data: string
-  tipo: 'entrada' | 'saida' | 'estorno'
-  titulo: string
-  delta: number
-  custo: number
-  ref: string
-  obs?: string
-  cancelada?: boolean
-}
+const MOTIVOS = ['Perda', 'Avaria', 'Uso extra', 'Correção de estoque', 'Outro']
 
-const HIST: HistItem[] = [
-  { data: '04/06/2026', tipo: 'saida',   titulo: 'Saída — Produção',     delta: -45, custo: 0.089, ref: 'Produção #18', cancelada: true },
-  { data: '04/06/2026', tipo: 'estorno', titulo: 'Estorno — Cancelamento Produção #18', delta: 45, custo: 0.089, ref: 'Estorno: registrei a quantidade errada por engano, era para ser outro produto.' },
-  { data: '01/06/2026', tipo: 'entrada', titulo: 'Entrada — Compra',     delta: 100, custo: 0.45,  ref: 'Compra: R$ 45,00 / 100 un' },
-  { data: '15/05/2026', tipo: 'saida',   titulo: 'Saída — Orçamento',    delta: -9,  custo: 0.48,  ref: 'Orçamento #0038' },
-  { data: '10/05/2026', tipo: 'saida',   titulo: 'Saída — Baixa manual', delta: -3,  custo: 0.48,  ref: 'Motivo: Avaria — folhas ficaram manchadas durante o transporte da gráfica até o estúdio, não é possível utilizá-las para impressão de qualidade.' },
-]
-
-interface Ficha {
-  nome: string
-  tipo: 'Produto' | 'Customização'
-  icon: keyof typeof Icons
-  consumo: string
-  preco: number | null
-  novo: number | null
-}
-
+// TODO P-004 (fichas técnicas): remover mock quando épico de Produtos conectar fichas ao insumo
+interface Ficha { nome: string; tipo: 'Produto' | 'Customização'; icon: keyof typeof Icons; consumo: string; preco: number | null; novo: number | null }
 const FICHAS: Ficha[] = [
   { nome: 'Kit Convite Casamento',  tipo: 'Produto',      icon: 'cubeSmall', consumo: '4 folhas / un',  preco: 45.00, novo: 43.80 },
   { nome: 'Etiqueta personalizada', tipo: 'Produto',      icon: 'cubeSmall', consumo: '1 folha / un',   preco: 4.50,  novo: 4.38 },
   { nome: 'Laminação fosca',        tipo: 'Customização', icon: 'tag',       consumo: '0,5 folha / un', preco: null,  novo: null },
 ]
-
-const MOTIVOS = ['Perda', 'Avaria', 'Uso extra', 'Correção de estoque', 'Outro']
 
 const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }
 
@@ -54,6 +31,20 @@ const hexA = (hex: string, a: number) => {
   const h = hex.replace('#', '')
   const n = parseInt(h, 16)
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
+}
+
+function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; tipoDisplay: 'entrada' | 'saida' | 'estorno' } {
+  if (m.motivo === 'ESTORNO_PRODUCAO') return { titulo: 'Estorno — Cancelamento Produção', tipoDisplay: 'estorno' }
+  const labelsEntrada: Record<string, string> = { COMPRA: 'Compra' }
+  const labelsSaida: Record<string, string> = { BAIXA_MANUAL: 'Baixa manual', PRODUCAO: 'Produção', ORCAMENTO: 'Orçamento' }
+  if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
+  return { titulo: `Saída — ${labelsSaida[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
+}
+
+function refText(m: MovimentacaoInsumoResponse): string {
+  const labels: Record<string, string> = { PRODUCAO: 'Produção', ORCAMENTO: 'Orçamento', LOTE_COMPRA: 'Compra' }
+  if (m.referenciaTipo && m.referenciaId) return `${labels[m.referenciaTipo] ?? m.referenciaTipo} #${m.referenciaId.slice(0, 8)}`
+  return ''
 }
 
 function ModalHead({ icon, tint, title, sub, onClose }: { icon: React.ReactNode; tint: string; title: string; sub?: string; onClose: () => void }) {
@@ -75,15 +66,22 @@ function ModalHead({ icon, tint, title, sub, onClose }: { icon: React.ReactNode;
   )
 }
 
-function BaixaModal({ onClose }: { onClose: () => void }) {
+function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
+  insumoId: string
+  unidade: string
+  onClose: () => void
+  onSuccess: () => void
+}) {
   const [qtd, setQtd] = useState('')
   const [motivo, setMotivo] = useState('Perda')
   const [obs, setObs] = useState('')
   const [focus, setFocus] = useState<string | null>(null)
   const [selOpen, setSelOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const selRef = useRef<HTMLDivElement>(null)
 
-  const podeRegistrar = qtd.trim() !== '' && obs.trim().length >= 50
+  const podeRegistrar = qtd.trim() !== '' && parseFloat(qtd.replace(',', '.')) > 0 && obs.trim().length >= 50
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -92,6 +90,23 @@ function BaixaModal({ onClose }: { onClose: () => void }) {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
+
+  const handleSubmit = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      await insumoService.baixaManual(insumoId, {
+        quantidade: parseFloat(qtd.replace(',', '.')),
+        motivo: 'BAIXA_MANUAL',
+        observacao: obs.trim(),
+      })
+      onSuccess()
+      onClose()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao registrar baixa. Tente novamente.')
+      setLoading(false)
+    }
+  }
 
   const baseStyle = (k: string): React.CSSProperties => ({
     width: '100%', minHeight: 48, padding: '0 14px',
@@ -122,7 +137,7 @@ function BaixaModal({ onClose }: { onClose: () => void }) {
                   placeholder="3"
                   style={{ ...baseStyle('qtd'), height: 48, paddingRight: 62 }}
                 />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>folhas</span>
+                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unidade}</span>
               </div>
             </label>
             <label>
@@ -181,12 +196,17 @@ function BaixaModal({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </label>
+          {error && (
+            <p style={{ margin: 0, fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+              {error}
+            </p>
+          )}
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="secondary" icon={<Icons.minus />} disabled={!podeRegistrar} onClick={onClose}>
-            Registrar baixa
+          <Button variant="secondary" icon={<Icons.minus />} disabled={!podeRegistrar || loading} onClick={handleSubmit}>
+            {loading ? 'Registrando…' : 'Registrar baixa'}
           </Button>
         </div>
       </div>
@@ -212,38 +232,40 @@ function HistTipo({ tipo, titulo }: { tipo: 'entrada' | 'saida' | 'estorno'; tit
   )
 }
 
-function HistRows() {
+function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsumoResponse[]; unidade: string }) {
   return (
     <>
-      {HIST.map((h, i) => {
-        const positivo = h.delta > 0
-        const isEstorno = h.tipo === 'estorno'
+      {movimentacoes.map(m => {
+        const { titulo, tipoDisplay } = tituloMovimentacao(m)
+        const positivo = m.tipo === 'ENTRADA'
+        const isEstorno = tipoDisplay === 'estorno'
         const deltaC = isEstorno ? '#C0492B' : (positivo ? '#1F8A5B' : '#C0492B')
-        const deltaT = (positivo ? '+ ' : '− ') + Math.abs(h.delta) + ' folhas'
-        const riscado = h.cancelada
+        const deltaT = (positivo ? '+ ' : '− ') + m.quantidade + ` ${unidade}`
+        const riscado = m.estornada
+        const ref = refText(m)
 
         return (
-          <React.Fragment key={i}>
+          <React.Fragment key={m.id}>
             {/* desktop row */}
             <div className="hist-row" style={{
               animation: 'fadeUp .35s ease both',
               opacity: riscado ? 0.6 : 1,
               background: isEstorno ? '#FBEDE9' : 'transparent',
             }}>
-              <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{h.data}</div>
+              <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{formatDate(m.createdAt)}</div>
               <div style={{ textDecoration: riscado ? 'line-through' : 'none' }}>
-                <HistTipo tipo={h.tipo} titulo={h.titulo} />
+                <HistTipo tipo={tipoDisplay} titulo={titulo} />
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: riscado ? 'line-through' : 'none' }}>{deltaT}</div>
-              <div style={{ fontSize: 13.5, color: '#3A372F', fontVariantNumeric: 'tabular-nums', textDecoration: riscado ? 'line-through' : 'none' }}>{moeda(h.custo, 2)}</div>
+              <div style={{ fontSize: 13.5, color: '#3A372F', fontVariantNumeric: 'tabular-nums', textDecoration: riscado ? 'line-through' : 'none' }}>—</div>
               <div style={{ fontSize: 13, color: isEstorno ? '#B23A1E' : '#A29E96', whiteSpace: isEstorno ? 'normal' : 'nowrap', overflow: isEstorno ? 'visible' : 'hidden', textOverflow: 'ellipsis', fontStyle: isEstorno ? 'italic' : 'normal' }}>
-                {h.ref}
+                {ref}
               </div>
             </div>
-            {h.obs && (
+            {m.observacao && (
               <div className="hist-row" style={{ gridTemplateColumns: '1fr', padding: '0 20px 15px', borderTop: 'none', marginTop: -15 }}>
                 <div style={{ fontSize: 12.5, color: '#A29E96', fontStyle: 'italic', lineHeight: 1.5, paddingLeft: 132 }}>
-                  "{h.obs}"
+                  "{m.observacao}"
                 </div>
               </div>
             )}
@@ -254,23 +276,16 @@ function HistRows() {
               background: isEstorno ? '#FBEDE9' : 'transparent',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, textDecoration: riscado ? 'line-through' : 'none' }}>
-                <HistTipo tipo={h.tipo} titulo={h.titulo} />
+                <HistTipo tipo={tipoDisplay} titulo={titulo} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{deltaT}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap', fontSize: 12.5, color: isEstorno ? '#B23A1E' : '#A29E96', fontStyle: isEstorno ? 'italic' : 'normal' }}>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{h.data}</span>
-                <span style={{ color: '#D8D4CC' }}>·</span>
-                {!isEstorno && (
-                  <>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{moeda(h.custo, 2)} / folha</span>
-                    <span style={{ color: '#D8D4CC' }}>·</span>
-                  </>
-                )}
-                <span>{h.ref}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(m.createdAt)}</span>
+                {ref && <><span style={{ color: '#D8D4CC' }}>·</span><span>{ref}</span></>}
               </div>
-              {h.obs && (
+              {m.observacao && (
                 <div style={{ marginTop: 8, fontSize: 12.5, color: '#A29E96', fontStyle: 'italic', lineHeight: 1.5 }}>
-                  "{h.obs}"
+                  "{m.observacao}"
                 </div>
               )}
             </div>
@@ -308,14 +323,75 @@ function FichasList() {
 
 export default function DetalheInsumoPage() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
   const [modal, setModal] = useState<'baixa' | null>(null)
   const [aba, setAba] = useState<'historico' | 'fichas'>('historico')
-  const o = INSUMO
+  const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
+  const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
+  const [histPage, setHistPage] = useState(0)
+  const [histHasNext, setHistHasNext] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadingMoreHist, setLoadingMoreHist] = useState(false)
 
   const ABAS = [
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: Icons.history },
     { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Icons.layers },
   ]
+
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    Promise.all([
+      insumoService.buscarPorId(id),
+      insumoService.listarMovimentacoes(id, 0),
+    ]).then(([ins, hist]) => {
+      setInsumo(ins)
+      setMovimentacoes(hist.content)
+      setHistHasNext(!hist.last)
+      setHistPage(0)
+    }).catch(console.error)
+      .finally(() => setLoading(false))
+  }, [id])
+
+  const carregarMaisHistorico = () => {
+    if (!id) return
+    const nextPage = histPage + 1
+    setLoadingMoreHist(true)
+    insumoService.listarMovimentacoes(id, nextPage)
+      .then(hist => {
+        setMovimentacoes(prev => [...prev, ...hist.content])
+        setHistHasNext(!hist.last)
+        setHistPage(nextPage)
+      })
+      .catch(console.error)
+      .finally(() => setLoadingMoreHist(false))
+  }
+
+  const recarregarAposBaixa = () => {
+    if (!id) return
+    Promise.all([
+      insumoService.buscarPorId(id),
+      insumoService.listarMovimentacoes(id, 0),
+    ]).then(([ins, hist]) => {
+      setInsumo(ins)
+      setMovimentacoes(hist.content)
+      setHistHasNext(!hist.last)
+      setHistPage(0)
+    }).catch(console.error)
+  }
+
+  if (loading || !insumo) {
+    return (
+      <AppLayout active="insumos">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
+          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+          Carregando insumo…
+        </div>
+      </AppLayout>
+    )
+  }
+
+  const isLow = insumo.estoqueMinimo != null && insumo.estoqueAtual < insumo.estoqueMinimo
 
   return (
     <AppLayout active="insumos">
@@ -327,7 +403,7 @@ export default function DetalheInsumoPage() {
           onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
         >Insumos</span>
         <Icons.chevron style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.nome}</span>
+        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{insumo.nome}</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -337,15 +413,21 @@ export default function DetalheInsumoPage() {
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>{o.nome}</h1>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 12.5, fontWeight: 600 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} /> Ativo
-              </span>
+              <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>{insumo.nome}</h1>
+              {insumo.ativo ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 12.5, fontWeight: 600 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} /> Ativo
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#F1F0EC', color: '#7C786F', fontSize: 12.5, fontWeight: 600 }}>
+                  Inativo
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>Marca: <strong style={{ color: '#5C594F', fontWeight: 600 }}>{o.marca}</strong></div>
+            <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>Marca: <strong style={{ color: '#5C594F', fontWeight: 600 }}>{insumo.marca || '—'}</strong></div>
           </div>
         </div>
-        <Button variant="ghost" icon={<Icons.edit />} onClick={() => navigate('/insumos/1/editar')}>
+        <Button variant="ghost" icon={<Icons.edit />} onClick={() => navigate(`/insumos/${id}/editar`)}>
           Editar
         </Button>
       </div>
@@ -353,11 +435,10 @@ export default function DetalheInsumoPage() {
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', animation: 'fadeUp .4s ease both' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1, background: '#EFEDE8' }}>
           {[
-            { k: 'Unidade de medida',    v: 'Folha' },
-            { k: 'Fracionável',          v: o.fracao ? 'Sim' : 'Não' },
-            { k: 'Saldo atual',          v: `${o.saldo} folhas`, big: true },
-            { k: 'Estoque mínimo',       v: `${o.minimo} folhas` },
-            { k: 'Custo unitário atual', v: `${moeda(o.custo, 2)} / folha`, accent: true },
+            { k: 'Unidade de medida',    v: insumo.unidadeMedida },
+            { k: 'Saldo atual',          v: `${insumo.estoqueAtual} ${insumo.unidadeMedida}`, big: true, warn: isLow },
+            { k: 'Estoque mínimo',       v: insumo.estoqueMinimo != null ? `${insumo.estoqueMinimo} ${insumo.unidadeMedida}` : '—' },
+            { k: 'Custo unitário atual', v: `${moeda(insumo.custoUnitario, 2)} / ${insumo.unidadeMedida}`, accent: true },
           ].map((c, i) => (
             <div key={i} style={{ background: '#fff', padding: '18px 20px' }}>
               <div style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{c.k}</div>
@@ -366,7 +447,7 @@ export default function DetalheInsumoPage() {
                 fontSize: c.big ? 28 : c.accent ? 18 : 16,
                 fontWeight: c.big || c.accent ? 700 : 600,
                 letterSpacing: c.big ? '-0.02em' : '0',
-                color: c.big || c.accent ? '#2A9D8F' : '#3A372F',
+                color: c.warn ? '#C8721F' : (c.big || c.accent ? '#2A9D8F' : '#3A372F'),
               }}>{c.v}</div>
             </div>
           ))}
@@ -407,19 +488,53 @@ export default function DetalheInsumoPage() {
                 <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{h}</div>
               ))}
             </div>
-            <HistRows />
+            {movimentacoes.length === 0 ? (
+              <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 14, color: '#A29E96' }}>
+                Nenhuma movimentação registrada ainda.
+              </div>
+            ) : (
+              <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida} />
+            )}
           </>
         ) : (
           <FichasList />
         )}
       </div>
+
       {aba === 'historico' && (
-        <div style={{ marginTop: 13, fontSize: 12.5, color: '#A29E96', textAlign: 'right' }}>
-          {HIST.length} movimentações
+        <div style={{ marginTop: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 12.5, color: '#A29E96', alignSelf: 'flex-end', width: '100%', textAlign: 'right' }}>
+            {movimentacoes.length} movimentações
+          </div>
+          {histHasNext && (
+            <button onClick={carregarMaisHistorico} disabled={loadingMoreHist} style={{
+              height: 44, padding: '0 24px', borderRadius: 10,
+              border: '1.5px solid #EFEDE8', background: '#fff',
+              color: '#2A9D8F', fontSize: 14, fontWeight: 600,
+              fontFamily: 'inherit', cursor: loadingMoreHist ? 'default' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              opacity: loadingMoreHist ? 0.7 : 1,
+            }}
+              onMouseEnter={e => { if (!loadingMoreHist) e.currentTarget.style.background = 'rgba(42,157,143,0.06)' }}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              {loadingMoreHist
+                ? <><span style={{ width: 16, height: 16, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
+                : <>Carregar mais <Icons.chevron style={{ transform: 'rotate(90deg)' }} /></>
+              }
+            </button>
+          )}
         </div>
       )}
 
-      {modal === 'baixa' && <BaixaModal onClose={() => setModal(null)} />}
+      {modal === 'baixa' && (
+        <BaixaModal
+          insumoId={id!}
+          unidade={insumo.unidadeMedida}
+          onClose={() => setModal(null)}
+          onSuccess={recarregarAposBaixa}
+        />
+      )}
 
     </AppLayout>
   )
