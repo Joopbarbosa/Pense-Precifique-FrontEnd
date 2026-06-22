@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, PageResponse } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, PageResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
 
 export const produtoService = {
@@ -37,5 +37,15 @@ export const produtoService = {
   buscarProdutosBase: async (busca: string): Promise<ProdutoResponse[]> => {
     const response = await api.get('/produtos', { params: { page: 0, size: 20, tipo: 'PRODUTO_BASE', busca, sort: 'nome' } })
     return response.data.content
+  },
+
+  baixaManual: async (id: string, data: BaixaManualProdutoRequest): Promise<MovimentacaoProdutoResponse> => {
+    const response = await api.post(`/produtos/${id}/baixa-manual`, data)
+    return response.data
+  },
+
+  listarMovimentacoes: async (id: string, page: number, size = 20): Promise<PageResponse<MovimentacaoProdutoResponse>> => {
+    const response = await api.get(`/produtos/${id}/movimentacoes`, { params: { page, size } })
+    return response.data
   },
 }

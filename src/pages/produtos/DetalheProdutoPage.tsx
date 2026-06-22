@@ -3,179 +3,89 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import { Icons } from '../../components/ui/Icons'
+import { produtoService } from '../../services/produtoService'
+import { tipoProdutoBadge } from '../../utils/badges'
+import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
 
-type TipoProduto = 'Produto' | 'Produto Base' | 'Customização'
-
-function tipoStyle(tipo: TipoProduto) {
-  if (tipo === 'Produto Base') return { bg: '#EFEDE9', fg: '#6B6860' }
-  if (tipo === 'Customização') return { bg: 'rgba(42,157,143,0.14)', fg: '#2A9D8F' }
-  return { bg: '#E9F1F9', fg: '#3A6FA0' }
+const fmtData = (iso: string) => {
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR')
 }
 
-const PRODUTO = { nome: 'Kit Convite Casamento', estoque: 0, minimo: 5, custo: 30.87, venda: 53.00 }
-
-type MovKind = 'entrada-producao' | 'saida-orcamento' | 'saida-baixa' | 'cancelamento-producao'
-
-interface HistItem {
-  data: string
-  kind: MovKind
-  titulo: string
-  delta: number
-  ref: string
-  cancelada?: boolean
-  estornoDe?: number
+// Mapeamento de motivo da API para label exibido
+const MOTIVO_LABEL: Record<string, string> = {
+  PRODUCAO: 'Produção',
+  ORCAMENTO: 'Orçamento',
+  PERDA: 'Perda',
+  AVARIA: 'Avaria',
+  USO_EXTRA: 'Uso extra',
+  CORRECAO: 'Correção de estoque',
+  OUTRO: 'Outro',
+  ESTORNO_PRODUCAO: 'Cancelamento de produção',
 }
 
-const HIST: HistItem[] = [
-  { data: '04/06/2026', kind: 'entrada-producao',      titulo: 'Entrada — Produção',           delta:  3, ref: 'Produção #18', cancelada: true },
-  { data: '04/06/2026', kind: 'cancelamento-producao', titulo: 'Cancelamento — Produção #18',  delta: -3, ref: 'Estorno: registrei a quantidade errada por engano, era para ser outro produto.', estornoDe: 18 },
-  { data: '03/06/2026', kind: 'saida-orcamento',       titulo: 'Saída — Orçamento',            delta: -3, ref: 'Orçamento #0042 — Mariana Costa' },
-  { data: '28/05/2026', kind: 'entrada-producao',      titulo: 'Entrada — Produção',           delta:  5, ref: 'Produção #15' },
-  { data: '20/05/2026', kind: 'saida-baixa',           titulo: 'Saída — Baixa manual',        delta: -2, ref: 'Motivo: Avaria — unidades danificadas no transporte da gráfica até o estúdio.' },
-]
+type MovKind = 'entrada' | 'saida' | 'estorno'
 
-const MOV: Record<MovKind, { c: string; bg: string; icon: keyof typeof Icons }> = {
-  'entrada-producao':      { c: '#1F8A5B', bg: '#E8F5EE', icon: 'factorySm' },
-  'saida-orcamento':       { c: '#C0492B', bg: '#FBEDE9', icon: 'cart' },
-  'saida-baixa':           { c: '#C8721F', bg: '#FBF1E5', icon: 'minus' },
-  'cancelamento-producao': { c: '#C0492B', bg: '#FBEDE9', icon: 'alertCircle' },
+function resolveKind(mov: MovimentacaoProdutoResponse): MovKind {
+  if (mov.estornada) return 'estorno'
+  if (mov.tipo === 'ENTRADA') return 'entrada'
+  return 'saida'
 }
 
-interface Componente {
-  nome: string
-  marca: string
-  qtd: string
-  custo: number
+const MOV_STYLE: Record<MovKind, { c: string; bg: string; icon: keyof typeof Icons }> = {
+  entrada:  { c: '#1F8A5B', bg: '#E8F5EE', icon: 'factorySm' },
+  saida:    { c: '#C0492B', bg: '#FBEDE9', icon: 'minus' },
+  estorno:  { c: '#C0492B', bg: '#FBEDE9', icon: 'alertCircle' },
 }
 
-const COMPONENTES: Componente[] = [
-  { nome: 'Papel couchê 180g',    marca: 'Suzano', qtd: '2 folhas', custo: 0.90 },
-  { nome: 'Fita dupla face 12mm', marca: '3M',     qtd: '15 cm',    custo: 1.20 },
-  { nome: 'Envelope kraft C6',    marca: '',       qtd: '1 un',     custo: 1.20 },
-]
-
-interface Cell {
-  k: string
-  v: string
-  big?: boolean
-  accent?: boolean
-  price?: boolean
-  danger?: boolean
-  hint?: string
+function MovTitulo(mov: MovimentacaoProdutoResponse) {
+  const kind = resolveKind(mov)
+  if (kind === 'estorno') return `Cancelamento — ${MOTIVO_LABEL[mov.motivo] || mov.motivo}`
+  if (mov.tipo === 'ENTRADA') return `Entrada — ${MOTIVO_LABEL[mov.motivo] || mov.motivo}`
+  return `Saída — ${MOTIVO_LABEL[mov.motivo] || mov.motivo}`
 }
 
-function buildCells(tipo: TipoProduto): Cell[] {
-  const P = PRODUTO
-  const cells: Cell[] = [
-    { k: 'Tipo', v: tipo },
-    { k: 'Estoque atual', v: `${P.estoque} unidades`, big: true, danger: P.estoque === 0 },
-    { k: 'Estoque mínimo', v: `${P.minimo} unidades` },
-    { k: 'Preço de custo', v: moeda(P.custo), accent: true, hint: 'calculado pela ficha técnica' },
-  ]
-  if (tipo === 'Produto') {
-    cells.push({ k: 'Preço de venda', v: moeda(P.venda), price: true })
-  } else if (tipo === 'Customização') {
-    cells.push({ k: 'Preço de venda', v: '+ ' + moeda(P.venda), price: true, hint: 'adicionado ao orçamento' })
-  }
-  return cells
-}
-
-const MOTIVOS_PRODUTO = ['Perda', 'Avaria', 'Uso extra', 'Correção de estoque', 'Outro']
-
-const HIST_COLS = '116px 1fr 110px 1fr'
-
-function HistTipo({ kind, titulo }: { kind: MovKind; titulo: string }) {
-  const m = MOV[kind]
+function HistTipo({ mov }: { mov: MovimentacaoProdutoResponse }) {
+  const kind = resolveKind(mov)
+  const m = MOV_STYLE[kind]
   const Ic = Icons[m.icon] as (p?: React.SVGProps<SVGSVGElement>) => JSX.Element
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
       <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: m.bg, color: m.c }}>
         <Ic />
       </span>
-      <span style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F' }}>{titulo}</span>
+      <span style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F' }}>{MovTitulo(mov)}</span>
     </div>
   )
 }
 
-function HistRows() {
-  return (
-    <>
-      {HIST.map((h, i) => {
-        const pos = h.delta > 0
-        const isEstorno = !!h.estornoDe
-        const deltaC = isEstorno ? '#C0492B' : (pos ? '#1F8A5B' : '#C0492B')
-        const deltaT = (h.delta > 0 ? '+ ' : '− ') + Math.abs(h.delta) + ' un'
-        const riscado = h.cancelada
+const MOTIVOS_PRODUTO: { api: BaixaManualProdutoRequest['motivo']; label: string }[] = [
+  { api: 'PERDA',     label: 'Perda' },
+  { api: 'AVARIA',    label: 'Avaria' },
+  { api: 'USO_EXTRA', label: 'Uso extra' },
+  { api: 'CORRECAO',  label: 'Correção de estoque' },
+  { api: 'OUTRO',     label: 'Outro' },
+]
 
-        return (
-          <React.Fragment key={i}>
-            <div className="hist-row" style={{
-              gridTemplateColumns: HIST_COLS, animation: 'fadeUp .35s ease both',
-              opacity: riscado ? 0.6 : 1,
-              background: isEstorno ? '#FBEDE9' : 'transparent',
-            }}>
-              <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{h.data}</div>
-              <div style={{ textDecoration: riscado ? 'line-through' : 'none' }}>
-                <HistTipo kind={h.kind} titulo={h.titulo} />
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: riscado ? 'line-through' : 'none' }}>{deltaT}</div>
-              <div style={{ fontSize: 13, color: isEstorno ? '#B23A1E' : '#A29E96', whiteSpace: isEstorno ? 'normal' : 'nowrap', overflow: isEstorno ? 'visible' : 'hidden', textOverflow: 'ellipsis', fontStyle: isEstorno ? 'italic' : 'normal' }}>
-                {h.ref}
-              </div>
-            </div>
-            <div className="hist-card" style={{
-              padding: '15px 18px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both',
-              opacity: riscado ? 0.6 : 1,
-              background: isEstorno ? '#FBEDE9' : 'transparent',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, textDecoration: riscado ? 'line-through' : 'none' }}>
-                <HistTipo kind={h.kind} titulo={h.titulo} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{deltaT}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap', fontSize: 12.5, color: isEstorno ? '#B23A1E' : '#A29E96', fontStyle: isEstorno ? 'italic' : 'normal' }}>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{h.data}</span>
-                <span style={{ color: '#D8D4CC' }}>·</span>
-                <span>{h.ref}</span>
-              </div>
-            </div>
-          </React.Fragment>
-        )
-      })}
-    </>
-  )
-}
+const HIST_COLS = '116px 1fr 110px 1fr'
 
-function FichaList() {
-  return (
-    <div>
-      {COMPONENTES.map((c, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: i === 0 ? 'none' : '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
-          <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: '#F1F0EC', color: '#9A968E' }}>
-            <Icons.box width={20} height={20} />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>{c.nome}</span>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap' }}>Insumo</span>
-            </div>
-            <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>{c.marca ? c.marca + ' · ' : ''}{c.qtd}</div>
-          </div>
-          <span style={{ flexShrink: 0, fontSize: 14.5, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{moeda(c.custo)}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
+function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
+  produtoId: string
+  nomeProduto: string
+  onClose: () => void
+  onSuccess: (novoEstoque: number) => void
+}) {
   const [qtd, setQtd] = useState('')
-  const [motivo, setMotivo] = useState('Perda')
+  const [motivo, setMotivo] = useState<BaixaManualProdutoRequest['motivo']>('PERDA')
+  const [motivoLabel, setMotivoLabel] = useState('Perda')
   const [obs, setObs] = useState('')
   const [focus, setFocus] = useState<string | null>(null)
   const [selOpen, setSelOpen] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
   const selRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -186,7 +96,8 @@ function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const podeRegistrar = qtd.trim() !== '' && obs.trim().length >= 50
+  const qtdNum = parseFloat((qtd || '0').replace(/\./g, '').replace(',', '.')) || 0
+  const podeRegistrar = qtdNum > 0 && obs.trim().length >= 50 && !salvando
 
   const baseStyle = (k: string): React.CSSProperties => ({
     width: '100%', minHeight: 48, padding: '0 14px',
@@ -199,6 +110,23 @@ function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
 
   const lbl: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }
 
+  const registrar = async () => {
+    setErro(null)
+    setSalvando(true)
+    try {
+      const result = await produtoService.baixaManual(produtoId, {
+        quantidade: qtdNum,
+        motivo,
+        observacao: obs.trim(),
+      })
+      onSuccess(result.quantidade)
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao registrar baixa.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(500px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
@@ -210,7 +138,7 @@ function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
             </span>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Baixa manual — {PRODUTO.nome}
+                Baixa manual — {nomeProduto}
               </div>
               <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>Registra uma saída fora de produção.</div>
             </div>
@@ -250,21 +178,21 @@ function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
                   borderColor: selOpen ? '#2A9D8F' : '#EFEDE8',
                   boxShadow: selOpen ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
                 }}>
-                  {motivo}<span style={{ color: '#A29E96', display: 'flex' }}><Icons.caret /></span>
+                  {motivoLabel}<span style={{ color: '#A29E96', display: 'flex' }}><Icons.caret /></span>
                 </button>
                 {selOpen && (
                   <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
                     {MOTIVOS_PRODUTO.map(m => (
-                      <button key={m} type="button" onClick={() => { setMotivo(m); setSelOpen(false) }} style={{
+                      <button key={m.api} type="button" onClick={() => { setMotivo(m.api); setMotivoLabel(m.label); setSelOpen(false) }} style={{
                         width: '100%', textAlign: 'left', padding: '10px 11px', borderRadius: 8,
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14,
-                        background: m === motivo ? 'rgba(42,157,143,0.08)' : 'transparent',
-                        fontWeight: m === motivo ? 600 : 500,
-                        color: m === motivo ? '#2A9D8F' : '#3A372F',
+                        background: m.api === motivo ? 'rgba(42,157,143,0.08)' : 'transparent',
+                        fontWeight: m.api === motivo ? 600 : 500,
+                        color: m.api === motivo ? '#2A9D8F' : '#3A372F',
                       }}
-                        onMouseEnter={e => { if (m !== motivo) e.currentTarget.style.background = '#F7F5F1' }}
-                        onMouseLeave={e => { if (m !== motivo) e.currentTarget.style.background = 'transparent' }}
-                      >{m}</button>
+                        onMouseEnter={e => { if (m.api !== motivo) e.currentTarget.style.background = '#F7F5F1' }}
+                        onMouseLeave={e => { if (m.api !== motivo) e.currentTarget.style.background = 'transparent' }}
+                      >{m.label}</button>
                     ))}
                   </div>
                 )}
@@ -297,12 +225,18 @@ function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </label>
+
+          {erro && (
+            <div style={{ padding: '10px 14px', borderRadius: 9, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13 }}>
+              {erro}
+            </div>
+          )}
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="secondary" icon={<Icons.minus />} disabled={!podeRegistrar} onClick={onClose}>
-            Registrar baixa
+          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+          <Button variant="secondary" icon={<Icons.minus />} disabled={!podeRegistrar} onClick={registrar}>
+            {salvando ? 'Registrando…' : 'Registrar baixa'}
           </Button>
         </div>
       </div>
@@ -313,13 +247,92 @@ function BaixaProdutoModal({ onClose }: { onClose: () => void }) {
 export default function DetalheProdutoPage() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const [produto, setProduto] = useState<ProdutoDetalheResponse | null>(null)
+  const [movimentacoes, setMovimentacoes] = useState<MovimentacaoProdutoResponse[]>([])
+  const [movPage, setMovPage] = useState(0)
+  const [movHasNext, setMovHasNext] = useState(false)
+  const [movLoadingMore, setMovLoadingMore] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [aba, setAba] = useState<'historico' | 'ficha'>('historico')
   const [modal, setModal] = useState<'baixa' | null>(null)
 
-  const tipo: TipoProduto = 'Produto'
-  const ts = tipoStyle(tipo)
-  const cells = buildCells(tipo)
-  const o = PRODUTO
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    Promise.all([
+      produtoService.buscarPorId(id),
+      produtoService.listarMovimentacoes(id, 0),
+    ])
+      .then(([prod, movs]) => {
+        setProduto(prod)
+        setMovimentacoes(movs.content)
+        setMovHasNext(!movs.last)
+        setMovPage(0)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [id])
+
+  const carregarMaisMovs = () => {
+    if (!id) return
+    const nextPage = movPage + 1
+    setMovLoadingMore(true)
+    produtoService.listarMovimentacoes(id, nextPage)
+      .then(data => {
+        setMovimentacoes(prev => [...prev, ...data.content])
+        setMovHasNext(!data.last)
+        setMovPage(nextPage)
+      })
+      .catch(console.error)
+      .finally(() => setMovLoadingMore(false))
+  }
+
+  const recarregarMovimentacoes = () => {
+    if (!id) return
+    produtoService.listarMovimentacoes(id, 0)
+      .then(data => {
+        setMovimentacoes(data.content)
+        setMovHasNext(!data.last)
+        setMovPage(0)
+      })
+      .catch(console.error)
+  }
+
+  const handleBaixaSuccess = (qtdSubtraida: number) => {
+    setModal(null)
+    if (produto) {
+      setProduto(prev => prev ? { ...prev, estoqueAtual: Math.max(0, prev.estoqueAtual - qtdSubtraida) } : prev)
+    }
+    recarregarMovimentacoes()
+  }
+
+  if (loading || !produto) {
+    return (
+      <AppLayout active="produtos">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '60px 0' }}>
+          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+          Carregando produto…
+        </div>
+      </AppLayout>
+    )
+  }
+
+  const badge = tipoProdutoBadge(produto.tipo)
+  const ts = { bg: badge.bg, fg: badge.fg }
+  const tipoLabel = badge.label
+
+  const isCustom = produto.tipo === 'CUSTOMIZACAO'
+  const isProdutoBase = produto.tipo === 'PRODUTO_BASE'
+
+  const precoCustoTotal = produto.fichaTecnica.reduce((s, i) => s + i.custoTotal, 0)
+
+  const cells = [
+    { k: 'Tipo', v: tipoLabel },
+    ...(!isProdutoBase ? [{ k: 'Estoque atual', v: `${produto.estoqueAtual} unidades`, big: true, danger: produto.estoqueAtual === 0 }] : []),
+    ...(produto.estoqueMinimo != null ? [{ k: 'Estoque mínimo', v: `${produto.estoqueMinimo} unidades` }] : []),
+    { k: 'Preço de custo', v: moeda(produto.precoCusto), accent: true, hint: 'calculado pela ficha técnica' },
+    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+  ]
 
   const ABAS = [
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: Icons.history },
@@ -336,7 +349,7 @@ export default function DetalheProdutoPage() {
           onMouseLeave={e => (e.currentTarget.style.color = '#A29E96')}
         >Produtos</span>
         <Icons.chevron style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.nome}</span>
+        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{produto.nome}</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -346,16 +359,17 @@ export default function DetalheProdutoPage() {
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F', whiteSpace: 'nowrap' }}>{o.nome}</h1>
+              <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F', whiteSpace: 'nowrap' }}>{produto.nome}</h1>
               <span style={{ display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 11px', borderRadius: 999, background: ts.bg, color: ts.fg, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
-                {tipo}
+                {tipoLabel}
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 12.5, fontWeight: 600 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} /> Ativo
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: produto.ativo ? '#E8F5EE' : '#F1F0EC', color: produto.ativo ? '#1F8A5B' : '#7C786F', fontSize: 12.5, fontWeight: 600 }}>
+                {produto.ativo && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} />}
+                {produto.ativo ? 'Ativo' : 'Inativo'}
               </span>
             </div>
             <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>
-              Atualizado em <strong style={{ color: '#5C594F', fontWeight: 600 }}>04/06/2026</strong>
+              Atualizado em <strong style={{ color: '#5C594F', fontWeight: 600 }}>{fmtData(produto.updatedAt)}</strong>
             </div>
           </div>
         </div>
@@ -371,23 +385,25 @@ export default function DetalheProdutoPage() {
               <div style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{c.k}</div>
               <div style={{
                 marginTop: 7, fontVariantNumeric: 'tabular-nums',
-                fontSize: c.big ? 28 : (c.accent || c.price) ? 18 : 16,
-                fontWeight: (c.big || c.accent || c.price) ? 700 : 600,
-                letterSpacing: c.big ? '-0.02em' : '0',
-                color: c.danger ? '#C0492B' : c.accent ? '#2A9D8F' : '#3A372F',
+                fontSize: (c as any).big ? 28 : ((c as any).accent || (c as any).price) ? 18 : 16,
+                fontWeight: ((c as any).big || (c as any).accent || (c as any).price) ? 700 : 600,
+                letterSpacing: (c as any).big ? '-0.02em' : '0',
+                color: (c as any).danger ? '#C0492B' : (c as any).accent ? '#2A9D8F' : '#3A372F',
               }}>{c.v}</div>
-              {c.hint && <div style={{ marginTop: 3, fontSize: 11.5, color: '#A8A49C', fontWeight: 500 }}>{c.hint}</div>}
+              {(c as any).hint && <div style={{ marginTop: 3, fontSize: 11.5, color: '#A8A49C', fontWeight: 500 }}>{(c as any).hint}</div>}
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 11, padding: '16px 20px', borderTop: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
-          <Button variant="primary" icon={<Icons.factory />} onClick={() => navigate('/producao')}>
-            Registrar produção
-          </Button>
-          <Button variant="ghost" icon={<Icons.minus />} onClick={() => setModal('baixa')}>
-            Baixa manual
-          </Button>
-        </div>
+        {!isProdutoBase && (
+          <div style={{ display: 'flex', gap: 11, padding: '16px 20px', borderTop: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
+            <Button variant="primary" icon={<Icons.factory />} onClick={() => navigate('/producao')}>
+              Registrar produção
+            </Button>
+            <Button variant="ghost" icon={<Icons.minus />} onClick={() => setModal('baixa')}>
+              Baixa manual
+            </Button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 4, marginTop: 26, borderBottom: '1.5px solid #EFEDE8', overflowX: 'auto' }}>
@@ -415,23 +431,132 @@ export default function DetalheProdutoPage() {
         {aba === 'historico' ? (
           <>
             <div className="hist-head" style={{ gridTemplateColumns: HIST_COLS }}>
-              {['Data', 'Movimentação', 'Quantidade', 'Referência'].map((h, k) => (
+              {['Data', 'Movimentação', 'Quantidade', 'Observação'].map((h, k) => (
                 <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{h}</div>
               ))}
             </div>
-            <HistRows />
+            {movimentacoes.length === 0 ? (
+              <div style={{ padding: '34px 20px', textAlign: 'center', color: '#A29E96', fontSize: 13.5, borderTop: '1px solid #EFEDE8' }}>
+                Nenhuma movimentação registrada ainda.
+              </div>
+            ) : movimentacoes.map((mov, i) => {
+              const kind = resolveKind(mov)
+              const m = MOV_STYLE[kind]
+              const pos = mov.tipo === 'ENTRADA'
+              const deltaC = kind === 'estorno' ? '#C0492B' : (pos ? '#1F8A5B' : '#C0492B')
+              const deltaT = (pos ? '+ ' : '− ') + mov.quantidade + ' un'
+              const isEstorno = mov.estornada
+              const riscado = isEstorno
+
+              return (
+                <React.Fragment key={mov.id}>
+                  <div className="hist-row" style={{
+                    gridTemplateColumns: HIST_COLS, animation: 'fadeUp .35s ease both',
+                    opacity: riscado ? 0.6 : 1,
+                    background: isEstorno ? '#FBEDE9' : 'transparent',
+                  }}>
+                    <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{fmtData(mov.createdAt)}</div>
+                    <div style={{ textDecoration: riscado ? 'line-through' : 'none' }}>
+                      <HistTipo mov={mov} />
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: riscado ? 'line-through' : 'none' }}>{deltaT}</div>
+                    <div style={{ fontSize: 13, color: isEstorno ? '#B23A1E' : '#A29E96', whiteSpace: 'normal', overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: isEstorno ? 'italic' : 'normal' }}>
+                      {mov.observacao || (mov.referenciaId ? `Ref: ${mov.referenciaId}` : '—')}
+                    </div>
+                  </div>
+                  <div className="hist-card" style={{
+                    padding: '15px 18px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both',
+                    opacity: riscado ? 0.6 : 1,
+                    background: isEstorno ? '#FBEDE9' : 'transparent',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, textDecoration: riscado ? 'line-through' : 'none' }}>
+                      <HistTipo mov={mov} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{deltaT}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap', fontSize: 12.5, color: isEstorno ? '#B23A1E' : '#A29E96', fontStyle: isEstorno ? 'italic' : 'normal' }}>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtData(mov.createdAt)}</span>
+                      {mov.observacao && <><span style={{ color: '#D8D4CC' }}>·</span><span>{mov.observacao}</span></>}
+                    </div>
+                  </div>
+                </React.Fragment>
+              )
+            })}
           </>
         ) : (
-          <FichaList />
+          // ABA FICHA TÉCNICA
+          produto.fichaTecnica.length === 0 ? (
+            <div style={{ padding: '34px 20px', textAlign: 'center', color: '#A29E96', fontSize: 13.5 }}>
+              Nenhum componente cadastrado na ficha técnica.
+            </div>
+          ) : (
+            <>
+              {produto.fichaTecnica.map((item, i) => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: i === 0 ? 'none' : '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
+                  <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: item.produtoBaseId ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: item.produtoBaseId ? '#2A9D8F' : '#9A968E' }}>
+                    {item.produtoBaseId ? <Icons.cubeSmall /> : <Icons.box width={20} height={20} />}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>
+                        {item.nomeInsumo || item.nomeProdutoBase}
+                      </span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: item.produtoBaseId ? '#2A9D8F' : '#7C786F', background: item.produtoBaseId ? 'rgba(42,157,143,0.10)' : '#F1F0EC', padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+                        {item.produtoBaseId ? 'Produto Base' : 'Insumo'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>
+                      {item.marcaInsumo ? item.marcaInsumo + ' · ' : ''}{item.quantidade} {item.unidadeMedida || 'un'}
+                    </div>
+                  </div>
+                  <span style={{ flexShrink: 0, fontSize: 14.5, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {moeda(item.custoTotal)}
+                  </span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid #EFEDE8' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#5C594F' }}>
+                  Total: <span style={{ color: '#2A9D8F', fontSize: 15 }}>{moeda(precoCustoTotal)}</span>
+                </span>
+              </div>
+            </>
+          )
         )}
       </div>
+
       {aba === 'historico' && (
-        <div style={{ marginTop: 13, fontSize: 12.5, color: '#A29E96', textAlign: 'right' }}>
-          {HIST.length} movimentações
+        <div style={{ marginTop: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <div style={{ fontSize: 12.5, color: '#A29E96', alignSelf: 'flex-end', width: '100%', textAlign: 'right' }}>
+            {movimentacoes.length} movimentaç{movimentacoes.length === 1 ? 'ão' : 'ões'}
+          </div>
+          {movHasNext && (
+            <button onClick={carregarMaisMovs} disabled={movLoadingMore} style={{
+              height: 42, padding: '0 20px', borderRadius: 10,
+              border: '1.5px solid #EFEDE8', background: '#fff',
+              color: '#2A9D8F', fontSize: 13.5, fontWeight: 600,
+              fontFamily: 'inherit', cursor: movLoadingMore ? 'default' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              opacity: movLoadingMore ? 0.7 : 1,
+            }}
+              onMouseEnter={e => { if (!movLoadingMore) e.currentTarget.style.background = 'rgba(42,157,143,0.06)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+            >
+              {movLoadingMore
+                ? <><span style={{ width: 15, height: 15, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
+                : <>Carregar mais <Icons.chevron style={{ transform: 'rotate(90deg)' }} /></>
+              }
+            </button>
+          )}
         </div>
       )}
 
-      {modal === 'baixa' && <BaixaProdutoModal onClose={() => setModal(null)} />}
+      {modal === 'baixa' && id && (
+        <BaixaProdutoModal
+          produtoId={id}
+          nomeProduto={produto.nome}
+          onClose={() => setModal(null)}
+          onSuccess={handleBaixaSuccess}
+        />
+      )}
 
     </AppLayout>
   )

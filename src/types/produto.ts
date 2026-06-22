@@ -52,6 +52,24 @@ export interface ProdutoDetalheResponse extends ProdutoResponse {
   fichaTecnica: FichaTecnicaItemResponse[]
 }
 
+export interface BaixaManualProdutoRequest {
+  quantidade: number
+  motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO'
+  observacao: string
+}
+
+export interface MovimentacaoProdutoResponse {
+  id: string
+  tipo: 'ENTRADA' | 'SAIDA'
+  motivo: string
+  quantidade: number
+  observacao?: string
+  referenciaId?: string
+  referenciaTipo?: string
+  estornada: boolean
+  createdAt: string
+}
+
 export interface PageResponse<T> {
   content: T[]
   number: number
