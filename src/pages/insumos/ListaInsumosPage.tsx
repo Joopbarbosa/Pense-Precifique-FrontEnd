@@ -401,7 +401,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '11px 16px', background: '#FBFAF8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
               <span>Insumo</span><span style={{ textAlign: 'right' }}>Custo unitário</span>
             </div>
-            {insumosAtualizados.map((item, i) => {
+            {insumosAtualizados.map((item) => {
               const subiu = item.custoUnitarioNovo > item.custoUnitarioAnterior
               const igual = item.custoUnitarioNovo === item.custoUnitarioAnterior
               return (
