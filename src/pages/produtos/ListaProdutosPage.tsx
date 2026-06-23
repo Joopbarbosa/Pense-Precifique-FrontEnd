@@ -79,25 +79,15 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
           position: 'relative',
           overflow: 'hidden',
         }}>
-          {p.foto ? (
-            <img
-              src={p.foto}
-              alt={p.nome}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <>
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 13px, rgba(0,0,0,0.018) 13px, rgba(0,0,0,0.018) 26px)',
-              }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#C2BEB5' }}>
-                <Icons.camera />
-                <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em' }}>Sem foto</span>
-              </div>
-            </>
-          )}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 13px, rgba(0,0,0,0.018) 13px, rgba(0,0,0,0.018) 26px)',
+          }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#C2BEB5' }}>
+            <Icons.camera />
+            <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em' }}>Sem foto</span>
+          </div>
         </div>
         {inativo && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(120,118,112,0.2)', pointerEvents: 'none' }} />

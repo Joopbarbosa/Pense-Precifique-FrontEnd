@@ -439,9 +439,8 @@ export default function DetalheProdutoPage() {
               <div style={{ padding: '34px 20px', textAlign: 'center', color: '#A29E96', fontSize: 13.5, borderTop: '1px solid #EFEDE8' }}>
                 Nenhuma movimentação registrada ainda.
               </div>
-            ) : movimentacoes.map((mov, i) => {
+            ) : movimentacoes.map((mov) => {
               const kind = resolveKind(mov)
-              const m = MOV_STYLE[kind]
               const pos = mov.tipo === 'ENTRADA'
               const deltaC = kind === 'estorno' ? '#C0492B' : (pos ? '#1F8A5B' : '#C0492B')
               const deltaT = (pos ? '+ ' : '− ') + mov.quantidade + ' un'
@@ -490,8 +489,8 @@ export default function DetalheProdutoPage() {
             </div>
           ) : (
             <>
-              {produto.fichaTecnica.map((item, i) => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: i === 0 ? 'none' : '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
+              {produto.fichaTecnica.map((item, idx) => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: idx === 0 ? 'none' : '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
                   <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: item.produtoBaseId ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: item.produtoBaseId ? '#2A9D8F' : '#9A968E' }}>
                     {item.produtoBaseId ? <Icons.cubeSmall /> : <Icons.box width={20} height={20} />}
                   </span>

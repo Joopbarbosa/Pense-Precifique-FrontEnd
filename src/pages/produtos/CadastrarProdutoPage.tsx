@@ -158,13 +158,14 @@ function DescTextarea({ value, onChange }: { value: string; onChange: (v: string
 
 // ---------- DadosBasicos ----------
 
-function DadosBasicos({ st, set, onNext }: { st: any; set: (k: string, v: any) => void; onNext: () => void }) {
+function DadosBasicos({ st, set, onNext, nomeErro }: { st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '28px 30px', maxWidth: 760, animation: 'fadeUp .35s ease both' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '22px 24px' }}>
         <div style={{ gridColumn: '1 / -1' }}>
           <Field label="Nome do produto" required>
             <TextInput value={st.nome} onChange={v => set('nome', v)} placeholder="Ex: Kit Convite Casamento" />
+            {nomeErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{nomeErro}</span>}
           </Field>
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
@@ -598,6 +599,7 @@ export default function CadastrarProdutoPage() {
   const [precoFinal, setPrecoFinal] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const isProdutoBase = dados.tipo === 'Produto Base'
 
@@ -637,6 +639,7 @@ export default function CadastrarProdutoPage() {
 
   const salvar = async () => {
     setErro(null)
+    setFieldErrors({})
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
     const precoVendaNum = isProdutoBase ? undefined : (num(precoFinal) || undefined)
 
@@ -664,6 +667,8 @@ export default function CadastrarProdutoPage() {
       }
     } catch (err: any) {
       const data = err.response?.data
+      const fe: Record<string, string> = data?.fieldErrors ?? {}
+      setFieldErrors(fe)
       setErro(data?.message || 'Erro ao salvar produto. Verifique os campos obrigatórios.')
     } finally {
       setSalvando(false)
@@ -726,7 +731,7 @@ export default function CadastrarProdutoPage() {
       </div>
 
       {/* CONTEÚDO */}
-      {aba === 'dados' && <DadosBasicos st={dados} set={setD} onNext={() => setAba('ficha')} />}
+      {aba === 'dados' && <DadosBasicos st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome} />}
       {aba === 'ficha' && (
         <div className="ficha-grid">
           <FichaTecnica ficha={ficha} setFicha={setFicha} />
@@ -743,9 +748,16 @@ export default function CadastrarProdutoPage() {
       {/* AÇÕES GLOBAIS */}
       {aba !== 'dados' && (
         <div style={{ marginTop: 26 }}>
-          {erro && (
+          {(erro || Object.keys(fieldErrors).length > 0) && (
             <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5, marginBottom: 12 }}>
-              {erro}
+              <div>{erro}</div>
+              {Object.keys(fieldErrors).length > 0 && (
+                <ul style={{ margin: erro ? '6px 0 0' : 0, padding: '0 0 0 18px' }}>
+                  {Object.entries(fieldErrors).map(([k, v]) => (
+                    <li key={k}>{v}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
