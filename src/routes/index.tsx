@@ -55,7 +55,7 @@ export const router = createBrowserRouter([
       { path: '/produtos/:id',         element: <DetalheProdutoPage /> },
 
       { path: '/producao',             element: <RegistroProducaoPage /> },
-      { path: '/producao/:numero',     element: <RegistroProducaoPage /> },
+      { path: '/producao/:id',         element: <RegistroProducaoPage /> },
 
       { path: '/configuracoes',        element: <ConfiguracoesPage /> },
     ],

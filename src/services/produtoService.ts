@@ -3,9 +3,10 @@ import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, PageRespo
 import type { InsumoResponse } from '../types/insumo'
 
 export const produtoService = {
-  listar: async (page: number, size = 20, tipo?: string): Promise<PageResponse<ProdutoResponse>> => {
+  listar: async (page: number, size = 20, tipo?: string, busca?: string): Promise<PageResponse<ProdutoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
     if (tipo) params.tipo = tipo
+    if (busca) params.busca = busca
     const response = await api.get('/produtos', { params })
     return response.data
   },
