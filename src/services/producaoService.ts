@@ -27,4 +27,9 @@ export const producaoService = {
     const response = await api.get('/producoes/preview', { params: { produtoId, quantidade } })
     return response.data
   },
+
+  cancelar: async (id: string, observacao: string): Promise<ProducaoDetalheResponse> => {
+    const response = await api.post(`/producoes/${id}/cancelar`, { observacao })
+    return response.data
+  },
 }
