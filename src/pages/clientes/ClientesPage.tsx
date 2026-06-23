@@ -1,25 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, Input } from '../../components/ui'
 import { Icons } from '../../components/ui/Icons'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
+import ModalShell from '../../components/ui/ModalShell'
+import { clienteService } from '../../services/clienteService'
+import type { ClienteResponse, ClienteRequest } from '../../types/cliente'
 
-interface Cliente {
-  nome: string
-  whats: string
-  email: string
-  obs: string
-  orc: string | null
-  data: string | null
-  ativa?: boolean
-}
-
-const CLIENTES: Cliente[] = [
-  { nome: 'Mariana Costa',    whats: '(11) 99999-0000', orc: '#0042', data: '04/06/2026', email: 'mariana.costa@gmail.com', obs: '' },
-  { nome: 'Camila Rocha',     whats: '(11) 97777-2233', orc: '#0041', data: '02/06/2026', email: 'camila.rocha@gmail.com',  obs: 'Prefere retirar no ateliê aos sábados. Sempre pede embrulho de presente.' },
-  { nome: 'Patrícia Mendes',  whats: '(21) 98888-5566', orc: '#0040', data: '28/05/2026', email: '', obs: '' },
-  { nome: 'Juliana Ferreira', whats: '(11) 96666-4411', orc: null,    data: null,          email: '', obs: '', ativa: false },
-]
+// ---------- Avatar ----------
 
 function Avatar({ nome, inativa }: { nome: string; inativa: boolean }) {
   return (
@@ -36,23 +24,21 @@ function Avatar({ nome, inativa }: { nome: string; inativa: boolean }) {
   )
 }
 
-function ClientRow({ cliente, index, rowZIndex, onEdit, onVerOrcamentos, onDesativar, onReativar }: {
-  cliente: Cliente
+// ---------- ClientRow ----------
+
+function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
+  cliente: ClienteResponse
   index: number
   rowZIndex: number
-  onEdit: (c: Cliente) => void
-  onVerOrcamentos: (c: Cliente) => void
-  onDesativar: (c: Cliente) => void
-  onReativar: (c: Cliente) => void
+  onEdit: (c: ClienteResponse) => void
+  onDesativar: (c: ClienteResponse) => void
 }) {
-  const inativa = cliente.ativa === false
+  const inativa = !cliente.ativa
 
   const menuItems: ActionMenuItem[] = [
-    { label: 'Editar',          icon: <Icons.edit />,    onClick: () => onEdit(cliente) },
-    { label: 'Ver orçamentos',  icon: <Icons.list />,    onClick: () => onVerOrcamentos(cliente) },
-    inativa
-      ? { label: 'Reativar',  icon: <Icons.refresh />, onClick: () => onReativar(cliente), dividerBefore: true }
-      : { label: 'Desativar', icon: <Icons.ban />,     onClick: () => onDesativar(cliente), danger: true, dividerBefore: true },
+    { label: 'Editar',         icon: <Icons.edit />, onClick: () => onEdit(cliente) },
+    { label: 'Ver orçamentos', icon: <Icons.list />, onClick: () => {} },
+    { label: 'Desativar',      icon: <Icons.ban />,  onClick: () => onDesativar(cliente), danger: true, dividerBefore: true },
   ]
 
   return (
@@ -98,23 +84,21 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onVerOrcamentos, onDesat
       <div>
         <span className="cell-label">WhatsApp</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 14, color: '#5C594F' }}>
-          <span style={{ color: '#2A9D8F', display: 'flex' }}><Icons.phone /></span>
-          {cliente.whats}
+          {cliente.whatsapp ? (
+            <>
+              <span style={{ color: '#2A9D8F', display: 'flex' }}><Icons.phone /></span>
+              {cliente.whatsapp}
+            </>
+          ) : (
+            <span style={{ fontSize: 13.5, color: '#B7B4AD', fontStyle: 'italic' }}>Não informado</span>
+          )}
         </span>
       </div>
 
-      {/* Último orçamento */}
+      {/* Último orçamento — aguarda integração futura */}
       <div>
         <span className="cell-label">Último orçamento</span>
-        {cliente.orc ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#5C594F' }}>
-            <span style={{ fontWeight: 600, color: '#F97316' }}>{cliente.orc}</span>
-            <span style={{ color: '#C9C5BD' }}>·</span>
-            <span style={{ color: '#A29E96' }}>{cliente.data}</span>
-          </span>
-        ) : (
-          <span style={{ fontSize: 13.5, color: '#B7B4AD', fontStyle: 'italic' }}>Nenhum orçamento ainda</span>
-        )}
+        <span style={{ fontSize: 13.5, color: '#B7B4AD', fontStyle: 'italic' }}>Nenhum orçamento ainda</span>
       </div>
 
       {/* Menu de ações */}
@@ -125,12 +109,23 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onVerOrcamentos, onDesat
   )
 }
 
-function NovaClienteDrawer({ onClose, editData }: {
+// ---------- NovaClienteDrawer ----------
+
+function NovaClienteDrawer({ onClose, editData, onSuccess }: {
   onClose: () => void
-  editData: Cliente | null
+  editData: ClienteResponse | null
+  onSuccess: (c: ClienteResponse) => void
 }) {
   const isEdit = !!editData
-  const [form, setForm] = useState(editData ?? { nome: '', whats: '', email: '', obs: '', orc: null, data: null })
+  const [form, setForm] = useState({
+    nome: editData?.nome ?? '',
+    whatsapp: editData?.whatsapp ?? '',
+    email: editData?.email ?? '',
+    observacoes: editData?.observacoes ?? '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     document.body.classList.add('drawer-open')
@@ -140,8 +135,34 @@ function NovaClienteDrawer({ onClose, editData }: {
   const maskPhone = (v: string) => {
     const d = v.replace(/\D/g, '').slice(0, 11)
     if (d.length <= 2) return `(${d}`
-    if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`
-    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    setErro(null)
+    setFieldErrors({})
+    try {
+      const req: ClienteRequest = {
+        nome: form.nome.trim(),
+        whatsapp: form.whatsapp || undefined,
+        email: form.email || undefined,
+        observacoes: form.observacoes || undefined,
+      }
+      const result = isEdit
+        ? await clienteService.editar(editData!.id, req)
+        : await clienteService.cadastrar(req)
+      onSuccess(result)
+      onClose()
+    } catch (err: any) {
+      const data = err.response?.data
+      const fe: Record<string, string> = data?.fieldErrors ?? {}
+      setFieldErrors(fe)
+      setErro(data?.message || 'Erro ao salvar. Tente novamente.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -200,15 +221,22 @@ function NovaClienteDrawer({ onClose, editData }: {
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
               <Icons.user width={14} height={14} /> Nome completo <span style={{ color: '#F97316' }}>*</span>
             </label>
-            <Input label="" type="text" placeholder="Beatriz Santos" value={form.nome} onChange={(v) => setForm(f => ({ ...f, nome: v }))} />
+            <Input label="" type="text" placeholder="Beatriz Santos" value={form.nome}
+              onChange={(v) => setForm(f => ({ ...f, nome: v }))} />
+            {fieldErrors.nome && (
+              <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.nome}</span>
+            )}
           </div>
 
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-              <Icons.phone /> WhatsApp <span style={{ color: '#F97316' }}>*</span>
+              <Icons.phone /> WhatsApp
             </label>
-            <Input label="" type="tel" placeholder="(11) 99999-0000" value={form.whats}
-              onChange={(v) => setForm(f => ({ ...f, whats: maskPhone(v) }))} />
+            <Input label="" type="tel" placeholder="(11) 99999-0000" value={form.whatsapp}
+              onChange={(v) => setForm(f => ({ ...f, whatsapp: maskPhone(v) }))} />
+            {fieldErrors.whatsapp && (
+              <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.whatsapp}</span>
+            )}
             <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#A29E96' }}>Usado para enviar orçamentos diretamente.</p>
           </div>
 
@@ -216,7 +244,11 @@ function NovaClienteDrawer({ onClose, editData }: {
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
               <Icons.mail width={14} height={14} /> E-mail <span style={{ fontSize: 12, color: '#A29E96', fontWeight: 400 }}>opcional</span>
             </label>
-            <Input label="" type="email" placeholder="beatriz@email.com" value={form.email} onChange={(v) => setForm(f => ({ ...f, email: v }))} />
+            <Input label="" type="email" placeholder="beatriz@email.com" value={form.email}
+              onChange={(v) => setForm(f => ({ ...f, email: v }))} />
+            {fieldErrors.email && (
+              <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.email}</span>
+            )}
           </div>
 
           <div>
@@ -225,8 +257,8 @@ function NovaClienteDrawer({ onClose, editData }: {
             </label>
             <textarea
               placeholder="Ex: Prefere entregas às sextas"
-              value={form.obs}
-              onChange={(e) => setForm(f => ({ ...f, obs: e.target.value }))}
+              value={form.observacoes}
+              onChange={(e) => setForm(f => ({ ...f, observacoes: e.target.value }))}
               style={{
                 width: '100%', minHeight: 86, padding: '12px 14px',
                 border: '1.5px solid #EFEDE8', borderRadius: 10,
@@ -236,6 +268,12 @@ function NovaClienteDrawer({ onClose, editData }: {
               }}
             />
           </div>
+
+          {erro && (
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5 }}>
+              {erro}
+            </div>
+          )}
         </div>
 
         {/* Footer fixo */}
@@ -244,9 +282,15 @@ function NovaClienteDrawer({ onClose, editData }: {
           borderTop: '1px solid #EFEDE8',
           display: 'flex', gap: 10, background: '#fff',
         }}>
-          <Button variant="ghost" onClick={onClose} fullWidth>Cancelar</Button>
-          <Button variant="primary" onClick={onClose} fullWidth>
-            {isEdit ? 'Salvar alterações' : 'Adicionar cliente'}
+          <Button variant="ghost" onClick={onClose} fullWidth disabled={saving}>Cancelar</Button>
+          <Button variant="primary" onClick={handleSave} fullWidth disabled={saving}>
+            {saving
+              ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+                  {isEdit ? 'Salvando…' : 'Adicionando…'}
+                </span>
+              : (isEdit ? 'Salvar alterações' : 'Adicionar cliente')
+            }
           </Button>
         </div>
 
@@ -255,35 +299,108 @@ function NovaClienteDrawer({ onClose, editData }: {
   )
 }
 
+// ---------- ClientesPage ----------
+
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState(CLIENTES)
+  const [clientes, setClientes] = useState<ClienteResponse[]>([])
   const [query, setQuery] = useState('')
   const [searchFocus, setSearchFocus] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasNext, setHasNext] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [drawer, setDrawer] = useState(false)
-  const [editData, setEditData] = useState<Cliente | null>(null)
-  const empty = clientes.length === 0
+  const [editData, setEditData] = useState<ClienteResponse | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const [confirmInativar, setConfirmInativar] = useState<ClienteResponse | null>(null)
+  const isFirstRender = useRef(true)
 
-  const qLower = query.toLowerCase()
-  const qDigits = query.replace(/\D/g, '')
-  const filtered = clientes.filter(c =>
-    c.nome.toLowerCase().includes(qLower) ||
-    (qDigits.length > 0 && c.whats.replace(/\D/g, '').includes(qDigits))
-  )
+  const loadPage = useCallback(async (pageNum: number, nome: string, reset: boolean) => {
+    reset ? setLoading(true) : setLoadingMore(true)
+    try {
+      const res = await clienteService.listar(pageNum, 20, nome || undefined)
+      setClientes(prev => reset ? res.content : [...prev, ...res.content])
+      setHasNext(!res.last)
+      setPage(pageNum)
+    } catch {
+      // silent — auth errors handled by axios interceptor
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [])
+
+  // Mount + search debounce (RN-034)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      loadPage(0, '', true)
+      return
+    }
+    const t = setTimeout(() => loadPage(0, query, true), 400)
+    return () => clearTimeout(t)
+  }, [query, loadPage])
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  const handleSuccess = (cliente: ClienteResponse) => {
+    const exists = clientes.some(c => c.id === cliente.id)
+    setClientes(prev =>
+      exists
+        ? prev.map(c => c.id === cliente.id ? cliente : c)
+        : [cliente, ...prev]
+    )
+    setToast(exists ? 'Cliente atualizada com sucesso!' : 'Cliente cadastrada com sucesso!')
+  }
+
+  const handleInativar = async () => {
+    if (!confirmInativar) return
+    try {
+      await clienteService.inativar(confirmInativar.id)
+      setClientes(prev => prev.filter(c => c.id !== confirmInativar.id))
+      setToast('Cliente inativada.')
+    } catch {
+      setToast('Erro ao inativar. Tente novamente.')
+    } finally {
+      setConfirmInativar(null)
+    }
+  }
 
   const openNova = () => { setEditData(null); setDrawer(true) }
-  const openEdit = (c: Cliente) => { setEditData(c); setDrawer(true) }
+  const openEdit = (c: ClienteResponse) => { setEditData(c); setDrawer(true) }
+
+  const empty = clientes.length === 0 && !loading
 
   return (
     <AppLayout active="clientes">
+
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          padding: '12px 20px', borderRadius: 10, background: '#2A9D8F', color: '#fff',
+          fontSize: 14, fontWeight: 600, boxShadow: '0 8px 24px -8px rgba(42,157,143,0.6)',
+          animation: 'fadeUp .25s ease both', whiteSpace: 'nowrap',
+        }}>
+          {toast}
+        </div>
+      )}
 
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 8 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 29, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>Minhas Clientes</h1>
           <p style={{ margin: '7px 0 0', fontSize: 14.5, color: '#A29E96', lineHeight: 1.5 }}>
-            {empty
-              ? 'Cuide do relacionamento com quem compra de você.'
-              : <>Você tem <strong style={{ fontWeight: 600, color: '#6B6860' }}>{clientes.length} clientes</strong> na sua agenda.</>
+            {loading
+              ? 'Carregando clientes…'
+              : empty
+                ? 'Cuide do relacionamento com quem compra de você.'
+                : <><strong style={{ fontWeight: 600, color: '#6B6860' }}>{clientes.length}</strong> cliente{clientes.length !== 1 ? 's' : ''} na sua agenda{hasNext ? '+' : ''}.</>
             }
           </p>
         </div>
@@ -292,7 +409,12 @@ export default function ClientesPage() {
         </Button>
       </div>
 
-      {empty ? (
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
+          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+          Carregando…
+        </div>
+      ) : empty ? (
         <div style={{ marginTop: 26 }}>
           <EmptyState
             icon={<Icons.users />}
@@ -337,14 +459,15 @@ export default function ClientesPage() {
             </div>
 
             {/* Linhas */}
-            {filtered.length > 0 ? (
-              filtered.map((c, i) => (
+            {clientes.length > 0 ? (
+              clientes.map((c, i) => (
                 <ClientRow
-                  key={c.nome} cliente={c} index={i} rowZIndex={filtered.length - i}
+                  key={c.id}
+                  cliente={c}
+                  index={i}
+                  rowZIndex={clientes.length - i}
                   onEdit={openEdit}
-                  onVerOrcamentos={() => {}}
-                  onDesativar={(cli) => setClientes(prev => prev.map(x => x.nome === cli.nome ? { ...x, ativa: false } : x))}
-                  onReativar={(cli) => setClientes(prev => prev.map(x => x.nome === cli.nome ? { ...x, ativa: true } : x))}
+                  onDesativar={(cli) => setConfirmInativar(cli)}
                 />
               ))
             ) : (
@@ -355,17 +478,54 @@ export default function ClientesPage() {
               />
             )}
           </div>
+
+          {/* CARREGAR MAIS */}
+          {hasNext && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+              <Button variant="ghost" onClick={() => loadPage(page + 1, query, false)} disabled={loadingMore}>
+                {loadingMore
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 15, height: 15, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+                      Carregando…
+                    </span>
+                  : 'Carregar mais'
+                }
+              </Button>
+            </div>
+          )}
         </>
       )}
 
       {/* DRAWER */}
       {drawer && (
         <NovaClienteDrawer
-          key={editData ? editData.nome : 'nova'}
+          key={editData ? editData.id : 'nova'}
           onClose={() => setDrawer(false)}
           editData={editData}
+          onSuccess={handleSuccess}
         />
       )}
+
+      {/* MODAL: confirmar inativação */}
+      <ModalShell
+        open={!!confirmInativar}
+        onClose={() => setConfirmInativar(null)}
+        title={`Inativar "${confirmInativar?.nome}"?`}
+        icon={<Icons.ban />}
+        iconBg="rgba(192,73,43,0.10)"
+        iconColor="#C0492B"
+        width={420}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmInativar(null)}>Cancelar</Button>
+            <Button variant="danger" onClick={handleInativar}>Inativar cliente</Button>
+          </>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 14, color: '#5C594F', lineHeight: 1.6 }}>
+          A cliente será removida da listagem. Esta ação não pode ser desfeita por aqui.
+        </p>
+      </ModalShell>
 
     </AppLayout>
   )
