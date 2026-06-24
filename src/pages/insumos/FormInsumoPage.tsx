@@ -6,6 +6,7 @@ import ModalShell from '../../components/ui/ModalShell'
 import SectionTitle from '../../components/shared/SectionTitle'
 import { Icons } from '../../components/ui/Icons'
 import { insumoService } from '../../services/insumoService'
+import { loteCompraService } from '../../services/loteCompraService'
 import type { InsumoRequest } from '../../types/insumo'
 
 const UNIDADES = ['Unidade', 'cm', 'g', 'ml', 'Folha']
@@ -134,6 +135,10 @@ export default function FormInsumoPage() {
     ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: custoUnit < 0.1 ? 3 : 2, maximumFractionDigits: 3 })
     : '—'
 
+  // Se preço + qtd estão preenchidos no cadastro, o lote-compra vai setar o estoque e o custo.
+  // Não enviamos estoqueAtual para evitar duplicação (insumo nasce com 0 e o lote adiciona a qtd).
+  const usaLote = !editando && preco > 0 && qComprada > 0
+
   const handleSubmit = async () => {
     setLoading(true)
     setError('')
@@ -142,14 +147,19 @@ export default function FormInsumoPage() {
         nome: nome.trim(),
         marca: marca.trim() || undefined,
         unidadeMedida: unidade,
-        estoqueAtual: estoque ? num(estoque) : undefined,
+        estoqueAtual: usaLote ? 0 : (estoque ? num(estoque) : undefined),
         estoqueMinimo: minimo ? num(minimo) : undefined,
       }
       if (editando && id) {
         await insumoService.editar(id, data)
         navigate(`/insumos/${id}`)
       } else {
-        await insumoService.cadastrar(data)
+        const novoInsumo = await insumoService.cadastrar(data)
+        if (usaLote) {
+          await loteCompraService.registrar({
+            itens: [{ insumoId: novoInsumo.id, quantidadeComprada: qComprada, precoTotalPago: preco }],
+          })
+        }
         navigate('/insumos')
       }
     } catch (err: any) {
@@ -289,18 +299,24 @@ export default function FormInsumoPage() {
 
         {/* SEÇÃO 3 — Estoque e custo */}
         <div style={SECTION_STYLE}>
-          <SectionTitle number="3" title="Estoque e custo" subtitle="O custo unitário é calculado automaticamente." />
+          <SectionTitle number="3" title="Estoque e custo" subtitle={editando ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe a compra inicial para calcular o custo unitário automaticamente.'} />
           <div className="two-col">
             <Field
               label="Quantidade em estoque *"
-              hint={editando ? 'O estoque só muda via baixa manual ou compra de lote.' : undefined}
+              hint={
+                editando
+                  ? 'O estoque só muda via baixa manual ou compra de lote.'
+                  : usaLote
+                    ? `O estoque inicial será definido pela quantidade comprada (${qComprada} ${unLabel(unidade)}).`
+                    : 'Informe o preço e a quantidade da compra para calcular o custo unitário.'
+              }
             >
               <div style={{ position: 'relative' }}>
                 <input
                   placeholder="100"
-                  readOnly={editando}
-                  {...numBind('estoque', estoque, setEstoque)}
-                  style={{ ...inputBase(!editando && focus === 'estoque'), paddingRight: 64, background: editando ? '#FAF8F5' : '#fff', color: editando ? '#7C786F' : '#3A372F' }}
+                  readOnly={editando || usaLote}
+                  {...numBind('estoque', usaLote ? qtdCompra : estoque, usaLote ? () => {} : setEstoque)}
+                  style={{ ...inputBase(!editando && !usaLote && focus === 'estoque'), paddingRight: 64, background: (editando || usaLote) ? '#FAF8F5' : '#fff', color: (editando || usaLote) ? '#7C786F' : '#3A372F' }}
                 />
                 <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
               </div>
@@ -311,18 +327,23 @@ export default function FormInsumoPage() {
                 <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
               </div>
             </Field>
-            <Field label="Preço total da compra *">
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 44, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, color: '#6B6860', background: '#FAF8F5', borderRadius: '10px 0 0 10px', borderRight: '1px solid #EFEDE8', pointerEvents: 'none' }}>R$</span>
-                <input placeholder="45,00" {...numBind('preco', precoCompra, setPrecoCompra)} style={{ ...inputBase(focus === 'preco'), paddingLeft: 56 }} />
-              </div>
-            </Field>
-            <Field label="Quantidade comprada *">
-              <div style={{ position: 'relative' }}>
-                <input placeholder="100" {...numBind('qtd', qtdCompra, setQtdCompra)} style={{ ...inputBase(focus === 'qtd'), paddingRight: 64 }} />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
-              </div>
-            </Field>
+
+            {!editando && (
+              <>
+                <Field label="Preço total da compra" opt>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 44, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, color: '#6B6860', background: '#FAF8F5', borderRadius: '10px 0 0 10px', borderRight: '1px solid #EFEDE8', pointerEvents: 'none' }}>R$</span>
+                    <input placeholder="45,00" {...numBind('preco', precoCompra, setPrecoCompra)} style={{ ...inputBase(focus === 'preco'), paddingLeft: 56 }} />
+                  </div>
+                </Field>
+                <Field label="Quantidade comprada" opt>
+                  <div style={{ position: 'relative' }}>
+                    <input placeholder="100" {...numBind('qtd', qtdCompra, setQtdCompra)} style={{ ...inputBase(focus === 'qtd'), paddingRight: 64 }} />
+                    <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
+                  </div>
+                </Field>
+              </>
+            )}
           </div>
 
           {/* CARD RESULTADO */}
@@ -336,7 +357,11 @@ export default function FormInsumoPage() {
                 <span style={{ fontSize: 26, fontWeight: 700, color: '#2A9D8F', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>{custoFmt}</span>
                 {custoUnit != null && <span style={{ fontSize: 15, fontWeight: 600, color: '#5C594F' }}>/ {unLabel(unidade)}</span>}
               </div>
-              {custoUnit == null && <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>Preencha o preço e a quantidade comprada.</div>}
+              {custoUnit == null && (
+                <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>
+                  {editando ? 'Atualize o custo registrando uma nova compra na tela de insumos.' : 'Preencha o preço e a quantidade comprada para calcular.'}
+                </div>
+              )}
             </div>
           </div>
         </div>
