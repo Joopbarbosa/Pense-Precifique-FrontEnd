@@ -213,7 +213,8 @@ export default function ListaOrcamentosPage() {
     setDateTo(iso(today))
   }
 
-  const empty = !loading && orcamentos.length === 0
+  const globalEmpty = !loading && orcamentos.length === 0 && filtro === ''
+  const filtroEmpty = !loading && orcamentos.length === 0 && filtro !== ''
 
   return (
     <AppLayout active="orcamentos">
@@ -239,7 +240,7 @@ export default function ListaOrcamentosPage() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0', color: '#A29E96', fontSize: 14 }}>
           Carregando…
         </div>
-      ) : empty ? (
+      ) : globalEmpty ? (
         <EmptyState
           icon={<Icons.filter />}
           title="Você ainda não tem orçamentos"
@@ -388,66 +389,74 @@ export default function ListaOrcamentosPage() {
             </div>
           </div>
 
-          {/* TABELA */}
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-            <div className="q-head">
-              {['Número', 'Cliente', 'Total', 'Criação', 'Status', ''].map((h, k) => (
-                <div key={k} style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#B7B4AD' }}>
-                  {h}
-                </div>
-              ))}
+          {filtroEmpty ? (
+            <div style={{ padding: '48px 0', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
+              Nenhum orçamento encontrado em &ldquo;{STATUS_LABEL[filtro as StatusOrcamento]}&rdquo;.
             </div>
+          ) : (
+            <>
+              {/* TABELA */}
+              <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div className="q-head">
+                  {['Número', 'Cliente', 'Total', 'Criação', 'Status', ''].map((h, k) => (
+                    <div key={k} style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#B7B4AD' }}>
+                      {h}
+                    </div>
+                  ))}
+                </div>
 
-            {lista.length === 0 ? (
-              <EmptyState
-                compact
-                title="Nenhum orçamento encontrado"
-                description="Ajuste os filtros ou a busca."
-              />
-            ) : lista.map((o, i) => {
-              const pdfUrl = orcamentoService.downloadPdf(o.id)
-              const onBaixarPdf = o.status !== 'CANCELADO'
-                ? () => window.open(pdfUrl, '_blank')
-                : null
-              return (
-                <React.Fragment key={o.id}>
-                  <OrcamentoRow
-                    orc={o}
-                    onVerDetalhes={() => navigate(`/orcamentos/${o.id}`)}
-                    onBaixarPdf={onBaixarPdf}
+                {lista.length === 0 ? (
+                  <EmptyState
+                    compact
+                    title="Nenhum orçamento encontrado"
+                    description="Ajuste os filtros ou a busca."
                   />
-                  <OrcamentoCard
-                    orc={o}
-                    index={i}
-                    onVerDetalhes={() => navigate(`/orcamentos/${o.id}`)}
-                    onBaixarPdf={onBaixarPdf}
-                  />
-                </React.Fragment>
-              )
-            })}
-          </div>
+                ) : lista.map((o, i) => {
+                  const pdfUrl = orcamentoService.downloadPdf(o.id)
+                  const onBaixarPdf = o.status !== 'CANCELADO'
+                    ? () => window.open(pdfUrl, '_blank')
+                    : null
+                  return (
+                    <React.Fragment key={o.id}>
+                      <OrcamentoRow
+                        orc={o}
+                        onVerDetalhes={() => navigate(`/orcamentos/${o.id}`)}
+                        onBaixarPdf={onBaixarPdf}
+                      />
+                      <OrcamentoCard
+                        orc={o}
+                        index={i}
+                        onVerDetalhes={() => navigate(`/orcamentos/${o.id}`)}
+                        onBaixarPdf={onBaixarPdf}
+                      />
+                    </React.Fragment>
+                  )
+                })}
+              </div>
 
-          {/* Contador + Carregar mais */}
-          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12.5, color: '#A29E96' }}>
-              {lista.length} {lista.length === 1 ? 'orçamento' : 'orçamentos'}
-            </span>
-            {hasMore && (
-              <button
-                onClick={handleCarregarMais}
-                disabled={loadingMore}
-                style={{
-                  height: 36, padding: '0 18px', borderRadius: 8,
-                  border: '1.5px solid #EFEDE8', background: '#fff',
-                  color: '#5C594F', fontSize: 13.5, fontWeight: 600,
-                  fontFamily: 'inherit', cursor: loadingMore ? 'default' : 'pointer',
-                  opacity: loadingMore ? 0.6 : 1,
-                }}
-              >
-                {loadingMore ? 'Carregando…' : 'Carregar mais'}
-              </button>
-            )}
-          </div>
+              {/* Contador + Carregar mais */}
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12.5, color: '#A29E96' }}>
+                  {lista.length} {lista.length === 1 ? 'orçamento' : 'orçamentos'}
+                </span>
+                {hasMore && (
+                  <button
+                    onClick={handleCarregarMais}
+                    disabled={loadingMore}
+                    style={{
+                      height: 36, padding: '0 18px', borderRadius: 8,
+                      border: '1.5px solid #EFEDE8', background: '#fff',
+                      color: '#5C594F', fontSize: 13.5, fontWeight: 600,
+                      fontFamily: 'inherit', cursor: loadingMore ? 'default' : 'pointer',
+                      opacity: loadingMore ? 0.6 : 1,
+                    }}
+                  >
+                    {loadingMore ? 'Carregando…' : 'Carregar mais'}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
 
