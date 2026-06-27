@@ -1063,7 +1063,7 @@ export default function CriarOrcamentoPage() {
       tipoDesconto: descNum > 0 ? descTipo : undefined,
       descontoValor: descNum > 0 ? descNum : undefined,
       observacoes: obs || undefined,
-      dataValidade: validade || undefined,
+      dataValidade: validade ? `${validade}T00:00:00` : undefined,
     }
 
     setLoading(true)
