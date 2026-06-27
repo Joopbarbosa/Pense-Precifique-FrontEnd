@@ -22,9 +22,6 @@ const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo']
 const isLow = (o: InsumoResponse) =>
   o.ativo && o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
 
-const BRL4 = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: n < 1 ? 3 : 2, maximumFractionDigits: 4 })
-
 const num = (s: string) => parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
 
 const moeda = (n: number, dec?: number) =>
@@ -113,7 +110,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
       </div>
 
       <div style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
-        {BRL4(insumo.custoUnitario)}/{insumo.unidadeMedida}
+        {moeda(insumo.custoUnitario, 2)}/{insumo.unidadeMedida}
       </div>
 
       <div><InsumoStatusBadge insumo={insumo} /></div>
@@ -160,7 +157,7 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: '#A29E96', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Custo</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{BRL4(insumo.custoUnitario)}/{insumo.unidadeMedida}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(insumo.custoUnitario, 2)}/{insumo.unidadeMedida}</div>
           </div>
           <ActionMenu items={menuItems} align="right" />
         </div>
@@ -287,7 +284,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F' }}>{i.nome}</span>
-                    <span style={{ fontSize: 12, color: '#A29E96' }}>{moeda(i.custoUnitario)} /{i.unidadeMedida}</span>
+                    <span style={{ fontSize: 12, color: '#A29E96' }}>{moeda(i.custoUnitario, 2)} /{i.unidadeMedida}</span>
                   </button>
                 ))}
               </div>
@@ -415,7 +412,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, justifyContent: 'flex-end', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
                     <span style={{ fontSize: 13.5, color: '#A29E96', textDecoration: igual ? 'none' : 'line-through' }}>
-                      {BRL4(item.custoUnitarioAnterior)}
+                      {moeda(item.custoUnitarioAnterior, 2)}
                     </span>
                     {!igual && (
                       <>
@@ -425,13 +422,13 @@ function ImpactoLoteModal({ impacto, onClose }: {
                             ? <Icons.arrowDown style={{ transform: 'rotate(180deg)' }} />
                             : <Icons.arrowDown />
                           }
-                          {BRL4(item.custoUnitarioNovo)}
+                          {moeda(item.custoUnitarioNovo, 2)}
                         </span>
                       </>
                     )}
                     {igual && (
                       <span style={{ fontSize: 14.5, fontWeight: 700, color: '#3A372F' }}>
-                        {BRL4(item.custoUnitarioNovo)}
+                        {moeda(item.custoUnitarioNovo, 2)}
                       </span>
                     )}
                   </div>
