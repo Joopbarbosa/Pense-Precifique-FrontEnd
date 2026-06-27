@@ -1,74 +1,131 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
 import { Icons } from "../../components/ui/Icons";
+import { orcamentoService } from "../../services/orcamentoService";
+import { clienteService } from "../../services/clienteService";
+import { useAuthStore } from "../../store/authStore";
+import type {
+  OrcamentoDetalheResponse,
+  AvancaStatusRequest,
+  MetodoPagamento,
+} from "../../types/orcamento";
+import type { ClienteResponse } from "../../types/cliente";
 
-const STEPS = [
-  "Rascunho",
-  "Enviado",
-  "Aprovado",
-  "Aguardando Sinal",
-  "Sinal Pago",
-  "Em Produção",
-  "Finalizado",
-  "Entregue",
-  "Pago",
-] as const;
+// ─── Status / fluxo ────────────────────────────────────────────────────────
 
-type StatusOrcamento = (typeof STEPS)[number];
+type ApiStatus =
+  | "RASCUNHO"
+  | "ENVIADO"
+  | "APROVADO"
+  | "AGUARDANDO_SINAL"
+  | "SINAL_PAGO"
+  | "EM_PRODUCAO"
+  | "FINALIZADO"
+  | "ENTREGUE"
+  | "PAGO"
+  | "CANCELADO";
 
-const STATUS_META: Record<string, { bg: string; fg: string; dot: string }> = {
-  Rascunho: { bg: "#F1F0EC", fg: "#7C786F", dot: "#A8A49C" },
-  Enviado: { bg: "#EAF1FB", fg: "#2A6FB0", dot: "#3A86CE" },
-  Aprovado: { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
-  "Aguardando Sinal": { bg: "#FFF4E8", fg: "#B5701F", dot: "#E8973A" },
-  "Sinal Pago": { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
-  "Em Produção": { bg: "#E7F4F1", fg: "#1F7A6F", dot: "#2A9D8F" },
-  Finalizado: { bg: "#E7F4F1", fg: "#1F7A6F", dot: "#2A9D8F" },
-  Entregue: { bg: "#EAF1FB", fg: "#2A6FB0", dot: "#3A86CE" },
-  Pago: { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
+const STATUS_LABEL: Record<ApiStatus, string> = {
+  RASCUNHO: "Rascunho",
+  ENVIADO: "Enviado",
+  APROVADO: "Aprovado",
+  AGUARDANDO_SINAL: "Aguardando Sinal",
+  SINAL_PAGO: "Sinal Pago",
+  EM_PRODUCAO: "Em Produção",
+  FINALIZADO: "Finalizado",
+  ENTREGUE: "Entregue",
+  PAGO: "Pago",
+  CANCELADO: "Cancelado",
 };
 
-const INSUMOS_BAIXA = [
-  { nome: "Papel couchê 300g", un: "folhas", qtd: "6", saldo: undefined },
-  { nome: "Fita de cetim 10mm", un: "cm", qtd: "180", saldo: undefined },
-  {
-    nome: "Linha de crochê 100g teal",
-    un: "g",
-    qtd: "1,2",
-    saldo: "Saldo insuficiente (0,5g disponível)",
-  },
+// Botão principal por status
+const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
+  RASCUNHO: "Enviar orçamento",
+  ENVIADO: "Marcar como aprovado",
+  APROVADO: "Confirmar início",
+  AGUARDANDO_SINAL: "Confirmar recebimento do sinal",
+  SINAL_PAGO: "Iniciar produção",
+  EM_PRODUCAO: "Marcar como finalizado",
+  FINALIZADO: "Marcar como entregue",
+  ENTREGUE: "Confirmar pagamento",
+};
+
+// Descrição do próximo passo
+const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
+  RASCUNHO: "Envie o orçamento para a cliente avaliar.",
+  ENVIADO: "Quando a cliente aprovar, marque como aprovado.",
+  APROVADO: "Confirme o início para seguir para a cobrança do sinal ou produção.",
+  AGUARDANDO_SINAL: "Confirme o recebimento do sinal para liberar a produção.",
+  SINAL_PAGO: "Inicie a produção dos itens do pedido.",
+  EM_PRODUCAO: "Quando concluir, marque a produção como finalizada.",
+  FINALIZADO: "Marque como entregue após a entrega ao cliente.",
+  ENTREGUE: "Confirme o pagamento final para encerrar o pedido.",
+};
+
+// Ordem da timeline (exclui Cancelado)
+const STEPS: ApiStatus[] = [
+  "RASCUNHO",
+  "ENVIADO",
+  "APROVADO",
+  "AGUARDANDO_SINAL",
+  "SINAL_PAGO",
+  "EM_PRODUCAO",
+  "FINALIZADO",
+  "ENTREGUE",
+  "PAGO",
 ];
 
-const BRL = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+const STATUS_META: Record<string, { bg: string; fg: string; dot: string }> = {
+  RASCUNHO: { bg: "#F1F0EC", fg: "#7C786F", dot: "#A8A49C" },
+  ENVIADO: { bg: "#EAF1FB", fg: "#2A6FB0", dot: "#3A86CE" },
+  APROVADO: { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
+  AGUARDANDO_SINAL: { bg: "#FFF4E8", fg: "#B5701F", dot: "#E8973A" },
+  SINAL_PAGO: { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
+  EM_PRODUCAO: { bg: "#E7F4F1", fg: "#1F7A6F", dot: "#2A9D8F" },
+  FINALIZADO: { bg: "#E7F4F1", fg: "#1F7A6F", dot: "#2A9D8F" },
+  ENTREGUE: { bg: "#EAF1FB", fg: "#2A6FB0", dot: "#3A86CE" },
+  PAGO: { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
+  CANCELADO: { bg: "#FCF0EC", fg: "#C0492B", dot: "#D06A4E" },
+};
 
-const METODOS_PAGAMENTO = [
-  { id: "pix", label: "Pix" },
-  { id: "dinheiro", label: "Dinheiro" },
-  { id: "credito", label: "Crédito" },
-  { id: "debito", label: "Débito" },
-  { id: "transferencia", label: "Transferência" },
-  { id: "boleto", label: "Boleto Bancário" },
-  { id: "outro", label: "Outro" },
+const METODOS_PAGAMENTO: { id: MetodoPagamento; label: string }[] = [
+  { id: "PIX", label: "Pix" },
+  { id: "DINHEIRO", label: "Dinheiro" },
+  { id: "CREDITO", label: "Crédito" },
+  { id: "DEBITO", label: "Débito" },
+  { id: "TRANSFERENCIA", label: "Transferência" },
+  { id: "BOLETO", label: "Boleto Bancário" },
+  { id: "OUTRO", label: "Outro" },
 ];
 
-const CATALOGO_CANCEL = [
-  "Papel couchê 180g",
-  "Fita dupla face 12mm",
-  "Envelope kraft C6",
-  "Linha de crochê teal",
-  "Kit Convite Casamento",
-];
+const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace(".", ",")}`;
+
+const fmtDate = (iso?: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("pt-BR");
+};
+
+// Tipo de wizard de cancelamento por status
+function cancelKind(status: ApiStatus): "simples" | "estorno" | "multa" | "justificativa" {
+  if (status === "SINAL_PAGO") return "estorno";
+  if (status === "EM_PRODUCAO" || status === "FINALIZADO") return "multa";
+  if (status === "ENTREGUE" || status === "PAGO") return "justificativa";
+  return "simples";
+}
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
 
-function Timeline({ current }: { current: string }) {
-  const ci = STEPS.indexOf(current as StatusOrcamento);
+function Timeline({ current }: { current: ApiStatus }) {
+  const ci = STEPS.indexOf(current);
   return (
     <div className="timeline">
       {STEPS.map((s, i) => {
-        const done = i < ci;
+        const done = ci >= 0 && i < ci;
         const active = i === ci;
         const circleBg = active
           ? "#2A9D8F"
@@ -76,15 +133,12 @@ function Timeline({ current }: { current: string }) {
             ? "rgba(42,157,143,0.16)"
             : "#F1F0EC";
         const circleColor = active ? "#fff" : done ? "#2A9D8F" : "#B7B4AD";
-        const connColor = i <= ci ? "rgba(42,157,143,0.5)" : "#EFEDE8";
+        const connColor = ci >= 0 && i <= ci ? "rgba(42,157,143,0.5)" : "#EFEDE8";
 
         return (
           <div className="tl-step" key={s}>
             {i > 0 && (
-              <span
-                className="tl-connector"
-                style={{ background: connColor }}
-              />
+              <span className="tl-connector" style={{ background: connColor }} />
             )}
             <span
               style={{
@@ -129,7 +183,7 @@ function Timeline({ current }: { current: string }) {
                   whiteSpace: "nowrap",
                 }}
               >
-                {s}
+                {STATUS_LABEL[s]}
               </span>
               {active && (
                 <span
@@ -155,187 +209,26 @@ function Timeline({ current }: { current: string }) {
   );
 }
 
-// ─── ModalFinalizacao ─────────────────────────────────────────────────────────
+// ─── ModalSinal — confirmar recebimento do sinal ──────────────────────────────
 
-function ModalFinalizacao({ onClose }: { onClose: () => void }) {
-  const [qtds, setQtds] = useState(INSUMOS_BAIXA.map((x) => x.qtd));
-  const [confirmInsuf, setConfirmInsuf] = useState(false);
-  const hasInsuf = INSUMOS_BAIXA.some((x) => x.saldo);
-  const blocked = hasInsuf && !confirmInsuf;
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title="Confirmar baixa no estoque"
-      subtitle="Confirmar finalização"
-      icon={<Icons.layers />}
-      iconBg="rgba(42,157,143,0.12)"
-      iconColor="#2A9D8F"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button variant="primary" disabled={blocked} onClick={onClose}>
-            Confirmar e finalizar →
-          </Button>
-        </>
-      }
-    >
-      <p
-        style={{
-          margin: "0 0 16px",
-          fontSize: 14,
-          color: "#5C594F",
-          lineHeight: 1.55,
-        }}
-      >
-        Os itens abaixo serão descontados do seu estoque:
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {INSUMOS_BAIXA.map((it, i) => {
-          const insuf = !!it.saldo;
-          return (
-            <div
-              key={i}
-              style={{
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: `1.5px solid ${insuf ? "rgba(192,73,43,0.4)" : "#EFEDE8"}`,
-                background: insuf ? "#FCF3F0" : "#FCFBF9",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 150,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "#3A372F",
-                  }}
-                >
-                  {it.nome}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    value={qtds[i]}
-                    onChange={(e) =>
-                      setQtds((a) =>
-                        a.map((v, j) =>
-                          j === i ? e.target.value.replace(/[^\d.,]/g, "") : v,
-                        ),
-                      )
-                    }
-                    inputMode="decimal"
-                    style={{
-                      width: 72,
-                      height: 40,
-                      padding: "0 12px",
-                      textAlign: "right",
-                      border: `1.5px solid ${insuf ? "rgba(192,73,43,0.5)" : "#EFEDE8"}`,
-                      borderRadius: 10,
-                      fontSize: 14.5,
-                      fontWeight: 600,
-                      color: "#3A372F",
-                      background: "#fff",
-                      outline: "none",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  <span
-                    style={{ fontSize: 13, color: "#A29E96", minWidth: 54 }}
-                  >
-                    {it.un}
-                  </span>
-                </div>
-              </div>
-              {insuf && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    marginTop: 9,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color: "#C0492B",
-                  }}
-                >
-                  <Icons.alertCircle width={14} height={14} /> {it.saldo}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {hasInsuf && (
-        <button
-          onClick={() => setConfirmInsuf((c) => !c)}
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 11,
-            marginTop: 16,
-            width: "100%",
-            textAlign: "left",
-            padding: "12px 14px",
-            borderRadius: 12,
-            border: `1.5px solid ${confirmInsuf ? "rgba(192,73,43,0.5)" : "#EFEDE8"}`,
-            background: confirmInsuf ? "#FCF3F0" : "#fff",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          <span
-            style={{
-              flexShrink: 0,
-              width: 22,
-              height: 22,
-              borderRadius: 6,
-              display: "grid",
-              placeItems: "center",
-              marginTop: 1,
-              border: `1.5px solid ${confirmInsuf ? "#C0492B" : "#D6D3CC"}`,
-              background: confirmInsuf ? "#C0492B" : "#fff",
-              color: "#fff",
-            }}
-          >
-            {confirmInsuf && <Icons.check />}
-          </span>
-          <span style={{ fontSize: 13.5, color: "#5C594F", lineHeight: 1.5 }}>
-            Confirmar mesmo com saldo insuficiente
-            <br />
-            <span style={{ fontSize: 12, color: "#A29E96" }}>
-              O estoque ficará negativo até você repor o insumo.
-            </span>
-          </span>
-        </button>
-      )}
-    </ModalShell>
-  );
-}
-
-// ─── ModalSinal ───────────────────────────────────────────────────────────────
-
-function ModalSinal({ onClose }: { onClose: () => void }) {
-  const [forma, setForma] = useState("pix");
+function ModalSinal({
+  orcamento,
+  onClose,
+  onConfirm,
+  saving,
+}: {
+  orcamento: OrcamentoDetalheResponse;
+  onClose: () => void;
+  onConfirm: (data: AvancaStatusRequest) => void;
+  saving: boolean;
+}) {
+  const [forma, setForma] = useState<MetodoPagamento>("PIX");
   const [formaObs, setFormaObs] = useState("");
-  const [data, setData] = useState("2026-06-05");
   const [focus, setFocus] = useState<string | null>(null);
 
   const obsCharCount = formaObs.length;
-  const obsValida = forma !== "outro" || obsCharCount >= 50;
-  const podeConfirmar = obsValida;
+  const obsValida = forma !== "OUTRO" || obsCharCount >= 50;
+  const podeConfirmar = obsValida && !saving;
 
   return (
     <ModalShell
@@ -351,8 +244,17 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button variant="primary" disabled={!podeConfirmar} onClick={onClose}>
-            Confirmar e gerar recibo →
+          <Button
+            variant="primary"
+            disabled={!podeConfirmar}
+            onClick={() =>
+              onConfirm({
+                metodoSinalRecebido: forma,
+                metodoSinalRecebidoObs: forma === "OUTRO" ? formaObs : undefined,
+              })
+            }
+          >
+            {saving ? "Confirmando..." : "Confirmar e gerar recibo →"}
           </Button>
         </>
       }
@@ -381,10 +283,13 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {BRL(91.8)}{" "}
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#A29E96" }}>
-            (50%)
-          </span>
+          {BRL(orcamento.valorSinal || 0)}
+          {orcamento.percentualSinal ? (
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#A29E96" }}>
+              {" "}
+              ({orcamento.percentualSinal}%)
+            </span>
+          ) : null}
         </span>
       </div>
 
@@ -420,12 +325,6 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
                   color: on ? "#fff" : "#5C594F",
                   transition: "all .14s",
                 }}
-                onMouseEnter={(e) => {
-                  if (!on) e.currentTarget.style.background = "#FAF8F5";
-                }}
-                onMouseLeave={(e) => {
-                  if (!on) e.currentTarget.style.background = "#fff";
-                }}
               >
                 {m.label}
               </button>
@@ -433,7 +332,7 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
           })}
         </div>
 
-        {forma === "outro" && (
+        {forma === "OUTRO" && (
           <div style={{ marginTop: 12, animation: "fadeUp .2s ease both" }}>
             <span
               style={{
@@ -479,8 +378,6 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
                 resize: "none",
                 lineHeight: 1.5,
                 boxSizing: "border-box",
-                boxShadow:
-                  focus === "obs" ? "0 0 0 4px rgba(42,157,143,0.12)" : "none",
               }}
             />
             {obsCharCount > 0 && obsCharCount < 50 && (
@@ -502,44 +399,6 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
         )}
       </div>
 
-      {/* Data */}
-      <label style={{ display: "block", marginBottom: 18 }}>
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#5C594F",
-            marginBottom: 7,
-          }}
-        >
-          <Icons.calendar style={{ color: "#2A9D8F" }} /> Data do recebimento
-        </span>
-        <input
-          type="date"
-          value={data}
-          onChange={(e) => setData(e.target.value)}
-          onFocus={() => setFocus("d")}
-          onBlur={() => setFocus(null)}
-          style={{
-            width: "100%",
-            height: 46,
-            padding: "0 14px",
-            border: `1.5px solid ${focus === "d" ? "#2A9D8F" : "#EFEDE8"}`,
-            borderRadius: 10,
-            fontSize: 14.5,
-            color: "#3A372F",
-            background: "#fff",
-            outline: "none",
-            fontFamily: "inherit",
-            boxShadow:
-              focus === "d" ? "0 0 0 4px rgba(42,157,143,0.12)" : "none",
-          }}
-        />
-      </label>
-
       {/* Aviso */}
       <div
         style={{
@@ -551,22 +410,10 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
           border: "1px solid rgba(42,157,143,0.18)",
         }}
       >
-        <Icons.receipt
-          style={{ flexShrink: 0, color: "#2A9D8F", marginTop: 1 }}
-        />
-        <p
-          style={{
-            margin: 0,
-            fontSize: 12.5,
-            color: "#5C594F",
-            lineHeight: 1.55,
-          }}
-        >
-          Após confirmar, o sistema avançará para{" "}
-          <strong style={{ fontWeight: 600, color: "#3A372F" }}>
-            Em Produção
-          </strong>{" "}
-          e gerará o recibo do sinal com a forma de pagamento registrada.
+        <Icons.receipt style={{ flexShrink: 0, color: "#2A9D8F", marginTop: 1 }} />
+        <p style={{ margin: 0, fontSize: 12.5, color: "#5C594F", lineHeight: 1.55 }}>
+          Após confirmar, o sistema avançará o orçamento e gerará o recibo do
+          sinal com a forma de pagamento registrada.
         </p>
       </div>
     </ModalShell>
@@ -575,7 +422,15 @@ function ModalSinal({ onClose }: { onClose: () => void }) {
 
 // ─── ModalCancelSimples ───────────────────────────────────────────────────────
 
-function ModalCancelSimples({ onClose }: { onClose: () => void }) {
+function ModalCancelSimples({
+  onClose,
+  onConfirm,
+  saving,
+}: {
+  onClose: () => void;
+  onConfirm: () => void;
+  saving: boolean;
+}) {
   return (
     <ModalShell
       open
@@ -586,8 +441,8 @@ function ModalCancelSimples({ onClose }: { onClose: () => void }) {
           <Button variant="ghost" onClick={onClose}>
             Voltar
           </Button>
-          <Button variant="danger" onClick={onClose}>
-            Sim, cancelar
+          <Button variant="danger" disabled={saving} onClick={onConfirm}>
+            {saving ? "Cancelando..." : "Sim, cancelar"}
           </Button>
         </>
       }
@@ -607,9 +462,7 @@ function ModalCancelSimples({ onClose }: { onClose: () => void }) {
         >
           <Icons.ban width={24} height={24} />
         </span>
-        <p
-          style={{ margin: 0, fontSize: 14, color: "#5C594F", lineHeight: 1.6 }}
-        >
+        <p style={{ margin: 0, fontSize: 14, color: "#5C594F", lineHeight: 1.6 }}>
           Esta ação não pode ser desfeita. O orçamento será marcado como{" "}
           <strong>Cancelado</strong>.
         </p>
@@ -618,20 +471,121 @@ function ModalCancelSimples({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── ModalCancelWizard ────────────────────────────────────────────────────────
+// ─── ModalCancelJustificativa — ENTREGUE / PAGO ───────────────────────────────
 
-function ModalCancelWizard({ onClose }: { onClose: () => void }) {
+function ModalCancelJustificativa({
+  onClose,
+  onConfirm,
+  saving,
+}: {
+  onClose: () => void;
+  onConfirm: (justificativa: string) => void;
+  saving: boolean;
+}) {
+  const [texto, setTexto] = useState("");
+  const [focus, setFocus] = useState(false);
+  const len = texto.length;
+  const valido = len >= 50 && !saving;
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Cancelar pedido já entregue?"
+      subtitle="Justificativa obrigatória"
+      icon={<Icons.ban />}
+      iconBg="#FCF3F0"
+      iconColor="#C0492B"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Voltar
+          </Button>
+          <Button variant="danger" disabled={!valido} onClick={() => onConfirm(texto)}>
+            {saving ? "Cancelando..." : "Confirmar cancelamento"}
+          </Button>
+        </>
+      }
+    >
+      <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#5C594F", lineHeight: 1.55 }}>
+        Cancelar um pedido neste estágio é uma ação excepcional. Descreva o
+        motivo com detalhes (mínimo 50 caracteres).
+      </p>
+      <span
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#5C594F",
+          marginBottom: 7,
+        }}
+      >
+        <span>
+          Justificativa <span style={{ color: "#C0492B" }}>*</span>
+        </span>
+        <span style={{ fontWeight: 400, color: len >= 50 ? "#3E9D5A" : "#A29E96" }}>
+          {len}/50 mín.
+        </span>
+      </span>
+      <textarea
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
+        placeholder="Ex: cliente solicitou cancelamento por motivo de força maior..."
+        rows={4}
+        style={{
+          width: "100%",
+          padding: "10px 14px",
+          border: `1.5px solid ${focus ? "#C0492B" : len > 0 && len < 50 ? "#F2B8A6" : "#EFEDE8"}`,
+          borderRadius: 10,
+          fontSize: 13.5,
+          color: "#3A372F",
+          background: "#fff",
+          outline: "none",
+          fontFamily: "inherit",
+          resize: "vertical",
+          lineHeight: 1.5,
+          boxSizing: "border-box",
+        }}
+      />
+      {len > 0 && len < 50 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            marginTop: 6,
+            fontSize: 12.5,
+            color: "#C0492B",
+          }}
+        >
+          <Icons.alertCircle width={13} height={13} /> Faltam {50 - len} caracteres.
+        </div>
+      )}
+    </ModalShell>
+  );
+}
+
+// ─── ModalCancelMulta — EM_PRODUCAO / FINALIZADO ──────────────────────────────
+
+function ModalCancelMulta({
+  orcamento,
+  onClose,
+  onConfirm,
+  saving,
+}: {
+  orcamento: OrcamentoDetalheResponse;
+  onClose: () => void;
+  onConfirm: (percentualMulta: number) => void;
+  saving: boolean;
+}) {
   const [step, setStep] = useState(1);
-  const [consumidos, setConsumidos] = useState([
-    { nome: "Papel couchê 180g", qtd: "4 folhas" },
-  ]);
-  const [busca, setBusca] = useState("");
-  const [qtd, setQtd] = useState("");
-  const [openList, setOpenList] = useState(false);
   const [multaAtiva, setMultaAtiva] = useState(true);
-  const [multaTipo, setMultaTipo] = useState<"%" | "R$">("%");
-  const [multaValor, setMultaValor] = useState("50");
-  const [focusField, setFocusField] = useState<string | null>(null);
+  const [multaPerc, setMultaPerc] = useState("50");
+  const [focusField, setFocusField] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -641,24 +595,9 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const total = 183.6;
-  const multaNum = parseFloat((multaValor || "0").replace(",", ".")) || 0;
-  const multaAplicada = multaAtiva
-    ? multaTipo === "%"
-      ? (total * multaNum) / 100
-      : Math.min(multaNum, total)
-    : 0;
-
-  const addItem = () => {
-    if (!busca.trim()) return;
-    setConsumidos((a) => [
-      ...a,
-      { nome: busca.trim(), qtd: qtd.trim() || "1" },
-    ]);
-    setBusca("");
-    setQtd("");
-    setOpenList(false);
-  };
+  const total = orcamento.total || 0;
+  const percNum = parseFloat((multaPerc || "0").replace(",", ".")) || 0;
+  const multaAplicada = multaAtiva ? (total * percNum) / 100 : 0;
 
   const Dots = () => (
     <div style={{ display: "flex", gap: 6, padding: "0 24px 16px" }}>
@@ -687,9 +626,7 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
         borderBottom: "1px solid #EFEDE8",
       }}
     >
-      <div
-        style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}
-      >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <span
           style={{
             display: "grid",
@@ -780,13 +717,11 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
           animation: "scaleIn .22s cubic-bezier(.34,1.3,.5,1) both",
         }}
       >
-        {/* ─── PASSO 1 — CONSUMO ─── */}
+        {/* ─── PASSO 1 — ITENS CONSUMIDOS ─── */}
         {step === 1 && (
           <>
-            <Header title="Houve consumo de insumos ou produtos?" />
-            <div
-              style={{ flex: 1, overflowY: "auto", padding: "18px 24px 8px" }}
-            >
+            <Header title="Itens deste pedido" />
+            <div style={{ flex: 1, overflowY: "auto", padding: "18px 24px 8px" }}>
               <p
                 style={{
                   margin: "0 0 14px",
@@ -795,162 +730,11 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                   lineHeight: 1.55,
                 }}
               >
-                Registre o que já foi usado para dar baixa no estoque mesmo com
-                o cancelamento.
+                Estes são os itens do pedido. O cancelamento dará baixa conforme
+                as regras de negócio do servidor.
               </p>
-              <div
-                style={{
-                  position: "relative",
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "stretch",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ position: "relative", flex: 2, minWidth: 160 }}>
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: 13,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#A29E96",
-                      display: "flex",
-                    }}
-                  >
-                    <Icons.search width={16} height={16} />
-                  </span>
-                  <input
-                    value={busca}
-                    onChange={(e) => {
-                      setBusca(e.target.value);
-                      setOpenList(true);
-                    }}
-                    onFocus={() => {
-                      setFocusField("b");
-                      setOpenList(true);
-                    }}
-                    onBlur={() => setFocusField(null)}
-                    placeholder="Buscar insumo ou produto…"
-                    style={{
-                      width: "100%",
-                      height: 46,
-                      padding: "0 14px 0 40px",
-                      border: `1.5px solid ${focusField === "b" ? "#2A9D8F" : "#EFEDE8"}`,
-                      borderRadius: 10,
-                      fontSize: 14,
-                      color: "#3A372F",
-                      background: "#fff",
-                      outline: "none",
-                      fontFamily: "inherit",
-                      boxShadow:
-                        focusField === "b"
-                          ? "0 0 0 4px rgba(42,157,143,0.12)"
-                          : "none",
-                    }}
-                  />
-                  {openList && busca && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 50,
-                        left: 0,
-                        right: 0,
-                        zIndex: 20,
-                        background: "#fff",
-                        border: "1px solid #EFEDE8",
-                        borderRadius: 12,
-                        boxShadow: "0 12px 30px -8px rgba(0,0,0,0.18)",
-                        padding: 6,
-                        animation: "pop .14s ease both",
-                      }}
-                    >
-                      {CATALOGO_CANCEL.filter((c) =>
-                        c.toLowerCase().includes(busca.toLowerCase()),
-                      )
-                        .slice(0, 4)
-                        .map((c) => (
-                          <button
-                            key={c}
-                            onMouseDown={() => {
-                              setBusca(c);
-                              setOpenList(false);
-                            }}
-                            style={{
-                              width: "100%",
-                              textAlign: "left",
-                              padding: "9px 10px",
-                              borderRadius: 8,
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                              fontSize: 13.5,
-                              color: "#3A372F",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = "#F7F5F1")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "transparent")
-                            }
-                          >
-                            {c}
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                </div>
-                <input
-                  value={qtd}
-                  onChange={(e) => setQtd(e.target.value)}
-                  onFocus={() => setFocusField("q")}
-                  onBlur={() => setFocusField(null)}
-                  placeholder="Qtd"
-                  style={{
-                    width: 90,
-                    height: 46,
-                    padding: "0 12px",
-                    border: `1.5px solid ${focusField === "q" ? "#2A9D8F" : "#EFEDE8"}`,
-                    borderRadius: 10,
-                    fontSize: 14,
-                    color: "#3A372F",
-                    background: "#fff",
-                    outline: "none",
-                    fontFamily: "inherit",
-                  }}
-                />
-                <button
-                  onClick={addItem}
-                  style={{
-                    height: 46,
-                    padding: "0 16px",
-                    borderRadius: 10,
-                    border: "1.5px solid rgba(42,157,143,0.4)",
-                    background: "rgba(42,157,143,0.06)",
-                    color: "#2A9D8F",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Icons.plus /> Adicionar
-                </button>
-              </div>
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {consumidos.length === 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {orcamento.itens.length === 0 ? (
                   <div
                     style={{
                       padding: "20px",
@@ -961,10 +745,10 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                       borderRadius: 12,
                     }}
                   >
-                    Nenhum item adicionado ainda.
+                    Nenhum item neste pedido.
                   </div>
                 ) : (
-                  consumidos.map((it, i) => (
+                  orcamento.itens.map((it, i) => (
                     <div
                       key={i}
                       style={{
@@ -985,37 +769,11 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                           color: "#3A372F",
                         }}
                       >
-                        {it.nome}
+                        {it.nomeProduto}
                       </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "#6B6860",
-                        }}
-                      >
-                        {it.qtd}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#6B6860" }}>
+                        ×{it.quantidade}
                       </span>
-                      <button
-                        onClick={() =>
-                          setConsumidos((a) => a.filter((_, j) => j !== i))
-                        }
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          color: "#B7B4AD",
-                          cursor: "pointer",
-                          display: "flex",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.color = "#C0492B")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.color = "#B7B4AD")
-                        }
-                      >
-                        <Icons.trash />
-                      </button>
                     </div>
                   ))
                 )}
@@ -1023,8 +781,8 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
             </div>
             <Dots />
             <div style={{ padding: "0 24px 22px", display: "flex", gap: 12 }}>
-              <Button variant="ghost" onClick={() => setStep(2)}>
-                Pular
+              <Button variant="ghost" onClick={onClose}>
+                Voltar
               </Button>
               <Button variant="primary" fullWidth onClick={() => setStep(2)}>
                 Próximo →
@@ -1037,9 +795,7 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
         {step === 2 && (
           <>
             <Header title="Deseja cobrar multa pelo cancelamento?" />
-            <div
-              style={{ flex: 1, overflowY: "auto", padding: "18px 24px 8px" }}
-            >
+            <div style={{ flex: 1, overflowY: "auto", padding: "18px 24px 8px" }}>
               <div
                 style={{
                   display: "flex",
@@ -1065,17 +821,9 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                         fontWeight: 600,
                         fontFamily: "inherit",
                         background:
-                          multaAtiva === val
-                            ? val
-                              ? "#F97316"
-                              : "#F1F0EC"
-                            : "#fff",
+                          multaAtiva === val ? (val ? "#F97316" : "#F1F0EC") : "#fff",
                         color:
-                          multaAtiva === val
-                            ? val
-                              ? "#fff"
-                              : "#5C594F"
-                            : "#A8A49C",
+                          multaAtiva === val ? (val ? "#fff" : "#5C594F") : "#A8A49C",
                       }}
                     >
                       {lbl}
@@ -1086,58 +834,33 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
 
               {multaAtiva && (
                 <div style={{ animation: "fadeUp .25s ease both" }}>
-                  <div
+                  <span
                     style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      flexWrap: "wrap",
+                      display: "block",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "#5C594F",
+                      marginBottom: 8,
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        borderRadius: 9,
-                        border: "1px solid #EFEDE8",
-                        overflow: "hidden",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {(["%", "R$"] as const).map((tp) => (
-                        <button
-                          key={tp}
-                          onClick={() => setMultaTipo(tp)}
-                          style={{
-                            width: 46,
-                            height: 46,
-                            border: "none",
-                            cursor: "pointer",
-                            fontSize: 14,
-                            fontWeight: 600,
-                            fontFamily: "inherit",
-                            background: multaTipo === tp ? "#F97316" : "#fff",
-                            color: multaTipo === tp ? "#fff" : "#8A8780",
-                          }}
-                        >
-                          {tp}
-                        </button>
-                      ))}
-                    </div>
+                    Percentual da multa (%)
+                  </span>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                     <input
-                      value={multaValor}
+                      value={multaPerc}
                       onChange={(e) =>
-                        setMultaValor(e.target.value.replace(/[^\d.,]/g, ""))
+                        setMultaPerc(e.target.value.replace(/[^\d.,]/g, ""))
                       }
-                      onFocus={() => setFocusField("m")}
-                      onBlur={() => setFocusField(null)}
+                      onFocus={() => setFocusField(true)}
+                      onBlur={() => setFocusField(false)}
                       inputMode="decimal"
-                      placeholder={multaTipo === "%" ? "50" : "0,00"}
+                      placeholder="50"
                       style={{
                         flex: 1,
                         minWidth: 120,
                         height: 46,
                         padding: "0 14px",
-                        border: `1.5px solid ${focusField === "m" ? "#F97316" : "#EFEDE8"}`,
+                        border: `1.5px solid ${focusField ? "#F97316" : "#EFEDE8"}`,
                         borderRadius: 10,
                         fontSize: 15,
                         fontWeight: 600,
@@ -1145,16 +868,10 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                         background: "#fff",
                         outline: "none",
                         fontFamily: "inherit",
-                        boxShadow:
-                          focusField === "m"
-                            ? "0 0 0 4px rgba(249,115,22,0.12)"
-                            : "none",
                       }}
                     />
                   </div>
-                  <div
-                    style={{ marginTop: 10, fontSize: 12, color: "#A29E96" }}
-                  >
+                  <div style={{ marginTop: 10, fontSize: 12, color: "#A29E96" }}>
                     Sugestão padrão: 50% do valor total.
                   </div>
                   <div
@@ -1169,13 +886,7 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                       border: "1px solid rgba(249,115,22,0.25)",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "#3A372F",
-                      }}
-                    >
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
                       Multa
                     </span>
                     <span
@@ -1218,52 +929,7 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                 gap: 16,
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: "#B0ACA4",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    marginBottom: 9,
-                  }}
-                >
-                  Insumos consumidos
-                </div>
-                {consumidos.length === 0 ? (
-                  <div style={{ fontSize: 13.5, color: "#A29E96" }}>
-                    Nenhum consumo registrado.
-                  </div>
-                ) : (
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 7 }}
-                  >
-                    {consumidos.map((it, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 13.5,
-                          color: "#3A372F",
-                          padding: "9px 12px",
-                          borderRadius: 9,
-                          background: "#FCFBF9",
-                          border: "1px solid #EFEDE8",
-                        }}
-                      >
-                        <span style={{ fontWeight: 500 }}>{it.nome}</span>
-                        <span style={{ fontWeight: 600, color: "#6B6860" }}>
-                          {it.qtd}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {multaAtiva && (
+              {multaAtiva ? (
                 <div
                   style={{
                     display: "flex",
@@ -1275,14 +941,10 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                     border: "1px solid rgba(249,115,22,0.25)",
                   }}
                 >
-                  <span
-                    style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}
-                  >
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
                     Multa{" "}
                     <span style={{ fontWeight: 500, color: "#A29E96" }}>
-                      (
-                      {multaTipo === "%" ? `${multaValor || 0}%` : "valor fixo"}
-                      )
+                      ({percNum}%)
                     </span>
                   </span>
                   <span
@@ -1296,6 +958,10 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                     {BRL(multaAplicada)}
                   </span>
                 </div>
+              ) : (
+                <div style={{ fontSize: 13.5, color: "#A29E96" }}>
+                  Nenhuma multa será cobrada.
+                </div>
               )}
 
               <div
@@ -1308,19 +974,16 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
                   border: "1px solid rgba(249,115,22,0.3)",
                 }}
               >
-                <Icons.alertCircle
-                  style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }}
-                />
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 12.8,
-                    color: "#8A5A33",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  Um <strong style={{ fontWeight: 700 }}>PDF de multa</strong>{" "}
-                  será gerado para enviar à cliente.
+                <Icons.alertCircle style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
+                <p style={{ margin: 0, fontSize: 12.8, color: "#8A5A33", lineHeight: 1.55 }}>
+                  {multaAtiva ? (
+                    <>
+                      Um <strong style={{ fontWeight: 700 }}>PDF de multa</strong> será
+                      gerado para enviar à cliente.
+                    </>
+                  ) : (
+                    "O orçamento será marcado como Cancelado."
+                  )}
                 </p>
               </div>
             </div>
@@ -1329,8 +992,13 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
               <Button variant="ghost" onClick={() => setStep(2)}>
                 ← Voltar
               </Button>
-              <Button variant="danger" fullWidth onClick={onClose}>
-                Confirmar e gerar PDF de multa
+              <Button
+                variant="danger"
+                fullWidth
+                disabled={saving}
+                onClick={() => onConfirm(multaAtiva ? percNum : 0)}
+              >
+                {saving ? "Cancelando..." : "Confirmar cancelamento"}
               </Button>
             </div>
           </>
@@ -1340,16 +1008,28 @@ function ModalCancelWizard({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── ModalCancelSinalPago ─────────────────────────────────────────────────────
+// ─── ModalCancelEstorno — SINAL_PAGO ──────────────────────────────────────────
 
-function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
+function ModalCancelEstorno({
+  orcamento,
+  onClose,
+  onConfirm,
+  saving,
+}: {
+  orcamento: OrcamentoDetalheResponse;
+  onClose: () => void;
+  onConfirm: (data: { estornarSinal: boolean; dataEstornoSinal?: string }) => void;
+  saving: boolean;
+}) {
   const [step, setStep] = useState(1);
   const [estornar, setEstornar] = useState(true);
   const [focusField, setFocusField] = useState(false);
-  const [dataEstorno, setDataEstorno] = useState("2026-06-13");
+  const [dataEstorno, setDataEstorno] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
 
-  const valorSinal = 91.8;
-  const nomeCliente = "Mariana Costa";
+  const valorSinal = orcamento.valorSinal || 0;
+  const nomeCliente = orcamento.nomeCliente;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1386,9 +1066,7 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
         borderBottom: "1px solid #EFEDE8",
       }}
     >
-      <div
-        style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}
-      >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <span
           style={{
             display: "grid",
@@ -1483,9 +1161,7 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
         {step === 1 && (
           <>
             <Header title={`Estornar sinal para ${nomeCliente}?`} />
-            <div
-              style={{ flex: 1, overflowY: "auto", padding: "20px 24px 8px" }}
-            >
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 8px" }}>
               {/* Valor do sinal */}
               <div
                 style={{
@@ -1574,17 +1250,9 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                           fontWeight: 600,
                           fontFamily: "inherit",
                           background:
-                            estornar === val
-                              ? val
-                                ? "#F97316"
-                                : "#F1F0EC"
-                              : "#fff",
+                            estornar === val ? (val ? "#F97316" : "#F1F0EC") : "#fff",
                           color:
-                            estornar === val
-                              ? val
-                                ? "#fff"
-                                : "#5C594F"
-                              : "#A8A49C",
+                            estornar === val ? (val ? "#fff" : "#5C594F") : "#A8A49C",
                           transition: "all .14s",
                         }}
                       >
@@ -1610,8 +1278,7 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                         marginBottom: 7,
                       }}
                     >
-                      <Icons.calendar style={{ color: "#F97316" }} /> Data do
-                      estorno
+                      <Icons.calendar style={{ color: "#F97316" }} /> Data do estorno
                     </span>
                     <input
                       type="date"
@@ -1630,10 +1297,6 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                         background: "#fff",
                         outline: "none",
                         fontFamily: "inherit",
-                        boxShadow: focusField
-                          ? "0 0 0 4px rgba(249,115,22,0.12)"
-                          : "none",
-                        transition: "border-color .15s, box-shadow .15s",
                       }}
                     />
                   </label>
@@ -1648,23 +1311,10 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                       border: "1px solid rgba(249,115,22,0.25)",
                     }}
                   >
-                    <Icons.receipt
-                      style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }}
-                    />
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 12.5,
-                        color: "#8A5A33",
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      Um{" "}
-                      <strong style={{ fontWeight: 700 }}>
-                        recibo de estorno
-                      </strong>{" "}
-                      será gerado para enviar à cliente como comprovante da
-                      devolução.
+                    <Icons.receipt style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
+                    <p style={{ margin: 0, fontSize: 12.5, color: "#8A5A33", lineHeight: 1.55 }}>
+                      Um <strong style={{ fontWeight: 700 }}>recibo de estorno</strong>{" "}
+                      será gerado para enviar à cliente como comprovante da devolução.
                     </p>
                   </div>
                 </div>
@@ -1683,17 +1333,8 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                     animation: "fadeUp .2s ease both",
                   }}
                 >
-                  <Icons.info
-                    style={{ flexShrink: 0, color: "#A29E96", marginTop: 1 }}
-                  />
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 12.5,
-                      color: "#6B6860",
-                      lineHeight: 1.55,
-                    }}
-                  >
+                  <Icons.info style={{ flexShrink: 0, color: "#A29E96", marginTop: 1 }} />
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#6B6860", lineHeight: 1.55 }}>
                     O orçamento será cancelado sem devolução do sinal. Nenhum
                     documento será gerado.
                   </p>
@@ -1708,9 +1349,14 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
               <Button
                 variant="primary"
                 fullWidth
-                onClick={() => (estornar ? setStep(2) : onClose())}
+                disabled={saving}
+                onClick={() =>
+                  estornar
+                    ? setStep(2)
+                    : onConfirm({ estornarSinal: false })
+                }
               >
-                {estornar ? "Próximo →" : "Confirmar cancelamento"}
+                {estornar ? "Próximo →" : saving ? "Cancelando..." : "Confirmar cancelamento"}
               </Button>
             </div>
           </>
@@ -1730,12 +1376,10 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                 gap: 16,
               }}
             >
-              {/* Card de destaque — gradiente laranja */}
               <div
                 style={{
                   borderRadius: 14,
-                  background:
-                    "linear-gradient(135deg, #F97316 0%, #F4853A 100%)",
+                  background: "linear-gradient(135deg, #F97316 0%, #F4853A 100%)",
                   padding: "20px 22px",
                   color: "#fff",
                   position: "relative",
@@ -1781,16 +1425,12 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
 
-              {/* Resumo da operação */}
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {[
                   ["Cliente", nomeCliente],
                   ["Valor do estorno", BRL(valorSinal)],
-                  [
-                    "Data do estorno",
-                    dataEstorno.split("-").reverse().join("/"),
-                  ],
-                  ["Orçamento", "#0042"],
+                  ["Data do estorno", dataEstorno.split("-").reverse().join("/")],
+                  ["Orçamento", `#${String(orcamento.numero).padStart(4, "0")}`],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -1802,17 +1442,12 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                       borderBottom: "1px solid #EFEDE8",
                     }}
                   >
-                    <span style={{ color: "#A29E96", fontWeight: 500 }}>
-                      {label}
-                    </span>
-                    <span style={{ color: "#3A372F", fontWeight: 600 }}>
-                      {value}
-                    </span>
+                    <span style={{ color: "#A29E96", fontWeight: 500 }}>{label}</span>
+                    <span style={{ color: "#3A372F", fontWeight: 600 }}>{value}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Aviso final */}
               <div
                 style={{
                   display: "flex",
@@ -1823,17 +1458,8 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
                   border: "1px solid rgba(249,115,22,0.25)",
                 }}
               >
-                <Icons.receipt
-                  style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }}
-                />
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 12.5,
-                    color: "#8A5A33",
-                    lineHeight: 1.55,
-                  }}
-                >
+                <Icons.receipt style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
+                <p style={{ margin: 0, fontSize: 12.5, color: "#8A5A33", lineHeight: 1.55 }}>
                   O recibo de estorno ficará disponível para download na tela de
                   detalhe do orçamento cancelado.
                 </p>
@@ -1844,8 +1470,15 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
               <Button variant="ghost" onClick={() => setStep(1)}>
                 ← Voltar
               </Button>
-              <Button variant="primary" fullWidth onClick={onClose}>
-                Confirmar e gerar recibo de estorno
+              <Button
+                variant="primary"
+                fullWidth
+                disabled={saving}
+                onClick={() =>
+                  onConfirm({ estornarSinal: true, dataEstornoSinal: dataEstorno })
+                }
+              >
+                {saving ? "Processando..." : "Confirmar e gerar recibo de estorno"}
               </Button>
             </div>
           </>
@@ -1855,33 +1488,220 @@ function ModalCancelSinalPago({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Card de downloads ────────────────────────────────────────────────────────
+
+function DownloadsCard({
+  status,
+  onDownload,
+}: {
+  status: ApiStatus;
+  onDownload: (kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento") => void;
+}) {
+  const order = STEPS.indexOf(status);
+  const sinalPagoIdx = STEPS.indexOf("SINAL_PAGO");
+
+  const links: { label: string; kind: Parameters<typeof onDownload>[0]; icon: React.ReactNode }[] = [];
+
+  // PDF do orçamento — disponível sempre (rascunho em diante e cancelado)
+  links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <Icons.pdf /> });
+
+  // Recibo do sinal — de SINAL_PAGO em diante (e cancelado se houve sinal)
+  if ((order >= sinalPagoIdx && order >= 0) || status === "CANCELADO") {
+    links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Icons.receipt /> });
+  }
+
+  if (status === "PAGO") {
+    links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Icons.receipt /> });
+  }
+
+  if (status === "CANCELADO") {
+    links.push({ label: "PDF de multa", kind: "multa", icon: <Icons.fileText /> });
+    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Icons.receipt /> });
+  }
+
+  return (
+    <section
+      style={{
+        background: "#fff",
+        border: "1px solid #F0EEE9",
+        borderRadius: "var(--r-card)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        padding: "22px 24px",
+        marginTop: 18,
+        animation: "fadeUp .6s ease both",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <span
+          style={{
+            display: "grid",
+            placeItems: "center",
+            width: 32,
+            height: 32,
+            borderRadius: 9,
+            background: "rgba(42,157,143,0.12)",
+            color: "#2A9D8F",
+          }}
+        >
+          <Icons.download />
+        </span>
+        <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
+          Documentos
+        </h2>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        {links.map((l) => (
+          <Button key={l.kind} variant="ghost" icon={l.icon} onClick={() => onDownload(l.kind)}>
+            {l.label}
+          </Button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function DetalheOrcamentoPage() {
-  const current = "Aguardando Sinal" as StatusOrcamento;
-  const idx = STEPS.indexOf(current as StatusOrcamento);
-  const next = STEPS[idx + 1];
-  const meta = STATUS_META[current];
-  const [modal, setModal] = useState<string | null>(null);
-  const [modalCancel, setModalCancel] = useState(false);
-  const cancelaComWizard =
-    current === "Em Produção" || current === "Finalizado";
-  const cancelaComEstorno = current === "Sinal Pago";
-  const sinalRecebido = [
-    "Sinal Pago",
-    "Em Produção",
-    "Finalizado",
-    "Entregue",
-    "Pago",
-  ].includes(current);
-  const sinalAtivado = [
-    "Aguardando Sinal",
-    "Sinal Pago",
-    "Em Produção",
-    "Finalizado",
-    "Entregue",
-    "Pago",
-  ].includes(current);
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const token = useAuthStore((s) => s.token);
+
+  const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null);
+  const [cliente, setCliente] = useState<ClienteResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [modal, setModal] = useState<null | "sinal" | "cancel">(null);
+
+  const carregar = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const data = await orcamentoService.buscarPorId(id);
+      setOrcamento(data);
+      if (data.clienteId) {
+        clienteService
+          .buscarPorId(data.clienteId)
+          .then(setCliente)
+          .catch(() => setCliente(null));
+      }
+    } catch (err) {
+      console.error("Erro ao carregar orçamento:", err);
+      alert("Erro ao carregar orçamento");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const handleAvancar = async (data?: AvancaStatusRequest) => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      const updated = await orcamentoService.avancarStatus(id, data);
+      setOrcamento(updated);
+      setModal(null);
+    } catch (err) {
+      console.error("Erro ao avançar status:", err);
+      alert("Erro ao avançar status do orçamento");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelar = async (data?: AvancaStatusRequest) => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      const updated = await orcamentoService.cancelar(id, data);
+      setOrcamento(updated);
+      setModal(null);
+    } catch (err) {
+      console.error("Erro ao cancelar orçamento:", err);
+      alert("Erro ao cancelar orçamento");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownload = async (
+    kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
+  ) => {
+    if (!id) return;
+    const urlMap = {
+      pdf: orcamentoService.downloadPdf(id),
+      reciboSinal: orcamentoService.downloadReciboSinal(id),
+      multa: orcamentoService.downloadPdfMulta(id),
+      estorno: orcamentoService.downloadReciboEstorno(id),
+      pagamento: orcamentoService.downloadReciboPagamento(id),
+    };
+    const fileNames = {
+      pdf: `orcamento-${orcamento?.numero || id}.pdf`,
+      reciboSinal: `recibo-sinal-${orcamento?.numero || id}.pdf`,
+      multa: `multa-${orcamento?.numero || id}.pdf`,
+      estorno: `recibo-estorno-${orcamento?.numero || id}.pdf`,
+      pagamento: `recibo-pagamento-${orcamento?.numero || id}.pdf`,
+    };
+    try {
+      const response = await fetch(urlMap[kind], {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileNames[kind];
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erro ao baixar documento:", err);
+      alert("Erro ao baixar documento");
+    }
+  };
+
+  if (loading) {
+    return (
+      <AppLayout active="orcamentos">
+        <div style={{ padding: "40px 20px", textAlign: "center", color: "#A29E96" }}>
+          Carregando orçamento...
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!orcamento) {
+    return (
+      <AppLayout active="orcamentos">
+        <div style={{ padding: "40px 20px", textAlign: "center", color: "#C0492B" }}>
+          Orçamento não encontrado
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const status = orcamento.status as ApiStatus;
+  const meta = STATUS_META[status] || STATUS_META.RASCUNHO;
+  const actionLabel = ACTION_LABEL[status];
+  const nextHint = NEXT_HINT[status];
+  const finalizado = status === "PAGO" || status === "CANCELADO";
+  const cancelavel = status !== "PAGO" && status !== "CANCELADO";
+
+  const sinalRecebido = ["SINAL_PAGO", "EM_PRODUCAO", "FINALIZADO", "ENTREGUE", "PAGO"].includes(status);
+  const restante = (orcamento.total || 0) - (orcamento.valorSinal || 0);
+
+  const onPrimaryAction = () => {
+    if (status === "AGUARDANDO_SINAL") {
+      setModal("sinal");
+    } else {
+      handleAvancar();
+    }
+  };
+
+  const kind = cancelKind(status);
 
   return (
     <AppLayout active="orcamentos">
@@ -1897,26 +1717,28 @@ export default function DetalheOrcamentoPage() {
         }}
       >
         <div>
-          <div
+          <button
+            onClick={() => navigate("/orcamentos")}
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
               fontSize: 12.5,
               fontWeight: 600,
               color: "#2A9D8F",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
               marginBottom: 5,
+              fontFamily: "inherit",
             }}
           >
-            Orçamento
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 13,
-              flexWrap: "wrap",
-            }}
-          >
+            <Icons.back width={13} height={13} /> Orçamentos
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 13, flexWrap: "wrap" }}>
             <h1
               style={{
                 margin: 0,
@@ -1926,7 +1748,7 @@ export default function DetalheOrcamentoPage() {
                 color: "#3A372F",
               }}
             >
-              #0042 — Mariana Costa
+              #{String(orcamento.numero).padStart(4, "0")} — {orcamento.nomeCliente}
             </h1>
             <span
               style={{
@@ -1942,96 +1764,129 @@ export default function DetalheOrcamentoPage() {
                 fontWeight: 600,
               }}
             >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: meta.dot,
-                }}
-              />
-              {current}
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: meta.dot }} />
+              {STATUS_LABEL[status]}
             </span>
           </div>
         </div>
-        <Button variant="ghost" icon={<Icons.copy />} onClick={() => {}}>
-          Duplicar orçamento
+        <Button
+          variant="ghost"
+          icon={<Icons.pdf />}
+          onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
+        >
+          Ver preview do PDF
         </Button>
       </div>
 
       {/* SEÇÃO 1 — TIMELINE */}
-      <section
-        style={{
-          background: "#fff",
-          border: "1px solid #F0EEE9",
-          borderRadius: "var(--r-card)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          padding: "26px 28px",
-          animation: "fadeUp .4s ease both",
-        }}
-      >
-        <div
+      {status !== "CANCELADO" && (
+        <section
           style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#5C594F",
-            marginBottom: 24,
+            background: "#fff",
+            border: "1px solid #F0EEE9",
+            borderRadius: "var(--r-card)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            padding: "26px 28px",
+            animation: "fadeUp .4s ease both",
           }}
         >
-          Andamento do pedido
-        </div>
-        <Timeline current={current} />
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#5C594F", marginBottom: 24 }}>
+            Andamento do pedido
+          </div>
+          <Timeline current={status} />
 
-        <div
+          {!finalizado && (
+            <div
+              style={{
+                marginTop: 30,
+                paddingTop: 22,
+                borderTop: "1px solid #EFEDE8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 18,
+                flexWrap: "wrap",
+              }}
+            >
+              {cancelavel ? (
+                <button
+                  onClick={() => setModal("cancel")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    background: "transparent",
+                    border: "none",
+                    color: "rgba(192,73,43,0.85)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#C0492B")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(192,73,43,0.85)")}
+                >
+                  <Icons.ban width={15} height={15} /> Cancelar orçamento
+                </button>
+              ) : (
+                <span />
+              )}
+
+              {actionLabel && (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  iconRight={<Icons.arrowRight />}
+                  disabled={saving}
+                  onClick={onPrimaryAction}
+                >
+                  {saving ? "Processando..." : actionLabel}
+                </Button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Banner cancelado */}
+      {status === "CANCELADO" && (
+        <section
           style={{
-            marginTop: 30,
-            paddingTop: 22,
-            borderTop: "1px solid #EFEDE8",
+            background: "#FCF0EC",
+            border: "1px solid rgba(192,73,43,0.3)",
+            borderRadius: "var(--r-card)",
+            padding: "20px 24px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            gap: 18,
-            flexWrap: "wrap",
+            gap: 14,
+            animation: "fadeUp .4s ease both",
           }}
         >
-          <button
-            onClick={() => setModalCancel(true)}
+          <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              background: "transparent",
-              border: "none",
-              color: "rgba(192,73,43,0.85)",
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: "inherit",
-              cursor: "pointer",
-              padding: 0,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#C0492B")}
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.color = "rgba(192,73,43,0.85)")
-            }
-          >
-            <Icons.ban width={15} height={15} /> Cancelar orçamento
-          </button>
-
-          <Button
-            variant="primary"
-            size="lg"
-            iconRight={<Icons.arrowRight />}
-            onClick={() => {
-              if (current === "Aguardando Sinal") setModal("sinal");
-              else if (current === "Em Produção" || current === "Finalizado")
-                setModal("finalizacao");
-              else setModal("finalizacao");
+              display: "grid",
+              placeItems: "center",
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: "#fff",
+              color: "#C0492B",
+              flexShrink: 0,
             }}
           >
-            Avançar para: {next}
-          </Button>
-        </div>
-      </section>
+            <Icons.ban />
+          </span>
+          <div>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
+              Orçamento cancelado
+            </div>
+            <div style={{ fontSize: 13, color: "#8A5A4E", marginTop: 2 }}>
+              Este orçamento foi cancelado e não pode mais avançar de status.
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* SEÇÃO 2 — RESUMO + PRÓXIMO PASSO */}
       <div className="lower-grid" style={{ marginTop: 18 }}>
@@ -2046,14 +1901,7 @@ export default function DetalheOrcamentoPage() {
             animation: "fadeUp .5s ease both",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 18,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
             <span
               style={{
                 display: "grid",
@@ -2067,14 +1915,7 @@ export default function DetalheOrcamentoPage() {
             >
               <Icons.doc />
             </span>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 15.5,
-                fontWeight: 700,
-                color: "#3A372F",
-              }}
-            >
+            <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
               Resumo do orçamento
             </h2>
           </div>
@@ -2103,13 +1944,11 @@ export default function DetalheOrcamentoPage() {
                 flexShrink: 0,
               }}
             >
-              M
+              {orcamento.nomeCliente.charAt(0)}
             </span>
             <div>
-              <div
-                style={{ fontSize: 14.5, fontWeight: 600, color: "#3A372F" }}
-              >
-                Mariana Costa
+              <div style={{ fontSize: 14.5, fontWeight: 600, color: "#3A372F" }}>
+                {orcamento.nomeCliente}
               </div>
               <div
                 style={{
@@ -2121,7 +1960,7 @@ export default function DetalheOrcamentoPage() {
                   marginTop: 2,
                 }}
               >
-                <Icons.phone style={{ color: "#2A9D8F" }} /> (11) 99999-0000
+                <Icons.phone style={{ color: "#2A9D8F" }} /> {cliente?.whatsapp || "—"}
               </div>
             </div>
           </div>
@@ -2136,18 +1975,8 @@ export default function DetalheOrcamentoPage() {
               gap: 12,
             }}
           >
-            {[
-              {
-                qtd: 3,
-                nome: "Kit Convite Casamento",
-                custom: "Laminação fosca",
-              },
-              { qtd: 10, nome: "Etiqueta personalizada", custom: null },
-            ].map((it, i) => (
-              <div
-                key={i}
-                style={{ display: "flex", alignItems: "flex-start", gap: 12 }}
-              >
+            {orcamento.itens.map((it, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <span
                   style={{
                     width: 30,
@@ -2162,21 +1991,21 @@ export default function DetalheOrcamentoPage() {
                     fontWeight: 700,
                   }}
                 >
-                  ×{it.qtd}
+                  ×{it.quantidade}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div
-                    style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}
-                  >
-                    {it.nome}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
+                    {it.nomeProduto}
                   </div>
-                  {it.custom && (
+                  {it.customizacoes.map((c, k) => (
                     <span
+                      key={k}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 5,
                         marginTop: 4,
+                        marginRight: 5,
                         fontSize: 11.5,
                         color: "#A35A26",
                         background: "rgba(249,115,22,0.08)",
@@ -2184,30 +2013,27 @@ export default function DetalheOrcamentoPage() {
                         borderRadius: 999,
                       }}
                     >
-                      <Icons.tag /> {it.custom}
+                      <Icons.tag /> {c.nomeProduto}
                     </span>
-                  )}
+                  ))}
+                </div>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    color: "#3A372F",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {BRL(it.subtotal)}
                 </div>
               </div>
             ))}
           </div>
 
           {/* Total + sinal + validade */}
-          <div
-            style={{
-              paddingTop: 16,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+          <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontSize: 12, color: "#A29E96" }}>Total</div>
                 <div
@@ -2219,7 +2045,7 @@ export default function DetalheOrcamentoPage() {
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  {BRL(183.6)}
+                  {BRL(orcamento.total)}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -2235,12 +2061,12 @@ export default function DetalheOrcamentoPage() {
                     marginTop: 2,
                   }}
                 >
-                  <Icons.calendar style={{ color: "#2A9D8F" }} /> 11/06/2026
+                  <Icons.calendar style={{ color: "#2A9D8F" }} /> {fmtDate(orcamento.dataValidade)}
                 </div>
               </div>
             </div>
 
-            {sinalAtivado && (
+            {orcamento.sinalAtivo && (
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <div
                   style={{
@@ -2267,11 +2093,7 @@ export default function DetalheOrcamentoPage() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {sinalRecebido ? (
-                      <Icons.check />
-                    ) : (
-                      <Icons.clock width={12} height={12} />
-                    )}
+                    {sinalRecebido ? <Icons.check /> : <Icons.clock width={12} height={12} />}
                     {sinalRecebido ? "Sinal recebido" : "Aguardando Sinal"}
                   </div>
                   <div
@@ -2283,7 +2105,7 @@ export default function DetalheOrcamentoPage() {
                       marginTop: 4,
                     }}
                   >
-                    {BRL(91.8)}
+                    {BRL(orcamento.valorSinal || 0)}
                   </div>
                 </div>
                 <div
@@ -2317,7 +2139,7 @@ export default function DetalheOrcamentoPage() {
                       marginTop: 4,
                     }}
                   >
-                    {sinalRecebido ? BRL(91.8) : BRL(183.6)}
+                    {BRL(restante)}
                   </div>
                 </div>
               </div>
@@ -2326,89 +2148,91 @@ export default function DetalheOrcamentoPage() {
         </section>
 
         {/* Card próximo passo */}
-        <section
-          style={{
-            background:
-              "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)",
-            border: "1px solid rgba(42,157,143,0.18)",
-            borderRadius: "var(--r-card)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            padding: "22px 24px",
-            animation: "fadeUp .55s ease both",
-          }}
-        >
-          <div
+        {!finalizado && nextHint && (
+          <section
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 11,
-              marginBottom: 12,
+              background:
+                "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)",
+              border: "1px solid rgba(42,157,143,0.18)",
+              borderRadius: "var(--r-card)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              padding: "22px 24px",
+              animation: "fadeUp .55s ease both",
             }}
           >
-            <span
-              style={{
-                display: "grid",
-                placeItems: "center",
-                width: 38,
-                height: 38,
-                borderRadius: 11,
-                background: "#fff",
-                color: "#2A9D8F",
-                border: "1px solid rgba(42,157,143,0.2)",
-              }}
-            >
-              <Icons.layers />
-            </span>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#3A372F" }}>
-                Próximo passo
-              </div>
-              <div
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12 }}>
+              <span
                 style={{
-                  fontSize: 12.5,
+                  display: "grid",
+                  placeItems: "center",
+                  width: 38,
+                  height: 38,
+                  borderRadius: 11,
+                  background: "#fff",
                   color: "#2A9D8F",
-                  fontWeight: 600,
-                  marginTop: 1,
+                  border: "1px solid rgba(42,157,143,0.2)",
                 }}
               >
-                Finalizar produção
+                <Icons.layers />
+              </span>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#3A372F" }}>
+                  Próximo passo
+                </div>
+                <div style={{ fontSize: 12.5, color: "#2A9D8F", fontWeight: 600, marginTop: 1 }}>
+                  {actionLabel}
+                </div>
               </div>
             </div>
-          </div>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 13.5,
-              lineHeight: 1.6,
-              color: "#5C594F",
-            }}
-          >
-            Ao avançar para{" "}
-            <strong style={{ fontWeight: 600, color: "#3A372F" }}>
-              Finalizado
-            </strong>
-            , o sistema vai pedir a confirmação da{" "}
-            <strong style={{ fontWeight: 600, color: "#3A372F" }}>
-              baixa de estoque
-            </strong>{" "}
-            dos insumos usados. Revise as quantidades antes de confirmar.
-          </p>
-        </section>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "#5C594F" }}>
+              {nextHint}
+            </p>
+          </section>
+        )}
       </div>
 
+      {/* SEÇÃO 3 — DOCUMENTOS */}
+      <DownloadsCard status={status} onDownload={handleDownload} />
+
       {/* Modais */}
-      {modal === "finalizacao" && (
-        <ModalFinalizacao onClose={() => setModal(null)} />
+      {modal === "sinal" && (
+        <ModalSinal
+          orcamento={orcamento}
+          saving={saving}
+          onClose={() => setModal(null)}
+          onConfirm={(data) => handleAvancar(data)}
+        />
       )}
-      {modal === "sinal" && <ModalSinal onClose={() => setModal(null)} />}
-      {modalCancel && cancelaComWizard && (
-        <ModalCancelWizard onClose={() => setModalCancel(false)} />
+
+      {modal === "cancel" && kind === "simples" && (
+        <ModalCancelSimples
+          saving={saving}
+          onClose={() => setModal(null)}
+          onConfirm={() => handleCancelar()}
+        />
       )}
-      {modalCancel && cancelaComEstorno && (
-        <ModalCancelSinalPago onClose={() => setModalCancel(false)} />
+      {modal === "cancel" && kind === "estorno" && (
+        <ModalCancelEstorno
+          orcamento={orcamento}
+          saving={saving}
+          onClose={() => setModal(null)}
+          onConfirm={(data) => handleCancelar(data)}
+        />
       )}
-      {modalCancel && !cancelaComWizard && !cancelaComEstorno && (
-        <ModalCancelSimples onClose={() => setModalCancel(false)} />
+      {modal === "cancel" && kind === "multa" && (
+        <ModalCancelMulta
+          orcamento={orcamento}
+          saving={saving}
+          onClose={() => setModal(null)}
+          onConfirm={(percentualMulta) => handleCancelar({ percentualMulta })}
+        />
+      )}
+      {modal === "cancel" && kind === "justificativa" && (
+        <ModalCancelJustificativa
+          saving={saving}
+          onClose={() => setModal(null)}
+          onConfirm={(justificativa) => handleCancelar({ justificativa })}
+        />
       )}
     </AppLayout>
   );
