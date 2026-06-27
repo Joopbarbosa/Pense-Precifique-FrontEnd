@@ -1,6 +1,8 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Logo, Button } from '../../components/ui'
+import { useAuthStore } from '../../store/authStore'
+import { orcamentoService } from '../../services/orcamentoService'
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 
@@ -130,14 +132,10 @@ function DocumentoMulta() {
       </div>
 
       {/* DATAS */}
-      <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, padding: '18px', borderRadius: 12, background: '#FBFAF8', border: '1px solid #F0EEE9' }}>
+      <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: '18px', borderRadius: 12, background: '#FBFAF8', border: '1px solid #F0EEE9' }}>
         <div>
           <DocLabel>Data de aprovação</DocLabel>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{CANCELAMENTO.aprovacao}</div>
-        </div>
-        <div>
-          <DocLabel>Prazo de produção</DocLabel>
-          <div style={{ fontSize: 14, fontWeight: 600, color: TEAL }}>{CANCELAMENTO.prazoDias} dias úteis</div>
         </div>
         <div>
           <DocLabel>Data do cancelamento</DocLabel>
@@ -221,6 +219,27 @@ function DocumentoMulta() {
 
 export default function PreviewMultaPage() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const token = useAuthStore(s => s.token)
+
+  const handleDownload = async () => {
+    if (!id) return
+    const url = orcamentoService.downloadPdfMulta(id)
+    try {
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = `multa-${id}.pdf`
+      a.click()
+      URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      console.error('Erro ao baixar PDF de multa:', err)
+      alert('Erro ao baixar PDF de multa')
+    }
+  }
 
   return (
     <AppLayout active="orcamentos" noPad>
@@ -234,7 +253,7 @@ export default function PreviewMultaPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#9A968E', marginBottom: 6, flexWrap: 'wrap' }}>
               {[
                 { label: 'Orçamentos', path: '/orcamentos' },
-                { label: '#0042 — Mariana Costa', path: '/orcamentos/0042' },
+                { label: 'Detalhe do orçamento', path: `/orcamentos/${id}` },
               ].map(({ label, path }) => (
                 <span key={path} style={{ display: 'contents' }}>
                   <button
@@ -262,10 +281,10 @@ export default function PreviewMultaPage() {
 
           {/* Botões */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="ghost" icon={<Icons.back />} onClick={() => navigate('/orcamentos/0042')}>
+            <Button variant="ghost" icon={<Icons.back />} onClick={() => navigate(`/orcamentos/${id}`)}>
               Voltar ao orçamento
             </Button>
-            <Button variant="secondary" icon={<Icons.download />} onClick={() => {}}>
+            <Button variant="secondary" icon={<Icons.download />} onClick={handleDownload}>
               Baixar PDF
             </Button>
           </div>

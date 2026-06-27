@@ -1,6 +1,8 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Logo, Button } from '../../components/ui'
+import { useAuthStore } from '../../store/authStore'
+import { orcamentoService } from '../../services/orcamentoService'
 
 // ── Dados mockados ──────────────────────────────────────────────────────────
 
@@ -41,7 +43,19 @@ const RECIBO = {
   aprovacao: '04/06/2026',
   prazoDias: 10,
   inicioImediato: true,
-  dataInicioEstimada: '',
+  dataInicioEstimada: '20/06/2026',
+}
+
+function adicionarDiasUteis(dataStr: string, dias: number): string {
+  const [d, m, y] = dataStr.split('/').map(Number)
+  const data = new Date(y, m - 1, d)
+  let adicionados = 0
+  while (adicionados < dias) {
+    data.setDate(data.getDate() + 1)
+    const diaSemana = data.getDay()
+    if (diaSemana !== 0 && diaSemana !== 6) adicionados++
+  }
+  return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // ── Subcomponentes ───────────────────────────────────────────────────────────
@@ -221,14 +235,36 @@ function DocumentoRecibo() {
       {/* PRÓXIMOS PASSOS */}
       <div style={{ marginTop: 26 }}>
         <DocSectionTitle icon={<Icons.sparkles />}>Próximos passos</DocSectionTitle>
-        <div style={{ padding: '16px 18px', borderRadius: 12, background: hexA(TEAL, 0.05), border: `1px solid ${hexA(TEAL, 0.2)}` }}>
-          <p style={{ margin: 0, fontSize: 13.5, color: '#3A372F', lineHeight: 1.65 }}>
-            <strong style={{ fontWeight: 700, color: '#1E7268' }}>Sua produção foi iniciada!</strong>{' '}
-            O restante de <strong style={{ fontWeight: 700, color: ORANGE }}>{BRL(RESTANTE)}</strong>{' '}
-            será cobrado na entrega do pedido. Prazo estimado:{' '}
-            <strong style={{ fontWeight: 700, color: '#5C594F' }}>{RECIBO.prazoDias} dias úteis</strong>.
-          </p>
-        </div>
+        {(() => {
+          const dataBase = RECIBO.inicioImediato
+            ? RECIBO.aprovacao
+            : RECIBO.dataInicioEstimada
+
+          const previsaoEntrega = adicionarDiasUteis(dataBase, RECIBO.prazoDias)
+
+          return (
+            <div style={{ padding: '16px 18px', borderRadius: 12, background: hexA(TEAL, 0.05), border: `1px solid ${hexA(TEAL, 0.2)}` }}>
+              {RECIBO.inicioImediato ? (
+                <p style={{ margin: 0, fontSize: 13.5, color: '#3A372F', lineHeight: 1.65 }}>
+                  <strong style={{ fontWeight: 700, color: '#1E7268' }}>Sua produção já foi iniciada!</strong>{' '}
+                  O restante de <strong style={{ fontWeight: 700, color: ORANGE }}>{BRL(RESTANTE)}</strong>{' '}
+                  será cobrado na entrega do pedido.{' '}
+                  Prazo: <strong style={{ fontWeight: 700, color: '#5C594F' }}>{RECIBO.prazoDias} dias úteis</strong>{' '}
+                  <span style={{ color: '#2A9D8F', fontWeight: 600 }}>(previsão: {previsaoEntrega})</span>.
+                </p>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13.5, color: '#3A372F', lineHeight: 1.65 }}>
+                  <strong style={{ fontWeight: 700, color: '#1E7268' }}>Sua produção entrará na fila!</strong>{' '}
+                  O restante de <strong style={{ fontWeight: 700, color: ORANGE }}>{BRL(RESTANTE)}</strong>{' '}
+                  será cobrado na entrega do pedido.{' '}
+                  Início estimado: <strong style={{ fontWeight: 700, color: '#5C594F' }}>{RECIBO.dataInicioEstimada}</strong>{' '}
+                  · Prazo: <strong style={{ fontWeight: 700, color: '#5C594F' }}>{RECIBO.prazoDias} dias úteis</strong>{' '}
+                  <span style={{ color: '#2A9D8F', fontWeight: 600 }}>(previsão: {previsaoEntrega})</span>.
+                </p>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* RODAPÉ */}
@@ -249,6 +285,27 @@ function DocumentoRecibo() {
 
 export default function ReciboSinalPage() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const token = useAuthStore(s => s.token)
+
+  const handleDownload = async () => {
+    if (!id) return
+    const url = orcamentoService.downloadReciboSinal(id)
+    try {
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = `recibo-sinal-${id}.pdf`
+      a.click()
+      URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      console.error('Erro ao baixar recibo do sinal:', err)
+      alert('Erro ao baixar recibo do sinal')
+    }
+  }
 
   return (
     <AppLayout active="orcamentos" noPad>
@@ -262,7 +319,7 @@ export default function ReciboSinalPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#9A968E', marginBottom: 6, flexWrap: 'wrap' }}>
               {[
                 { label: 'Orçamentos', path: '/orcamentos' },
-                { label: '#0042 — Mariana Costa', path: '/orcamentos/0042' },
+                { label: 'Detalhe do orçamento', path: `/orcamentos/${id}` },
               ].map(({ label, path }) => (
                 <span key={path} style={{ display: 'contents' }}>
                   <button
@@ -282,18 +339,15 @@ export default function ReciboSinalPage() {
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>
                 Recibo do Sinal
               </h1>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: '#E7F4F1', color: '#1F7A6F', fontSize: 13, fontWeight: 600 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: TEAL }} /> Em Produção
-              </span>
             </div>
           </div>
 
           {/* Botões */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="ghost" icon={<Icons.back />} onClick={() => navigate('/orcamentos/0042')}>
+            <Button variant="ghost" icon={<Icons.back />} onClick={() => navigate(`/orcamentos/${id}`)}>
               Voltar ao orçamento
             </Button>
-            <Button variant="secondary" icon={<Icons.download />} onClick={() => {}}>
+            <Button variant="secondary" icon={<Icons.download />} onClick={handleDownload}>
               Baixar Recibo
             </Button>
           </div>

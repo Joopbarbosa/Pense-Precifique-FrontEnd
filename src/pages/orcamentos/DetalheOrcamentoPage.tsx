@@ -1491,32 +1491,39 @@ function ModalCancelEstorno({
 // ─── Card de downloads ────────────────────────────────────────────────────────
 
 function DownloadsCard({
-  status,
+  orcamento,
   onDownload,
 }: {
-  status: ApiStatus;
+  orcamento: OrcamentoDetalheResponse;
   onDownload: (kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento") => void;
 }) {
+  const status = orcamento.status as ApiStatus;
   const order = STEPS.indexOf(status);
   const sinalPagoIdx = STEPS.indexOf("SINAL_PAGO");
 
   const links: { label: string; kind: Parameters<typeof onDownload>[0]; icon: React.ReactNode }[] = [];
 
-  // PDF do orçamento — disponível sempre (rascunho em diante e cancelado)
-  links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <Icons.pdf /> });
+  // PDF do orçamento — qualquer status exceto CANCELADO
+  if (status !== "CANCELADO") {
+    links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <Icons.pdf /> });
+  }
 
-  // Recibo do sinal — de SINAL_PAGO em diante (e cancelado se houve sinal)
-  if ((order >= sinalPagoIdx && order >= 0) || status === "CANCELADO") {
+  // Recibo do sinal — de SINAL_PAGO em diante, ou CANCELADO se havia sinal pago
+  if ((order >= sinalPagoIdx && order >= 0) || (status === "CANCELADO" && !!orcamento.dataSinalPago)) {
     links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Icons.receipt /> });
   }
 
+  // Recibo de pagamento — apenas PAGO
   if (status === "PAGO") {
     links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Icons.receipt /> });
   }
 
   if (status === "CANCELADO") {
     links.push({ label: "PDF de multa", kind: "multa", icon: <Icons.fileText /> });
-    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Icons.receipt /> });
+    // Recibo de estorno — apenas se houve sinal pago antes do cancelamento
+    if (orcamento.dataSinalPago) {
+      links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Icons.receipt /> });
+    }
   }
 
   return (
@@ -2192,7 +2199,7 @@ export default function DetalheOrcamentoPage() {
       </div>
 
       {/* SEÇÃO 3 — DOCUMENTOS */}
-      <DownloadsCard status={status} onDownload={handleDownload} />
+      <DownloadsCard orcamento={orcamento} onDownload={handleDownload} />
 
       {/* Modais */}
       {modal === "sinal" && (
