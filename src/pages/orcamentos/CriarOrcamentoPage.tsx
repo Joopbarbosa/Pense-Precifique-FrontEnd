@@ -1,21 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Button, ModalShell } from '../../components/ui'
-
-const CLIENTES_MOCK = [
-  { nome: 'Mariana Costa',    whats: '(11) 99999-0000' },
-  { nome: 'Camila Rocha',     whats: '(11) 97777-2233' },
-  { nome: 'Patrícia Mendes',  whats: '(21) 98888-5566' },
-  { nome: 'Juliana Ferreira', whats: '(11) 96666-4411' },
-]
-
-const CATALOGO = [
-  'Kit Convite Casamento',
-  'Etiqueta personalizada',
-  'Caixa para lembrancinha',
-  'Tag de agradecimento',
-  'Topo de bolo',
-]
+import { clienteService } from '../../services/clienteService'
+import { produtoService } from '../../services/produtoService'
+import { orcamentoService } from '../../services/orcamentoService'
+import type { ClienteResponse } from '../../types/cliente'
+import type { ProdutoResponse } from '../../types/produto'
+import type { OrcamentoRequest, MetodoPagamento } from '../../types/orcamento'
 
 const CUSTOMIZACOES_MOCK = [
   { nome: 'Laminação fosca',  valor: 8 },
@@ -24,21 +16,16 @@ const CUSTOMIZACOES_MOCK = [
   { nome: 'Caixa premium',    valor: 12 },
 ]
 
-const SEED_ITEMS: Item[] = [
-  { id: 1, nome: 'Kit Convite Casamento',  qtd: 2,  preco: 45,  customs: [] },
-  { id: 2, nome: 'Etiqueta personalizada', qtd: 10, preco: 4.5, customs: [{ nome: 'Laminação fosca', valor: 8, qtd: 1 }] },
-]
-
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
 const METODOS_PAGAMENTO = [
-  { id: 'pix',           label: 'Pix' },
-  { id: 'dinheiro',      label: 'Dinheiro' },
-  { id: 'credito',       label: 'Crédito' },
-  { id: 'debito',        label: 'Débito' },
-  { id: 'transferencia', label: 'Transferência' },
-  { id: 'boleto',        label: 'Boleto Bancário' },
-  { id: 'outro',         label: 'Outro' },
+  { id: 'PIX',           label: 'Pix' },
+  { id: 'DINHEIRO',      label: 'Dinheiro' },
+  { id: 'CREDITO',       label: 'Crédito' },
+  { id: 'DEBITO',        label: 'Débito' },
+  { id: 'TRANSFERENCIA', label: 'Transferência' },
+  { id: 'BOLETO',        label: 'Boleto Bancário' },
+  { id: 'OUTRO',         label: 'Outro' },
 ]
 
 interface Item {
@@ -47,11 +34,7 @@ interface Item {
   qtd: number
   preco: number
   customs: { nome: string; valor: number; qtd: number }[]
-}
-
-interface Cliente {
-  nome: string
-  whats: string
+  produtoId?: string
 }
 
 // ── QuoteCard ──────────────────────────────────────────────────────────────
@@ -83,15 +66,16 @@ function QuoteCard({ step, label, hint, children }: {
   )
 }
 
-// ── ClienteSelect ──────────────────────────────────────────────────────────
+// ── ClienteSelect ──────────────────────────────────────────────────────
 function ClienteSelect({ cliente, onSelect, onClear }: {
-  cliente: Cliente | null
-  onSelect: (c: Cliente) => void
+  cliente: ClienteResponse | null
+  onSelect: (c: ClienteResponse) => void
   onClear: () => void
 }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [focus, setFocus] = useState(false)
+  const [results, setResults] = useState<ClienteResponse[]>([])
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -102,9 +86,23 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const results = CLIENTES_MOCK.filter(c =>
-    c.nome.toLowerCase().includes(q.toLowerCase()) || c.whats.includes(q)
-  )
+  useEffect(() => {
+    if (!q.trim()) {
+      setResults([])
+      return
+    }
+    const load = async () => {
+      try {
+        const data = await clienteService.listar(0, 20, q)
+        setResults(data.content)
+      } catch (err) {
+        console.error('Erro ao buscar clientes:', err)
+        setResults([])
+      }
+    }
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [q])
 
   if (cliente) {
     return (
@@ -123,7 +121,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15.5, fontWeight: 600, color: '#3A372F' }}>{cliente.nome}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: '#5C594F', marginTop: 2 }}>
-              <Icons.phone style={{ color: '#2A9D8F' }} /> {cliente.whats}
+              <Icons.phone style={{ color: '#2A9D8F' }} /> {cliente.whatsapp || 'Sem telefone'}
             </div>
           </div>
           <button onClick={onClear} style={{
@@ -166,7 +164,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
             animation: 'pop .14s ease both', maxHeight: 248, overflowY: 'auto',
           }}>
             {results.map(c => (
-              <button key={c.nome} onClick={() => { onSelect(c); setOpen(false); setQ('') }} style={{
+              <button key={c.id} onClick={() => { onSelect(c); setOpen(false); setQ('') }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px', borderRadius: 9, border: 'none',
                 background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
@@ -183,7 +181,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
                 </span>
                 <div>
                   <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>{c.nome}</div>
-                  <div style={{ fontSize: 12.5, color: '#A29E96' }}>{c.whats}</div>
+                  <div style={{ fontSize: 12.5, color: '#A29E96' }}>{c.whatsapp || 'Sem telefone'}</div>
                 </div>
               </button>
             ))}
@@ -364,7 +362,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
               background: on ? 'rgba(249,115,22,0.07)' : '#FCFBF9',
               transition: 'all .14s', overflow: 'hidden',
             }}>
-              {/* Linha principal — checkbox + nome + preço */}
+              {/* Linha principal */}
               <button onClick={() => toggle(c)} style={{
                 width: '100%', display: 'flex', alignItems: 'center',
                 justifyContent: 'space-between', padding: '12px 14px',
@@ -388,7 +386,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                 </span>
               </button>
 
-              {/* Linha de quantidade — aparece só quando selecionado */}
+              {/* Linha de quantidade */}
               {on && (
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -453,6 +451,7 @@ function PrazoSection({
   prazoDias, setPrazoDias,
   inicioImediato, setInicioImediato,
   dataInicioEstimada, setDataInicioEstimada,
+  error,
 }: {
   prazoDias: string
   setPrazoDias: (v: string) => void
@@ -460,6 +459,7 @@ function PrazoSection({
   setInicioImediato: (v: boolean) => void
   dataInicioEstimada: string
   setDataInicioEstimada: (v: string) => void
+  error?: string
 }) {
   const [prazoDiasFocus, setPrazoDiasFocus] = useState(false)
   const [dataInicioFocus, setDataInicioFocus] = useState(false)
@@ -479,7 +479,7 @@ function PrazoSection({
           placeholder="10"
           style={{
             width: 100, height: 46, padding: '0 14px', textAlign: 'center',
-            border: `1.5px solid ${prazoDiasFocus ? '#2A9D8F' : '#EFEDE8'}`,
+            border: `1.5px solid ${prazoDiasFocus ? '#2A9D8F' : error ? '#C0492B' : '#EFEDE8'}`,
             borderRadius: 10, fontSize: 18, fontWeight: 700, color: '#3A372F',
             background: '#fff', outline: 'none', fontFamily: 'inherit',
             boxShadow: prazoDiasFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
@@ -488,6 +488,12 @@ function PrazoSection({
         />
         <span style={{ fontSize: 15, color: '#5C594F', fontWeight: 500 }}>dias úteis</span>
       </div>
+      {error && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#C0492B' }}>
+          <Icons.alertCircle width={13} height={13} />
+          {error}
+        </div>
+      )}
 
       {/* Checkbox início */}
       <button
@@ -520,7 +526,7 @@ function PrazoSection({
         </div>
       </button>
 
-      {/* Data estimada (quando não imediato) */}
+      {/* Data estimada */}
       {!inicioImediato && (
         <div style={{ animation: 'fadeUp .2s ease both' }}>
           <label style={{ display: 'block' }}>
@@ -612,7 +618,7 @@ function PagamentoSection({
           })}
         </div>
 
-        {metodoPagamento === 'outro' && (
+        {metodoPagamento === 'OUTRO' && (
           <div style={{ marginTop: 12, animation: 'fadeUp .2s ease both' }}>
             <label style={{ display: 'block' }}>
               <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
@@ -732,7 +738,7 @@ function PagamentoSection({
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────
-function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante }: {
+function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit, loading }: {
   subtotal: number
   descTipo: '%' | 'R$'
   descValor: string
@@ -747,6 +753,8 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
   sinalAtivo: boolean
   sinalAplicado: number
   restante: number
+  onSubmit: () => void
+  loading: boolean
 }) {
   const [focus, setFocus] = useState<string | null>(null)
   return (
@@ -854,9 +862,101 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
           />
         </label>
 
-        <Button variant="primary" fullWidth size="lg" icon={<Icons.pdf />} onClick={() => {}}>
-          Gerar PDF
+        <Button variant="primary" fullWidth size="lg" onClick={onSubmit} disabled={loading}>
+          {loading ? 'Criando orçamento...' : 'Criar orçamento'}
         </Button>
+      </div>
+    </div>
+  )
+}
+
+// ── ProdutoSelect ──────────────────────────────────────────────────────────
+function ProdutoSelect({ onSelect, onClose, open }: {
+  onSelect: (p: ProdutoResponse) => void
+  onClose: () => void
+  open: boolean
+}) {
+  const [q, setQ] = useState('')
+  const [results, setResults] = useState<ProdutoResponse[]>([])
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [onClose])
+
+  useEffect(() => {
+    if (!open) {
+      setQ('')
+      setResults([])
+      return
+    }
+    const load = async () => {
+      try {
+        const data = await produtoService.listar(0, 20, 'PRODUTO', q || undefined)
+        setResults(data.content)
+      } catch (err) {
+        console.error('Erro ao buscar produtos:', err)
+        setResults([])
+      }
+    }
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [q, open])
+
+  if (!open) return null
+
+  return (
+    <div ref={wrapRef} style={{
+      position: 'absolute', left: 20, right: 20, top: 62, zIndex: 30,
+      background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12,
+      boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6,
+      animation: 'pop .14s ease both', maxHeight: 300, overflowY: 'auto',
+    }}>
+      <div style={{ position: 'sticky', top: 0, padding: '6px 6px 0', background: '#fff', zIndex: 10 }}>
+        <input
+          autoFocus
+          type="text"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          placeholder="Buscar produto..."
+          style={{
+            width: '100%', height: 38, padding: '0 12px',
+            border: '1.5px solid #EFEDE8', borderRadius: 9,
+            fontSize: 14, color: '#3A372F', background: '#FCFBF9',
+            outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+      </div>
+      <div style={{ marginTop: 6 }}>
+        {results.length > 0 ? (
+          results.map(p => (
+            <button key={p.id} onClick={() => { onSelect(p); onClose(); setQ('') }} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 11,
+              padding: '10px 11px', borderRadius: 9, border: 'none',
+              background: 'transparent', cursor: 'pointer', textAlign: 'left',
+              fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: '#3A372F',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F7F5F1')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+                <Icons.cube />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: '#3A372F' }}>{p.nome}</div>
+                <div style={{ fontSize: 12, color: '#A29E96' }}>{BRL(p.precoVenda || 0)}</div>
+              </div>
+            </button>
+          ))
+        ) : (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
+            Nenhum produto encontrado.
+          </div>
+        )}
       </div>
     </div>
   )
@@ -864,22 +964,25 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
 
 // ── CriarOrcamentoPage ─────────────────────────────────────────────────────
 export default function CriarOrcamentoPage() {
-  const [cliente, setCliente] = useState<Cliente | null>(CLIENTES_MOCK[0])
-  const [items, setItems] = useState<Item[]>(SEED_ITEMS)
+  const navigate = useNavigate()
+  const [cliente, setCliente] = useState<ClienteResponse | null>(null)
+  const [items, setItems] = useState<Item[]>([])
   const [modalItem, setModalItem] = useState<Item | null>(null)
   const [descTipo, setDescTipo] = useState<'%' | 'R$'>('%')
-  const [descValor, setDescValor] = useState('10')
-  const [metodoPagamento, setMetodoPagamento] = useState('pix')
+  const [descValor, setDescValor] = useState('')
+  const [metodoPagamento, setMetodoPagamento] = useState('PIX')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
   const [prazoDias, setPrazoDias] = useState('')
+  const [prazoDiasError, setPrazoDiasError] = useState('')
   const [inicioImediato, setInicioImediato] = useState(true)
   const [dataInicioEstimada, setDataInicioEstimada] = useState('')
-  const [sinalAtivo, setSinalAtivo] = useState(true)
+  const [sinalAtivo, setSinalAtivo] = useState(false)
   const [sinalTipo, setSinalTipo] = useState<'%' | 'R$'>('%')
-  const [sinalValor, setSinalValor] = useState('50')
-  const [validade, setValidade] = useState('2026-06-11')
+  const [sinalValor, setSinalValor] = useState('')
+  const [validade, setValidade] = useState('')
   const [obs, setObs] = useState('')
   const [productOpen, setProductOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
   const prodRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -890,7 +993,7 @@ export default function CriarOrcamentoPage() {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const subtotal = items.reduce((s, it) => s + it.preco * it.qtd, 0)
+  const subtotal = items.reduce((s, it) => s + it.preco * it.qtd + it.customs.reduce((cs, c) => cs + c.valor * c.qtd * it.qtd, 0), 0)
   const descNum = parseFloat(descValor.replace(',', '.')) || 0
   const descontoAplicado = descTipo === '%' ? subtotal * descNum / 100 : Math.min(descNum, subtotal)
   const total = Math.max(0, subtotal - descontoAplicado)
@@ -898,7 +1001,84 @@ export default function CriarOrcamentoPage() {
   const sinalAplicado = sinalAtivo ? (sinalTipo === '%' ? total * sinalNum / 100 : Math.min(sinalNum, total)) : 0
   const restante = Math.max(0, total - sinalAplicado)
 
-  const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante }
+  const handleAddProduto = (produto: ProdutoResponse) => {
+    setItems(arr => [...arr, {
+      id: Date.now(),
+      nome: produto.nome,
+      qtd: 1,
+      preco: produto.precoVenda || 0,
+      customs: [],
+      produtoId: produto.id,
+    }])
+    setProductOpen(false)
+  }
+
+  const handleSubmit = async () => {
+    setPrazoDiasError('')
+
+    if (!cliente) {
+      alert('Selecione um cliente')
+      return
+    }
+
+    if (items.length === 0) {
+      alert('Adicione pelo menos um produto')
+      return
+    }
+
+    const prazoDiasNum = parseInt(prazoDias)
+    if (!prazoDiasNum || prazoDiasNum < 1) {
+      setPrazoDiasError('Prazo obrigatório, mínimo 1 dia')
+      return
+    }
+
+    if (!inicioImediato && !dataInicioEstimada) {
+      alert('Informe a data estimada de início')
+      return
+    }
+
+    if (metodoPagamento === 'OUTRO' && metodoPagamentoObs.length < 50) {
+      alert('Descreva o método de pagamento com ao menos 50 caracteres')
+      return
+    }
+
+    const payload: OrcamentoRequest = {
+      clienteId: cliente.id,
+      itens: items.map(it => ({
+        produtoId: it.produtoId || '',
+        quantidade: it.qtd,
+        customizacoes: it.customs.map(c => ({
+          produtoId: '', // TODO: mapear para ID da customização se necessário
+          quantidade: c.qtd,
+        })),
+      })),
+      metodoPagamento: metodoPagamento as MetodoPagamento,
+      metodoPagamentoObs: metodoPagamento === 'OUTRO' ? metodoPagamentoObs : undefined,
+      prazoProducaoDias: prazoDiasNum,
+      inicioAssimQueAprovado: inicioImediato,
+      dataInicioEstimada: !inicioImediato ? dataInicioEstimada : undefined,
+      sinalAtivo,
+      percentualSinal: sinalAtivo && sinalTipo === '%' ? sinalNum : undefined,
+      valorSinal: sinalAtivo && sinalTipo === 'R$' ? sinalNum : undefined,
+      tipoDesconto: descNum > 0 ? descTipo : undefined,
+      descontoValor: descNum > 0 ? descNum : undefined,
+      observacoes: obs || undefined,
+      dataValidade: validade || undefined,
+    }
+
+    setLoading(true)
+    try {
+      const result = await orcamentoService.criar(payload)
+      navigate(`/orcamentos/${result.id}`)
+    } catch (err) {
+      console.error('Erro ao criar orçamento:', err)
+      alert('Erro ao criar orçamento')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
 
   return (
     <AppLayout active="orcamentos">
@@ -913,9 +1093,6 @@ export default function CriarOrcamentoPage() {
             Novo Orçamento
           </h1>
         </div>
-        <Button variant="ghost" icon={<Icons.save />} onClick={() => {}}>
-          Salvar Rascunho
-        </Button>
       </div>
 
       {/* Layout duas colunas */}
@@ -965,34 +1142,7 @@ export default function CriarOrcamentoPage() {
                 >
                   <Icons.plus /> Adicionar produto
                 </button>
-                {productOpen && (
-                  <div style={{
-                    position: 'absolute', left: 20, right: 20, top: 62, zIndex: 30,
-                    background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12,
-                    boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6,
-                    animation: 'pop .14s ease both',
-                  }}>
-                    {CATALOGO.map(p => (
-                      <button key={p} onClick={() => {
-                        setItems(arr => [...arr, { id: Date.now(), nome: p, qtd: 1, preco: 10, customs: [] }])
-                        setProductOpen(false)
-                      }} style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 11,
-                        padding: '10px 11px', borderRadius: 9, border: 'none',
-                        background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                        fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: '#3A372F',
-                      }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#F7F5F1')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-                          <Icons.cube />
-                        </span>
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <ProdutoSelect onSelect={handleAddProduto} onClose={() => setProductOpen(false)} open={productOpen} />
               </div>
             </div>
           </QuoteCard>
@@ -1003,6 +1153,7 @@ export default function CriarOrcamentoPage() {
               prazoDias={prazoDias} setPrazoDias={setPrazoDias}
               inicioImediato={inicioImediato} setInicioImediato={setInicioImediato}
               dataInicioEstimada={dataInicioEstimada} setDataInicioEstimada={setDataInicioEstimada}
+              error={prazoDiasError}
             />
           </QuoteCard>
 
@@ -1026,7 +1177,7 @@ export default function CriarOrcamentoPage() {
           </div>
         </div>
 
-        {/* Coluna direita — resumo sticky */}
+        {/* Coluna direita */}
         <div className="summary-col">
           <Summary {...summaryProps} />
         </div>
@@ -1038,8 +1189,8 @@ export default function CriarOrcamentoPage() {
           <div style={{ fontSize: 11.5, color: '#A29E96', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{BRL(total)}</div>
         </div>
-        <Button variant="primary" icon={<Icons.pdf />} onClick={() => {}} size="lg">
-          Gerar PDF
+        <Button variant="primary" onClick={handleSubmit} disabled={loading} size="lg">
+          {loading ? 'Criando...' : 'Criar orçamento'}
         </Button>
       </div>
 
