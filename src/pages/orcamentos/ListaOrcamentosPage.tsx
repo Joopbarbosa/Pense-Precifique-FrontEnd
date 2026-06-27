@@ -1,65 +1,88 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
 import { Icons } from '../../components/ui/Icons'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
+import { orcamentoService } from '../../services/orcamentoService'
+import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
 
-type StatusOrcamento =
-  | 'Rascunho' | 'Enviado' | 'Aprovado' | 'Aguardando Sinal'
-  | 'Sinal Pago' | 'Em Produção' | 'Finalizado' | 'Entregue' | 'Pago' | 'Cancelado'
+type StatusBadgeLabel =
+  | 'Rascunho' | 'Enviado' | 'Aprovado'
+  | 'Aguardando Sinal' | 'Sinal Pago'
+  | 'Em Produção' | 'Finalizado'
+  | 'Entregue' | 'Pago' | 'Cancelado'
 
-interface Orcamento {
-  num: string
-  cliente: string
-  total: number
-  criacao: string
-  validade: string | null
-  status: StatusOrcamento
-  vencido: boolean
+const STATUS_LABEL: Record<StatusOrcamento, StatusBadgeLabel> = {
+  RASCUNHO: 'Rascunho',
+  ENVIADO: 'Enviado',
+  APROVADO: 'Aprovado',
+  AGUARDANDO_SINAL: 'Aguardando Sinal',
+  SINAL_PAGO: 'Sinal Pago',
+  EM_PRODUCAO: 'Em Produção',
+  FINALIZADO: 'Finalizado',
+  ENTREGUE: 'Entregue',
+  PAGO: 'Pago',
+  CANCELADO: 'Cancelado',
 }
 
-const ORCAMENTOS: Orcamento[] = [
-  { num: '#0042', cliente: 'Mariana Costa',    total: 183.60, criacao: '04/06/2026', validade: '11/06/2026', status: 'Em Produção', vencido: false },
-  { num: '#0041', cliente: 'Camila Rocha',     total: 320.00, criacao: '02/06/2026', validade: '06/06/2026', status: 'Enviado',     vencido: true },
-  { num: '#0040', cliente: 'Patrícia Mendes',  total: 89.00,  criacao: '28/05/2026', validade: null,          status: 'Pago',        vencido: false },
-  { num: '#0039', cliente: 'Juliana Ferreira', total: 240.00, criacao: '20/05/2026', validade: null,          status: 'Cancelado',   vencido: false },
+const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
+  { label: 'Todos', value: '' },
+  { label: 'Rascunho', value: 'RASCUNHO' },
+  { label: 'Enviado', value: 'ENVIADO' },
+  { label: 'Aprovado', value: 'APROVADO' },
+  { label: 'Aguardando Sinal', value: 'AGUARDANDO_SINAL' },
+  { label: 'Sinal Pago', value: 'SINAL_PAGO' },
+  { label: 'Em Produção', value: 'EM_PRODUCAO' },
+  { label: 'Finalizado', value: 'FINALIZADO' },
+  { label: 'Entregue', value: 'ENTREGUE' },
+  { label: 'Pago', value: 'PAGO' },
+  { label: 'Cancelado', value: 'CANCELADO' },
 ]
-
-const FILTERS = ['Todos', 'Rascunho', 'Enviado', 'Aprovado', 'Em Produção', 'Finalizado', 'Entregue', 'Pago', 'Cancelado']
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
-function OrcamentoRow({ orc, onVerDetalhes, onDuplicar, onCancelar }: {
-  orc: Orcamento
+function isVencido(orc: OrcamentoResponse): boolean {
+  if (!orc.dataValidade) return false
+  const inactive: StatusOrcamento[] = ['CANCELADO', 'PAGO', 'FINALIZADO', 'ENTREGUE']
+  if (inactive.includes(orc.status)) return false
+  return new Date(orc.dataValidade) < new Date()
+}
+
+function fmtData(iso: string): string {
+  const [y, m, d] = iso.split('T')[0].split('-')
+  return `${d}/${m}/${y}`
+}
+
+function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
+  orc: OrcamentoResponse
   onVerDetalhes: () => void
-  onDuplicar: () => void
-  onCancelar: () => void
+  onBaixarPdf: (() => void) | null
 }) {
   const menuItems: ActionMenuItem[] = [
     { label: 'Ver detalhes', icon: <Icons.externalLink />, onClick: onVerDetalhes },
-    { label: 'Duplicar',     icon: <Icons.copy />,         onClick: onDuplicar },
-    { label: 'Cancelar',     icon: <Icons.ban />,          onClick: onCancelar, danger: true, dividerBefore: true },
+    ...(onBaixarPdf ? [{ label: 'Baixar PDF', icon: <Icons.download />, onClick: onBaixarPdf }] : []),
   ]
 
   return (
     <div className="q-row">
       <span style={{ fontSize: 14, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>
-        {orc.num}
+        ORÇ-{String(orc.numero).padStart(4, '0')}
       </span>
 
       <span style={{ fontSize: 14, color: '#5C594F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {orc.cliente}
+        {orc.nomeCliente}
       </span>
 
       <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>
         {fmt(orc.total)}
       </span>
 
-      <span style={{ fontSize: 13.5, color: '#A29E96' }}>{orc.criacao}</span>
+      <span style={{ fontSize: 13.5, color: '#A29E96' }}>{fmtData(orc.createdAt)}</span>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <StatusBadge status={orc.status} />
-        {orc.vencido && <VencidoBadge />}
+        <StatusBadge status={STATUS_LABEL[orc.status]} />
+        {isVencido(orc) && <VencidoBadge />}
       </div>
 
       <ActionMenu items={menuItems} align="right" />
@@ -67,17 +90,15 @@ function OrcamentoRow({ orc, onVerDetalhes, onDuplicar, onCancelar }: {
   )
 }
 
-function OrcamentoCard({ orc, index, onVerDetalhes, onDuplicar, onCancelar }: {
-  orc: Orcamento
+function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
+  orc: OrcamentoResponse
   index: number
   onVerDetalhes: () => void
-  onDuplicar: () => void
-  onCancelar: () => void
+  onBaixarPdf: (() => void) | null
 }) {
   const menuItems: ActionMenuItem[] = [
     { label: 'Ver detalhes', icon: <Icons.externalLink />, onClick: onVerDetalhes },
-    { label: 'Duplicar',     icon: <Icons.copy />,         onClick: onDuplicar },
-    { label: 'Cancelar',     icon: <Icons.ban />,          onClick: onCancelar, danger: true, dividerBefore: true },
+    ...(onBaixarPdf ? [{ label: 'Baixar PDF', icon: <Icons.download />, onClick: onBaixarPdf }] : []),
   ]
 
   return (
@@ -90,13 +111,15 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onDuplicar, onCancelar }: {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#3A372F' }}>{orc.num}</span>
-            {orc.vencido && <VencidoBadge />}
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#3A372F' }}>
+              ORÇ-{String(orc.numero).padStart(4, '0')}
+            </span>
+            {isVencido(orc) && <VencidoBadge />}
           </div>
-          <div style={{ fontSize: 14, color: '#5C594F', marginBottom: 8 }}>{orc.cliente}</div>
+          <div style={{ fontSize: 14, color: '#5C594F', marginBottom: 8 }}>{orc.nomeCliente}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <StatusBadge status={orc.status} size="sm" />
-            <span style={{ fontSize: 13, color: '#A29E96' }}>{orc.criacao}</span>
+            <StatusBadge status={STATUS_LABEL[orc.status]} size="sm" />
+            <span style={{ fontSize: 13, color: '#A29E96' }}>{fmtData(orc.createdAt)}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -109,13 +132,42 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onDuplicar, onCancelar }: {
 }
 
 export default function ListaOrcamentosPage() {
-  const [filtro, setFiltro] = useState<string>('Todos')
+  const navigate = useNavigate()
+  const [filtro, setFiltro] = useState<StatusOrcamento | ''>('')
   const [query, setQuery] = useState('')
   const [searchFocus, setSearchFocus] = useState(false)
   const [periodOpen, setPeriodOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const periodRef = useRef<HTMLDivElement>(null)
+
+  const [orcamentos, setOrcamentos] = useState<OrcamentoResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [page, setPage] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+
+  const carregar = useCallback(async (pg: number, statusFiltro: StatusOrcamento | '') => {
+    try {
+      const res = await orcamentoService.listar(pg, 20, statusFiltro || undefined)
+      if (pg === 0) {
+        setOrcamentos(res.content)
+      } else {
+        setOrcamentos(prev => [...prev, ...res.content])
+      }
+      setHasMore(!res.last)
+      setPage(pg)
+      setError(null)
+    } catch {
+      setError('Não foi possível carregar os orçamentos.')
+    }
+  }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    carregar(0, filtro).finally(() => setLoading(false))
+  }, [filtro, carregar])
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -127,11 +179,25 @@ export default function ListaOrcamentosPage() {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  let lista = ORCAMENTOS
-  if (filtro !== 'Todos') lista = lista.filter(o => o.status === filtro)
-  if (query.trim()) lista = lista.filter(o =>
-    o.cliente.toLowerCase().includes(query.toLowerCase()) || o.num.includes(query)
-  )
+  const handleFiltroChange = (value: StatusOrcamento | '') => {
+    setFiltro(value)
+    setOrcamentos([])
+    setPage(0)
+  }
+
+  const handleCarregarMais = async () => {
+    setLoadingMore(true)
+    await carregar(page + 1, filtro)
+    setLoadingMore(false)
+  }
+
+  let lista = orcamentos
+  if (query.trim()) {
+    lista = lista.filter(o =>
+      o.nomeCliente.toLowerCase().includes(query.toLowerCase()) ||
+      String(o.numero).includes(query)
+    )
+  }
 
   const periodActive = !!(dateFrom || dateTo)
   const periodLabel = periodActive
@@ -147,7 +213,7 @@ export default function ListaOrcamentosPage() {
     setDateTo(iso(today))
   }
 
-  const empty = ORCAMENTOS.length === 0
+  const empty = !loading && orcamentos.length === 0
 
   return (
     <AppLayout active="orcamentos">
@@ -158,17 +224,27 @@ export default function ListaOrcamentosPage() {
           <h1 style={{ margin: 0, fontSize: 29, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>Orçamentos</h1>
           <p style={{ margin: '7px 0 0', fontSize: 14.5, color: '#A29E96' }}>Acompanhe e gerencie todos os seus orçamentos.</p>
         </div>
-        <Button variant="primary" icon={<Icons.plus />} onClick={() => {}}>
+        <Button variant="primary" icon={<Icons.plus />} onClick={() => navigate('/orcamentos/novo')}>
           Novo Orçamento
         </Button>
       </div>
 
-      {empty ? (
+      {error && (
+        <div style={{ padding: '14px 18px', background: '#FCF0EC', border: '1px solid #F5C4B8', borderRadius: 10, color: '#C0492B', fontSize: 14, marginBottom: 18 }}>
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0', color: '#A29E96', fontSize: 14 }}>
+          Carregando…
+        </div>
+      ) : empty ? (
         <EmptyState
           icon={<Icons.filter />}
           title="Você ainda não tem orçamentos"
           description="Que tal criar o primeiro? Leva poucos minutos e já sai com o preço certo."
-          action={{ label: 'Criar primeiro orçamento', icon: <Icons.plus />, onClick: () => {} }}
+          action={{ label: 'Criar primeiro orçamento', icon: <Icons.plus />, onClick: () => navigate('/orcamentos/novo') }}
         />
       ) : (
         <>
@@ -176,9 +252,9 @@ export default function ListaOrcamentosPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {FILTERS.map(f => {
-                const on = filtro === f
+                const on = filtro === f.value
                 return (
-                  <button key={f} onClick={() => setFiltro(f)} style={{
+                  <button key={f.value} onClick={() => handleFiltroChange(f.value)} style={{
                     height: 34, padding: '0 14px', borderRadius: 999,
                     cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                     border: `1.5px solid ${on ? '#2A9D8F' : '#EFEDE8'}`,
@@ -189,7 +265,7 @@ export default function ListaOrcamentosPage() {
                     onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#FAF8F5' }}
                     onMouseLeave={e => { if (!on) e.currentTarget.style.background = '#fff' }}
                   >
-                    {f}
+                    {f.label}
                   </button>
                 )
               })}
@@ -328,28 +404,49 @@ export default function ListaOrcamentosPage() {
                 title="Nenhum orçamento encontrado"
                 description="Ajuste os filtros ou a busca."
               />
-            ) : lista.map((o, i) => (
-              <React.Fragment key={o.num}>
-                <OrcamentoRow
-                  orc={o}
-                  onVerDetalhes={() => {}}
-                  onDuplicar={() => {}}
-                  onCancelar={() => {}}
-                />
-                <OrcamentoCard
-                  orc={o}
-                  index={i}
-                  onVerDetalhes={() => {}}
-                  onDuplicar={() => {}}
-                  onCancelar={() => {}}
-                />
-              </React.Fragment>
-            ))}
+            ) : lista.map((o, i) => {
+              const pdfUrl = orcamentoService.downloadPdf(o.id)
+              const onBaixarPdf = o.status !== 'CANCELADO'
+                ? () => window.open(pdfUrl, '_blank')
+                : null
+              return (
+                <React.Fragment key={o.id}>
+                  <OrcamentoRow
+                    orc={o}
+                    onVerDetalhes={() => navigate(`/orcamentos/${o.id}`)}
+                    onBaixarPdf={onBaixarPdf}
+                  />
+                  <OrcamentoCard
+                    orc={o}
+                    index={i}
+                    onVerDetalhes={() => navigate(`/orcamentos/${o.id}`)}
+                    onBaixarPdf={onBaixarPdf}
+                  />
+                </React.Fragment>
+              )
+            })}
           </div>
 
-          {/* Contador */}
-          <div style={{ marginTop: 14, fontSize: 12.5, color: '#A29E96', textAlign: 'right' }}>
-            {lista.length} {lista.length === 1 ? 'orçamento' : 'orçamentos'}
+          {/* Contador + Carregar mais */}
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12.5, color: '#A29E96' }}>
+              {lista.length} {lista.length === 1 ? 'orçamento' : 'orçamentos'}
+            </span>
+            {hasMore && (
+              <button
+                onClick={handleCarregarMais}
+                disabled={loadingMore}
+                style={{
+                  height: 36, padding: '0 18px', borderRadius: 8,
+                  border: '1.5px solid #EFEDE8', background: '#fff',
+                  color: '#5C594F', fontSize: 13.5, fontWeight: 600,
+                  fontFamily: 'inherit', cursor: loadingMore ? 'default' : 'pointer',
+                  opacity: loadingMore ? 0.6 : 1,
+                }}
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais'}
+              </button>
+            )}
           </div>
         </>
       )}
