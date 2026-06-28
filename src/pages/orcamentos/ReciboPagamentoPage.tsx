@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Logo } from '../../components/ui'
 import { useAuthStore } from '../../store/authStore'
 import { orcamentoService } from '../../services/orcamentoService'
+import { empresaService } from '../../services/empresaService'
+import type { OrcamentoDetalheResponse } from '../../types/orcamento'
+import type { EmpresaResponse } from '../../types/empresa'
 
 // ── Constantes de cor ────────────────────────────────────────────────────────
 
@@ -22,33 +26,11 @@ const hexA = (hex: string, a: number) => {
 const BRL = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-// ── Dados mockados ───────────────────────────────────────────────────────────
-
-const VALOR_TOTAL = 183.6
-const VALOR_SINAL = 91.8
-const PAGO_AGORA = VALOR_TOTAL - VALOR_SINAL
-const SALDO = 0
-
-const EMPRESA = {
-  nome: 'Pense & Crie Studio',
-  email: 'penseecrie@email.com',
-  whatsapp: '(11) 98888-1234',
+const fmtDate = (iso?: string) => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR')
 }
-
-const RECIBO = {
-  numero: '#0042',
-  cliente: 'Mariana Costa',
-  clienteWhats: '(11) 99999-0000',
-  dataPagamento: '09/06/2026',
-  dataSinal: '05/06/2026',
-  aprovacao: '04/06/2026',
-  emissao: '09/06/2026',
-}
-
-const ITENS = [
-  { nome: 'Kit Convite Casamento', custom: 'Laminação fosca (×2)', qtd: 3 },
-  { nome: 'Etiqueta personalizada', custom: '—', qtd: 10 },
-]
 
 // ── Subcomponentes ───────────────────────────────────────────────────────────
 
@@ -75,7 +57,15 @@ function DocSectionTitle({ icon, color = TEAL, children }: { icon: React.ReactNo
 
 // ── DocumentoReciboPagamento ─────────────────────────────────────────────────
 
-function DocumentoReciboPagamento() {
+function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: OrcamentoDetalheResponse; empresa: EmpresaResponse | null }) {
+  const numeroFormatado = `#${String(orcamento.numero).padStart(4, '0')}`
+  const emissao = fmtDate(orcamento.updatedAt)
+  const dataPagamento = fmtDate(orcamento.updatedAt)
+  const dataSinal = fmtDate(orcamento.dataSinalPago)
+  const valorTotal = orcamento.total
+  const valorSinal = orcamento.valorSinal || 0
+  const pagoAgora = orcamento.sinalAtivo ? valorTotal - valorSinal : valorTotal
+
   return (
     <div className="a4" style={{ animation: 'fadeUp .4s ease both' }}>
 
@@ -84,20 +74,24 @@ function DocumentoReciboPagamento() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Logo size={56} />
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{EMPRESA.nome}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{empresa?.nome || ''}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {EMPRESA.email}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {EMPRESA.whatsapp}
-              </span>
+              {empresa?.email && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                </span>
+              )}
+              {empresa?.whatsapp && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                </span>
+              )}
             </div>
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: GREEN }}>Orçamento</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{RECIBO.numero}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{numeroFormatado}</div>
         </div>
       </div>
 
@@ -112,8 +106,8 @@ function DocumentoReciboPagamento() {
               RECIBO DE PAGAMENTO — QUITAÇÃO TOTAL
             </h1>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', marginTop: 5, fontSize: 12.5, color: '#3F6B53' }}>
-              <span>Referência: <strong style={{ fontWeight: 700 }}>Orçamento {RECIBO.numero}</strong></span>
-              <span>Data: <strong style={{ fontWeight: 700 }}>{RECIBO.emissao}</strong></span>
+              <span>Referência: <strong style={{ fontWeight: 700 }}>Orçamento {numeroFormatado}</strong></span>
+              <span>Data: <strong style={{ fontWeight: 700 }}>{emissao}</strong></span>
             </div>
           </div>
         </div>
@@ -122,24 +116,17 @@ function DocumentoReciboPagamento() {
       {/* DADOS DA CLIENTE */}
       <div style={{ padding: '22px 0 0' }}>
         <DocLabel>Dados da cliente</DocLabel>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 28px', alignItems: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#3A372F' }}>{RECIBO.cliente}</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#5C594F' }}>
-            <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {RECIBO.clienteWhats}
-          </div>
-        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#3A372F' }}>{orcamento.nomeCliente}</div>
       </div>
 
       {/* PEDIDO QUITADO — destaque verde */}
       <div style={{ marginTop: 24, borderRadius: 14, border: `1.5px solid ${hexA(GREEN, 0.38)}`, background: hexA(GREEN, 0.05), overflow: 'hidden' }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', background: `linear-gradient(135deg, ${hexA(GREEN, 0.15)}, ${hexA(GREEN, 0.04)})`, borderBottom: `1px solid ${hexA(GREEN, 0.22)}` }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 9, background: '#fff', color: GREEN, boxShadow: `0 3px 9px -3px ${hexA(GREEN, 0.45)}` }}>
             <Icons.check />
           </span>
           <span style={{ fontSize: 15, fontWeight: 700, color: GREEN_DEEP, letterSpacing: '-0.005em' }}>Pedido quitado</span>
         </div>
-        {/* Corpo */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '18px 24px', padding: 18 }}>
           <div style={{ flex: '1 1 220px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: GREEN_DEEP }}>
@@ -154,7 +141,7 @@ function DocumentoReciboPagamento() {
           </div>
           <div>
             <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#9A968E' }}>Data do pagamento</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', marginTop: 3 }}>{RECIBO.dataPagamento}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', marginTop: 3 }}>{dataPagamento}</div>
           </div>
         </div>
       </div>
@@ -171,13 +158,21 @@ function DocumentoReciboPagamento() {
             </tr>
           </thead>
           <tbody>
-            {ITENS.map((it, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 600, color: '#3A372F' }}>{it.nome}</td>
-                <td style={{ color: it.custom === '—' ? '#C0BCB4' : '#5C594F' }}>{it.custom}</td>
-                <td className="num" style={{ fontWeight: 600 }}>× {it.qtd}</td>
+            {orcamento.itens.length === 0 ? (
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', color: '#B0ACA4' }}>Nenhum item</td>
               </tr>
-            ))}
+            ) : (
+              orcamento.itens.map((it, i) => (
+                <tr key={i}>
+                  <td style={{ fontWeight: 600, color: '#3A372F' }}>{it.nomeProduto}</td>
+                  <td style={{ color: it.customizacoes.length === 0 ? '#C0BCB4' : '#5C594F' }}>
+                    {it.customizacoes.length === 0 ? '—' : it.customizacoes.map(c => c.nomeProduto).join(', ')}
+                  </td>
+                  <td className="num" style={{ fontWeight: 600 }}>× {it.quantidade}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
 
@@ -186,27 +181,29 @@ function DocumentoReciboPagamento() {
           <div style={{ width: 'min(380px, 100%)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, color: '#5C594F', padding: '8px 12px' }}>
               <span>Valor total do pedido</span>
-              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: '#3A372F' }}>{BRL(VALOR_TOTAL)}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: '#3A372F' }}>{BRL(valorTotal)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, padding: '8px 12px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#5C594F' }}>
-                Entrada já paga <span style={{ color: '#9A968E', fontSize: 12 }}>em {RECIBO.dataSinal}</span>
-              </span>
-              <span style={{ fontWeight: 700, color: TEAL, fontVariantNumeric: 'tabular-nums' }}>− {BRL(VALOR_SINAL)}</span>
-            </div>
+            {orcamento.sinalAtivo && valorSinal > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, padding: '8px 12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#5C594F' }}>
+                  Entrada já paga <span style={{ color: '#9A968E', fontSize: 12 }}>em {dataSinal}</span>
+                </span>
+                <span style={{ fontWeight: 700, color: TEAL, fontVariantNumeric: 'tabular-nums' }}>− {BRL(valorSinal)}</span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, padding: '8px 12px', borderBottom: '1px solid #F0EEE9' }}>
               <span style={{ color: '#5C594F' }}>Valor pago agora</span>
-              <span style={{ fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{BRL(PAGO_AGORA)}</span>
+              <span style={{ fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{BRL(pagoAgora)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, padding: '11px 12px', marginTop: 4, borderRadius: 9, background: hexA(GREEN, 0.08), border: `1px dashed ${hexA(GREEN, 0.4)}` }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: GREEN_DEEP }}>
                 <Icons.check /> Saldo devedor
               </span>
-              <span style={{ fontWeight: 700, color: GREEN, fontVariantNumeric: 'tabular-nums' }}>{BRL(SALDO)}</span>
+              <span style={{ fontWeight: 700, color: GREEN, fontVariantNumeric: 'tabular-nums' }}>{BRL(0)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, padding: '14px 16px', borderRadius: 10, background: 'rgba(249,115,22,0.08)', border: `1px solid ${hexA(ORANGE, 0.28)}` }}>
               <span style={{ fontSize: 13.5, fontWeight: 700, color: '#3A372F', lineHeight: 1.3 }}>Total quitado</span>
-              <span style={{ fontSize: 22, fontWeight: 700, color: ORANGE, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{BRL(VALOR_TOTAL)}</span>
+              <span style={{ fontSize: 22, fontWeight: 700, color: ORANGE, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{BRL(valorTotal)}</span>
             </div>
           </div>
         </div>
@@ -218,7 +215,7 @@ function DocumentoReciboPagamento() {
           <Icons.seal width={15} height={15} style={{ color: GREEN, flexShrink: 0 }} />
           Este recibo confirma a quitação total do pedido. Gerado pelo sistema
           <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>Pense &amp; Precifique</strong>
-          em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{RECIBO.emissao}</strong>.
+          em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{emissao}</strong>.
         </div>
       </div>
 
@@ -232,6 +229,30 @@ export default function ReciboPagamentoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const token = useAuthStore(s => s.token)
+
+  const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
+  const [empresa, setEmpresa] = useState<EmpresaResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return
+      try {
+        const [orc, emp] = await Promise.all([
+          orcamentoService.buscarPorId(id),
+          empresaService.getEmpresa(),
+        ])
+        setOrcamento(orc)
+        setEmpresa(emp)
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err)
+        alert('Erro ao carregar dados do recibo')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id])
 
   const handleDownload = async () => {
     if (!id) return
@@ -250,6 +271,26 @@ export default function ReciboPagamentoPage() {
       console.error('Erro ao baixar recibo de pagamento:', err)
       alert('Erro ao baixar recibo de pagamento')
     }
+  }
+
+  if (loading) {
+    return (
+      <AppLayout active="orcamentos">
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#A29E96' }}>
+          Carregando...
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (!orcamento) {
+    return (
+      <AppLayout active="orcamentos">
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#C0492B' }}>
+          Orçamento não encontrado
+        </div>
+      </AppLayout>
+    )
   }
 
   return (
@@ -307,7 +348,7 @@ export default function ReciboPagamentoPage() {
       {/* DOCUMENTO */}
       <div className="doc-scroll">
         <div className="doc-wrap">
-          <DocumentoReciboPagamento />
+          <DocumentoReciboPagamento orcamento={orcamento} empresa={empresa} />
         </div>
       </div>
 
