@@ -86,6 +86,9 @@ export interface OrcamentoDetalheResponse {
   total: number;
   observacoes?: string;
   dataValidade?: string;
+  percentualMulta?: number;
+  estornoSinal?: boolean;
+  dataEstornoSinal?: string;
   itens: OrcamentoItemResponse[];
   createdAt: string;
   updatedAt: string;

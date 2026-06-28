@@ -1498,8 +1498,6 @@ function DownloadsCard({
   onDownload: (kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento") => void;
 }) {
   const status = orcamento.status as ApiStatus;
-  const order = STEPS.indexOf(status);
-  const sinalPagoIdx = STEPS.indexOf("SINAL_PAGO");
 
   const links: { label: string; kind: Parameters<typeof onDownload>[0]; icon: React.ReactNode }[] = [];
 
@@ -1508,8 +1506,8 @@ function DownloadsCard({
     links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <Icons.pdf /> });
   }
 
-  // Recibo do sinal — de SINAL_PAGO em diante, ou CANCELADO se havia sinal pago
-  if ((order >= sinalPagoIdx && order >= 0) || (status === "CANCELADO" && !!orcamento.dataSinalPago)) {
+  // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
+  if (orcamento.sinalAtivo && orcamento.dataSinalPago != null) {
     links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Icons.receipt /> });
   }
 
@@ -1518,12 +1516,14 @@ function DownloadsCard({
     links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Icons.receipt /> });
   }
 
-  if (status === "CANCELADO") {
+  // PDF de multa — somente se percentualMulta > 0
+  if (orcamento.percentualMulta != null && orcamento.percentualMulta > 0) {
     links.push({ label: "PDF de multa", kind: "multa", icon: <Icons.fileText /> });
-    // Recibo de estorno — apenas se houve sinal pago antes do cancelamento
-    if (orcamento.dataSinalPago) {
-      links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Icons.receipt /> });
-    }
+  }
+
+  // Recibo de estorno — somente se houve estorno de fato
+  if (orcamento.estornoSinal === true) {
+    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Icons.receipt /> });
   }
 
   return (
