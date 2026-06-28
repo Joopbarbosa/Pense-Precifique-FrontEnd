@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Logo, Button } from '../../components/ui'
 import { useAuthStore } from '../../store/authStore'
 import { orcamentoService } from '../../services/orcamentoService'
+import { empresaService } from '../../services/empresaService'
+import type { OrcamentoDetalheResponse } from '../../types/orcamento'
+import type { EmpresaResponse } from '../../types/empresa'
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 
@@ -20,36 +24,11 @@ const hexA = (hex: string, a: number) => {
 const BRL = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-// ── Dados mockados ───────────────────────────────────────────────────────────
-
-const VALOR_ORIGINAL = 183.6
-const PCT_MULTA = 50
-const VALOR_MULTA = VALOR_ORIGINAL * PCT_MULTA / 100
-
-const EMPRESA = {
-  nome: 'Pense & Crie Studio',
-  email: 'penseecrie@email.com',
-  whatsapp: '(11) 98888-1234',
+const fmtDate = (iso?: string) => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR')
 }
-
-const CANCELAMENTO = {
-  numero: '#0042',
-  cliente: 'Mariana Costa',
-  clienteWhats: '(11) 99999-0000',
-  dataCancelamento: '05/06/2026',
-  emissao: '05/06/2026',
-  prazoMulta: '12/06/2026',
-  aprovacao: '04/06/2026',
-  prazoDias: 10,
-  inicioImediato: true,
-  dataInicioEstimada: '',
-}
-
-const CONSUMIDOS = [
-  { item: 'Papel couchê 180g',        qtd: '4 folhas' },
-  { item: 'Fita dupla face 12mm',      qtd: '120 cm' },
-  { item: 'Linha de crochê teal 100g', qtd: '1,2 g' },
-]
 
 // ── Subcomponentes ───────────────────────────────────────────────────────────
 
@@ -76,7 +55,14 @@ function DocSectionTitle({ icon, color = TEAL, children }: { icon: React.ReactNo
 
 // ── DocumentoMulta ───────────────────────────────────────────────────────────
 
-function DocumentoMulta() {
+function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheResponse; empresa: EmpresaResponse | null }) {
+  const numeroFormatado = `#${String(orcamento.numero).padStart(4, '0')}`
+  const emissao = fmtDate(orcamento.createdAt)
+  const aprovacao = fmtDate(orcamento.dataAprovacao)
+  const dataCancelamento = fmtDate(orcamento.updatedAt)
+  const pctMulta = orcamento.percentualMulta || 0
+  const valorMulta = orcamento.total * pctMulta / 100
+
   return (
     <div className="a4" style={{ animation: 'fadeUp .4s ease both' }}>
 
@@ -85,20 +71,24 @@ function DocumentoMulta() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Logo size={56} />
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{EMPRESA.nome}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{empresa?.nome || ''}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {EMPRESA.email}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {EMPRESA.whatsapp}
-              </span>
+              {empresa?.email && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                </span>
+              )}
+              {empresa?.whatsapp && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                </span>
+              )}
             </div>
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: DANGER }}>Orçamento</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{CANCELAMENTO.numero}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{numeroFormatado}</div>
         </div>
       </div>
 
@@ -113,8 +103,8 @@ function DocumentoMulta() {
               NOTIFICAÇÃO DE MULTA POR CANCELAMENTO
             </h1>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', marginTop: 5, fontSize: 12.5, color: '#8A5A4E' }}>
-              <span>Referência: <strong style={{ fontWeight: 700 }}>Orçamento {CANCELAMENTO.numero}</strong></span>
-              <span>Emissão: <strong style={{ fontWeight: 700 }}>{CANCELAMENTO.emissao}</strong></span>
+              <span>Referência: <strong style={{ fontWeight: 700 }}>Orçamento {numeroFormatado}</strong></span>
+              <span>Emissão: <strong style={{ fontWeight: 700 }}>{emissao}</strong></span>
             </div>
           </div>
         </div>
@@ -124,10 +114,7 @@ function DocumentoMulta() {
       <div style={{ padding: '22px 0 0' }}>
         <DocLabel>Dados da cliente</DocLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 28px', alignItems: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#3A372F' }}>{CANCELAMENTO.cliente}</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#5C594F' }}>
-            <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {CANCELAMENTO.clienteWhats}
-          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#3A372F' }}>{orcamento.nomeCliente}</div>
         </div>
       </div>
 
@@ -135,11 +122,11 @@ function DocumentoMulta() {
       <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: '18px', borderRadius: 12, background: '#FBFAF8', border: '1px solid #F0EEE9' }}>
         <div>
           <DocLabel>Data de aprovação</DocLabel>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{CANCELAMENTO.aprovacao}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{aprovacao}</div>
         </div>
         <div>
           <DocLabel>Data do cancelamento</DocLabel>
-          <div style={{ fontSize: 14, fontWeight: 600, color: DANGER }}>{CANCELAMENTO.dataCancelamento}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: DANGER }}>{dataCancelamento}</div>
         </div>
       </div>
 
@@ -148,43 +135,48 @@ function DocumentoMulta() {
         <DocSectionTitle icon={<Icons.ban />} color={DANGER}>Detalhes do cancelamento</DocSectionTitle>
         <div style={{ border: '1px solid #F0EEE9', borderRadius: 12, overflow: 'hidden' }}>
           {[
-            { k: 'Valor total do orçamento original', v: BRL(VALOR_ORIGINAL) },
-            { k: 'Percentual de multa aplicado',      v: `${PCT_MULTA}%` },
+            { k: 'Valor total do orçamento original', v: BRL(orcamento.total) },
+            { k: 'Percentual de multa aplicado',      v: `${pctMulta}%` },
           ].map((r, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, padding: '12px 16px', borderBottom: '1px solid #F4F2EE' }}>
               <span style={{ fontSize: 13, color: '#5C594F' }}>{r.k}</span>
               <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{r.v}</span>
             </div>
           ))}
-          {/* Valor da multa — destaque */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, padding: '15px 16px', background: DANGER_SOFT }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: DANGER }}>
               <Icons.alertCircle width={16} height={16} /> Valor da multa
             </span>
             <span style={{ fontSize: 22, fontWeight: 700, color: DANGER, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>
-              {BRL(VALOR_MULTA)}
+              {BRL(valorMulta)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* INSUMOS CONSUMIDOS */}
+      {/* ITENS DO PEDIDO */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.box width={15} height={15} />}>Insumos e materiais já consumidos</DocSectionTitle>
+        <DocSectionTitle icon={<Icons.box width={15} height={15} />}>Itens do pedido</DocSectionTitle>
         <table className="a4-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th className="num">Quantidade consumida</th>
+              <th>Produto</th>
+              <th className="num">Quantidade</th>
             </tr>
           </thead>
           <tbody>
-            {CONSUMIDOS.map((c, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 600, color: '#3A372F' }}>{c.item}</td>
-                <td className="num" style={{ fontWeight: 600 }}>{c.qtd}</td>
+            {orcamento.itens.length === 0 ? (
+              <tr>
+                <td colSpan={2} style={{ textAlign: 'center', color: '#B0ACA4' }}>Nenhum item</td>
               </tr>
-            ))}
+            ) : (
+              orcamento.itens.map((it, i) => (
+                <tr key={i}>
+                  <td style={{ fontWeight: 600, color: '#3A372F' }}>{it.nomeProduto}</td>
+                  <td className="num" style={{ fontWeight: 600 }}>{it.quantidade}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -194,8 +186,7 @@ function DocumentoMulta() {
         <DocSectionTitle icon={<Icons.wallet width={15} height={15} />}>Instrução de pagamento</DocSectionTitle>
         <div style={{ padding: '16px 18px', borderRadius: 12, background: '#FBFAF8', border: '1px solid #F0EEE9' }}>
           <p style={{ margin: 0, fontSize: 13.5, color: '#3A372F', lineHeight: 1.65 }}>
-            O valor de <strong style={{ fontWeight: 700, color: DANGER }}>{BRL(VALOR_MULTA)}</strong> referente à multa por cancelamento deve ser pago até{' '}
-            <strong style={{ fontWeight: 700, color: '#5C594F' }}>{CANCELAMENTO.prazoMulta}</strong>.{' '}
+            O valor de <strong style={{ fontWeight: 700, color: DANGER }}>{BRL(valorMulta)}</strong> referente à multa por cancelamento deve ser pago em prazo acordado entre as partes.{' '}
             Entre em contato para combinar a forma de pagamento.
           </p>
         </div>
@@ -207,7 +198,7 @@ function DocumentoMulta() {
           <Icons.doc width={15} height={15} style={{ color: TEAL, flexShrink: 0 }} />
           Este documento foi gerado pelo sistema
           <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>Pense &amp; Precifique</strong>
-          em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{CANCELAMENTO.emissao}</strong>.
+          em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{emissao}</strong>.
         </div>
       </div>
 
@@ -221,6 +212,30 @@ export default function PreviewMultaPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const token = useAuthStore(s => s.token)
+
+  const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
+  const [empresa, setEmpresa] = useState<EmpresaResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return
+      try {
+        const [orc, emp] = await Promise.all([
+          orcamentoService.buscarPorId(id),
+          empresaService.getEmpresa(),
+        ])
+        setOrcamento(orc)
+        setEmpresa(emp)
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err)
+        alert('Erro ao carregar dados do orçamento')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id])
 
   const handleDownload = async () => {
     if (!id) return
@@ -239,6 +254,26 @@ export default function PreviewMultaPage() {
       console.error('Erro ao baixar PDF de multa:', err)
       alert('Erro ao baixar PDF de multa')
     }
+  }
+
+  if (loading) {
+    return (
+      <AppLayout active="orcamentos">
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#A29E96' }}>
+          Carregando...
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (!orcamento) {
+    return (
+      <AppLayout active="orcamentos">
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#C0492B' }}>
+          Orçamento não encontrado
+        </div>
+      </AppLayout>
+    )
   }
 
   return (
@@ -294,7 +329,7 @@ export default function PreviewMultaPage() {
       {/* DOCUMENTO */}
       <div className="doc-scroll">
         <div className="doc-wrap">
-          <DocumentoMulta />
+          <DocumentoMulta orcamento={orcamento} empresa={empresa} />
         </div>
       </div>
 

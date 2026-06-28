@@ -3,24 +3,20 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Logo, Button, StatusBadge } from '../../components/ui'
 import { orcamentoService } from '../../services/orcamentoService'
+import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
 import type { OrcamentoDetalheResponse } from '../../types/orcamento'
+import type { EmpresaResponse } from '../../types/empresa'
 
 const BRL = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-const EMPRESA = {
-  nome: 'Pense & Crie Studio',
-  email: 'penseecrie@email.com',
-  whatsapp: '(11) 98888-1234',
-}
 
 const TEAL = '#2A9D8F'
 const ORANGE = '#F97316'
 
 // ── DocumentoPDF ────────────────────────────────────────────────────────────
 
-function DocumentoPDF({ orcamento, sinal }: { orcamento: OrcamentoDetalheResponse | null; sinal: boolean }) {
+function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetalheResponse | null; sinal: boolean; empresa: EmpresaResponse | null }) {
   if (!orcamento) {
     return <div>Carregando...</div>
   }
@@ -38,14 +34,18 @@ function DocumentoPDF({ orcamento, sinal }: { orcamento: OrcamentoDetalheRespons
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Logo size={52} />
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{EMPRESA.nome}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{empresa?.nome || ''}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {EMPRESA.email}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {EMPRESA.whatsapp}
-              </span>
+              {empresa?.email && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                </span>
+              )}
+              {empresa?.whatsapp && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -241,6 +241,7 @@ export default function PreviewPdfPage() {
   const { id } = useParams<{ id: string }>()
   const token = useAuthStore((state) => state.token)
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
+  const [empresa, setEmpresa] = useState<EmpresaResponse | null>(null)
   const [sinal, setSinal] = useState(true)
   const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
@@ -249,9 +250,13 @@ export default function PreviewPdfPage() {
     const load = async () => {
       if (!id) return
       try {
-        const data = await orcamentoService.buscarPorId(id)
+        const [data, emp] = await Promise.all([
+          orcamentoService.buscarPorId(id),
+          empresaService.getEmpresa(),
+        ])
         setOrcamento(data)
         setSinal(data.sinalAtivo)
+        setEmpresa(emp)
       } catch (err) {
         console.error('Erro ao carregar orçamento:', err)
         alert('Erro ao carregar orçamento')
@@ -353,7 +358,7 @@ export default function PreviewPdfPage() {
       {/* DOCUMENTO A4 */}
       <div className="doc-scroll" style={{ marginTop: 16 }}>
         <div className="doc-wrap">
-          <DocumentoPDF orcamento={orcamento} sinal={sinal} />
+          <DocumentoPDF orcamento={orcamento} sinal={sinal} empresa={empresa} />
         </div>
       </div>
 
