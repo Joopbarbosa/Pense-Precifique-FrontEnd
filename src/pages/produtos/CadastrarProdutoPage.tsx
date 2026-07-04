@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Button } from '../../components/ui'
 import { produtoService } from '../../services/produtoService'
+import { empresaService } from '../../services/empresaService'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
 const num = (s: string) =>
@@ -10,8 +11,6 @@ const num = (s: string) =>
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-const VALOR_HORA = 25
 
 const TIPO_LABEL_TO_API: Record<string, TipoProduto> = {
   'Produto':      'PRODUTO',
@@ -474,15 +473,17 @@ function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChan
 
 // ---------- Calculadora ----------
 
-function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, isProdutoBase }: {
+function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, isProdutoBase, valorHora, margemPadrao }: {
   ficha: FichaItem[]; tempo: string
   margem: string; setMargem: (v: string) => void
   modoMargem: string; setModoMargem: (v: string) => void
   precoFinal: string; setPrecoFinal: (v: string) => void
   isProdutoBase: boolean
+  valorHora: number
+  margemPadrao: number
 }) {
   const custoInsumos = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
-  const maoObra = (num(tempo) / 60) * VALOR_HORA
+  const maoObra = (num(tempo) / 60) * (valorHora ?? 0)
   const subtotal = custoInsumos + maoObra
   const lucro = subtotal * (num(margem) / 100)
   const sugerido = subtotal + lucro
@@ -517,7 +518,7 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
 
         <div style={{ padding: '10px 20px 18px' }}>
           {linha('Custo dos insumos', moeda(custoInsumos))}
-          {linha('Mão de obra', moeda(maoObra), `${num(tempo)} min × ${moeda(VALOR_HORA)}/h`)}
+          {linha('Mão de obra', moeda(maoObra), `${num(tempo)} min × ${moeda(valorHora ?? 0)}/h`)}
           <div style={{ height: 1, background: '#EFEDE8', margin: '4px 0' }} />
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '10px 0' }}>
             <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Subtotal de custo</span>
@@ -533,10 +534,10 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
             <>
               <div style={{ marginTop: 8, padding: 14, borderRadius: 12, background: '#FBFAF8', border: '1px solid #EFEDE8' }}>
                 <div style={{ display: 'flex', padding: 3, background: '#F1F0EC', borderRadius: 9, gap: 3, marginBottom: modoMargem === 'personalizar' ? 12 : 0 }}>
-                  {([['padrao', 'Margem padrão (40%)'], ['personalizar', 'Personalizar']] as [string, string][]).map(([v, l]) => {
+                  {([['padrao', `Margem padrão (${margemPadrao ?? 0}%)`], ['personalizar', 'Personalizar']] as [string, string][]).map(([v, l]) => {
                     const on = modoMargem === v
                     return (
-                      <button key={v} onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem('40') }} style={{
+                      <button key={v} onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }} style={{
                         flex: 1, height: 34, borderRadius: 7, border: 'none',
                         background: on ? '#fff' : 'transparent',
                         color: on ? '#3A372F' : '#8A8780',
@@ -594,14 +595,29 @@ export default function CadastrarProdutoPage() {
   const [dados, setDados] = useState({ nome: '', tipo: 'Produto', descricao: '', tempo: '' })
   const setD = (k: string, v: any) => setDados(d => ({ ...d, [k]: v }))
   const [ficha, setFicha] = useState<FichaItem[]>([])
-  const [margem, setMargem] = useState('40')
+  const [margem, setMargem] = useState('0')
   const [modoMargem, setModoMargem] = useState('padrao')
   const [precoFinal, setPrecoFinal] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [valorHora, setValorHora] = useState(0)
+  const [margemPadrao, setMargemPadrao] = useState(0)
 
   const isProdutoBase = dados.tipo === 'Produto Base'
+
+  // Buscar configuração de precificação real
+  useEffect(() => {
+    empresaService.getConfiguracao()
+      .then(cfg => {
+        const vh = cfg.valorHora ?? 0
+        const mp = cfg.margemPadrao ?? 0
+        setValorHora(vh)
+        setMargemPadrao(mp)
+        if (!editando) setMargem(mp.toString())
+      })
+      .catch(() => {})
+  }, [editando])
 
   // Limpar precoFinal ao mudar para Produto Base
   useEffect(() => {
@@ -741,6 +757,8 @@ export default function CadastrarProdutoPage() {
             modoMargem={modoMargem} setModoMargem={setModoMargem}
             precoFinal={precoFinal} setPrecoFinal={setPrecoFinal}
             isProdutoBase={isProdutoBase}
+            valorHora={valorHora}
+            margemPadrao={margemPadrao}
           />
         </div>
       )}

@@ -26,18 +26,19 @@ const formatMargem = (v: number) =>
 
 /* ── AffixInput ──────────────────────────────────────────────── */
 
-function AffixInput({ value, onChange, prefix, suffix, icon, inputMode }: {
+function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }: {
   value: string; onChange: (v: string) => void
   prefix?: string; suffix?: string; icon?: React.ReactNode
-  inputMode?: 'decimal' | 'numeric'
+  inputMode?: 'decimal' | 'numeric'; error?: string
 }) {
   const [f, setF] = useState(false)
+  const hasError = !!error
   return (
     <div style={{
       position: 'relative', display: 'flex', alignItems: 'stretch',
-      border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10,
+      border: `1.5px solid ${hasError ? '#E05C3A' : f ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10,
       background: '#fff', overflow: 'hidden',
-      boxShadow: f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+      boxShadow: hasError ? '0 0 0 4px rgba(224,92,58,0.10)' : f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
       transition: 'border-color .15s, box-shadow .15s', maxWidth: 300,
     }}>
       {prefix && (
@@ -169,6 +170,7 @@ function Precificacao({
   const [margem, setMargem] = useState(formatMargem(initialMargemPadrao))
   const [toast, setToast] = useState(false)
   const [saved, setSaved] = useState({ hora: formatHora(initialValorHora), margem: formatMargem(initialMargemPadrao) })
+  const [fieldErrors, setFieldErrors] = useState<{ hora?: string; margem?: string }>({})
   const dirty = hora !== saved.hora || margem !== saved.margem
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
@@ -180,7 +182,22 @@ function Precificacao({
     setSaved({ hora: h, margem: m })
   }, [initialValorHora, initialMargemPadrao])
 
+  const validate = () => {
+    const erros: { hora?: string; margem?: string } = {}
+    if (!hora.trim() || parseDecimal(hora) <= 0) erros.hora = 'Informe um valor maior que zero.'
+    if (!margem.trim() || parseDecimal(margem) <= 0) erros.margem = 'Informe um valor maior que zero.'
+    return erros
+  }
+
+  const isValid = hora.trim() && parseDecimal(hora) > 0 && margem.trim() && parseDecimal(margem) > 0
+
   const salvar = async () => {
+    const erros = validate()
+    if (Object.keys(erros).length > 0) {
+      setFieldErrors(erros)
+      return
+    }
+    setFieldErrors({})
     await onSave(parseDecimal(hora), parseDecimal(margem))
     setSaved({ hora, margem })
     setToast(true)
@@ -206,14 +223,24 @@ function Precificacao({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>Valor da sua hora de trabalho</label>
-              <AffixInput value={hora} onChange={v => setHora(v.replace(/[^\d.,]/g, ''))} prefix="R$/h" icon={<Icons.clock />} inputMode="decimal" />
-              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Quanto vale uma hora do seu tempo produzindo.</p>
+              <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
+                Valor da sua hora de trabalho <span style={{ color: '#E05C3A' }}>*</span>
+              </label>
+              <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Icons.clock />} inputMode="decimal" error={fieldErrors.hora} />
+              {fieldErrors.hora
+                ? <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#E05C3A', fontWeight: 500 }}>{fieldErrors.hora}</p>
+                : <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Quanto vale uma hora do seu tempo produzindo.</p>
+              }
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>Margem de lucro padrão</label>
-              <AffixInput value={margem} onChange={v => setMargem(v.replace(/[^\d]/g, ''))} suffix="%" inputMode="numeric" />
-              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Percentual aplicado sobre o custo para formar o preço sugerido.</p>
+              <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
+                Margem de lucro padrão <span style={{ color: '#E05C3A' }}>*</span>
+              </label>
+              <AffixInput value={margem} onChange={v => { setMargem(v.replace(/[^\d]/g, '')); setFieldErrors(p => ({ ...p, margem: undefined })) }} suffix="%" inputMode="numeric" error={fieldErrors.margem} />
+              {fieldErrors.margem
+                ? <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#E05C3A', fontWeight: 500 }}>{fieldErrors.margem}</p>
+                : <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Percentual aplicado sobre o custo para formar o preço sugerido.</p>
+              }
             </div>
           </div>
 
@@ -229,7 +256,7 @@ function Precificacao({
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: dirty ? '#E8913B' : '#CFCBC3', boxShadow: dirty ? '0 0 0 4px rgba(232,145,59,0.18)' : 'none' }} />
               {dirty ? 'Você tem alterações não salvas' : 'Tudo salvo'}
             </span>
-            <Button variant="primary" icon={<Icons.check />} disabled={!dirty || saving} onClick={salvar}>
+            <Button variant="primary" icon={<Icons.check />} disabled={!dirty || saving || !isValid} onClick={salvar}>
               {saving ? 'Salvando…' : 'Salvar alterações'}
             </Button>
           </div>

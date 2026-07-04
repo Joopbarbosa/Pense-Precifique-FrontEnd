@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Logo, Wordmark, Icons, Button, Spinner } from '../../components/ui'
 import { empresaService } from '../../services/empresaService'
+import { useAuthStore } from '../../store/authStore'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 function Stepper() {
@@ -54,10 +55,12 @@ interface PriceFieldProps {
   value: string
   onChange: (v: string) => void
   inputMode?: 'decimal' | 'numeric'
+  error?: string
 }
 
-function PriceField({ icon, question, explain, affix, affixSide, placeholder, dica, value, onChange, inputMode }: PriceFieldProps) {
+function PriceField({ icon, question, explain, affix, affixSide, placeholder, dica, value, onChange, inputMode, error }: PriceFieldProps) {
   const [active, setActive] = useState(false)
+  const hasError = !!error
 
   return (
     <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -70,16 +73,16 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <label style={{ display: 'block', fontSize: 15.5, fontWeight: 600, color: '#3A372F', letterSpacing: '-0.01em' }}>
-          {question}
+          {question} <span style={{ color: '#E05C3A', fontSize: 15 }}>*</span>
         </label>
         <p style={{ margin: '4px 0 12px', fontSize: 13, color: '#A29E96', lineHeight: 1.5 }}>{explain}</p>
 
         <div style={{
           display: 'flex', alignItems: 'stretch', height: 54,
           borderRadius: 10, overflow: 'hidden',
-          border: `1.5px solid ${active ? '#2A9D8F' : '#EFEDE8'}`,
+          border: `1.5px solid ${hasError ? '#E05C3A' : active ? '#2A9D8F' : '#EFEDE8'}`,
           background: '#fff',
-          boxShadow: active ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+          boxShadow: hasError ? '0 0 0 4px rgba(224,92,58,0.10)' : active ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
           transition: 'border-color .15s, box-shadow .15s',
         }}>
           {affixSide === 'left' && (
@@ -114,8 +117,12 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
           )}
         </div>
 
+        {hasError && (
+          <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#E05C3A', fontWeight: 500 }}>{error}</p>
+        )}
+
         <div style={{
-          display: 'flex', gap: 9, alignItems: 'flex-start', marginTop: 11,
+          display: 'flex', gap: 9, alignItems: 'flex-start', marginTop: hasError ? 10 : 11,
           background: 'rgba(249,115,22,0.08)', border: '1px solid #FCE2CF',
           borderRadius: 12, padding: '11px 13px',
         }}>
@@ -132,25 +139,40 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
 // ── OnboardingPage ─────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const setOnboardingCompleto = useAuthStore(s => s.setOnboardingCompleto)
   const [hora, setHora] = useState('')
   const [margem, setMargem] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ hora?: string; margem?: string }>({})
 
-  useEffect(() => {
-    empresaService.getEmpresa().then(empresa => {
-      if (empresa) navigate('/dashboard', { replace: true })
-    }).catch(() => {})
-  }, [navigate])
+  const parseHora = (v: string) => parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0
+  const parseMargem = (v: string) => parseFloat(v.replace(',', '.')) || 0
+
+  const validate = () => {
+    const erros: { hora?: string; margem?: string } = {}
+    if (!hora.trim() || parseHora(hora) <= 0) erros.hora = 'Informe um valor maior que zero.'
+    if (!margem.trim() || parseMargem(margem) <= 0) erros.margem = 'Informe um valor maior que zero.'
+    return erros
+  }
+
+  const isValid = hora.trim() && parseHora(hora) > 0 && margem.trim() && parseMargem(margem) > 0
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const erros = validate()
+    if (Object.keys(erros).length > 0) {
+      setFieldErrors(erros)
+      return
+    }
+    setFieldErrors({})
     setLoading(true)
     setError('')
     try {
-      const valorHora = parseFloat(hora.replace(/\./g, '').replace(',', '.')) || 0
-      const margemPadrao = parseFloat(margem.replace(',', '.')) || 0
+      const valorHora = parseHora(hora)
+      const margemPadrao = parseMargem(margem)
       await empresaService.upsertConfiguracao({ valorHora, margemPadrao })
+      setOnboardingCompleto(true)
       navigate('/dashboard', { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erro ao salvar configurações. Tente novamente.')
@@ -285,7 +307,8 @@ export default function OnboardingPage() {
               inputMode="decimal"
               dica="Exemplo: se você leva 2h para fazer um produto e sua hora vale R$ 25, o custo de mão de obra é R$ 50."
               value={hora}
-              onChange={setHora}
+              onChange={v => { setHora(v); setFieldErrors(p => ({ ...p, hora: undefined })) }}
+              error={fieldErrors.hora}
             />
 
             <PriceField
@@ -298,7 +321,8 @@ export default function OnboardingPage() {
               inputMode="numeric"
               dica="Você poderá ajustar a margem produto a produto quando necessário."
               value={margem}
-              onChange={setMargem}
+              onChange={v => { setMargem(v); setFieldErrors(p => ({ ...p, margem: undefined })) }}
+              error={fieldErrors.margem}
             />
 
             {error && (
@@ -311,7 +335,7 @@ export default function OnboardingPage() {
               variant="primary"
               type="submit"
               fullWidth
-              disabled={loading}
+              disabled={loading || !isValid}
               size="lg"
               icon={loading ? <Spinner size={16} /> : undefined}
               iconRight={loading ? undefined : <span style={{ fontSize: 19, marginTop: -1 }}>→</span>}
