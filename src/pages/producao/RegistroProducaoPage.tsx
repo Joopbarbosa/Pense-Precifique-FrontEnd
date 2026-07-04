@@ -25,6 +25,10 @@ const TIPO_LABELS: { label: string; value: TipoProduto }[] = [
 /* ── Counter ─────────────────────────────────────────────────── */
 
 function Counter({ value, setValue }: { value: number; setValue: (n: number) => void }) {
+  const [raw, setRaw] = useState(String(value))
+
+  useEffect(() => { setRaw(String(value)) }, [value])
+
   const btn = (icon: React.ReactNode, fn: () => void, disabled: boolean) => (
     <button onClick={fn} disabled={disabled} aria-label="ajustar" style={{
       width: 44, height: 44, borderRadius: 11, border: '1.5px solid #EFEDE8',
@@ -38,7 +42,31 @@ function Counter({ value, setValue }: { value: number; setValue: (n: number) => 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
       {btn(<Icons.minus />, () => setValue(Math.max(1, value - 1)), value <= 1)}
-      <div style={{ minWidth: 54, textAlign: 'center', fontSize: 24, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={raw}
+        onChange={e => {
+          const v = e.target.value.replace(/[^0-9]/g, '')
+          setRaw(v)
+          const n = parseInt(v, 10)
+          if (!isNaN(n) && n >= 1) setValue(n)
+        }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#2A9D8F'; e.currentTarget.select() }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = '#EFEDE8'
+          const n = parseInt(raw, 10)
+          const valid = !isNaN(n) && n >= 1 ? n : 1
+          setValue(valid)
+          setRaw(String(valid))
+        }}
+        style={{
+          width: 68, textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#3A372F',
+          fontVariantNumeric: 'tabular-nums', border: '1.5px solid #EFEDE8', borderRadius: 8,
+          height: 44, outline: 'none', fontFamily: 'inherit', background: '#fff', padding: 0,
+          transition: 'border-color .15s',
+        }}
+      />
       {btn(<Icons.plus />, () => setValue(value + 1), false)}
     </div>
   )
@@ -71,7 +99,14 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
     const t = setTimeout(async () => {
       try {
         const res = await produtoService.listar(0, 20, tipoItem, busca || undefined)
-        setOpts(res.content.filter(p => p.ativo))
+        const ativos = res.content.filter(p => p.ativo)
+        if (busca.trim()) {
+          const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+          const q = norm(busca.trim())
+          setOpts(ativos.filter(p => norm(p.nome).includes(q)))
+        } else {
+          setOpts(ativos)
+        }
       } catch {
         setOpts([])
       } finally {
@@ -219,7 +254,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto', background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
-      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 'min(560px, 100%)', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both', margin: 'auto' }}>
+      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 'min(680px, 100%)', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both', margin: 'auto' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
