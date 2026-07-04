@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import { Icons } from '../../components/ui/Icons'
-import type { InsumoResponse, MovimentacaoInsumoResponse } from '../../types/insumo'
+import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 
 const moeda = (n: number, dec?: number) =>
@@ -17,13 +17,11 @@ const formatDate = (iso: string) =>
 
 const MOTIVOS = ['Perda', 'Avaria', 'Uso extra', 'Correção de estoque', 'Outro']
 
-// TODO P-004 (fichas técnicas): remover mock quando épico de Produtos conectar fichas ao insumo
-interface Ficha { nome: string; tipo: 'Produto' | 'Customização'; icon: keyof typeof Icons; consumo: string; preco: number | null; novo: number | null }
-const FICHAS: Ficha[] = [
-  { nome: 'Kit Convite Casamento',  tipo: 'Produto',      icon: 'cubeSmall', consumo: '4 folhas / un',  preco: 45.00, novo: 43.80 },
-  { nome: 'Etiqueta personalizada', tipo: 'Produto',      icon: 'cubeSmall', consumo: '1 folha / un',   preco: 4.50,  novo: 4.38 },
-  { nome: 'Laminação fosca',        tipo: 'Customização', icon: 'tag',       consumo: '0,5 folha / un', preco: null,  novo: null },
-]
+const TIPO_LABEL: Record<string, string> = {
+  PRODUTO: 'Produto',
+  PRODUTO_BASE: 'Produto base',
+  CUSTOMIZACAO: 'Customização',
+}
 
 const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }
 
@@ -296,27 +294,39 @@ function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsum
   )
 }
 
-function FichasList() {
+function FichasList({ produtos, loading }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '32px 20px', justifyContent: 'center' }}>
+        <span style={{ width: 18, height: 18, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        Carregando fichas técnicas…
+      </div>
+    )
+  }
+
+  if (produtos.length === 0) {
+    return (
+      <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 14, color: '#A29E96' }}>
+        Nenhuma ficha técnica usa este insumo ainda.
+      </div>
+    )
+  }
+
   return (
     <div>
-      {FICHAS.map((f, i) => {
-        const Ic = Icons[f.icon]
-        return (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
-            <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-              <Ic />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>{f.nome}</div>
-              <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 1 }}>Consome {f.consumo}</div>
-            </div>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>{f.tipo}</span>
-            <button style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#2A9D8F', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}>
-              Ver ficha <Icons.chevron />
-            </button>
+      {produtos.map((p) => (
+        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
+          <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+            <Icons.cubeSmall />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
           </div>
-        )
-      })}
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+            {TIPO_LABEL[p.tipo] ?? p.tipo}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -332,6 +342,8 @@ export default function DetalheInsumoPage() {
   const [histHasNext, setHistHasNext] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMoreHist, setLoadingMoreHist] = useState(false)
+  const [produtosRelacionados, setProdutosRelacionados] = useState<ProdutoRelacionadoResponse[]>([])
+  const [loadingFichas, setLoadingFichas] = useState(false)
 
   const ABAS = [
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: Icons.history },
@@ -352,6 +364,15 @@ export default function DetalheInsumoPage() {
     }).catch(console.error)
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (aba !== 'fichas' || !id) return
+    setLoadingFichas(true)
+    insumoService.listarProdutosRelacionados(id)
+      .then(setProdutosRelacionados)
+      .catch(console.error)
+      .finally(() => setLoadingFichas(false))
+  }, [aba, id])
 
   const carregarMaisHistorico = () => {
     if (!id) return
@@ -497,7 +518,7 @@ export default function DetalheInsumoPage() {
             )}
           </>
         ) : (
-          <FichasList />
+          <FichasList produtos={produtosRelacionados} loading={loadingFichas} />
         )}
       </div>
 

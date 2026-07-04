@@ -1,5 +1,5 @@
 import api from './api'
-import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, PageResponse } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, PageResponse, ProdutoRelacionadoResponse } from '../types/insumo'
 
 export const insumoService = {
   listar: async (page: number, size = 20): Promise<PageResponse<InsumoResponse>> => {
@@ -39,5 +39,10 @@ export const insumoService = {
   buscarParaCarrinho: async (busca: string): Promise<InsumoResponse[]> => {
     const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome' } })
     return response.data.content
+  },
+
+  listarProdutosRelacionados: async (id: string): Promise<ProdutoRelacionadoResponse[]> => {
+    const response = await api.get(`/insumos/${id}/produtos-relacionados`)
+    return response.data
   },
 }

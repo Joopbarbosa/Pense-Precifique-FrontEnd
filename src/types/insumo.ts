@@ -37,6 +37,12 @@ export interface MovimentacaoInsumoResponse {
   createdAt: string
 }
 
+export interface ProdutoRelacionadoResponse {
+  id: string
+  nome: string
+  tipo: 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
+}
+
 // Matches Spring Data Page format
 export interface PageResponse<T> {
   content: T[]
