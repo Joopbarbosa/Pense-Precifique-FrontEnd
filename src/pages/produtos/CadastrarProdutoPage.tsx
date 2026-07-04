@@ -31,6 +31,7 @@ interface ItemDb {
   un: string
   custo: number
   tipo: 'insumo' | 'produto'
+  fracionavel: boolean
 }
 
 interface FichaItem extends ItemDb {
@@ -251,12 +252,12 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
-            .map(i => ({ id: i.id, nome: i.nome, marca: (i as any).marca || '', un: (i as any).unidadeMedida || 'un', custo: (i as any).custoUnitario ?? 0, tipo: 'insumo' as const }))
+            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
         )
         setProdutosBase(
           prods
             .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
         )
       } catch {
         // silent
@@ -327,25 +328,29 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 
 // ---------- QtyInput ----------
 
-function QtyInput({ value, un, onChange }: { value: number; un: string; onChange: (v: string) => void }) {
+function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: string; fracionavel: boolean; onChange: (v: string) => void }) {
   const [f, setF] = useState(false)
-  const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: 2 }))
+  const maxFrac = fracionavel ? 2 : 0
+  const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
 
   // Sync when value changes from outside (API load)
   useEffect(() => {
-    setDisplay(value.toLocaleString('pt-BR', { maximumFractionDigits: 2 }))
-  }, [value])
+    setDisplay(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
+  }, [value, maxFrac])
 
   return (
     <div style={{ position: 'relative' }}>
       <input
         value={display}
         onChange={e => {
-          const cleaned = e.target.value.replace(/[^\d.,]/g, '')
+          let cleaned = e.target.value.replace(/[^\d.,]/g, '')
+          if (!fracionavel) {
+            cleaned = cleaned.replace(/[.,]/g, '')
+          }
           setDisplay(cleaned)
           onChange(cleaned)
         }}
-        inputMode="decimal"
+        inputMode={fracionavel ? 'decimal' : 'numeric'}
         onFocus={() => setF(true)}
         onBlur={() => setF(false)}
         style={{
@@ -395,7 +400,7 @@ function FichaTecnica({ ficha, setFicha }: { ficha: FichaItem[]; setFicha: React
               </div>
               <div style={{ fontSize: 12, color: '#A29E96' }}>{row.marca}{row.marca ? ' · ' : ''}{moeda(row.custo)}/{row.un}</div>
             </div>
-            <QtyInput value={row.qtd} un={row.un} onChange={v => setQtd(idx, v)} />
+            <QtyInput value={row.qtd} un={row.un} fracionavel={row.fracionavel} onChange={v => setQtd(idx, v)} />
             <div style={{ fontSize: 14, fontWeight: 700, color: '#3A372F', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{moeda(row.qtd * row.custo)}</div>
             <button onClick={() => remove(idx)} aria-label="Remover componente" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: 'transparent', color: '#BDB9B1', cursor: 'pointer', display: 'grid', placeItems: 'center', justifySelf: 'end' }}
               onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
@@ -642,6 +647,7 @@ export default function CadastrarProdutoPage() {
           un: item.unidadeMedida || 'un',
           custo: item.custoUnitario,
           tipo: item.insumoId ? 'insumo' : 'produto',
+          fracionavel: item.fracionavelInsumo ?? true,
           qtd: item.quantidade,
         }))
         setFicha(fichaItems)

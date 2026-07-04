@@ -14,6 +14,7 @@ export interface FichaTecnicaItemResponse {
   nomeInsumo?: string
   marcaInsumo?: string
   unidadeMedida?: string
+  fracionavelInsumo?: boolean
   produtoBaseId?: string
   nomeProdutoBase?: string
   quantidade: number

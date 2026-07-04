@@ -108,6 +108,7 @@ export default function FormInsumoPage() {
           setMarca(data.marca ?? '')
           const u = UNIDADES.find(u => u === data.unidadeMedida) ?? data.unidadeMedida
           setUnidade(u)
+          setFracao(data.fracionavel ?? true)
           setEstoque(data.estoqueAtual.toString())
           setMinimo(data.estoqueMinimo?.toString() ?? '')
           setCustoUnitarioExistente(data.custoUnitario)
@@ -147,6 +148,7 @@ export default function FormInsumoPage() {
         nome: nome.trim(),
         marca: marca.trim() || undefined,
         unidadeMedida: unidade,
+        fracionavel: fracao,
         estoqueAtual: usaLote ? 0 : (estoque ? num(estoque) : undefined),
         estoqueMinimo: minimo ? num(minimo) : undefined,
       }

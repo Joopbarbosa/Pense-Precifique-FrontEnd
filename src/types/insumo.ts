@@ -2,6 +2,7 @@ export interface InsumoRequest {
   nome: string
   marca?: string
   unidadeMedida: string
+  fracionavel?: boolean
   estoqueAtual?: number
   estoqueMinimo?: number
 }
@@ -11,6 +12,7 @@ export interface InsumoResponse {
   nome: string
   marca?: string
   unidadeMedida: string
+  fracionavel: boolean
   custoUnitario: number
   estoqueAtual: number
   estoqueMinimo?: number
