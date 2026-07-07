@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
 import { Icons } from '../../components/ui/Icons'
 import { Button } from '../../components/ui'
 import AppLayout from '../../components/layout/AppLayout'
+import { dashboardService } from '../../services/dashboardService'
+import { produtoService } from '../../services/produtoService'
+import { insumoService } from '../../services/insumoService'
+import type { DashboardResponse } from '../../types/dashboard'
+import type { InsumoResponse } from '../../types/insumo'
+import type { StatusOrcamento } from '../../types'
 
 function hexA(hex: string, a: number): string {
   const h = hex.replace('#', '')
@@ -10,21 +17,8 @@ function hexA(hex: string, a: number): string {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
 }
 
-// ── Decorative dots ────────────────────────────────────────────────────────
-function DotTrail({ color }: { color: string }) {
-  const dots: [number, number, number][] = [
-    [18,24,2.6],[30,16,2],[42,28,2.2],[55,18,2.8],[68,30,2],
-    [80,20,2.4],[90,34,1.8],[24,70,2.2],[40,80,2.6],[58,74,2],
-    [74,84,2.4],[88,72,1.8],
-  ]
-  return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-      {dots.map(([x, y, r], i) => (
-        <circle key={i} cx={x} cy={y} r={r * 0.5} fill={color} opacity={0.45 + (i % 3) * 0.18} />
-      ))}
-    </svg>
-  )
+function fmtBRL(v: number): string {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 // ── MetricCard ─────────────────────────────────────────────────────────────
@@ -35,12 +29,10 @@ interface MetricProps {
   label: string
   value: string
   valueColor: string
-  delta?: React.ReactNode
-  deltaColor?: string
-  empty?: string
+  sub?: string
 }
 
-function MetricCard({ icon, iconBg, iconColor, label, value, valueColor, delta, deltaColor, empty }: MetricProps) {
+function MetricCard({ icon, iconBg, iconColor, label, value, valueColor, sub }: MetricProps) {
   return (
     <Card padding="20px 22px" style={{ animation: 'fadeUp .45s ease both' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -54,35 +46,62 @@ function MetricCard({ icon, iconBg, iconColor, label, value, valueColor, delta, 
       <div style={{ marginTop: 10, fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', color: valueColor, lineHeight: 1.1 }}>
         {value}
       </div>
-      {delta ? (
-        <div style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: deltaColor, display: 'flex', alignItems: 'center', gap: 5 }}>
-          {delta}
-        </div>
-      ) : (
-        <div style={{ marginTop: 9, fontSize: 12.5, color: '#B7B4AD' }}>{empty || '—'}</div>
-      )}
+      <div style={{ marginTop: 9, fontSize: 12.5, color: '#B7B4AD' }}>{sub ?? ' '}</div>
     </Card>
   )
 }
 
-// ── DashboardPage ──────────────────────────────────────────────────────────
+// ── Status labels ───────────────────────────────────────────────────────────
+const STATUS_LABEL: Record<StatusOrcamento, string> = {
+  RASCUNHO:         'Rascunho',
+  ENVIADO:          'Enviado',
+  APROVADO:         'Aprovado',
+  AGUARDANDO_SINAL: 'Aguard. sinal',
+  SINAL_PAGO:       'Sinal pago',
+  EM_PRODUCAO:      'Em produção',
+  FINALIZADO:       'Finalizado',
+  ENTREGUE:         'Entregue',
+  PAGO:             'Pago',
+  CANCELADO:        'Cancelado',
+}
+
 const ORANGE = '#F97316'
 const TEAL   = '#2A9D8F'
 
-const QUICK_ACTIONS = [
-  { label: 'Cadastrar novo insumo', icon: <Icons.box /> },
-  { label: 'Criar produto',         icon: <Icons.cube /> },
-  { label: 'Gerar orçamento',       icon: <Icons.doc /> },
+const ACOES_RAPIDAS = [
+  { label: 'Cadastrar insumo',  icon: <Icons.box />,     rota: '/insumos/novo'    },
+  { label: 'Cadastrar produto', icon: <Icons.cube />,    rota: '/produtos/novo'   },
+  { label: 'Lançar produção',   icon: <Icons.factory />, rota: '/producao'        },
+  { label: 'Criar orçamento',   icon: <Icons.doc />,     rota: '/orcamentos/novo' },
 ]
 
-const STOCK_ALERTS = [
-  ['Fita dupla face 12mm', '0,5 m'],
-  ['Papel A4 180g',        '2 folhas'],
-  ['Linha teal 100g',      '0,8 g'],
-] as const
-
+// ── DashboardPage ──────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [empty, setEmpty] = useState(false)
+  const navigate = useNavigate()
+  const [data, setData] = useState<DashboardResponse | null>(null)
+  const [produtosCadastrados, setProdutosCadastrados] = useState(0)
+  const [insumosEstoqueBaixo, setInsumosEstoqueBaixo] = useState<InsumoResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      dashboardService.buscar(),
+      produtoService.listar(0, 1),
+      insumoService.listar(0, 100),
+    ])
+      .then(([dash, prods, insumos]) => {
+        setData(dash)
+        setProdutosCadastrados(prods.totalElements)
+        setInsumosEstoqueBaixo(
+          insumos.content.filter(
+            (i) => i.estoqueMinimo != null && i.estoqueAtual <= i.estoqueMinimo
+          )
+        )
+      })
+      .catch(() => setErro(true))
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
     <AppLayout active="dashboard">
@@ -96,64 +115,61 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p style={{ margin: '7px 0 0', fontSize: 15, color: '#8A8780', lineHeight: 1.5 }}>
-            {empty
-              ? <>Bem-vinda, <strong style={{ fontWeight: 600, color: '#6B6860' }}>Ana</strong>! Vamos preparar seu negócio? Comece pelos insumos.</>
-              : <>Bem-vinda de volta, <strong style={{ fontWeight: 600, color: '#6B6860' }}>Ana</strong>! Aqui está o resumo do seu negócio.</>
-            }
+            Aqui está o resumo do seu negócio.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Toggle demo: empty / com dados */}
-          <button onClick={() => setEmpty((v) => !v)} style={{
-            height: 36, padding: '0 14px', border: '1.5px solid #EFEDE8',
-            borderRadius: 8, background: '#fff', color: '#8A8780',
-            fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            {empty ? 'Ver com dados' : 'Ver conta nova'}
-          </button>
-          <Button
-            variant="primary"
-            iconRight={<Icons.arrowRight />}
-            onClick={() => {}}
-          >
-            {empty ? 'Cadastrar insumos' : 'Novo Orçamento'}
-          </Button>
-        </div>
+        <Button
+          variant="primary"
+          iconRight={<Icons.arrowRight />}
+          onClick={() => navigate('/orcamentos/novo')}
+        >
+          Novo Orçamento
+        </Button>
       </div>
+
+      {/* Erro de carregamento */}
+      {erro && (
+        <div style={{
+          padding: '16px 20px', borderRadius: 12,
+          background: '#FEF2F2', border: '1px solid #FECACA',
+          color: '#B91C1C', fontSize: 14, marginBottom: 18,
+        }}>
+          Falha ao carregar o dashboard. Tente novamente.
+        </div>
+      )}
 
       {/* Metrics */}
       <div className="metrics">
         <MetricCard
           icon={<Icons.dollar />}
           iconBg={hexA(ORANGE, 0.12)} iconColor={ORANGE}
-          label="Faturamento Mensal"
-          value={empty ? 'R$ 0,00' : 'R$ 1.890,00'} valueColor={ORANGE}
-          delta={empty ? undefined : <><span style={{ fontSize: 13 }}>↑</span> +23% este mês</>}
-          deltaColor="#3E9D5A"
-          empty="Sem vendas ainda"
+          label="Faturamento do Mês"
+          value={loading ? '—' : fmtBRL(data?.receitaMes ?? 0)}
+          valueColor={ORANGE}
+          sub={!loading && (data?.receitaMes ?? 0) === 0 ? 'Sem receita este mês' : undefined}
         />
         <MetricCard
           icon={<Icons.cube />}
           iconBg={hexA(TEAL, 0.12)} iconColor={TEAL}
           label="Produtos Cadastrados"
-          value={empty ? '0' : '18'} valueColor={TEAL}
-          delta={empty ? undefined : <><span style={{ fontSize: 13 }}>↑</span> +2 este mês</>}
-          deltaColor="#3E9D5A"
-          empty="Nenhum produto"
+          value={loading ? '—' : String(produtosCadastrados)}
+          valueColor={TEAL}
+          sub={!loading && produtosCadastrados === 0 ? 'Nenhum produto ainda' : undefined}
         />
         <MetricCard
           icon={<Icons.fileStack />}
           iconBg="#F1F0EC" iconColor="#7C786F"
           label="Orçamentos Pendentes"
-          value={empty ? '0' : '4'} valueColor="#2D2A26"
-          delta={empty ? undefined : <span style={{ color: '#8A8780', fontWeight: 500 }}>Aguardando resposta</span>}
-          deltaColor="#8A8780"
-          empty="Nenhum pendente"
+          value={loading ? '—' : String(data?.orcamentosPendentes ?? 0)}
+          valueColor="#2D2A26"
+          sub={!loading && (data?.orcamentosPendentes ?? 0) === 0
+            ? 'Nenhum pendente'
+            : !loading ? 'Aguardando resposta' : undefined}
         />
       </div>
 
-      {/* Alerta de estoque */}
-      {!empty && (
+      {/* Alerta de insumos com estoque baixo */}
+      {!loading && insumosEstoqueBaixo.length > 0 && (
         <div style={{
           marginTop: 18,
           background: '#fff',
@@ -173,139 +189,206 @@ export default function DashboardPage() {
               <Icons.alertTriangle />
             </span>
             <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600, color: '#2D2A26' }}>3 insumos com estoque baixo</div>
+              <div style={{ fontSize: 15.5, fontWeight: 600, color: '#2D2A26' }}>
+                {insumosEstoqueBaixo.length} {insumosEstoqueBaixo.length === 1 ? 'insumo com estoque baixo' : 'insumos com estoque baixo'}
+              </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 11 }}>
-                {STOCK_ALERTS.map(([nome, qtd], i) => (
-                  <span key={i} style={{
+                {insumosEstoqueBaixo.slice(0, 6).map((ins) => (
+                  <span key={ins.id} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7,
                     fontSize: 13, color: '#6B6860', whiteSpace: 'nowrap',
                     background: '#FCFBF9', border: '1px solid #ECEAE5',
                     borderRadius: 999, padding: '6px 12px',
                   }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: ORANGE, flexShrink: 0 }} />
-                    {nome} <strong style={{ fontWeight: 600, color: '#A35A26' }}>· {qtd}</strong>
+                    {ins.nome}
+                    <strong style={{ fontWeight: 600, color: '#A35A26' }}>
+                      · {ins.estoqueAtual} {ins.unidadeMedida}
+                    </strong>
                   </span>
                 ))}
               </div>
             </div>
-            <a href="/insumos" style={{
-              flexShrink: 0, alignSelf: 'center',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 13.5, fontWeight: 600, color: ORANGE, textDecoration: 'none',
-            }}
-              onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
-              onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+            <button
+              onClick={() => navigate('/insumos')}
+              style={{
+                flexShrink: 0, alignSelf: 'center',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 13.5, fontWeight: 600, color: ORANGE,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', padding: 0,
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.textDecoration = 'underline' }}
+              onMouseOut={(e) => { e.currentTarget.style.textDecoration = 'none' }}
             >
               Ver todos os insumos <Icons.arrowRight />
-            </a>
+            </button>
           </div>
         </div>
       )}
 
-      {/* Lower grid: Ações Rápidas + Dica do Dia */}
-      <div className="lower-grid" style={{ marginTop: 18 }}>
+      {/* Lower grid: listas de dados reais */}
+      {!loading && !erro && data && (
+        <div className="lower-grid" style={{ marginTop: 18 }}>
 
-        {/* Ações Rápidas */}
-        <Card padding="22px 24px" style={{ animation: 'fadeUp .55s ease both' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
-            <span style={{
-              display: 'grid', placeItems: 'center',
-              width: 42, height: 42, borderRadius: 12,
-              background: hexA(ORANGE, 0.12), color: ORANGE,
-            }}>
-              <Icons.trendUp />
-            </span>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Ações Rápidas</div>
-              <div style={{ fontSize: 13, color: '#8A8780', marginTop: 1 }}>
-                {empty ? 'Comece por aqui' : 'Acesso direto ao essencial'}
+          {/* Orçamentos Recentes */}
+          <Card padding="22px 24px" style={{ animation: 'fadeUp .55s ease both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <span style={{
+                display: 'grid', placeItems: 'center',
+                width: 42, height: 42, borderRadius: 12,
+                background: hexA(TEAL, 0.12), color: TEAL,
+              }}>
+                <Icons.fileStack />
+              </span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Orçamentos Recentes</div>
+                <div style={{ fontSize: 13, color: '#8A8780', marginTop: 1 }}>Últimas movimentações</div>
               </div>
             </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {QUICK_ACTIONS.map((action, i) => {
-              const highlight = empty && i === 0
-              return (
-                <a key={i} href="#" onClick={(e) => e.preventDefault()} style={{
-                  display: 'flex', alignItems: 'center', gap: 13,
-                  padding: '13px 15px', borderRadius: 12, textDecoration: 'none',
-                  border: `1px solid ${highlight ? hexA(ORANGE, 0.4) : '#ECEAE5'}`,
-                  background: highlight ? '#FFF1E8' : '#FCFBF9',
-                  transition: 'background .14s, border-color .14s, transform .12s',
-                }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = highlight ? hexA(ORANGE, 0.16) : '#F6F4F0'
-                    e.currentTarget.style.transform = 'translateX(2px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = highlight ? '#FFF1E8' : '#FCFBF9'
-                    e.currentTarget.style.transform = 'none'
-                  }}
-                >
-                  <span style={{
-                    display: 'grid', placeItems: 'center',
-                    width: 34, height: 34, borderRadius: 9,
-                    background: highlight ? '#fff' : hexA(TEAL, 0.10),
-                    color: highlight ? ORANGE : TEAL,
-                  }}>
-                    {action.icon}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: '#2D2A26' }}>
-                    {action.label}
-                  </span>
-                  <span style={{ color: highlight ? ORANGE : '#B7B4AD', display: 'flex' }}>
-                    <Icons.arrowRight />
-                  </span>
-                </a>
-              )
-            })}
-          </div>
-        </Card>
 
-        {/* Dica do Dia */}
-        <Card style={{
-          position: 'relative', overflow: 'hidden',
-          padding: '24px 26px',
-          animation: 'fadeUp .6s ease both',
-          background: `linear-gradient(150deg, ${hexA(TEAL, 0.10)} 0%, #FFFFFF 52%, ${hexA(ORANGE, 0.07)} 100%)`,
-          border: `1px solid ${hexA(TEAL, 0.18)}`,
-        }}>
-          {/* Decoração */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.63, pointerEvents: 'none' }}>
-            <DotTrail color={ORANGE} />
-            <div style={{
-              position: 'absolute', width: 150, height: 150,
-              borderRadius: '46% 54% 60% 40% / 50% 44% 56% 50%',
-              background: hexA(TEAL, 0.10),
-              top: -60, right: -40,
-              animation: 'floaty 10s ease-in-out infinite',
-            }} />
-          </div>
+            {data.orcamentosRecentes.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 14, color: '#B7B4AD' }}>Nenhum orçamento ainda.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {data.orcamentosRecentes.map((orc) => (
+                  <div
+                    key={orc.id}
+                    onClick={() => navigate(`/orcamentos/${orc.id}`)}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '11px 14px', borderRadius: 10,
+                      border: '1px solid #ECEAE5', background: '#FCFBF9',
+                      cursor: 'pointer', transition: 'background .14s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#F6F4F0' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#FCFBF9' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#6B6860', flexShrink: 0 }}>
+                        #{orc.numero}
+                      </span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2D2A26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {orc.nomeCliente}
+                      </span>
+                      <span style={{
+                        flexShrink: 0, fontSize: 11.5, fontWeight: 500, color: '#8A8780',
+                        background: '#F1F0EC', borderRadius: 999, padding: '3px 8px',
+                      }}>
+                        {STATUS_LABEL[orc.status] ?? orc.status}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: TEAL, flexShrink: 0, marginLeft: 12 }}>
+                      {fmtBRL(orc.total ?? 0)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
 
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14 }}>
-            <span style={{
-              display: 'grid', placeItems: 'center',
-              width: 46, height: 46, borderRadius: 13,
-              background: '#fff', color: TEAL,
-              boxShadow: '0 4px 12px -4px rgba(31,122,111,0.4)',
-              border: `1px solid ${hexA(TEAL, 0.2)}`,
-            }}>
-              <Icons.bulb width={22} height={22} />
-            </span>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Dica do Dia</div>
-              <div style={{ fontSize: 13, color: TEAL, fontWeight: 600, marginTop: 1 }}>Melhore seus lucros</div>
+          {/* Produtos Mais Vendidos */}
+          <Card padding="22px 24px" style={{ animation: 'fadeUp .6s ease both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <span style={{
+                display: 'grid', placeItems: 'center',
+                width: 42, height: 42, borderRadius: 12,
+                background: hexA(ORANGE, 0.12), color: ORANGE,
+              }}>
+                <Icons.cube />
+              </span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Mais Vendidos</div>
+                <div style={{ fontSize: 13, color: '#8A8780', marginTop: 1 }}>Top produtos do período</div>
+              </div>
             </div>
-          </div>
 
-          <p style={{ position: 'relative', margin: 0, fontSize: 14.5, lineHeight: 1.62, color: '#5C594F', maxWidth: 440 }}>
-            {empty
-              ? <>Cadastre seus insumos com os preços reais de compra. É a base de toda precificação justa — e leva só alguns minutos.</>
-              : <>Revise o preço dos seus produtos depois de cada compra de insumo — pequenas variações acumulam e corroem sua margem ao longo do mês.</>
-            }
-          </p>
+            {data.produtosMaisVendidos.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 14, color: '#B7B4AD' }}>Nenhum produto vendido ainda.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {data.produtosMaisVendidos.map((prod, i) => (
+                  <div
+                    key={prod.nomeProduto}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '11px 14px', borderRadius: 10,
+                      border: '1px solid #ECEAE5', background: '#FCFBF9',
+                    }}
+                  >
+                    <span style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: i === 0 ? hexA(ORANGE, 0.15) : '#F1F0EC',
+                      color: i === 0 ? ORANGE : '#8A8780',
+                      display: 'grid', placeItems: 'center',
+                      fontSize: 12, fontWeight: 700, flexShrink: 0,
+                    }}>
+                      {i + 1}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2D2A26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {prod.nomeProduto}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#6B6860', flexShrink: 0 }}>
+                      {prod.quantidade} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+        </div>
+      )}
+
+      {/* Ações Rápidas */}
+      {!loading && !erro && (
+        <Card padding="22px 24px" style={{ marginTop: 18, animation: 'fadeUp .65s ease both' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26', marginBottom: 14 }}>
+            Ações Rápidas
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {ACOES_RAPIDAS.map((acao) => (
+              <button
+                key={acao.rota}
+                onClick={() => navigate(acao.rota)}
+                style={{
+                  flex: '1 1 180px',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '13px 16px', borderRadius: 12, cursor: 'pointer',
+                  border: '1px solid #ECEAE5', background: '#FCFBF9',
+                  fontFamily: 'inherit', transition: 'background .14s, border-color .14s, transform .12s',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#F6F4F0'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#FCFBF9'
+                  e.currentTarget.style.transform = 'none'
+                }}
+              >
+                <span style={{
+                  display: 'grid', placeItems: 'center',
+                  width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                  background: hexA(TEAL, 0.10), color: TEAL,
+                }}>
+                  {acao.icon}
+                </span>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#2D2A26' }}>
+                  {acao.label}
+                </span>
+                <span style={{ color: '#B7B4AD', display: 'flex' }}>
+                  <Icons.arrowRight />
+                </span>
+              </button>
+            ))}
+          </div>
         </Card>
-      </div>
+      )}
+
     </AppLayout>
   )
 }
