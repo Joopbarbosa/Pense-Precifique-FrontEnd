@@ -5,16 +5,12 @@ import { Icons, Button, ModalShell } from '../../components/ui'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
 import { orcamentoService } from '../../services/orcamentoService'
+import { catalogoService } from '../../services/catalogoService'
+import { empresaService } from '../../services/empresaService'
 import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
-import type { OrcamentoRequest, MetodoPagamento } from '../../types/orcamento'
-
-const CUSTOMIZACOES_MOCK = [
-  { nome: 'Laminação fosca',  valor: 8 },
-  { nome: 'Envelope kraft',   valor: 3.5 },
-  { nome: 'Fita de cetim',    valor: 2 },
-  { nome: 'Caixa premium',    valor: 12 },
-]
+import type { OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse } from '../../types/orcamento'
+import type { CatalogoResponse } from '../../types/catalogo'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
@@ -33,8 +29,12 @@ interface Item {
   nome: string
   qtd: number
   preco: number
-  customs: { nome: string; valor: number; qtd: number }[]
+  customs: { id: string; nome: string; valor: number; qtd: number }[]
   produtoId?: string
+  produtoIdentificador?: string
+  itemCatalogoId?: string
+  catalogoNome?: string
+  margemAplicada?: number
 }
 
 // ── QuoteCard ──────────────────────────────────────────────────────────────
@@ -230,12 +230,30 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
   onOpenCustom: (item: Item) => void
 }) {
   const lineTotal = item.preco * item.qtd
+  const origemLabel = item.itemCatalogoId
+    ? item.catalogoNome
+    : item.produtoId
+      ? (item.produtoIdentificador ? `${item.produtoIdentificador} - Venda sem catálogo` : 'Venda sem catálogo')
+      : null
+  const origemColor = item.itemCatalogoId ? '#2A9D8F' : '#8A8780'
+  const origemBg = item.itemCatalogoId ? 'rgba(42,157,143,0.10)' : '#F1F0EC'
 
   return (
     <div style={{ padding: '16px 20px', borderTop: index > 0 ? '1px solid #EFEDE8' : 'none', animation: 'fadeUp .35s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 160 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 600, color: '#3A372F' }}>{item.nome}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600, color: '#3A372F' }}>{item.nome}</div>
+            {origemLabel && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px',
+                borderRadius: 999, fontSize: 11.5, fontWeight: 600, color: origemColor, background: origemBg,
+              }}>
+                {item.itemCatalogoId ? <Icons.layers width={11} height={11} /> : <Icons.cube width={11} height={11} />}
+                {origemLabel}
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 13, color: '#A29E96', marginTop: 2 }}>{BRL(item.preco)} / unidade</div>
         </div>
         <Stepper value={item.qtd} onChange={v => onQtd(item.id, v)} />
@@ -283,28 +301,46 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
 function ModalCustomizacoes({ item, onClose, onConfirm }: {
   item: Item
   onClose: () => void
-  onConfirm: (id: number, customs: { nome: string; valor: number; qtd: number }[]) => void
+  onConfirm: (id: number, customs: { id: string; nome: string; valor: number; qtd: number }[]) => void
 }) {
   const [busca, setBusca] = useState('')
-  const [selecionadas, setSelecionadas] = useState<{ nome: string; valor: number; qtd: number }[]>(
+  const [selecionadas, setSelecionadas] = useState<{ id: string; nome: string; valor: number; qtd: number }[]>(
     item.customs.map(c => ({ ...c, qtd: c.qtd ?? 1 }))
   )
+  const [customizacoes, setCustomizacoes] = useState<{ id: string; nome: string; valor: number }[]>([])
+  const [loadingCustom, setLoadingCustom] = useState(true)
+  const [errorCustom, setErrorCustom] = useState(false)
 
-  const filtradas = CUSTOMIZACOES_MOCK.filter(c =>
+  useEffect(() => {
+    setLoadingCustom(true)
+    setErrorCustom(false)
+    produtoService.listar(0, 100, 'CUSTOMIZACAO')
+      .then(data => {
+        setCustomizacoes(data.content.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          valor: p.precoVenda ?? 0,
+        })))
+      })
+      .catch(() => setErrorCustom(true))
+      .finally(() => setLoadingCustom(false))
+  }, [])
+
+  const filtradas = customizacoes.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase())
   )
 
-  const toggle = (c: { nome: string; valor: number }) => {
+  const toggle = (c: { id: string; nome: string; valor: number }) => {
     setSelecionadas(prev =>
-      prev.find(x => x.nome === c.nome)
-        ? prev.filter(x => x.nome !== c.nome)
+      prev.find(x => x.id === c.id)
+        ? prev.filter(x => x.id !== c.id)
         : [...prev, { ...c, qtd: 1 }]
     )
   }
 
-  const setQtd = (nome: string, qtd: number) => {
+  const setQtd = (id: string, qtd: number) => {
     setSelecionadas(prev =>
-      prev.map(x => x.nome === nome ? { ...x, qtd: Math.max(1, qtd) } : x)
+      prev.map(x => x.id === id ? { ...x, qtd: Math.max(1, qtd) } : x)
     )
   }
 
@@ -351,12 +387,24 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
 
       {/* Lista de customizações */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtradas.map(c => {
-          const sel = selecionadas.find(x => x.nome === c.nome)
+        {loadingCustom ? (
+          <div style={{ padding: '32px', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
+            Carregando customizações...
+          </div>
+        ) : errorCustom ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: '#C0492B', fontSize: 14 }}>
+            Falha ao carregar customizações. Tente novamente.
+          </div>
+        ) : filtradas.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
+            {busca ? 'Nenhuma customização encontrada.' : 'Nenhuma customização cadastrada.'}
+          </div>
+        ) : filtradas.map(c => {
+          const sel = selecionadas.find(x => x.id === c.id)
           const on = !!sel
 
           return (
-            <div key={c.nome} style={{
+            <div key={c.id} style={{
               borderRadius: 11,
               border: `1.5px solid ${on ? 'rgba(249,115,22,0.4)' : '#EFEDE8'}`,
               background: on ? 'rgba(249,115,22,0.07)' : '#FCFBF9',
@@ -395,7 +443,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                 }}>
                   <span style={{ fontSize: 13, color: '#A29E96' }}>Quantidade</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1px solid #EFEDE8', borderRadius: 8, overflow: 'hidden' }}>
-                    <button onClick={() => setQtd(c.nome, (sel?.qtd ?? 1) - 1)} style={{
+                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) - 1)} style={{
                       width: 32, height: 34, border: 'none', background: '#FAF8F5',
                       color: '#5C594F', cursor: 'pointer', fontSize: 16,
                       display: 'grid', placeItems: 'center',
@@ -407,7 +455,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                     }}>
                       {sel?.qtd ?? 1}
                     </span>
-                    <button onClick={() => setQtd(c.nome, (sel?.qtd ?? 1) + 1)} style={{
+                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) + 1)} style={{
                       width: 32, height: 34, border: 'none', background: '#FAF8F5',
                       color: '#2A9D8F', cursor: 'pointer', fontSize: 16,
                       display: 'grid', placeItems: 'center',
@@ -421,12 +469,6 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
             </div>
           )
         })}
-
-        {filtradas.length === 0 && (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
-            Nenhuma customização encontrada.
-          </div>
-        )}
       </div>
 
       {/* Rodapé de totais */}
@@ -870,14 +912,43 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
   )
 }
 
-// ── ProdutoSelect ──────────────────────────────────────────────────────────
-function ProdutoSelect({ onSelect, onClose, open }: {
-  onSelect: (p: ProdutoResponse) => void
-  onClose: () => void
+// ── ModoToggle ─────────────────────────────────────────────────────────────
+function ModoToggle({ modo, onChange }: { modo: 'tudo' | 'catalogo'; onChange: (m: 'tudo' | 'catalogo') => void }) {
+  return (
+    <div style={{ display: 'inline-flex', borderRadius: 10, border: '1px solid #EFEDE8', overflow: 'hidden', flexShrink: 0 }}>
+      {([['tudo', 'Tudo'], ['catalogo', 'Catálogo']] as const).map(([val, label]) => {
+        const on = modo === val
+        return (
+          <button key={val} onClick={() => onChange(val)} style={{
+            height: 38, padding: '0 16px', border: 'none', cursor: 'pointer',
+            fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit',
+            background: on ? '#2A9D8F' : '#fff',
+            color: on ? '#fff' : '#5C594F',
+            transition: 'background .14s',
+          }}>
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── ItemSearch ─────────────────────────────────────────────────────────────
+function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCatalogoFiltro, onSelectCatalogoItem, onSelectProdutoAvulso }: {
   open: boolean
+  onClose: () => void
+  modo: 'tudo' | 'catalogo'
+  catalogos: CatalogoResponse[]
+  catalogoFiltro: string
+  onSelectCatalogoFiltro: (id: string) => void
+  onSelectCatalogoItem: (item: ItemCatalogoBuscaResponse) => void
+  onSelectProdutoAvulso: (produto: ProdutoResponse) => void
 }) {
   const [q, setQ] = useState('')
-  const [results, setResults] = useState<ProdutoResponse[]>([])
+  const [itensCatalogo, setItensCatalogo] = useState<ItemCatalogoBuscaResponse[]>([])
+  const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
+  const [loading, setLoading] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -891,74 +962,257 @@ function ProdutoSelect({ onSelect, onClose, open }: {
   useEffect(() => {
     if (!open) {
       setQ('')
-      setResults([])
+      setItensCatalogo([])
+      setProdutos([])
       return
     }
+    let cancelled = false
     const load = async () => {
+      setLoading(true)
       try {
-        const data = await produtoService.listar(0, 20, 'PRODUTO', q || undefined)
-        setResults(data.content)
-      } catch (err) {
-        console.error('Erro ao buscar produtos:', err)
-        setResults([])
+        const tarefas: Promise<void>[] = [
+          orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined).then(data => {
+            if (!cancelled) setItensCatalogo(data)
+          }).catch(() => { if (!cancelled) setItensCatalogo([]) }),
+        ]
+        if (modo === 'tudo') {
+          tarefas.push(
+            produtoService.listar(0, 20, 'PRODUTO', q || undefined).then(data => {
+              if (!cancelled) setProdutos(data.content)
+            }).catch(() => { if (!cancelled) setProdutos([]) })
+          )
+        } else {
+          if (!cancelled) setProdutos([])
+        }
+        await Promise.all(tarefas)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
     const timer = setTimeout(load, 300)
-    return () => clearTimeout(timer)
-  }, [q, open])
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [q, open, modo, catalogoFiltro])
 
   if (!open) return null
+
+  const qLower = q.trim().toLowerCase()
+  const itensCatalogoFiltrados = qLower
+    ? itensCatalogo.filter(i => i.nomeProduto.toLowerCase().includes(qLower))
+    : itensCatalogo
+  const semResultado = itensCatalogoFiltrados.length === 0 && produtos.length === 0 && !loading
 
   return (
     <div ref={wrapRef} style={{
       position: 'absolute', left: 20, right: 20, top: 62, zIndex: 30,
       background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12,
       boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6,
-      animation: 'pop .14s ease both', maxHeight: 300, overflowY: 'auto',
+      animation: 'pop .14s ease both', maxHeight: 360, overflowY: 'auto',
     }}>
-      <div style={{ position: 'sticky', top: 0, padding: '6px 6px 0', background: '#fff', zIndex: 10 }}>
+      <div style={{ position: 'sticky', top: 0, padding: '6px 6px 0', background: '#fff', zIndex: 10, display: 'flex', gap: 6 }}>
         <input
           autoFocus
           type="text"
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Buscar produto..."
+          placeholder={modo === 'catalogo' ? 'Buscar item de catálogo...' : 'Buscar produto ou item de catálogo...'}
           style={{
-            width: '100%', height: 38, padding: '0 12px',
+            flex: 1, minWidth: 0, height: 38, padding: '0 12px',
             border: '1.5px solid #EFEDE8', borderRadius: 9,
             fontSize: 14, color: '#3A372F', background: '#FCFBF9',
             outline: 'none', fontFamily: 'inherit',
           }}
         />
+        {modo === 'catalogo' && catalogos.length > 0 && (
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <select
+              value={catalogoFiltro}
+              onChange={e => onSelectCatalogoFiltro(e.target.value)}
+              style={{
+                height: 38, padding: '0 30px 0 32px', border: '1.5px solid #EFEDE8', borderRadius: 9,
+                fontSize: 13, color: '#3A372F', background: '#FCFBF9', outline: 'none',
+                fontFamily: 'inherit', cursor: 'pointer', maxWidth: 150,
+              }}
+            >
+              <option value="">Todos catálogos</option>
+              {catalogos.map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', pointerEvents: 'none' }}>
+              <Icons.filter width={14} height={14} />
+            </span>
+          </div>
+        )}
       </div>
       <div style={{ marginTop: 6 }}>
-        {results.length > 0 ? (
-          results.map(p => (
-            <button key={p.id} onClick={() => { onSelect(p); onClose(); setQ('') }} style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 11,
-              padding: '10px 11px', borderRadius: 9, border: 'none',
-              background: 'transparent', cursor: 'pointer', textAlign: 'left',
-              fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: '#3A372F',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#F7F5F1')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-                <Icons.cube />
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: '#3A372F' }}>{p.nome}</div>
-                <div style={{ fontSize: 12, color: '#A29E96' }}>{BRL(p.precoVenda || 0)}</div>
+        {itensCatalogoFiltrados.length > 0 && (
+          <div>
+            {modo === 'tudo' && (
+              <div style={{ padding: '6px 11px 2px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
+                Itens de catálogo
               </div>
-            </button>
-          ))
-        ) : (
+            )}
+            {itensCatalogoFiltrados.map(item => (
+              <button key={item.id} onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 11,
+                padding: '10px 11px', borderRadius: 9, border: 'none',
+                background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: '#3A372F',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F7F5F1')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F', flexShrink: 0 }}>
+                  <Icons.layers width={16} height={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nomeProduto}</div>
+                  <div style={{ fontSize: 12, color: '#A29E96' }}>{BRL(item.precoVenda)} · {item.catalogoNome}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {modo === 'tudo' && produtos.length > 0 && (
+          <div>
+            <div style={{ padding: '10px 11px 2px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
+              Produtos avulsos
+            </div>
+            {produtos.map(p => (
+              <button key={p.id} onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 11,
+                padding: '10px 11px', borderRadius: 9, border: 'none',
+                background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: '#3A372F',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F7F5F1')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: '#F1F0EC', color: '#8A8780', flexShrink: 0 }}>
+                  <Icons.cube width={16} height={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
+                  <div style={{ fontSize: 12, color: '#A29E96' }}>Avulso · margem editável</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {semResultado && (
           <div style={{ padding: '20px', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
-            Nenhum produto encontrado.
+            {modo === 'catalogo'
+              ? 'Nenhum item de catálogo encontrado. Cadastre um item de catálogo primeiro.'
+              : 'Nenhum resultado encontrado.'}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+// ── ModalMargemAvulso ──────────────────────────────────────────────────────
+function ModalMargemAvulso({ produto, margemPadrao, onClose, onConfirm }: {
+  produto: ProdutoResponse
+  margemPadrao: number
+  onClose: () => void
+  onConfirm: (margemAplicada: number, precoUnitario: number) => void
+}) {
+  const [margem, setMargem] = useState(margemPadrao.toString())
+  const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
+  const [precoFinal, setPrecoFinal] = useState('')
+  const [precoFinalEditado, setPrecoFinalEditado] = useState(false)
+  const [calculando, setCalculando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  useEffect(() => {
+    const margemNum = parseFloat(margem.replace(',', '.'))
+    if (!Number.isFinite(margemNum) || margemNum < 0) return
+    setCalculando(true)
+    setErro(null)
+    const timer = setTimeout(() => {
+      produtoService.buscarPrecoSugerido(produto.id, margemNum)
+        .then(resp => {
+          setPrecoSugerido(resp.precoSugerido)
+          if (!precoFinalEditado) {
+            setPrecoFinal(resp.precoSugerido.toFixed(2).replace('.', ','))
+          }
+        })
+        .catch(() => setErro('Não foi possível calcular o preço sugerido.'))
+        .finally(() => setCalculando(false))
+    }, 350)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [margem, produto.id])
+
+  const precoFinalNum = parseFloat(precoFinal.replace(',', '.')) || 0
+  const podeConfirmar = precoFinalNum > 0 && !calculando
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title={produto.nome}
+      subtitle="Adicionar produto avulso"
+      icon={<Icons.cube width={20} height={20} />}
+      iconBg="rgba(42,157,143,0.10)"
+      iconColor="#2A9D8F"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" disabled={!podeConfirmar} onClick={() => onConfirm(parseFloat(margem.replace(',', '.')) || 0, precoFinalNum)}>
+            Adicionar ao orçamento
+          </Button>
+        </>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <label style={{ display: 'block' }}>
+          <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>Margem (%)</span>
+          <input
+            value={margem}
+            onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
+            inputMode="decimal"
+            style={{
+              width: '100%', height: 46, padding: '0 14px',
+              border: '1.5px solid #EFEDE8', borderRadius: 10,
+              fontSize: 15, fontWeight: 600, color: '#3A372F',
+              background: '#fff', outline: 'none', fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
+          />
+        </label>
+
+        <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.08)', border: '1px solid rgba(42,157,143,0.2)' }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Preço sugerido</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: '#2A9D8F', marginTop: 2 }}>
+            {calculando ? 'Calculando…' : precoSugerido != null ? BRL(precoSugerido) : '—'}
+          </div>
+        </div>
+
+        {erro && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#C0492B' }}>
+            <Icons.alertCircle width={13} height={13} /> {erro}
+          </div>
+        )}
+
+        <label style={{ display: 'block' }}>
+          <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>Preço final</span>
+          <input
+            value={precoFinal}
+            onChange={e => { setPrecoFinal(e.target.value.replace(/[^\d.,]/g, '')); setPrecoFinalEditado(true) }}
+            inputMode="decimal"
+            style={{
+              width: '100%', height: 46, padding: '0 14px',
+              border: '1.5px solid #EFEDE8', borderRadius: 10,
+              fontSize: 15, fontWeight: 600, color: '#3A372F',
+              background: '#fff', outline: 'none', fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
+          />
+        </label>
+      </div>
+    </ModalShell>
   )
 }
 
@@ -983,6 +1237,11 @@ export default function CriarOrcamentoPage() {
   const [obs, setObs] = useState('')
   const [productOpen, setProductOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [modoItens, setModoItens] = useState<'tudo' | 'catalogo'>('tudo')
+  const [catalogos, setCatalogos] = useState<CatalogoResponse[]>([])
+  const [catalogoFiltro, setCatalogoFiltro] = useState('')
+  const [margemPadrao, setMargemPadrao] = useState(0)
+  const [produtoAvulsoModal, setProdutoAvulsoModal] = useState<ProdutoResponse | null>(null)
   const prodRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -993,6 +1252,11 @@ export default function CriarOrcamentoPage() {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  useEffect(() => {
+    catalogoService.listar().then(setCatalogos).catch(() => setCatalogos([]))
+    empresaService.getConfiguracao().then(cfg => setMargemPadrao(cfg.margemPadrao ?? 0)).catch(() => {})
+  }, [])
+
   const subtotal = items.reduce((s, it) => s + it.preco * it.qtd + it.customs.reduce((cs, c) => cs + c.valor * c.qtd * it.qtd, 0), 0)
   const descNum = parseFloat(descValor.replace(',', '.')) || 0
   const descontoAplicado = descTipo === '%' ? subtotal * descNum / 100 : Math.min(descNum, subtotal)
@@ -1001,16 +1265,37 @@ export default function CriarOrcamentoPage() {
   const sinalAplicado = sinalAtivo ? (sinalTipo === '%' ? total * sinalNum / 100 : Math.min(sinalNum, total)) : 0
   const restante = Math.max(0, total - sinalAplicado)
 
-  const handleAddProduto = (produto: ProdutoResponse) => {
+  const handleAddCatalogoItem = (item: ItemCatalogoBuscaResponse) => {
     setItems(arr => [...arr, {
       id: Date.now(),
-      nome: produto.nome,
+      nome: item.nomeProduto,
       qtd: 1,
-      preco: produto.precoVenda || 0,
+      preco: item.precoVenda,
       customs: [],
-      produtoId: produto.id,
+      itemCatalogoId: item.id,
+      catalogoNome: item.catalogoNome,
     }])
     setProductOpen(false)
+  }
+
+  const handleSelectProdutoAvulso = (produto: ProdutoResponse) => {
+    setProdutoAvulsoModal(produto)
+    setProductOpen(false)
+  }
+
+  const handleConfirmAvulso = (margemAplicada: number, precoUnitario: number) => {
+    if (!produtoAvulsoModal) return
+    setItems(arr => [...arr, {
+      id: Date.now(),
+      nome: produtoAvulsoModal.nome,
+      qtd: 1,
+      preco: precoUnitario,
+      customs: [],
+      produtoId: produtoAvulsoModal.id,
+      produtoIdentificador: produtoAvulsoModal.identificador,
+      margemAplicada,
+    }])
+    setProdutoAvulsoModal(null)
   }
 
   const handleSubmit = async () => {
@@ -1045,10 +1330,12 @@ export default function CriarOrcamentoPage() {
     const payload: OrcamentoRequest = {
       clienteId: cliente.id,
       itens: items.map(it => ({
-        produtoId: it.produtoId || '',
+        ...(it.itemCatalogoId
+          ? { itemCatalogoId: it.itemCatalogoId }
+          : { produtoId: it.produtoId, margemAplicada: it.margemAplicada, precoUnitario: it.preco }),
         quantidade: it.qtd,
         customizacoes: it.customs.map(c => ({
-          produtoId: '', // TODO: mapear para ID da customização se necessário
+          produtoId: c.id,
           quantidade: c.qtd,
         })),
       })),
@@ -1108,6 +1395,9 @@ export default function CriarOrcamentoPage() {
 
           {/* Seção 2: Itens */}
           <QuoteCard step="2" label="Itens do orçamento" hint="Produtos e quantidades do pedido.">
+            <div style={{ padding: '14px 20px 0' }}>
+              <ModoToggle modo={modoItens} onChange={m => { setModoItens(m); setCatalogoFiltro('') }} />
+            </div>
             <div style={{ marginTop: 14 }}>
               {items.length === 0 ? (
                 <div style={{ margin: '4px 20px 20px', padding: '40px 24px', textAlign: 'center', border: '1.5px dashed #EFEDE8', borderRadius: 14, background: '#FCFBF9' }}>
@@ -1140,9 +1430,18 @@ export default function CriarOrcamentoPage() {
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(42,157,143,0.10)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(42,157,143,0.05)')}
                 >
-                  <Icons.plus /> Adicionar produto
+                  <Icons.plus /> Adicionar item
                 </button>
-                <ProdutoSelect onSelect={handleAddProduto} onClose={() => setProductOpen(false)} open={productOpen} />
+                <ItemSearch
+                  open={productOpen}
+                  onClose={() => setProductOpen(false)}
+                  modo={modoItens}
+                  catalogos={catalogos}
+                  catalogoFiltro={catalogoFiltro}
+                  onSelectCatalogoFiltro={setCatalogoFiltro}
+                  onSelectCatalogoItem={handleAddCatalogoItem}
+                  onSelectProdutoAvulso={handleSelectProdutoAvulso}
+                />
               </div>
             </div>
           </QuoteCard>
@@ -1203,6 +1502,16 @@ export default function CriarOrcamentoPage() {
             setItems(arr => arr.map(x => x.id === id ? { ...x, customs } : x))
             setModalItem(null)
           }}
+        />
+      )}
+
+      {/* Modal margem produto avulso */}
+      {produtoAvulsoModal && (
+        <ModalMargemAvulso
+          produto={produtoAvulsoModal}
+          margemPadrao={margemPadrao}
+          onClose={() => setProdutoAvulsoModal(null)}
+          onConfirm={handleConfirmAvulso}
         />
       )}
 

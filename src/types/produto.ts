@@ -35,6 +35,8 @@ export interface ProdutoRequest {
 
 export interface ProdutoResponse {
   id: string
+  numero?: number
+  identificador?: string
   nome: string
   tipo: TipoProduto
   precoVenda?: number
@@ -71,6 +73,12 @@ export interface MovimentacaoProdutoResponse {
   referenciaTipo?: string
   estornada: boolean
   createdAt: string
+}
+
+export interface PrecoSugeridoResponse {
+  custoUnitario: number
+  margem: number
+  precoSugerido: number
 }
 
 export interface PageResponse<T> {

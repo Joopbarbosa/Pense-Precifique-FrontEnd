@@ -11,9 +11,20 @@ export interface OrcamentoItemCustomizacaoRequest {
 }
 
 export interface OrcamentoItemRequest {
-  produtoId: string;
+  itemCatalogoId?: string;
+  produtoId?: string;
+  margemAplicada?: number;
+  precoUnitario?: number;
   quantidade: number;
   customizacoes: OrcamentoItemCustomizacaoRequest[];
+}
+
+export interface ItemCatalogoBuscaResponse {
+  id: string;
+  nomeProduto: string;
+  precoVenda: number;
+  catalogoNome: string;
+  catalogoNumero: number;
 }
 
 export interface OrcamentoRequest {
@@ -44,8 +55,10 @@ export interface OrcamentoItemCustomizacaoResponse {
 
 export interface OrcamentoItemResponse {
   id: string;
+  itemCatalogoId?: string;
   produtoId: string;
   nomeProduto: string;
+  margemAplicada?: number;
   quantidade: number;
   precoUnitario: number;
   subtotal: number;

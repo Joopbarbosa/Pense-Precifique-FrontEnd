@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, PageResponse } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, PageResponse, ItemCatalogoBuscaResponse } from '../types/orcamento';
 
 export const orcamentoService = {
   listar: async (page: number, size = 20, status?: string): Promise<PageResponse<OrcamentoResponse>> => {
@@ -16,6 +16,13 @@ export const orcamentoService = {
 
   criar: async (data: OrcamentoRequest): Promise<OrcamentoDetalheResponse> => {
     const response = await api.post('/orcamentos', data);
+    return response.data;
+  },
+
+  buscarItensCatalogo: async (catalogoId?: string): Promise<ItemCatalogoBuscaResponse[]> => {
+    const params: Record<string, any> = {};
+    if (catalogoId) params.catalogoId = catalogoId;
+    const response = await api.get('/orcamentos/itens-catalogo', { params });
     return response.data;
   },
 

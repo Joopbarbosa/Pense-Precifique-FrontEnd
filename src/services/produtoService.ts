@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, PageResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, PageResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
 
 export const produtoService = {
@@ -47,6 +47,11 @@ export const produtoService = {
 
   listarMovimentacoes: async (id: string, page: number, size = 20): Promise<PageResponse<MovimentacaoProdutoResponse>> => {
     const response = await api.get(`/produtos/${id}/movimentacoes`, { params: { page, size } })
+    return response.data
+  },
+
+  buscarPrecoSugerido: async (id: string, margem: number): Promise<PrecoSugeridoResponse> => {
+    const response = await api.get(`/produtos/${id}/preco-sugerido`, { params: { margem } })
     return response.data
   },
 }
