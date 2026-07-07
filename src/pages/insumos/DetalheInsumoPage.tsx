@@ -294,7 +294,7 @@ function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsum
   )
 }
 
-function FichasList({ produtos, loading }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean }) {
+function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean; onSelect: (produtoId: string) => void }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '32px 20px', justifyContent: 'center' }}>
@@ -315,17 +315,33 @@ function FichasList({ produtos, loading }: { produtos: ProdutoRelacionadoRespons
   return (
     <div>
       {produtos.map((p) => (
-        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
+        <button key={p.id} onClick={() => onSelect(p.id)} style={{
+          display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
+          borderTop: '1px solid #EFEDE8', borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
+          animation: 'fadeUp .35s ease both', width: '100%',
+          background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#FAF8F5')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
           <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
             <Icons.cubeSmall />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {p.identificador && (
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{p.identificador}</span>
+              )}
+              <span style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
+            </div>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>
             {TIPO_LABEL[p.tipo] ?? p.tipo}
           </span>
-        </div>
+          <span style={{ flexShrink: 0, color: '#CFCBC3', display: 'flex' }}>
+            <Icons.chevron />
+          </span>
+        </button>
       ))}
     </div>
   )
@@ -434,6 +450,9 @@ export default function DetalheInsumoPage() {
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {insumo.identificador && (
+                <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{insumo.identificador}</span>
+              )}
               <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>{insumo.nome}</h1>
               {insumo.ativo ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 12.5, fontWeight: 600 }}>
@@ -518,7 +537,7 @@ export default function DetalheInsumoPage() {
             )}
           </>
         ) : (
-          <FichasList produtos={produtosRelacionados} loading={loadingFichas} />
+          <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
         )}
       </div>
 

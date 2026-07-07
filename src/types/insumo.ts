@@ -9,6 +9,8 @@ export interface InsumoRequest {
 
 export interface InsumoResponse {
   id: string
+  numero?: number
+  identificador?: string
   nome: string
   marca?: string
   unidadeMedida: string
@@ -41,6 +43,7 @@ export interface MovimentacaoInsumoResponse {
 
 export interface ProdutoRelacionadoResponse {
   id: string
+  identificador?: string
   nome: string
   tipo: 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
 }
