@@ -61,6 +61,11 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
         <Avatar nome={cliente.nome} inativa={inativa} />
         <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {cliente.identificador && (
+            <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>
+              {cliente.identificador}
+            </span>
+          )}
           <span style={{
             fontSize: 15, fontWeight: 600,
             color: inativa ? '#AAA69E' : '#3A372F',

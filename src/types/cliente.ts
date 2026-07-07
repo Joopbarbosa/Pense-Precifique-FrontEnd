@@ -8,6 +8,8 @@ export interface ClienteRequest {
 
 export interface ClienteResponse {
   id: string
+  numero?: number
+  identificador?: string
   nome: string
   email?: string
   whatsapp?: string

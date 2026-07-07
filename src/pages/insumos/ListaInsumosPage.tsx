@@ -91,6 +91,10 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
     }}
       onAnimationEnd={e => { e.currentTarget.style.animation = 'none' }}
     >
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
+        {insumo.identificador}
+      </div>
+
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {insumo.nome}
@@ -145,7 +149,8 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>{insumo.nome}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#A29E96' }}>{insumo.identificador}</div>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', marginTop: 2 }}>{insumo.nome}</div>
           <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>{insumo.marca}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
             <InsumoStatusBadge insumo={insumo} small />
@@ -632,7 +637,7 @@ export default function ListaInsumosPage() {
 
           <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <div className="i-head">
-              {['Insumo', 'Unidade', 'Estoque atual', 'Estoque mín.', 'Custo unitário', 'Status', ''].map((h, k) => (
+              {['Identificador', 'Insumo', 'Unidade', 'Estoque atual', 'Estoque mín.', 'Custo unitário', 'Status', ''].map((h, k) => (
                 <div key={k} style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
                   {h}
                 </div>

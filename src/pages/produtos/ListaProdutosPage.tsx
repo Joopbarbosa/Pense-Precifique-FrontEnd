@@ -122,6 +122,11 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
 
       {/* CORPO */}
       <div style={{ padding: '15px 16px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {p.identificador && (
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums', marginBottom: 3 }}>
+            {p.identificador}
+          </div>
+        )}
         <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 600, lineHeight: 1.3, color: '#3A372F', letterSpacing: '-0.01em' }}>
           {p.nome}
         </h3>
