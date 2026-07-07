@@ -357,10 +357,11 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
 
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, custoTotalLote, custoUnitario }: {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, custoTotalLote, custoUnitario, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo }: {
   ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
   rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
   custoTotalLote: number | null; custoUnitario: number | null
+  mostrarBotaoCatalogo: boolean; salvandoCatalogo: boolean; botaoCatalogoDisabled: boolean; onCriarCatalogo: () => void
 }) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
   const remove = (idx: number) => setFicha(f => f.filter((_, k) => k !== idx))
@@ -402,19 +403,29 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             </button>
           </div>
         ))}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px 24px', padding: '18px 22px', borderTop: '1px solid #EFEDE8' }}>
-          <div>
-            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-              Rendimento<span style={{ color: '#F97316', marginLeft: 3 }}>*</span>
-            </span>
-            <div style={{ maxWidth: 200 }}>
-              <TextInput value={rendimento} onChange={v => setRendimento(v.replace(/[^\d,]/g, ''))} placeholder="1" suffix="un" inputMode="decimal" />
+        <div style={{ padding: '18px 22px', borderTop: '1px solid #EFEDE8' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
+                Rendimento<span style={{ color: '#F97316', marginLeft: 3 }}>*</span>
+              </span>
+              <div style={{ maxWidth: 200 }}>
+                <TextInput value={rendimento} onChange={v => setRendimento(v.replace(/[^\d,]/g, ''))} placeholder="1" suffix="un" inputMode="decimal" />
+              </div>
+              <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Quantidade de unidades que este lote produz.</span>
+              {rendimentoErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{rendimentoErro}</span>}
             </div>
-            <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Quantidade de unidades que este lote produz.</span>
-            {rendimentoErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{rendimentoErro}</span>}
+            {mostrarBotaoCatalogo && (
+              <Button variant="primary" iconRight={!salvandoCatalogo ? <Icons.arrowRight /> : undefined} onClick={onCriarCatalogo} disabled={botaoCatalogoDisabled}>
+                {salvandoCatalogo
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Criando…</span>
+                  : 'Criar produto catálogo'
+                }
+              </Button>
+            )}
           </div>
           {(custoTotalLote != null || custoUnitario != null) && (
-            <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(58,111,160,0.07)', border: '1px solid rgba(58,111,160,0.2)' }}>
+            <div style={{ marginTop: 18, padding: '12px 16px', borderRadius: 10, background: 'rgba(58,111,160,0.07)', border: '1px solid rgba(58,111,160,0.2)', maxWidth: 320 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3A6FA0', marginBottom: 8 }}>Valores salvos</div>
               {custoTotalLote != null && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
@@ -810,6 +821,8 @@ export default function CadastrarProdutoPage() {
             ficha={ficha} setFicha={setFicha}
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento}
             custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}
+            mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
+            botaoCatalogoDisabled={!!salvando} onCriarCatalogo={() => salvar('catalogo')}
           />
           <Calculadora
             ficha={ficha} tempo={dados.tempo}
@@ -839,26 +852,16 @@ export default function CadastrarProdutoPage() {
               )}
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
-              <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
-                Cancelar
-              </Button>
-              <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando}>
-                {salvando === 'padrao'
-                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
-                  : (editando ? 'Salvar alterações' : 'Salvar produto')
-                }
-              </Button>
-            </div>
-            {isProduto && (
-              <Button variant="primary" fullWidth iconRight={!salvando ? <Icons.arrowRight /> : undefined} onClick={() => salvar('catalogo')} disabled={!!salvando}>
-                {salvando === 'catalogo'
-                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Criando…</span>
-                  : 'Criar produto catálogo'
-                }
-              </Button>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
+            <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
+              Cancelar
+            </Button>
+            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando}>
+              {salvando === 'padrao'
+                ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
+                : (editando ? 'Salvar alterações' : 'Salvar produto')
+              }
+            </Button>
           </div>
         </div>
       )}
