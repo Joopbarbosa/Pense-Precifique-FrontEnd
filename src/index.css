@@ -440,7 +440,7 @@ body:has(.drawer-open) {
 /* Grid da tabela de catálogos */
 .cat-head, .cat-row {
   display: grid;
-  grid-template-columns: 0.8fr 2.2fr 0.8fr 0.9fr 0.9fr;
+  grid-template-columns: 0.8fr 2.2fr 0.8fr 0.9fr 0.9fr 40px;
   gap: 12px;
   align-items: center;
   padding: 13px 18px;

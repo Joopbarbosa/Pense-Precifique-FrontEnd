@@ -89,7 +89,7 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
             <div style={{ height: 1, background: '#EFEDE8', margin: '5px 8px' }} />
           )}
           <button
-            onClick={() => { item.onClick(); setOpen(false) }}
+            onClick={(e) => { e.stopPropagation(); item.onClick(); setOpen(false) }}
             style={{
               width: '100%',
               display: 'flex',
