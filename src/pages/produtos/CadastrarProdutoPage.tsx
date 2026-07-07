@@ -536,7 +536,7 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
             <Icons.calc />
           </span>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1F7A6F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Calculadora de Preço</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#1F7A6F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Calculadora de Custo</div>
             <div style={{ fontSize: 11.5, color: '#2A9D8F', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
               <Icons.sparkles width={12} height={12} /> Atualiza em tempo real
             </div>
@@ -839,18 +839,20 @@ export default function CadastrarProdutoPage() {
               )}
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
-            <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
-              Cancelar
-            </Button>
-            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando}>
-              {salvando === 'padrao'
-                ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
-                : (editando ? 'Salvar alterações' : 'Salvar produto')
-              }
-            </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
+              <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
+                Cancelar
+              </Button>
+              <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando}>
+                {salvando === 'padrao'
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
+                  : (editando ? 'Salvar alterações' : 'Salvar produto')
+                }
+              </Button>
+            </div>
             {isProduto && (
-              <Button variant="primary" iconRight={!salvando ? <Icons.arrowRight /> : undefined} onClick={() => salvar('catalogo')} disabled={!!salvando}>
+              <Button variant="primary" fullWidth iconRight={!salvando ? <Icons.arrowRight /> : undefined} onClick={() => salvar('catalogo')} disabled={!!salvando}>
                 {salvando === 'catalogo'
                   ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Criando…</span>
                   : 'Criar produto catálogo'
