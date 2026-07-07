@@ -4,7 +4,8 @@ export type StatusProducao = 'ATIVA' | 'CANCELADA'
 
 export interface LancarProducaoRequest {
   produtoId: string
-  quantidade: number
+  quantidade?: number
+  lotes?: number
   dataProducao?: string
 }
 

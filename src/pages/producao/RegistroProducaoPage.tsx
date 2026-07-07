@@ -6,8 +6,8 @@ import { Icons } from '../../components/ui/Icons'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { produtoService } from '../../services/produtoService'
-import type { ProducaoResponse, ProducaoDetalheResponse, InsumoConsumidoResponse } from '../../types/producao'
-import type { ProdutoResponse } from '../../types/produto'
+import type { ProducaoResponse, ProducaoDetalheResponse, InsumoConsumidoResponse, LancarProducaoRequest } from '../../types/producao'
+import type { ProdutoResponse, ProdutoDetalheResponse } from '../../types/produto'
 import type { TipoProduto } from '../../types'
 
 /* ── helpers ─────────────────────────────────────────────────── */
@@ -197,6 +197,79 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
   )
 }
 
+/* ── QuantidadeProduzidaInput ────────────────────────────────── */
+
+function QuantidadeProduzidaInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [f, setF] = useState(false)
+  return (
+    <div style={{ position: 'relative', width: 140 }}>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
+        inputMode="decimal"
+        placeholder="1"
+        onFocus={() => setF(true)}
+        onBlur={() => setF(false)}
+        style={{
+          width: '100%', height: 44, padding: '0 40px 0 14px', textAlign: 'right',
+          border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10,
+          fontSize: 18, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums',
+          background: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+          boxShadow: f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none', transition: 'border-color .15s, box-shadow .15s',
+        }}
+      />
+      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>un</span>
+    </div>
+  )
+}
+
+/* ── ConfirmEstoqueModal ─────────────────────────────────────── */
+
+function ConfirmEstoqueModal({ insumos, onCancel, onConfirm, confirming }: {
+  insumos: InsumoConsumidoResponse[]
+  onCancel: () => void
+  onConfirm: () => void
+  confirming: boolean
+}) {
+  return (
+    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.5)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
+      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ width: 'min(460px, 100%)', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
+          <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(192,73,43,0.12)', color: '#C0492B' }}>
+            <Icons.alertTriangle width={22} height={22} />
+          </span>
+          <div>
+            <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Saldo insuficiente de insumo</div>
+            <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>O estoque do insumo pode ficar negativo.</div>
+          </div>
+        </div>
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 13.5, color: '#5C594F', lineHeight: 1.5 }}>
+            {insumos.length === 1 ? 'Este insumo não tem' : 'Estes insumos não têm'} saldo suficiente para esta produção:
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#B23A1E', lineHeight: 1.7 }}>
+            {insumos.map(i => (
+              <li key={i.insumoId}>
+                <strong style={{ fontWeight: 700 }}>{i.nomeInsumo}{i.marca ? ` (${i.marca})` : ''}</strong>
+                {' — precisa '}{i.quantidade} {i.unidadeMedida}, disponível {i.estoqueAntes ?? 0} {i.unidadeMedida}
+              </li>
+            ))}
+          </ul>
+          <p style={{ margin: 0, fontSize: 12.5, color: '#A29E96', lineHeight: 1.5 }}>
+            Deseja continuar mesmo assim? O sistema pode rejeitar a produção se o saldo não permitir.
+          </p>
+        </div>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <Button variant="ghost" onClick={onCancel} disabled={confirming}>Cancelar</Button>
+          <Button variant="danger" onClick={onConfirm} disabled={confirming}>
+            {confirming ? 'Confirmando...' : 'Continuar mesmo assim'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── NovaProducaoModal ───────────────────────────────────────── */
 
 function NovaProducaoModal({ onClose, onSuccess }: {
@@ -205,25 +278,51 @@ function NovaProducaoModal({ onClose, onSuccess }: {
 }) {
   const [tipoAtivo, setTipoAtivo] = useState<TipoProduto>('PRODUTO')
   const [produto, setProduto] = useState<ProdutoResponse | null>(null)
-  const [qtd, setQtd] = useState(1)
+  const [produtoDetalhe, setProdutoDetalhe] = useState<ProdutoDetalheResponse | null>(null)
+  const [loadingDetalhe, setLoadingDetalhe] = useState(false)
+  const [qtdInput, setQtdInput] = useState('1')
   const [previewInsumos, setPreviewInsumos] = useState<InsumoConsumidoResponse[] | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [confirmEstoque, setConfirmEstoque] = useState(false)
 
   const trocaTipo = (v: TipoProduto) => {
     setTipoAtivo(v)
     setProduto(null)
+    setProdutoDetalhe(null)
     setPreviewInsumos(null)
     setErro(null)
   }
 
+  const selecionaProduto = (p: ProdutoResponse) => {
+    setProduto(p)
+    setProdutoDetalhe(null)
+    setQtdInput('1')
+    setErro(null)
+  }
+
   useEffect(() => {
-    if (!produto) { setPreviewInsumos(null); return }
+    if (!produto) { setProdutoDetalhe(null); return }
+    setLoadingDetalhe(true)
+    produtoService.buscarPorId(produto.id)
+      .then(setProdutoDetalhe)
+      .catch(() => setProdutoDetalhe(null))
+      .finally(() => setLoadingDetalhe(false))
+  }, [produto])
+
+  const fracionavel = !produtoDetalhe?.algumInsumoNaoFracionavel
+  const rendimento = produtoDetalhe?.rendimento ?? null
+  const lotesNum = parseInt(qtdInput, 10) || 0
+  const quantidadeNum = parseFloat(qtdInput.replace(',', '.')) || 0
+  const quantidadeFinal = fracionavel ? quantidadeNum : lotesNum * (rendimento ?? 0)
+
+  useEffect(() => {
+    if (!produto || !produtoDetalhe || quantidadeFinal <= 0) { setPreviewInsumos(null); return }
     setLoadingPreview(true)
     const t = setTimeout(async () => {
       try {
-        const res = await producaoService.preview(produto.id, qtd)
+        const res = await producaoService.preview(produto.id, quantidadeFinal)
         setPreviewInsumos(res)
       } catch {
         setPreviewInsumos(null)
@@ -232,25 +331,35 @@ function NovaProducaoModal({ onClose, onSuccess }: {
       }
     }, 400)
     return () => clearTimeout(t)
-  }, [produto, qtd])
+  }, [produto, produtoDetalhe, quantidadeFinal])
 
-  const handleSubmit = async () => {
+  const doLancar = async () => {
     if (!produto) return
     setSubmitting(true)
     setErro(null)
     try {
-      const result = await producaoService.lancar({ produtoId: produto.id, quantidade: qtd })
+      const payload: LancarProducaoRequest = fracionavel
+        ? { produtoId: produto.id, quantidade: quantidadeNum }
+        : { produtoId: produto.id, lotes: lotesNum }
+      const result = await producaoService.lancar(payload)
       onSuccess(result)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao lançar produção.'
       setErro(msg)
     } finally {
       setSubmitting(false)
+      setConfirmEstoque(false)
     }
   }
 
   const temFalta = previewInsumos?.some(i => i.estoqueInsuficiente) ?? false
-  const podeConfirmar = !!produto && !submitting
+
+  const handleConfirmarClick = () => {
+    if (temFalta) { setConfirmEstoque(true); return }
+    doLancar()
+  }
+
+  const podeConfirmar = !!produto && !!produtoDetalhe && !submitting && !loadingDetalhe && quantidadeFinal > 0
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto', background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
@@ -289,19 +398,48 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
               {tipoAtivo === 'PRODUTO_BASE' ? 'Produto base a produzir' : tipoAtivo === 'CUSTOMIZACAO' ? 'Customização a produzir' : 'Produto a produzir'}
             </span>
-            <ProdutoBuscador tipoItem={tipoAtivo} value={produto} onChange={p => { setProduto(p); setErro(null) }} />
+            <ProdutoBuscador tipoItem={tipoAtivo} value={produto} onChange={selecionaProduto} />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F' }}>Quantidade a produzir</span>
-            <Counter value={qtd} setValue={setQtd} />
-          </div>
+          {produto && loadingDetalhe ? (
+            <div style={{ fontSize: 13, color: '#A29E96' }}>Carregando dados do produto...</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F' }}>
+                    {fracionavel ? 'Quantidade produzida' : 'Quantos lotes você produziu?'}
+                  </span>
+                  {!fracionavel && rendimento != null && (
+                    <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 2 }}>1 lote = {rendimento} unidades</span>
+                  )}
+                </div>
+                {fracionavel
+                  ? <QuantidadeProduzidaInput value={qtdInput} onChange={setQtdInput} />
+                  : <Counter value={lotesNum || 1} setValue={n => setQtdInput(String(n))} />
+                }
+              </div>
+
+              {!fracionavel && rendimento == null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#C0492B' }}>
+                  <Icons.alertCircle width={13} height={13} /> Este produto não tem rendimento definido — edite o produto antes de lançar produção.
+                </div>
+              )}
+
+              {!fracionavel && rendimento != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(42,157,143,0.06)', border: '1px dashed rgba(42,157,143,0.3)' }}>
+                  <span style={{ fontSize: 13, color: '#5C594F' }}>Quantidade final ({lotesNum} {lotesNum === 1 ? 'lote' : 'lotes'} × {rendimento} un)</span>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums' }}>{quantidadeFinal} unidades</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {produto && (
             <div style={{ borderRadius: 14, background: 'rgba(42,157,143,0.05)', border: '1.5px solid rgba(42,157,143,0.22)', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
                 <span style={{ display: 'flex', color: '#2A9D8F' }}><Icons.layers /></span>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E7268' }}>Insumos que serão consumidos para {qtd} {qtd === 1 ? 'unidade' : 'unidades'}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E7268' }}>Insumos que serão consumidos para {quantidadeFinal} {quantidadeFinal === 1 ? 'unidade' : 'unidades'}</span>
               </div>
               {loadingPreview ? (
                 <div style={{ padding: '16px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Calculando consumo...</div>
@@ -342,7 +480,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             <div style={{ animation: 'fadeUp .3s ease both' }}>
               <div style={{ display: 'flex', gap: 10, padding: '13px 15px', borderRadius: 12, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
                 <span style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }}><Icons.alertTriangle width={16} height={16} /></span>
-                <p style={{ margin: 0, fontSize: 12.8, color: '#7A5A33', lineHeight: 1.55 }}>Um ou mais insumos estão com <strong style={{ fontWeight: 700 }}>saldo insuficiente</strong>. Você pode confirmar mesmo assim — o backend validará o estoque.</p>
+                <p style={{ margin: 0, fontSize: 12.8, color: '#7A5A33', lineHeight: 1.55 }}>Um ou mais insumos estão com <strong style={{ fontWeight: 700 }}>saldo insuficiente</strong>. Ao confirmar, vamos pedir uma confirmação extra antes de enviar.</p>
               </div>
             </div>
           )}
@@ -358,7 +496,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancelar</Button>
           <button
-            onClick={handleSubmit}
+            onClick={handleConfirmarClick}
             disabled={!podeConfirmar}
             style={{ height: 46, padding: '0 22px', borderRadius: 10, border: 'none', background: podeConfirmar ? '#F97316' : '#E7E4DE', color: podeConfirmar ? '#fff' : '#B0ACA4', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: podeConfirmar ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', boxShadow: podeConfirmar ? '0 8px 18px -8px rgba(249,115,22,0.7)' : 'none', transition: 'all .15s' }}
             onMouseEnter={e => { if (podeConfirmar) e.currentTarget.style.filter = 'brightness(1.05)' }}
@@ -369,6 +507,15 @@ function NovaProducaoModal({ onClose, onSuccess }: {
           </button>
         </div>
       </div>
+
+      {confirmEstoque && (
+        <ConfirmEstoqueModal
+          insumos={(previewInsumos ?? []).filter(i => i.estoqueInsuficiente)}
+          onCancel={() => setConfirmEstoque(false)}
+          onConfirm={doLancar}
+          confirming={submitting}
+        />
+      )}
     </div>
   )
 }

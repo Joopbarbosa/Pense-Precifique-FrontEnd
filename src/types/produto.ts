@@ -54,6 +54,7 @@ export interface ProdutoResponse {
 export interface ProdutoDetalheResponse extends ProdutoResponse {
   descricao?: string
   tempoProducao: number
+  algumInsumoNaoFracionavel?: boolean
   fichaTecnica: FichaTecnicaItemResponse[]
 }
 
