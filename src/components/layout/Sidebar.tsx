@@ -14,7 +14,7 @@ const NAV = [
 ] as const
 
 interface SidebarProps {
-  active: 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'producao' | 'config'
+  active: 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config'
   open: boolean
   onClose: () => void
 }
