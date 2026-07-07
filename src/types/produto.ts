@@ -71,6 +71,8 @@ export interface MovimentacaoProdutoResponse {
   observacao?: string
   referenciaId?: string
   referenciaTipo?: string
+  catalogoReferencia?: string
+  precoVendido?: number
   estornada: boolean
   createdAt: string
 }

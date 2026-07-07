@@ -62,6 +62,32 @@ function HistTipo({ mov }: { mov: MovimentacaoProdutoResponse }) {
   )
 }
 
+function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
+  if (mov.motivo !== 'ORCAMENTO' || !mov.catalogoReferencia) {
+    return <span style={{ color: '#D8D4CC' }}>—</span>
+  }
+  const isCatalogo = mov.catalogoReferencia.startsWith('CTG-')
+  const Ic = isCatalogo ? Icons.layers : Icons.cube
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px',
+        borderRadius: 999, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
+        color: isCatalogo ? '#2A9D8F' : '#8A8780',
+        background: isCatalogo ? 'rgba(42,157,143,0.10)' : '#F1F0EC',
+      }}>
+        <Ic width={11} height={11} />
+        {mov.catalogoReferencia}
+      </span>
+      {mov.precoVendido != null && (
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
+          {moeda(mov.precoVendido)}
+        </span>
+      )}
+    </div>
+  )
+}
+
 const MOTIVOS_PRODUTO: { api: BaixaManualProdutoRequest['motivo']; label: string }[] = [
   { api: 'PERDA',     label: 'Perda' },
   { api: 'AVARIA',    label: 'Avaria' },
@@ -70,7 +96,7 @@ const MOTIVOS_PRODUTO: { api: BaixaManualProdutoRequest['motivo']; label: string
   { api: 'OUTRO',     label: 'Outro' },
 ]
 
-const HIST_COLS = '116px 1fr 110px 1fr'
+const HIST_COLS = '116px 1fr 100px 160px 1fr'
 
 function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   produtoId: string
@@ -332,6 +358,9 @@ export default function DetalheProdutoPage() {
     ...(produto.estoqueMinimo != null ? [{ k: 'Estoque mínimo', v: `${produto.estoqueMinimo} unidades` }] : []),
     { k: 'Preço de custo', v: moeda(produto.precoCusto), accent: true, hint: 'calculado pela ficha técnica' },
     ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+    ...(produto.rendimento != null ? [{ k: 'Rendimento', v: `${produto.rendimento} unidades` }] : []),
+    ...(produto.custoTotalLote != null ? [{ k: 'Custo Total do lote', v: moeda(produto.custoTotalLote), blue: true }] : []),
+    ...(produto.custoUnitario != null ? [{ k: 'Custo Unitário', v: moeda(produto.custoUnitario), blue: true }] : []),
   ]
 
   const ABAS = [
@@ -359,6 +388,9 @@ export default function DetalheProdutoPage() {
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {produto.identificador && (
+                <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{produto.identificador}</span>
+              )}
               <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F', whiteSpace: 'nowrap' }}>{produto.nome}</h1>
               <span style={{ display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 11px', borderRadius: 999, background: ts.bg, color: ts.fg, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
                 {tipoLabel}
@@ -385,10 +417,10 @@ export default function DetalheProdutoPage() {
               <div style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{c.k}</div>
               <div style={{
                 marginTop: 7, fontVariantNumeric: 'tabular-nums',
-                fontSize: (c as any).big ? 28 : ((c as any).accent || (c as any).price) ? 18 : 16,
-                fontWeight: ((c as any).big || (c as any).accent || (c as any).price) ? 700 : 600,
+                fontSize: (c as any).big ? 28 : ((c as any).accent || (c as any).price || (c as any).blue) ? 18 : 16,
+                fontWeight: ((c as any).big || (c as any).accent || (c as any).price || (c as any).blue) ? 700 : 600,
                 letterSpacing: (c as any).big ? '-0.02em' : '0',
-                color: (c as any).danger ? '#C0492B' : (c as any).accent ? '#2A9D8F' : '#3A372F',
+                color: (c as any).danger ? '#C0492B' : (c as any).blue ? '#3A6FA0' : (c as any).accent ? '#2A9D8F' : '#3A372F',
               }}>{c.v}</div>
               {(c as any).hint && <div style={{ marginTop: 3, fontSize: 11.5, color: '#A8A49C', fontWeight: 500 }}>{(c as any).hint}</div>}
             </div>
@@ -431,7 +463,7 @@ export default function DetalheProdutoPage() {
         {aba === 'historico' ? (
           <>
             <div className="hist-head" style={{ gridTemplateColumns: HIST_COLS }}>
-              {['Data', 'Movimentação', 'Quantidade', 'Observação'].map((h, k) => (
+              {['Data', 'Movimentação', 'Quantidade', 'Referência', 'Observação'].map((h, k) => (
                 <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{h}</div>
               ))}
             </div>
@@ -459,6 +491,9 @@ export default function DetalheProdutoPage() {
                       <HistTipo mov={mov} />
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: riscado ? 'line-through' : 'none' }}>{deltaT}</div>
+                    <div>
+                      <ReferenciaCell mov={mov} />
+                    </div>
                     <div style={{ fontSize: 13, color: isEstorno ? '#B23A1E' : '#A29E96', whiteSpace: 'normal', overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: isEstorno ? 'italic' : 'normal' }}>
                       {mov.observacao || (mov.referenciaId ? `Ref: ${mov.referenciaId}` : '—')}
                     </div>
@@ -472,6 +507,11 @@ export default function DetalheProdutoPage() {
                       <HistTipo mov={mov} />
                       <span style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{deltaT}</span>
                     </div>
+                    {mov.motivo === 'ORCAMENTO' && mov.catalogoReferencia && (
+                      <div style={{ marginTop: 9 }}>
+                        <ReferenciaCell mov={mov} />
+                      </div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap', fontSize: 12.5, color: isEstorno ? '#B23A1E' : '#A29E96', fontStyle: isEstorno ? 'italic' : 'normal' }}>
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtData(mov.createdAt)}</span>
                       {mov.observacao && <><span style={{ color: '#D8D4CC' }}>·</span><span>{mov.observacao}</span></>}
