@@ -90,7 +90,7 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
 // ---------- TipoSelector ----------
 
 const TIPOS = [
-  { v: 'Produto',      desc: 'Item final que você vende' },
+  { v: 'Produto',      desc: 'Produto final para criar seu catálogo' },
   { v: 'Produto Base', desc: 'Componente usado em outros produtos' },
   { v: 'Customização', desc: 'Extra opcional adicionado no orçamento' },
 ]
@@ -175,23 +175,11 @@ function DadosBasicos({ st, set, onNext, nomeErro }: { st: any; set: (k: string,
         </div>
         <Field label="Tempo de produção" required>
           <TextInput value={st.tempo} onChange={v => set('tempo', v.replace(/[^\d]/g, ''))} placeholder="45" suffix="minutos" inputMode="numeric" />
+          <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Tempo para produzir o lote inteiro, não a unidade.</span>
         </Field>
         <div style={{ gridColumn: '1 / -1' }}>
           <Field label="Descrição" opt>
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
-          </Field>
-        </div>
-        <div style={{ gridColumn: '1 / -1' }}>
-          <Field label="Foto do produto" opt>
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-              width: '100%', maxWidth: 280, height: 200, background: '#FAF8F5',
-              border: '2px dashed #DCD8D0', borderRadius: 12, color: '#C2BEB5',
-              cursor: 'pointer',
-            }}>
-              <Icons.camera />
-              <span style={{ fontSize: 12.5, fontWeight: 600 }}>Arraste uma foto ou clique para enviar</span>
-            </div>
           </Field>
         </div>
       </div>
@@ -369,7 +357,11 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
 
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha }: { ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>> }) {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, custoTotalLote, custoUnitario }: {
+  ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
+  rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
+  custoTotalLote: number | null; custoUnitario: number | null
+}) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
   const remove = (idx: number) => setFicha(f => f.filter((_, k) => k !== idx))
   const setQtd = (idx: number, v: string) => setFicha(f => f.map((row, k) => k === idx ? { ...row, qtd: num(v) } : row))
@@ -410,6 +402,35 @@ function FichaTecnica({ ficha, setFicha }: { ficha: FichaItem[]; setFicha: React
             </button>
           </div>
         ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px 24px', padding: '18px 22px', borderTop: '1px solid #EFEDE8' }}>
+          <div>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
+              Rendimento<span style={{ color: '#F97316', marginLeft: 3 }}>*</span>
+            </span>
+            <div style={{ maxWidth: 200 }}>
+              <TextInput value={rendimento} onChange={v => setRendimento(v.replace(/[^\d,]/g, ''))} placeholder="1" suffix="un" inputMode="decimal" />
+            </div>
+            <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Quantidade de unidades que este lote produz.</span>
+            {rendimentoErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{rendimentoErro}</span>}
+          </div>
+          {(custoTotalLote != null || custoUnitario != null) && (
+            <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(58,111,160,0.07)', border: '1px solid rgba(58,111,160,0.2)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3A6FA0', marginBottom: 8 }}>Valores salvos</div>
+              {custoTotalLote != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
+                  <span style={{ color: '#5C594F' }}>Custo Total do lote</span>
+                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoTotalLote)}</span>
+                </div>
+              )}
+              {custoUnitario != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
+                  <span style={{ color: '#5C594F' }}>Custo Unitário</span>
+                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoUnitario)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -478,12 +499,13 @@ function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChan
 
 // ---------- Calculadora ----------
 
-function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, isProdutoBase, valorHora, margemPadrao }: {
+function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, mostrarPrecoMargem, mensagemSemPreco, valorHora, margemPadrao }: {
   ficha: FichaItem[]; tempo: string
   margem: string; setMargem: (v: string) => void
   modoMargem: string; setModoMargem: (v: string) => void
   precoFinal: string; setPrecoFinal: (v: string) => void
-  isProdutoBase: boolean
+  mostrarPrecoMargem: boolean
+  mensagemSemPreco: string
   valorHora: number
   margemPadrao: number
 }) {
@@ -494,7 +516,7 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
   const sugerido = subtotal + lucro
   const pf = num(precoFinal)
   const diff = pf - sugerido
-  const manual = !isProdutoBase && Math.abs(diff) > 0.005
+  const manual = mostrarPrecoMargem && Math.abs(diff) > 0.005
 
   const linha = (label: string, val: string, sub?: string) => (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '9px 0' }}>
@@ -530,9 +552,9 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
             <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(subtotal)}</span>
           </div>
 
-          {isProdutoBase ? (
+          {!mostrarPrecoMargem ? (
             <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: '#1F7A6F', fontWeight: 600 }}>Produto Base não tem preço de venda.</div>
+              <div style={{ fontSize: 12, color: '#1F7A6F', fontWeight: 600 }}>{mensagemSemPreco}</div>
               <div style={{ fontSize: 11.5, color: '#A29E96', marginTop: 3 }}>O custo acima é registrado automaticamente.</div>
             </div>
           ) : (
@@ -600,16 +622,24 @@ export default function CadastrarProdutoPage() {
   const [dados, setDados] = useState({ nome: '', tipo: 'Produto', descricao: '', tempo: '' })
   const setD = (k: string, v: any) => setDados(d => ({ ...d, [k]: v }))
   const [ficha, setFicha] = useState<FichaItem[]>([])
+  const [rendimento, setRendimento] = useState('')
+  const [custoTotalLote, setCustoTotalLote] = useState<number | null>(null)
+  const [custoUnitario, setCustoUnitario] = useState<number | null>(null)
   const [margem, setMargem] = useState('0')
   const [modoMargem, setModoMargem] = useState('padrao')
   const [precoFinal, setPrecoFinal] = useState('')
-  const [salvando, setSalvando] = useState(false)
+  const [salvando, setSalvando] = useState<'padrao' | 'catalogo' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [valorHora, setValorHora] = useState(0)
   const [margemPadrao, setMargemPadrao] = useState(0)
 
   const isProdutoBase = dados.tipo === 'Produto Base'
+  const isCustomizacao = dados.tipo === 'Customização'
+  const isProduto = dados.tipo === 'Produto'
+  const mensagemSemPreco = isProdutoBase
+    ? 'Produto Base não tem preço de venda.'
+    : 'Produto não tem preço de venda direto — defina o preço ao criar o item de Catálogo.'
 
   // Buscar configuração de precificação real
   useEffect(() => {
@@ -624,10 +654,10 @@ export default function CadastrarProdutoPage() {
       .catch(() => {})
   }, [editando])
 
-  // Limpar precoFinal ao mudar para Produto Base
+  // Limpar precoFinal ao sair do tipo Customização
   useEffect(() => {
-    if (isProdutoBase) setPrecoFinal('')
-  }, [isProdutoBase])
+    if (!isCustomizacao) setPrecoFinal('')
+  }, [isCustomizacao])
 
   // Carregar dados na edição
   useEffect(() => {
@@ -651,6 +681,9 @@ export default function CadastrarProdutoPage() {
           qtd: item.quantidade,
         }))
         setFicha(fichaItems)
+        setRendimento(produto.rendimento != null ? produto.rendimento.toString() : '')
+        setCustoTotalLote(produto.custoTotalLote ?? null)
+        setCustoUnitario(produto.custoUnitario ?? null)
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
           setModoMargem('personalizar')
@@ -659,11 +692,18 @@ export default function CadastrarProdutoPage() {
       .catch(console.error)
   }, [editando, id])
 
-  const salvar = async () => {
+  const salvar = async (destino: 'padrao' | 'catalogo' = 'padrao') => {
     setErro(null)
     setFieldErrors({})
+
+    const rendimentoNum = num(rendimento)
+    if (!rendimento.trim() || rendimentoNum <= 0) {
+      setFieldErrors({ rendimento: 'Rendimento é obrigatório e deve ser maior que zero.' })
+      return
+    }
+
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
-    const precoVendaNum = isProdutoBase ? undefined : (num(precoFinal) || undefined)
+    const precoVendaNum = isCustomizacao ? (num(precoFinal) || undefined) : undefined
 
     const request: ProdutoRequest = {
       nome: dados.nome.trim(),
@@ -671,6 +711,7 @@ export default function CadastrarProdutoPage() {
       descricao: dados.descricao.trim() || undefined,
       tempoProducao: Math.round(num(dados.tempo)) || 1,
       precoVenda: precoVendaNum,
+      rendimento: rendimentoNum,
       fichaTecnica: ficha.map(item => ({
         insumoId: item.tipo === 'insumo' ? item.id : undefined,
         produtoBaseId: item.tipo === 'produto' ? item.id : undefined,
@@ -678,22 +719,31 @@ export default function CadastrarProdutoPage() {
       })),
     }
 
-    setSalvando(true)
+    setSalvando(destino)
     try {
-      if (editando && id) {
-        await produtoService.editar(id, request)
+      const result = editando && id
+        ? await produtoService.editar(id, request)
+        : await produtoService.cadastrar(request)
+
+      if (destino === 'catalogo') {
+        navigate(`/catalogos/itens/novo?produtoId=${result.id}`)
+      } else if (editando) {
         navigate(`/produtos/${id}`)
       } else {
-        await produtoService.cadastrar(request)
         navigate('/produtos')
       }
     } catch (err: any) {
       const data = err.response?.data
-      const fe: Record<string, string> = data?.fieldErrors ?? {}
-      setFieldErrors(fe)
-      setErro(data?.message || 'Erro ao salvar produto. Verifique os campos obrigatórios.')
+      const fe: Record<string, string> = { ...(data?.fieldErrors ?? {}) }
+      if (data?.message && /rendimento/i.test(data.message)) {
+        fe.rendimento = data.message
+        setFieldErrors(fe)
+      } else {
+        setFieldErrors(fe)
+        setErro(data?.message || 'Erro ao salvar produto. Verifique os campos obrigatórios.')
+      }
     } finally {
-      setSalvando(false)
+      setSalvando(null)
     }
   }
 
@@ -756,13 +806,18 @@ export default function CadastrarProdutoPage() {
       {aba === 'dados' && <DadosBasicos st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome} />}
       {aba === 'ficha' && (
         <div className="ficha-grid">
-          <FichaTecnica ficha={ficha} setFicha={setFicha} />
+          <FichaTecnica
+            ficha={ficha} setFicha={setFicha}
+            rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento}
+            custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}
+          />
           <Calculadora
             ficha={ficha} tempo={dados.tempo}
             margem={margem} setMargem={setMargem}
             modoMargem={modoMargem} setModoMargem={setModoMargem}
             precoFinal={precoFinal} setPrecoFinal={setPrecoFinal}
-            isProdutoBase={isProdutoBase}
+            mostrarPrecoMargem={isCustomizacao}
+            mensagemSemPreco={mensagemSemPreco}
             valorHora={valorHora}
             margemPadrao={margemPadrao}
           />
@@ -785,15 +840,23 @@ export default function CadastrarProdutoPage() {
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
-            <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={salvando}>
+            <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
               Cancelar
             </Button>
-            <Button variant="primary" onClick={salvar} disabled={salvando}>
-              {salvando
+            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando}>
+              {salvando === 'padrao'
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
                 : (editando ? 'Salvar alterações' : 'Salvar produto')
               }
             </Button>
+            {isProduto && (
+              <Button variant="primary" iconRight={!salvando ? <Icons.arrowRight /> : undefined} onClick={() => salvar('catalogo')} disabled={!!salvando}>
+                {salvando === 'catalogo'
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Criando…</span>
+                  : 'Criar produto catálogo'
+                }
+              </Button>
+            )}
           </div>
         </div>
       )}

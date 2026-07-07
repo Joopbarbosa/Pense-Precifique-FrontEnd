@@ -27,8 +27,8 @@ export interface ProdutoRequest {
   tipo: TipoProduto
   descricao?: string
   tempoProducao: number
-  foto?: string
   precoVenda?: number
+  rendimento?: number
   estoqueMinimo?: number
   fichaTecnica: FichaTecnicaItemRequest[]
 }
@@ -39,6 +39,9 @@ export interface ProdutoResponse {
   tipo: TipoProduto
   precoVenda?: number
   precoCusto: number
+  rendimento?: number
+  custoTotalLote?: number
+  custoUnitario?: number
   estoqueAtual: number
   estoqueMinimo?: number
   ativo: boolean
@@ -49,7 +52,6 @@ export interface ProdutoResponse {
 export interface ProdutoDetalheResponse extends ProdutoResponse {
   descricao?: string
   tempoProducao: number
-  foto?: string
   fichaTecnica: FichaTecnicaItemResponse[]
 }
 
