@@ -9,6 +9,7 @@ const NAV = [
   { id: 'orcamentos', label: 'Orçamentos',    icon: Icons.doc,     href: '/orcamentos' },
   { id: 'insumos',    label: 'Insumos',       icon: Icons.box,     href: '/insumos' },
   { id: 'produtos',   label: 'Produtos',      icon: Icons.cube,    href: '/produtos' },
+  { id: 'catalogos',  label: 'Catálogos',     icon: Icons.fileStack, href: '/catalogos' },
   { id: 'producao',   label: 'Produção',      icon: Icons.factory, href: '/producao' },
   { id: 'config',     label: 'Configurações', icon: Icons.gear,    href: '/configuracoes' },
 ] as const

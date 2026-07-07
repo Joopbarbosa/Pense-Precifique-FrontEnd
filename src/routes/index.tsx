@@ -18,6 +18,7 @@ import CadastrarProdutoPage from '../pages/produtos/CadastrarProdutoPage'
 import FormInsumoPage from '../pages/insumos/FormInsumoPage'
 import DetalheInsumoPage from '../pages/insumos/DetalheInsumoPage'
 import DetalheProdutoPage from '../pages/produtos/DetalheProdutoPage'
+import ListaCatalogosPage from '../pages/catalogos/ListaCatalogosPage'
 import NovoCatalogoPage from '../pages/catalogos/NovoCatalogoPage'
 import NovoItemCatalogoPage from '../pages/catalogos/NovoItemCatalogoPage'
 import RegistroProducaoPage from '../pages/producao/RegistroProducaoPage'
@@ -56,6 +57,7 @@ export const router = createBrowserRouter([
       { path: '/produtos/:id/editar',  element: <CadastrarProdutoPage /> },
       { path: '/produtos/:id',         element: <DetalheProdutoPage /> },
 
+      { path: '/catalogos',            element: <ListaCatalogosPage /> },
       { path: '/catalogos/novo',       element: <NovoCatalogoPage /> },
       { path: '/catalogos/itens/novo', element: <NovoItemCatalogoPage /> },
 

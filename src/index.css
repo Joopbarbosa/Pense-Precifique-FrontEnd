@@ -437,6 +437,40 @@ body:has(.drawer-open) {
   }
 }
 
+/* Grid da tabela de catálogos */
+.cat-head, .cat-row {
+  display: grid;
+  grid-template-columns: 0.8fr 2.2fr 0.8fr 0.9fr 0.9fr;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 18px;
+}
+
+.cat-head {
+  border-bottom: 1px solid #EFEDE8;
+}
+
+.cat-row {
+  border-bottom: 1px solid #EFEDE8;
+  transition: background .12s;
+  cursor: pointer;
+}
+
+.cat-row:last-child { border-bottom: none; }
+.cat-row:hover { background: #FCFBF9; }
+.cat-card-mobile { display: none; }
+
+@media (max-width: 700px) {
+  .cat-head { display: none; }
+  .cat-row { display: none; }
+  .cat-card-mobile {
+    display: block;
+    padding: 16px 18px;
+    border-bottom: 1px solid #EFEDE8;
+    cursor: pointer;
+  }
+}
+
 .hist-head {
   display: grid;
   grid-template-columns: 116px 1fr 110px 84px 1fr;
