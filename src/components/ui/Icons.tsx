@@ -477,4 +477,12 @@ export const Icons = {
   ),
 }
 
+// C-001 — mapeamento de ícones reaproveitados para o bloco Catálogo (nenhum ícone novo foi necessário):
+// Catálogo (pasta/livro)      -> Icons.fileStack
+// Duplicar                    -> Icons.copy
+// Ativar/Desativar            -> Icons.power
+// Pacote/caixa                -> Icons.box
+// Filtro                      -> Icons.filter
+// Link/seta externa           -> Icons.externalLink
+
 export type IconName = keyof typeof Icons
