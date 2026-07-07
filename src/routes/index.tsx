@@ -21,6 +21,7 @@ import DetalheProdutoPage from '../pages/produtos/DetalheProdutoPage'
 import ListaCatalogosPage from '../pages/catalogos/ListaCatalogosPage'
 import NovoCatalogoPage from '../pages/catalogos/NovoCatalogoPage'
 import NovoItemCatalogoPage from '../pages/catalogos/NovoItemCatalogoPage'
+import DetalheCatalogoPage from '../pages/catalogos/DetalheCatalogoPage'
 import RegistroProducaoPage from '../pages/producao/RegistroProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       { path: '/catalogos',            element: <ListaCatalogosPage /> },
       { path: '/catalogos/novo',       element: <NovoCatalogoPage /> },
       { path: '/catalogos/itens/novo', element: <NovoItemCatalogoPage /> },
+      { path: '/catalogos/:id',        element: <DetalheCatalogoPage /> },
 
       { path: '/producao',             element: <RegistroProducaoPage /> },
       { path: '/producao/:id',         element: <RegistroProducaoPage /> },

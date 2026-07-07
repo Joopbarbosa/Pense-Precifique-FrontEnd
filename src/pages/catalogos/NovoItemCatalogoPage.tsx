@@ -133,6 +133,8 @@ export default function NovoItemCatalogoPage() {
   const [searchParams] = useSearchParams()
   const produtoIdParam = searchParams.get('produtoId')
   const catalogoIdParam = searchParams.get('catalogoId')
+  const itemIdParam = searchParams.get('itemId')
+  const isEdicao = !!itemIdParam
 
   const [catalogoId, setCatalogoId] = useState<string | null>(catalogoIdParam)
   const [catalogoInfo, setCatalogoInfo] = useState<CatalogoResponse | null>(null)
@@ -182,8 +184,37 @@ export default function NovoItemCatalogoPage() {
       )
     }
 
+    if (itemIdParam && catalogoIdParam) {
+      tarefas.push(
+        itemCatalogoService.listar(catalogoIdParam)
+          .then(async itens => {
+            const item = itens.find(i => i.id === itemIdParam)
+            if (!item) { setErro('Item não encontrado neste catálogo.'); return }
+
+            const produtoDet = await produtoService.buscarPorId(item.produtoId)
+            setProduto({ id: produtoDet.id, nome: produtoDet.nome, precoCusto: produtoDet.precoCusto, ativo: produtoDet.ativo })
+            setQuantidade(item.quantidadePacote.toString())
+            setItemId(item.id)
+            setPrecoSugerido(item.precoSugerido)
+            setOverride(item.override)
+            // Preenche o preço atual mesmo sem override: evita que a sincronização
+            // automática envie precoVenda vazio e derrube o override existente.
+            setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+
+            if (item.customizacoesAnexadas.length > 0) {
+              const custs = await Promise.all(item.customizacoesAnexadas.map(async c => {
+                const p = await produtoService.buscarPorId(c.produtoId)
+                return { produtoId: c.produtoId, nome: c.produtoNome, precoCusto: p.precoCusto, quantidade: c.quantidade.toString() }
+              }))
+              setCustomizacoes(custs)
+            }
+          })
+          .catch(() => setErro('Não foi possível carregar o item do catálogo.'))
+      )
+    }
+
     Promise.all(tarefas).finally(() => setLoadingContexto(false))
-  }, [catalogoIdParam, produtoIdParam])
+  }, [catalogoIdParam, produtoIdParam, itemIdParam])
 
   useEffect(() => {
     const qtd = parseInt(quantidade, 10)
@@ -259,7 +290,7 @@ export default function NovoItemCatalogoPage() {
   }
 
   const cancelar = async () => {
-    if (itemId && catalogoId) {
+    if (!isEdicao && itemId && catalogoId) {
       try { await itemCatalogoService.remover(catalogoId, itemId) } catch { /* best-effort */ }
     }
     navigate(catalogoId ? `/catalogos/${catalogoId}` : '/catalogos')
@@ -320,7 +351,7 @@ export default function NovoItemCatalogoPage() {
           onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
         >{catalogoInfo ? catalogoInfo.nome : 'Catálogos'}</span>
         <Icons.chevron style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600 }}>Novo Item</span>
+        <span style={{ color: '#5C594F', fontWeight: 600 }}>{isEdicao ? 'Editar Item' : 'Novo Item'}</span>
       </div>
 
       {/* HEADER */}
@@ -329,7 +360,7 @@ export default function NovoItemCatalogoPage() {
           <Icons.fileStack width={26} height={26} />
         </span>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>
-          Novo Item de Catálogo
+          {isEdicao ? 'Editar Item de Catálogo' : 'Novo Item de Catálogo'}
         </h1>
       </div>
 
@@ -461,8 +492,8 @@ export default function NovoItemCatalogoPage() {
             <Button variant="ghost" onClick={cancelar} disabled={salvando}>Cancelar</Button>
             <Button variant="primary" onClick={salvar} disabled={salvando || !podeSalvar}>
               {salvando
-                ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Adicionando…</span>
-                : 'Adicionar item ao catálogo'
+                ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{isEdicao ? 'Salvando…' : 'Adicionando…'}</span>
+                : (isEdicao ? 'Salvar alterações' : 'Adicionar item ao catálogo')
               }
             </Button>
           </div>
