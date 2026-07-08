@@ -69,15 +69,18 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
   const isCatalogo = mov.catalogoReferencia.startsWith('CTG-')
   const Ic = isCatalogo ? Icons.layers : Icons.cube
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-      <span style={{
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start', minWidth: 0, maxWidth: '100%' }}>
+      <span title={mov.catalogoReferencia} style={{
         display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px',
-        borderRadius: 999, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
+        borderRadius: 999, fontSize: 11.5, fontWeight: 600,
         color: isCatalogo ? '#2A9D8F' : '#8A8780',
         background: isCatalogo ? 'rgba(42,157,143,0.10)' : '#F1F0EC',
+        maxWidth: '100%', minWidth: 0,
       }}>
-        <Ic width={11} height={11} />
-        {mov.catalogoReferencia}
+        <Ic width={11} height={11} style={{ flexShrink: 0 }} />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+          {mov.catalogoReferencia}
+        </span>
       </span>
       {mov.precoVendido != null && (
         <span style={{ fontSize: 12, fontWeight: 600, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
@@ -96,7 +99,7 @@ const MOTIVOS_PRODUTO: { api: BaixaManualProdutoRequest['motivo']; label: string
   { api: 'OUTRO',     label: 'Outro' },
 ]
 
-const HIST_COLS = '116px 1fr 100px 160px 1fr'
+const HIST_COLS = '110px 1fr 88px minmax(120px, 180px) 1fr'
 
 function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   produtoId: string
@@ -491,7 +494,7 @@ export default function DetalheProdutoPage() {
                       <HistTipo mov={mov} />
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: riscado ? 'line-through' : 'none' }}>{deltaT}</div>
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <ReferenciaCell mov={mov} />
                     </div>
                     <div style={{ fontSize: 13, color: isEstorno ? '#B23A1E' : '#A29E96', whiteSpace: 'normal', overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: isEstorno ? 'italic' : 'normal' }}>
