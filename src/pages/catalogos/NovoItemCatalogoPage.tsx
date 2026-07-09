@@ -149,6 +149,10 @@ export default function NovoItemCatalogoPage() {
   const [precoVenda, setPrecoVenda] = useState('')
   const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
   const [override, setOverride] = useState(false)
+  // true só quando o preço exibido reflete um ajuste manual real (edição do usuário
+  // ou item carregado já com override) — evita reenviar precoVenda "por inércia"
+  // em toda sincronização e derrubar um override falso ao anexar customização/mudar quantidade.
+  const [precoEditadoManualmente, setPrecoEditadoManualmente] = useState(false)
   const [itemId, setItemId] = useState<string | null>(null)
 
   const [produtoErro, setProdutoErro] = useState<string | null>(null)
@@ -197,6 +201,7 @@ export default function NovoItemCatalogoPage() {
             setItemId(item.id)
             setPrecoSugerido(item.precoSugerido)
             setOverride(item.override)
+            setPrecoEditadoManualmente(item.override)
             // Preenche o preço atual mesmo sem override: evita que a sincronização
             // automática envie precoVenda vazio e derrube o override existente.
             setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
@@ -232,10 +237,10 @@ export default function NovoItemCatalogoPage() {
     return {
       produtoId: produto.id,
       quantidadePacote: qtd,
-      precoVenda: precoVenda ? num(precoVenda) : undefined,
+      precoVenda: precoEditadoManualmente && precoVenda ? num(precoVenda) : undefined,
       customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.produtoId, quantidade: num(c.quantidade) || 0 })),
     }
-  }, [produto, quantidade, precoVenda, customizacoes])
+  }, [produto, quantidade, precoVenda, precoEditadoManualmente, customizacoes])
 
   const sincronizar = useCallback(async () => {
     if (!catalogoId) return
@@ -251,6 +256,7 @@ export default function NovoItemCatalogoPage() {
       setItemId(resp.id)
       setPrecoSugerido(resp.precoSugerido)
       setOverride(resp.override)
+      setPrecoEditadoManualmente(resp.override)
       if (Math.abs(num(precoVenda) - resp.precoVenda) > 0.001) {
         setPrecoVenda(resp.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
       }
@@ -535,7 +541,10 @@ export default function NovoItemCatalogoPage() {
                   }}>R$</span>
                   <input
                     value={precoVenda}
-                    onChange={e => setPrecoVenda(e.target.value.replace(/[^\d.,]/g, ''))}
+                    onChange={e => {
+                      setPrecoVenda(e.target.value.replace(/[^\d.,]/g, ''))
+                      setPrecoEditadoManualmente(true)
+                    }}
                     inputMode="decimal"
                     disabled={!produto}
                     style={{
@@ -549,14 +558,17 @@ export default function NovoItemCatalogoPage() {
                 </div>
               </div>
 
-              {override && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '11px 13px', borderRadius: 11, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                  <Icons.info style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
-                  <p style={{ margin: 0, fontSize: 12.3, color: '#7A5A33', lineHeight: 1.5 }}>
-                    Preço ajustado manualmente — este item será salvo com <strong style={{ fontWeight: 700 }}>override</strong>, sem acompanhar mudanças futuras na margem do catálogo.
-                  </p>
-                </div>
-              )}
+              {override && precoSugerido != null && (() => {
+                const diff = num(precoVenda) - precoSugerido
+                return (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '11px 13px', borderRadius: 11, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
+                    <Icons.info style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
+                    <p style={{ margin: 0, fontSize: 12.3, color: '#7A5A33', lineHeight: 1.5 }}>
+                      Você ajustou o preço manualmente (<strong style={{ fontWeight: 700 }}>{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

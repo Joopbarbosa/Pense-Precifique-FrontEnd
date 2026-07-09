@@ -32,11 +32,15 @@ function ItemRow({ item, onEditar, onRemover }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>{item.produtoNome}</span>
-          {item.override && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#C8721F', background: '#FFF1E8', padding: '2px 9px', borderRadius: 999 }}>
-              Override
-            </span>
-          )}
+          {item.override && (() => {
+            const diff = item.precoVenda - item.precoSugerido
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#C8721F', background: '#FFF1E8', padding: '2px 9px', borderRadius: 999 }}>
+                <Icons.info width={12} height={12} />
+                {diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))} {diff > 0 ? 'acima' : 'abaixo'} do sugerido
+              </span>
+            )
+          })()}
           {item.bloqueadoParaVenda && (
             <span style={{ fontSize: 11, fontWeight: 700, color: '#C0492B', background: '#FBEDE9', padding: '2px 9px', borderRadius: 999 }}>
               Bloqueado para venda
