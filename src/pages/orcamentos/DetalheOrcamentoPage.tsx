@@ -2001,28 +2001,84 @@ export default function DetalheOrcamentoPage() {
                   ×{it.quantidade}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
-                    {it.nomeProduto}
-                  </div>
-                  {it.customizacoes.map((c, k) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
+                      {it.nomeProduto}
+                    </div>
                     <span
-                      key={k}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 5,
-                        marginTop: 4,
-                        marginRight: 5,
-                        fontSize: 11.5,
-                        color: "#A35A26",
-                        background: "rgba(249,115,22,0.08)",
-                        padding: "2px 8px",
+                        height: 22,
+                        padding: "0 9px",
                         borderRadius: 999,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        color: it.itemCatalogoId ? "#2A9D8F" : "#8A8780",
+                        background: it.itemCatalogoId
+                          ? "rgba(42,157,143,0.10)"
+                          : "#F1F0EC",
                       }}
                     >
-                      <Icons.tag /> {c.nomeProduto}
+                      {it.itemCatalogoId ? (
+                        <Icons.layers width={11} height={11} />
+                      ) : (
+                        <Icons.cube width={11} height={11} />
+                      )}
+                      {it.itemCatalogoId
+                        ? it.catalogoNome ?? it.catalogoIdentificador
+                        : "Venda sem catálogo"}
                     </span>
-                  ))}
+                  </div>
+                  {it.customizacoes.length > 0 && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        height: 22,
+                        padding: "0 9px",
+                        marginTop: 6,
+                        borderRadius: 999,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        color: "#5C594F",
+                        background: "#F1F0EC",
+                      }}
+                    >
+                      <Icons.sliders width={11} height={11} />
+                      Customizações ({it.customizacoes.length})
+                    </div>
+                  )}
+                  <div>
+                    {it.customizacoes.map((c, k) => (
+                      <span
+                        key={k}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          marginTop: 4,
+                          marginRight: 5,
+                          fontSize: 11.5,
+                          color: "#A35A26",
+                          background: "rgba(249,115,22,0.08)",
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                        }}
+                      >
+                        <Icons.tag /> {c.nomeProduto}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div
                   style={{

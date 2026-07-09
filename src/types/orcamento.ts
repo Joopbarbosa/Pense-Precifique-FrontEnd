@@ -56,6 +56,8 @@ export interface OrcamentoItemCustomizacaoResponse {
 export interface OrcamentoItemResponse {
   id: string;
   itemCatalogoId?: string;
+  catalogoIdentificador?: string;
+  catalogoNome?: string;
   produtoId: string;
   nomeProduto: string;
   margemAplicada?: number;
