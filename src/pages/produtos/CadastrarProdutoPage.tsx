@@ -357,10 +357,9 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
 
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, custoTotalLote, custoUnitario, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo }: {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo }: {
   ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
   rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
-  custoTotalLote: number | null; custoUnitario: number | null
   mostrarBotaoCatalogo: boolean; salvandoCatalogo: boolean; botaoCatalogoDisabled: boolean; onCriarCatalogo: () => void
 }) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
@@ -424,23 +423,6 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               </Button>
             )}
           </div>
-          {(custoTotalLote != null || custoUnitario != null) && (
-            <div style={{ marginTop: 18, padding: '12px 16px', borderRadius: 10, background: 'rgba(58,111,160,0.07)', border: '1px solid rgba(58,111,160,0.2)', maxWidth: 320 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3A6FA0', marginBottom: 8 }}>Valores salvos</div>
-              {custoTotalLote != null && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
-                  <span style={{ color: '#5C594F' }}>Custo Total do lote</span>
-                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoTotalLote)}</span>
-                </div>
-              )}
-              {custoUnitario != null && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
-                  <span style={{ color: '#5C594F' }}>Custo Unitário</span>
-                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoUnitario)}</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -510,7 +492,7 @@ function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChan
 
 // ---------- Calculadora ----------
 
-function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, mostrarPrecoMargem, mensagemSemPreco, valorHora, margemPadrao }: {
+function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, mostrarPrecoMargem, mensagemSemPreco, valorHora, margemPadrao, custoTotalLote, custoUnitario }: {
   ficha: FichaItem[]; tempo: string
   margem: string; setMargem: (v: string) => void
   modoMargem: string; setModoMargem: (v: string) => void
@@ -519,6 +501,7 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
   mensagemSemPreco: string
   valorHora: number
   margemPadrao: number
+  custoTotalLote: number | null; custoUnitario: number | null
 }) {
   const custoInsumos = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
   const maoObra = (num(tempo) / 60) * (valorHora ?? 0)
@@ -559,9 +542,27 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
           {linha('Mão de obra', moeda(maoObra), `${num(tempo)} min × ${moeda(valorHora ?? 0)}/h`)}
           <div style={{ height: 1, background: '#EFEDE8', margin: '4px 0' }} />
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '10px 0' }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Subtotal de custo</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Custo Total da Receita</span>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(subtotal)}</span>
           </div>
+
+          {(custoTotalLote != null || custoUnitario != null) && (
+            <div style={{ marginTop: 6, marginBottom: 8, padding: '12px 16px', borderRadius: 10, background: 'rgba(58,111,160,0.07)', border: '1px solid rgba(58,111,160,0.2)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3A6FA0', marginBottom: 8 }}>Valores salvos</div>
+              {custoTotalLote != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
+                  <span style={{ color: '#5C594F' }}>Custo Total do lote</span>
+                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoTotalLote)}</span>
+                </div>
+              )}
+              {custoUnitario != null && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
+                  <span style={{ color: '#5C594F' }}>Custo Unitário</span>
+                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoUnitario)}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {!mostrarPrecoMargem ? (
             <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', textAlign: 'center' }}>
@@ -820,7 +821,6 @@ export default function CadastrarProdutoPage() {
           <FichaTecnica
             ficha={ficha} setFicha={setFicha}
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento}
-            custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}
             mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
             botaoCatalogoDisabled={!!salvando} onCriarCatalogo={() => salvar('catalogo')}
           />
@@ -833,6 +833,7 @@ export default function CadastrarProdutoPage() {
             mensagemSemPreco={mensagemSemPreco}
             valorHora={valorHora}
             margemPadrao={margemPadrao}
+            custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}
           />
         </div>
       )}
