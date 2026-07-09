@@ -7,6 +7,7 @@ export interface LancarProducaoRequest {
   quantidade?: number
   lotes?: number
   dataProducao?: string
+  confirmarEstoqueNegativo?: boolean
 }
 
 export interface InsumoConsumidoResponse {

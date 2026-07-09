@@ -339,8 +339,8 @@ function NovaProducaoModal({ onClose, onSuccess }: {
     setErro(null)
     try {
       const payload: LancarProducaoRequest = fracionavel
-        ? { produtoId: produto.id, quantidade: quantidadeNum }
-        : { produtoId: produto.id, lotes: lotesNum }
+        ? { produtoId: produto.id, quantidade: quantidadeNum, confirmarEstoqueNegativo: temFalta }
+        : { produtoId: produto.id, lotes: lotesNum, confirmarEstoqueNegativo: temFalta }
       const result = await producaoService.lancar(payload)
       onSuccess(result)
     } catch (err: unknown) {
