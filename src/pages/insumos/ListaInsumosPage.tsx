@@ -179,24 +179,21 @@ function CompraLoteModal({ onClose, onSuccess }: {
   const [busca, setBusca] = useState('')
   const [resultadosBusca, setResultadosBusca] = useState<InsumoResponse[]>([])
   const [openList, setOpenList] = useState(false)
+  const [loadingBusca, setLoadingBusca] = useState(false)
   const [loadingConfirm, setLoadingConfirm] = useState(false)
 
   useEffect(() => {
-    if (!busca.trim()) {
-      setResultadosBusca([])
-      setOpenList(false)
-      return
-    }
+    if (!openList) return
+    setLoadingBusca(true)
+    const delay = busca.trim() ? 300 : 0
     const timer = setTimeout(() => {
-      insumoService.buscarParaCarrinho(busca)
-        .then(data => {
-          setResultadosBusca(data)
-          setOpenList(true)
-        })
-        .catch(console.error)
-    }, 300)
+      insumoService.buscarParaCarrinho(busca.trim())
+        .then(data => setResultadosBusca(data))
+        .catch(() => setResultadosBusca([]))
+        .finally(() => setLoadingBusca(false))
+    }, delay)
     return () => clearTimeout(timer)
-  }, [busca])
+  }, [busca, openList])
 
   const disponiveis = resultadosBusca.filter(i =>
     i.ativo && !itens.find(it => it.insumo.id === i.id)
@@ -266,7 +263,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
               <input
                 value={busca}
                 onChange={e => setBusca(e.target.value)}
-                onFocus={() => { if (busca.trim() && resultadosBusca.length > 0) setOpenList(true) }}
+                onFocus={() => setOpenList(true)}
                 onBlur={() => setTimeout(() => setOpenList(false), 150)}
                 placeholder="Buscar insumo para adicionar…"
                 style={{
@@ -277,9 +274,13 @@ function CompraLoteModal({ onClose, onSuccess }: {
                 onFocusCapture={e => { e.target.style.borderColor = '#2A9D8F'; e.target.style.boxShadow = '0 0 0 4px rgba(42,157,143,0.12)' }}
               />
             </div>
-            {openList && disponiveis.length > 0 && (
-              <div style={{ position: 'absolute', top: 50, left: 0, right: 0, zIndex: 20, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both', maxHeight: 200, overflowY: 'auto' }}>
-                {disponiveis.slice(0, 6).map(i => (
+            {openList && (
+              <div style={{ position: 'absolute', top: 50, left: 0, right: 0, zIndex: 20, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both', maxHeight: 300, overflowY: 'auto' }}>
+                {loadingBusca ? (
+                  <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Buscando...</div>
+                ) : disponiveis.length === 0 ? (
+                  <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Nenhum insumo encontrado</div>
+                ) : disponiveis.map(i => (
                   <button key={i.id} onMouseDown={() => addItem(i)} style={{
                     width: '100%', textAlign: 'left', padding: '10px 11px', borderRadius: 8,
                     border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
@@ -288,8 +289,10 @@ function CompraLoteModal({ onClose, onSuccess }: {
                     onMouseEnter={e => e.currentTarget.style.background = '#F7F5F1'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F' }}>{i.nome}</span>
-                    <span style={{ fontSize: 12, color: '#A29E96' }}>{moeda(i.custoUnitario, 2)} /{i.unidadeMedida}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F' }}>
+                      {i.nome}{i.marca ? <span style={{ fontWeight: 400, color: '#A29E96' }}> · {i.marca}</span> : null}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#A29E96', flexShrink: 0 }}>{i.unidadeMedida}</span>
                   </button>
                 ))}
               </div>
