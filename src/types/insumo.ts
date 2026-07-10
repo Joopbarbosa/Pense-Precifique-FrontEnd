@@ -7,6 +7,16 @@ export interface InsumoRequest {
   estoqueMinimo?: number
 }
 
+export interface NovoInsumoRequest {
+  nome: string
+  marca?: string
+  unidadeMedida: string
+  fracionavel?: boolean
+  estoqueMinimo?: number
+  precoTotalCompraInicial: number
+  quantidadeCompradaInicial: number
+}
+
 export interface InsumoResponse {
   id: string
   numero?: number

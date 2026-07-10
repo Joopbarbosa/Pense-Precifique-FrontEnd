@@ -6,8 +6,7 @@ import ModalShell from '../../components/ui/ModalShell'
 import SectionTitle from '../../components/shared/SectionTitle'
 import { Icons } from '../../components/ui/Icons'
 import { insumoService } from '../../services/insumoService'
-import { loteCompraService } from '../../services/loteCompraService'
-import type { InsumoRequest } from '../../types/insumo'
+import type { InsumoRequest, NovoInsumoRequest } from '../../types/insumo'
 
 const UNIDADES = ['Unidade', 'cm', 'g', 'ml', 'Folha']
 
@@ -18,7 +17,7 @@ const num = (v: string) => {
   return isNaN(n) ? 0 : n
 }
 
-function Field({ label, opt, hint, children }: { label: string; opt?: boolean; hint?: string; children: React.ReactNode }) {
+function Field({ label, opt, hint, erro, children }: { label: string; opt?: boolean; hint?: string; erro?: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'block' }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
@@ -26,7 +25,10 @@ function Field({ label, opt, hint, children }: { label: string; opt?: boolean; h
         {opt && <span style={{ fontSize: 11.5, fontWeight: 500, color: '#A29E96' }}>(opcional)</span>}
       </span>
       {children}
-      {hint && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#A29E96', lineHeight: 1.5 }}>{hint}</p>}
+      {erro
+        ? <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{erro}</span>
+        : hint && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#A29E96', lineHeight: 1.5 }}>{hint}</p>
+      }
     </label>
   )
 }
@@ -91,6 +93,8 @@ export default function FormInsumoPage() {
   const [minimo, setMinimo] = useState('')
   const [precoCompra, setPrecoCompra] = useState('')
   const [qtdCompra, setQtdCompra] = useState('')
+  const [precoTocado, setPrecoTocado] = useState(false)
+  const [qtdTocado, setQtdTocado] = useState(false)
   const [focus, setFocus] = useState<string | null>(null)
   const [modal, setModal] = useState<'desativar' | null>(null)
   const [loading, setLoading] = useState(false)
@@ -136,33 +140,47 @@ export default function FormInsumoPage() {
     ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: custoUnit < 0.1 ? 3 : 2, maximumFractionDigits: 3 })
     : '—'
 
-  // Se preço + qtd estão preenchidos no cadastro, o lote-compra vai setar o estoque e o custo.
-  // Não enviamos estoqueAtual para evitar duplicação (insumo nasce com 0 e o lote adiciona a qtd).
+  // O insumo nasce com a compra inicial já registrada — o backend cria o insumo
+  // e a movimentação de ENTRADA/COMPRA em uma única chamada (RN-056).
   const usaLote = !editando && preco > 0 && qComprada > 0
+  const precoValido = preco > 0
+  const qtdValida = qComprada > 0
+  const precoErro = !editando && precoTocado && !precoValido ? 'Preço total da compra é obrigatório' : undefined
+  const qtdErro = !editando && qtdTocado && !qtdValida ? 'Quantidade comprada é obrigatória' : undefined
+  const podeSubmeter = editando || (precoValido && qtdValida)
 
   const handleSubmit = async () => {
+    if (!editando && !podeSubmeter) {
+      setPrecoTocado(true)
+      setQtdTocado(true)
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const data: InsumoRequest = {
-        nome: nome.trim(),
-        marca: marca.trim() || undefined,
-        unidadeMedida: unidade,
-        fracionavel: fracao,
-        estoqueAtual: usaLote ? 0 : (estoque ? num(estoque) : undefined),
-        estoqueMinimo: minimo ? num(minimo) : undefined,
-      }
       if (editando && id) {
+        const data: InsumoRequest = {
+          nome: nome.trim(),
+          marca: marca.trim() || undefined,
+          unidadeMedida: unidade,
+          fracionavel: fracao,
+          estoqueAtual: estoque ? num(estoque) : undefined,
+          estoqueMinimo: minimo ? num(minimo) : undefined,
+        }
         await insumoService.editar(id, data)
         navigate(`/insumos/${id}`)
       } else {
-        const novoInsumo = await insumoService.cadastrar(data)
-        if (usaLote) {
-          await loteCompraService.registrar({
-            itens: [{ insumoId: novoInsumo.id, quantidadeComprada: qComprada, precoTotalPago: preco }],
-          })
+        const data: NovoInsumoRequest = {
+          nome: nome.trim(),
+          marca: marca.trim() || undefined,
+          unidadeMedida: unidade,
+          fracionavel: fracao,
+          estoqueMinimo: minimo ? num(minimo) : undefined,
+          precoTotalCompraInicial: preco,
+          quantidadeCompradaInicial: qComprada,
         }
-        navigate('/insumos')
+        const novoInsumo = await insumoService.cadastrar(data)
+        navigate(`/insumos/${novoInsumo.id}`)
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Erro ao salvar. Tente novamente.'
@@ -332,15 +350,25 @@ export default function FormInsumoPage() {
 
             {!editando && (
               <>
-                <Field label="Preço total da compra" opt>
+                <Field label="Preço total da compra *" erro={precoErro}>
                   <div style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 44, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, color: '#6B6860', background: '#FAF8F5', borderRadius: '10px 0 0 10px', borderRight: '1px solid #EFEDE8', pointerEvents: 'none' }}>R$</span>
-                    <input placeholder="45,00" {...numBind('preco', precoCompra, setPrecoCompra)} style={{ ...inputBase(focus === 'preco'), paddingLeft: 56 }} />
+                    <input
+                      placeholder="45,00"
+                      {...numBind('preco', precoCompra, setPrecoCompra)}
+                      onBlur={() => { setFocus(null); setPrecoTocado(true) }}
+                      style={{ ...inputBase(focus === 'preco'), paddingLeft: 56, borderColor: precoErro ? '#B23A1E' : (focus === 'preco' ? '#2A9D8F' : '#EFEDE8') }}
+                    />
                   </div>
                 </Field>
-                <Field label="Quantidade comprada" opt>
+                <Field label="Quantidade comprada *" erro={qtdErro}>
                   <div style={{ position: 'relative' }}>
-                    <input placeholder="100" {...numBind('qtd', qtdCompra, setQtdCompra)} style={{ ...inputBase(focus === 'qtd'), paddingRight: 64 }} />
+                    <input
+                      placeholder="100"
+                      {...numBind('qtd', qtdCompra, setQtdCompra)}
+                      onBlur={() => { setFocus(null); setQtdTocado(true) }}
+                      style={{ ...inputBase(focus === 'qtd'), paddingRight: 64, borderColor: qtdErro ? '#B23A1E' : (focus === 'qtd' ? '#2A9D8F' : '#EFEDE8') }}
+                    />
                     <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
                   </div>
                 </Field>
@@ -349,23 +377,25 @@ export default function FormInsumoPage() {
           </div>
 
           {/* CARD RESULTADO */}
-          <div key={custoFmt} style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.05))', border: '1.5px solid rgba(42,157,143,0.25)', animation: custoUnit != null ? 'flash .6s ease' : 'none' }}>
-            <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#2A9D8F', boxShadow: '0 4px 12px -4px rgba(31,122,111,0.3)' }}>
-              <Icons.calc />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Custo unitário calculado</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 3 }}>
-                <span style={{ fontSize: 26, fontWeight: 700, color: '#2A9D8F', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>{custoFmt}</span>
-                {custoUnit != null && <span style={{ fontSize: 15, fontWeight: 600, color: '#5C594F' }}>/ {unLabel(unidade)}</span>}
-              </div>
-              {custoUnit == null && (
-                <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>
-                  {editando ? 'Atualize o custo registrando uma nova compra na tela de insumos.' : 'Preencha o preço e a quantidade comprada para calcular.'}
+          {(editando || custoUnit != null) && (
+            <div key={custoFmt} style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.05))', border: '1.5px solid rgba(42,157,143,0.25)', animation: custoUnit != null ? 'flash .6s ease' : 'none' }}>
+              <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#2A9D8F', boxShadow: '0 4px 12px -4px rgba(31,122,111,0.3)' }}>
+                <Icons.calc />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Custo unitário calculado</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 3 }}>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: '#2A9D8F', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>{custoFmt}</span>
+                  {custoUnit != null && <span style={{ fontSize: 15, fontWeight: 600, color: '#5C594F' }}>/ {unLabel(unidade)}</span>}
                 </div>
-              )}
+                {custoUnit == null && (
+                  <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>
+                    Atualize o custo registrando uma nova compra na tela de insumos.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* BOTÕES */}
@@ -377,7 +407,7 @@ export default function FormInsumoPage() {
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
             <Button variant="ghost" onClick={() => navigate('/insumos')}>Cancelar</Button>
-            <Button variant="primary" icon={<Icons.save />} disabled={loading} onClick={handleSubmit}>
+            <Button variant="primary" icon={<Icons.save />} disabled={loading || !podeSubmeter} onClick={handleSubmit}>
               {loading ? 'Salvando…' : 'Salvar insumo'}
             </Button>
           </div>

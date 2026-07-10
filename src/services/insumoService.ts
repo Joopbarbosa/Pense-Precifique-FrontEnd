@@ -1,5 +1,5 @@
 import api from './api'
-import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, PageResponse, ProdutoRelacionadoResponse } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, PageResponse, ProdutoRelacionadoResponse } from '../types/insumo'
 
 export const insumoService = {
   listar: async (page: number, size = 20): Promise<PageResponse<InsumoResponse>> => {
@@ -12,7 +12,7 @@ export const insumoService = {
     return response.data
   },
 
-  cadastrar: async (data: InsumoRequest): Promise<InsumoResponse> => {
+  cadastrar: async (data: NovoInsumoRequest): Promise<InsumoResponse> => {
     const response = await api.post('/insumos', data)
     return response.data
   },
