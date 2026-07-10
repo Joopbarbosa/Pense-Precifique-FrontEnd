@@ -149,7 +149,12 @@ export default function FormInsumoPage() {
   const qtdValida = qComprada > 0
   const precoErro = !editando && precoTocado && !precoValido ? 'Preço total da compra é obrigatório' : undefined
   const qtdErro = !editando && qtdTocado && !qtdValida ? 'Quantidade comprada é obrigatória' : undefined
-  const podeSubmeter = editando || (precoValido && qtdValida)
+  // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
+  const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && num(estoque) < 0
+  const estoqueNegativoErro = bloqueioEstoqueNegativo
+    ? 'Não é possível desmarcar "Permitir estoque negativo" pois este insumo está com estoque negativo. Regularize o estoque antes de desmarcar esta opção.'
+    : undefined
+  const podeSubmeter = editando ? !bloqueioEstoqueNegativo : (precoValido && qtdValida)
 
   const handleSubmit = async () => {
     if (!editando && !podeSubmeter) {
@@ -157,16 +162,18 @@ export default function FormInsumoPage() {
       setQtdTocado(true)
       return
     }
+    if (editando && !podeSubmeter) return
     setLoading(true)
     setError('')
     try {
       if (editando && id) {
+        // estoqueAtual não é enviado: o campo é somente leitura nesta tela — o
+        // saldo só muda via baixa manual ou compra de lote (RN-052/RN-056).
         const data: InsumoRequest = {
           nome: nome.trim(),
           marca: marca.trim() || undefined,
           unidadeMedida: unidade,
           fracionavel: fracao,
-          estoqueAtual: estoque ? num(estoque) : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
           permitirEstoqueNegativo,
         }
@@ -421,6 +428,9 @@ export default function FormInsumoPage() {
               </span>
             </span>
           </label>
+          {estoqueNegativoErro && (
+            <p style={{ margin: '10px 0 0 34px', fontSize: 12.5, color: '#B23A1E' }}>{estoqueNegativoErro}</p>
+          )}
         </div>
 
         {/* BOTÕES */}
