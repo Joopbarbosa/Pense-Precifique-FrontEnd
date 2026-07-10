@@ -5,6 +5,7 @@ export interface InsumoRequest {
   fracionavel?: boolean
   estoqueAtual?: number
   estoqueMinimo?: number
+  permitirEstoqueNegativo?: boolean
 }
 
 export interface NovoInsumoRequest {
@@ -15,6 +16,7 @@ export interface NovoInsumoRequest {
   estoqueMinimo?: number
   precoTotalCompraInicial: number
   quantidadeCompradaInicial: number
+  permitirEstoqueNegativo?: boolean
 }
 
 export interface InsumoResponse {
@@ -25,6 +27,7 @@ export interface InsumoResponse {
   marca?: string
   unidadeMedida: string
   fracionavel: boolean
+  permitirEstoqueNegativo: boolean
   custoUnitario: number
   estoqueAtual: number
   estoqueMinimo?: number

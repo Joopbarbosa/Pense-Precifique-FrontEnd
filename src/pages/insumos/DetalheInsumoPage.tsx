@@ -463,6 +463,15 @@ export default function DetalheInsumoPage() {
                   Inativo
                 </span>
               )}
+              {insumo.permitirEstoqueNegativo ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#2A9D8F', 0.12), color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
+                  <Icons.check width={13} height={13} /> Permite estoque negativo
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#EF4444', 0.12), color: '#EF4444', fontSize: 12.5, fontWeight: 600 }}>
+                  <Icons.x width={13} height={13} /> Bloqueia estoque negativo
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>Marca: <strong style={{ color: '#5C594F', fontWeight: 600 }}>{insumo.marca || '—'}</strong></div>
           </div>

@@ -95,6 +95,7 @@ export default function FormInsumoPage() {
   const [qtdCompra, setQtdCompra] = useState('')
   const [precoTocado, setPrecoTocado] = useState(false)
   const [qtdTocado, setQtdTocado] = useState(false)
+  const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
   const [focus, setFocus] = useState<string | null>(null)
   const [modal, setModal] = useState<'desativar' | null>(null)
   const [loading, setLoading] = useState(false)
@@ -116,6 +117,7 @@ export default function FormInsumoPage() {
           setEstoque(data.estoqueAtual.toString())
           setMinimo(data.estoqueMinimo?.toString() ?? '')
           setCustoUnitarioExistente(data.custoUnitario)
+          setPermitirEstoqueNegativo(data.permitirEstoqueNegativo)
         })
         .catch(() => setError('Não foi possível carregar os dados do insumo.'))
         .finally(() => setLoadingData(false))
@@ -166,6 +168,7 @@ export default function FormInsumoPage() {
           fracionavel: fracao,
           estoqueAtual: estoque ? num(estoque) : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
+          permitirEstoqueNegativo,
         }
         await insumoService.editar(id, data)
         navigate(`/insumos/${id}`)
@@ -178,6 +181,7 @@ export default function FormInsumoPage() {
           estoqueMinimo: minimo ? num(minimo) : undefined,
           precoTotalCompraInicial: preco,
           quantidadeCompradaInicial: qComprada,
+          permitirEstoqueNegativo,
         }
         const novoInsumo = await insumoService.cadastrar(data)
         navigate(`/insumos/${novoInsumo.id}`)
@@ -396,6 +400,27 @@ export default function FormInsumoPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* SEÇÃO 4 — Configurações de estoque */}
+        <div style={SECTION_STYLE}>
+          <SectionTitle number="4" title="Configurações de estoque" subtitle="Comportamento quando o estoque fica insuficiente." />
+          <label onClick={() => setPermitirEstoqueNegativo(v => !v)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+            <span style={{
+              flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6,
+              border: `1.5px solid ${permitirEstoqueNegativo ? '#2A9D8F' : '#EFEDE8'}`,
+              background: permitirEstoqueNegativo ? '#2A9D8F' : '#fff',
+              display: 'grid', placeItems: 'center', transition: 'background .15s, border-color .15s',
+            }}>
+              {permitirEstoqueNegativo && <Icons.check style={{ color: '#fff', width: 14, height: 14 }} />}
+            </span>
+            <span>
+              <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Permitir estoque negativo</span>
+              <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginTop: 3, lineHeight: 1.5 }}>
+                Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
+              </span>
+            </span>
+          </label>
         </div>
 
         {/* BOTÕES */}
