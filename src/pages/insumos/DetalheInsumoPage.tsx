@@ -472,6 +472,15 @@ export default function DetalheInsumoPage() {
                   <Icons.x width={13} height={13} /> Bloqueia estoque negativo
                 </span>
               )}
+              {insumo.fracionavel ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#2A9D8F', 0.10), color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
+                  Fracionável
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#6B6860', 0.10), color: '#6B6860', fontSize: 12.5, fontWeight: 600 }}>
+                  Não fracionável
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>Marca: <strong style={{ color: '#5C594F', fontWeight: 600 }}>{insumo.marca || '—'}</strong></div>
           </div>
