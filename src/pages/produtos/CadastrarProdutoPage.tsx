@@ -159,7 +159,10 @@ function DescTextarea({ value, onChange }: { value: string; onChange: (v: string
 
 // ---------- DadosBasicos ----------
 
-function DadosBasicos({ st, set, onNext, nomeErro }: { st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string }) {
+function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro }: {
+  st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string
+  permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
+}) {
   return (
     <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '28px 30px', maxWidth: 760, animation: 'fadeUp .35s ease both' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '22px 24px' }}>
@@ -178,6 +181,9 @@ function DadosBasicos({ st, set, onNext, nomeErro }: { st: any; set: (k: string,
           <TextInput value={st.tempo} onChange={v => set('tempo', v.replace(/[^\d]/g, ''))} placeholder="45" suffix="minutos" inputMode="numeric" />
           <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Tempo para produzir o lote inteiro, não a unidade.</span>
         </Field>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <ConfiguracoesEstoque permitir={permitirEstoqueNegativo} setPermitir={setPermitirEstoqueNegativo} erro={estoqueNegativoErro} />
+        </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Field label="Descrição" opt>
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
@@ -650,8 +656,8 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
 
 function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boolean; setPermitir: (v: boolean) => void; erro?: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '28px 30px', maxWidth: 760, marginTop: 20, animation: 'fadeUp .35s ease both' }}>
-      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 14 }}>Configurações de estoque</span>
+    <div>
+      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>Configurações de estoque</span>
       <label onClick={() => setPermitir(!permitir)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
         <span style={{
           flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6,
@@ -696,6 +702,7 @@ export default function CadastrarProdutoPage() {
   const [margem, setMargem] = useState('0')
   const [modoMargem, setModoMargem] = useState('padrao')
   const [precoFinal, setPrecoFinal] = useState('')
+  const [precoFinalManual, setPrecoFinalManual] = useState(false)
   const [salvando, setSalvando] = useState<'padrao' | 'catalogo' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -717,6 +724,11 @@ export default function CadastrarProdutoPage() {
     ? 'Produto Base não tem preço de venda.'
     : 'Produto não tem preço de venda direto — defina o preço ao criar o item de Catálogo.'
 
+  // Mesma fórmula da Calculadora — mantém o preço final espelhando o sugerido enquanto não houver override manual.
+  const custoInsumosCalc = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
+  const maoObraCalc = (num(dados.tempo) / 60) * (valorHora ?? 0)
+  const sugeridoCalc = (custoInsumosCalc + maoObraCalc) * (1 + num(margem) / 100)
+
   // Buscar configuração de precificação real
   useEffect(() => {
     empresaService.getConfiguracao()
@@ -732,8 +744,17 @@ export default function CadastrarProdutoPage() {
 
   // Limpar precoFinal ao sair do tipo Customização
   useEffect(() => {
-    if (!isCustomizacao) setPrecoFinal('')
+    if (!isCustomizacao) {
+      setPrecoFinal('')
+      setPrecoFinalManual(false)
+    }
   }, [isCustomizacao])
+
+  // Preço final nasce espelhando o sugerido ao vivo — para de acompanhar assim que a artesã edita manualmente (override, RN-038a).
+  useEffect(() => {
+    if (!isCustomizacao || editando || precoFinalManual) return
+    setPrecoFinal(sugeridoCalc > 0 ? sugeridoCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')
+  }, [isCustomizacao, editando, precoFinalManual, sugeridoCalc])
 
   // Carregar dados na edição
   useEffect(() => {
@@ -764,6 +785,7 @@ export default function CadastrarProdutoPage() {
         setEstoqueAtualExistente(produto.estoqueAtual)
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+          setPrecoFinalManual(true)
           setModoMargem('personalizar')
         }
       })
@@ -808,6 +830,7 @@ export default function CadastrarProdutoPage() {
 
       if (isCustomizacao && result.precoVenda != null) {
         setPrecoFinal(result.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        setPrecoFinalManual(true)
       }
 
       if (destino === 'catalogo') {
@@ -889,10 +912,10 @@ export default function CadastrarProdutoPage() {
 
       {/* CONTEÚDO */}
       {aba === 'dados' && (
-        <>
-          <DadosBasicos st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome} />
-          <ConfiguracoesEstoque permitir={permitirEstoqueNegativo} setPermitir={setPermitirEstoqueNegativo} erro={estoqueNegativoErro} />
-        </>
+        <DadosBasicos
+          st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome}
+          permitirEstoqueNegativo={permitirEstoqueNegativo} setPermitirEstoqueNegativo={setPermitirEstoqueNegativo} estoqueNegativoErro={estoqueNegativoErro}
+        />
       )}
       {aba === 'ficha' && (
         <div className="ficha-grid">
@@ -906,7 +929,7 @@ export default function CadastrarProdutoPage() {
             ficha={ficha} tempo={dados.tempo}
             margem={margem} setMargem={setMargem}
             modoMargem={modoMargem} setModoMargem={setModoMargem}
-            precoFinal={precoFinal} setPrecoFinal={setPrecoFinal}
+            precoFinal={precoFinal} setPrecoFinal={(v: string) => { setPrecoFinalManual(true); setPrecoFinal(v) }}
             mostrarPrecoMargem={isCustomizacao}
             mensagemSemPreco={mensagemSemPreco}
             valorHora={valorHora}
