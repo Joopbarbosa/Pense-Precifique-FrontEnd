@@ -1005,8 +1005,8 @@ export default function RegistroProducaoPage() {
       ) : (
         <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
           <div className="prod-head">
-            {['Data', 'Produto', 'Quantidade', 'Status', ''].map((h, k) => (
-              <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C', textAlign: k === 4 ? 'right' : 'left' }}>{h}</div>
+            {['#', 'Data', 'Produto', 'Quantidade', 'Status', ''].map((h, k) => (
+              <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C', textAlign: k === 5 ? 'right' : 'left' }}>{h}</div>
             ))}
           </div>
 
@@ -1015,6 +1015,7 @@ export default function RegistroProducaoPage() {
               <div className="prod-row" style={{ animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}
                 onClick={() => navigate(`/producao/${h.id}`)}
               >
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{h.identificador}</div>
                 <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{fmtData(h.dataProducao)}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
                   <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
@@ -1043,6 +1044,7 @@ export default function RegistroProducaoPage() {
                       <Icons.cube />
                     </span>
                     <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{h.identificador}</div>
                       <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{h.nomeProduto}</span>
                       {h.status === 'CANCELADA' && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 7px', borderRadius: 999, background: '#FBEDE7', color: '#C0492B', fontSize: 11, fontWeight: 700, marginLeft: 8 }}>Cancelada</span>
