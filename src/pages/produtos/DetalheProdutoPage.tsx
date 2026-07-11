@@ -402,6 +402,15 @@ export default function DetalheProdutoPage() {
                 {produto.ativo && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} />}
                 {produto.ativo ? 'Ativo' : 'Inativo'}
               </span>
+              {produto.permitirEstoqueNegativo ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: 'rgba(42,157,143,0.12)', color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
+                  <Icons.check width={13} height={13} /> Permite estoque negativo
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontSize: 12.5, fontWeight: 600 }}>
+                  <Icons.x width={13} height={13} /> Bloqueia estoque negativo
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>
               Atualizado em <strong style={{ color: '#5C594F', fontWeight: 600 }}>{fmtData(produto.updatedAt)}</strong>

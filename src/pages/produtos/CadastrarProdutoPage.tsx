@@ -646,6 +646,40 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
   )
 }
 
+// ---------- ConfiguracoesEstoque ----------
+
+function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boolean; setPermitir: (v: boolean) => void; erro?: string }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '28px 30px', maxWidth: 760, marginTop: 20, animation: 'fadeUp .35s ease both' }}>
+      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 14 }}>Configurações de estoque</span>
+      <label onClick={() => setPermitir(!permitir)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+        <span style={{
+          flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6,
+          border: `1.5px solid ${permitir ? '#2A9D8F' : '#EFEDE8'}`,
+          background: permitir ? '#2A9D8F' : '#fff',
+          display: 'grid', placeItems: 'center', transition: 'background .15s, border-color .15s',
+        }}>
+          {permitir && <Icons.check style={{ color: '#fff', width: 14, height: 14 }} />}
+        </span>
+        <span>
+          <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Permitir estoque negativo</span>
+          <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginTop: 3, lineHeight: 1.5 }}>
+            Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
+          </span>
+        </span>
+      </label>
+      {erro && (
+        <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: '#FEF2F2', border: '1px solid #FECACA' }}>
+          <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#DC2626', boxShadow: '0 4px 12px -4px rgba(220,38,38,0.25)' }}>
+            <Icons.alertTriangle />
+          </span>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 'normal', color: '#DC2626', lineHeight: 1.5 }}>{erro}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---------- Página principal ----------
 
 export default function CadastrarProdutoPage() {
@@ -667,6 +701,14 @@ export default function CadastrarProdutoPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [valorHora, setValorHora] = useState(0)
   const [margemPadrao, setMargemPadrao] = useState(0)
+  const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
+  const [estoqueAtualExistente, setEstoqueAtualExistente] = useState<number | null>(null)
+
+  // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
+  const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
+  const estoqueNegativoErro = bloqueioEstoqueNegativo
+    ? 'Não é possível desmarcar "Permitir estoque negativo" pois este produto está com estoque negativo. Regularize o estoque antes de desmarcar esta opção.'
+    : undefined
 
   const isProdutoBase = dados.tipo === 'Produto Base'
   const isCustomizacao = dados.tipo === 'Customização'
@@ -718,6 +760,8 @@ export default function CadastrarProdutoPage() {
         setRendimento(produto.rendimento != null ? produto.rendimento.toString() : '')
         setCustoTotalLote(produto.custoTotalLote ?? null)
         setCustoUnitario(produto.custoUnitario ?? null)
+        setPermitirEstoqueNegativo(produto.permitirEstoqueNegativo)
+        setEstoqueAtualExistente(produto.estoqueAtual)
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
           setModoMargem('personalizar')
@@ -729,6 +773,8 @@ export default function CadastrarProdutoPage() {
   const salvar = async (destino: 'padrao' | 'catalogo' = 'padrao') => {
     setErro(null)
     setFieldErrors({})
+
+    if (bloqueioEstoqueNegativo) return
 
     const rendimentoNum = num(rendimento)
     if (!rendimento.trim() || rendimentoNum <= 0) {
@@ -746,6 +792,7 @@ export default function CadastrarProdutoPage() {
       tempoProducao: Math.round(num(dados.tempo)) || 1,
       precoVenda: precoVendaNum,
       rendimento: rendimentoNum,
+      permitirEstoqueNegativo,
       fichaTecnica: ficha.map(item => ({
         insumoId: item.tipo === 'insumo' ? item.id : undefined,
         produtoBaseId: item.tipo === 'produto' ? item.id : undefined,
@@ -837,14 +884,19 @@ export default function CadastrarProdutoPage() {
       </div>
 
       {/* CONTEÚDO */}
-      {aba === 'dados' && <DadosBasicos st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome} />}
+      {aba === 'dados' && (
+        <>
+          <DadosBasicos st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome} />
+          <ConfiguracoesEstoque permitir={permitirEstoqueNegativo} setPermitir={setPermitirEstoqueNegativo} erro={estoqueNegativoErro} />
+        </>
+      )}
       {aba === 'ficha' && (
         <div className="ficha-grid">
           <FichaTecnica
             ficha={ficha} setFicha={setFicha}
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento}
             mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
-            botaoCatalogoDisabled={!!salvando} onCriarCatalogo={() => salvar('catalogo')}
+            botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo} onCriarCatalogo={() => salvar('catalogo')}
           />
           <Calculadora
             ficha={ficha} tempo={dados.tempo}
@@ -863,11 +915,12 @@ export default function CadastrarProdutoPage() {
       {/* AÇÕES GLOBAIS */}
       {aba !== 'dados' && (
         <div style={{ marginTop: 26 }}>
-          {(erro || Object.keys(fieldErrors).length > 0) && (
+          {(erro || estoqueNegativoErro || Object.keys(fieldErrors).length > 0) && (
             <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5, marginBottom: 12 }}>
               <div>{erro}</div>
+              {estoqueNegativoErro && <div>{estoqueNegativoErro}</div>}
               {Object.keys(fieldErrors).length > 0 && (
-                <ul style={{ margin: erro ? '6px 0 0' : 0, padding: '0 0 0 18px' }}>
+                <ul style={{ margin: (erro || estoqueNegativoErro) ? '6px 0 0' : 0, padding: '0 0 0 18px' }}>
                   {Object.entries(fieldErrors).map(([k, v]) => (
                     <li key={k}>{v}</li>
                   ))}
@@ -879,7 +932,7 @@ export default function CadastrarProdutoPage() {
             <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
               Cancelar
             </Button>
-            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando}>
+            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando || bloqueioEstoqueNegativo}>
               {salvando === 'padrao'
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
                 : (editando ? 'Salvar alterações' : 'Salvar produto')

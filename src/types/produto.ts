@@ -30,6 +30,7 @@ export interface ProdutoRequest {
   precoVenda?: number
   rendimento?: number
   estoqueMinimo?: number
+  permitirEstoqueNegativo?: boolean
   fichaTecnica: FichaTecnicaItemRequest[]
 }
 
@@ -46,6 +47,7 @@ export interface ProdutoResponse {
   custoUnitario?: number
   estoqueAtual: number
   estoqueMinimo?: number
+  permitirEstoqueNegativo: boolean
   ativo: boolean
   createdAt: string
   updatedAt: string
