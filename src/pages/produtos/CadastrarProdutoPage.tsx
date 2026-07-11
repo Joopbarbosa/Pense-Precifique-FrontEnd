@@ -520,8 +520,8 @@ function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChan
 
 // ---------- Calculadora ----------
 
-function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, mostrarPrecoMargem, mensagemSemPreco, valorHora, margemPadrao, custoTotalLote, custoUnitario }: {
-  ficha: FichaItem[]; tempo: string
+function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, mostrarPrecoMargem, mensagemSemPreco, valorHora, margemPadrao, custoTotalLote, custoUnitario }: {
+  ficha: FichaItem[]; tempo: string; rendimento: string
   margem: string; setMargem: (v: string) => void
   modoMargem: string; setModoMargem: (v: string) => void
   precoFinal: string; setPrecoFinal: (v: string) => void
@@ -534,8 +534,10 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
   const custoInsumos = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
   const maoObra = (num(tempo) / 60) * (valorHora ?? 0)
   const subtotal = custoInsumos + maoObra
-  const lucro = subtotal * (num(margem) / 100)
-  const sugerido = subtotal + lucro
+  const rendimentoNum = num(rendimento)
+  const custoUnitarioAoVivo = rendimentoNum > 0 ? subtotal / rendimentoNum : 0
+  const lucro = custoUnitarioAoVivo * (num(margem) / 100)
+  const sugerido = custoUnitarioAoVivo + lucro
   const pf = num(precoFinal)
   const diff = pf - sugerido
   const manual = mostrarPrecoMargem && Math.abs(diff) > 0.005
@@ -572,6 +574,10 @@ function Calculadora({ ficha, tempo, margem, setMargem, modoMargem, setModoMarge
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '10px 0' }}>
             <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Custo Total da Receita</span>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(subtotal)}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '10px 0' }}>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Custo unitário</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoUnitarioAoVivo)}</span>
           </div>
 
           {(custoTotalLote != null || custoUnitario != null) && (
@@ -696,7 +702,7 @@ export default function CadastrarProdutoPage() {
   const [dados, setDados] = useState({ nome: '', tipo: 'Produto', descricao: '', tempo: '' })
   const setD = (k: string, v: any) => setDados(d => ({ ...d, [k]: v }))
   const [ficha, setFicha] = useState<FichaItem[]>([])
-  const [rendimento, setRendimento] = useState('')
+  const [rendimento, setRendimento] = useState('1')
   const [custoTotalLote, setCustoTotalLote] = useState<number | null>(null)
   const [custoUnitario, setCustoUnitario] = useState<number | null>(null)
   const [margem, setMargem] = useState('0')
@@ -717,6 +723,9 @@ export default function CadastrarProdutoPage() {
     ? 'Não é possível desmarcar "Permitir estoque negativo" pois este produto está com estoque negativo. Regularize o estoque antes de desmarcar esta opção.'
     : undefined
 
+  const rendimentoInvalido = !rendimento.trim() || num(rendimento) <= 0
+  const rendimentoErroInline = rendimentoInvalido ? 'Rendimento deve ser maior que zero.' : undefined
+
   const isProdutoBase = dados.tipo === 'Produto Base'
   const isCustomizacao = dados.tipo === 'Customização'
   const isProduto = dados.tipo === 'Produto'
@@ -727,7 +736,9 @@ export default function CadastrarProdutoPage() {
   // Mesma fórmula da Calculadora — mantém o preço final espelhando o sugerido enquanto não houver override manual.
   const custoInsumosCalc = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
   const maoObraCalc = (num(dados.tempo) / 60) * (valorHora ?? 0)
-  const sugeridoCalc = (custoInsumosCalc + maoObraCalc) * (1 + num(margem) / 100)
+  const rendimentoNumCalc = num(rendimento)
+  const custoUnitarioCalc = rendimentoNumCalc > 0 ? (custoInsumosCalc + maoObraCalc) / rendimentoNumCalc : 0
+  const sugeridoCalc = custoUnitarioCalc * (1 + num(margem) / 100)
 
   // Buscar configuração de precificação real
   useEffect(() => {
@@ -798,11 +809,11 @@ export default function CadastrarProdutoPage() {
 
     if (bloqueioEstoqueNegativo) return
 
-    const rendimentoNum = num(rendimento)
-    if (!rendimento.trim() || rendimentoNum <= 0) {
-      setFieldErrors({ rendimento: 'Rendimento é obrigatório e deve ser maior que zero.' })
+    if (rendimentoInvalido) {
+      setFieldErrors({ rendimento: rendimentoErroInline! })
       return
     }
+    const rendimentoNum = num(rendimento)
 
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
     const precoVendaNum = isCustomizacao ? (num(precoFinal) || undefined) : undefined
@@ -921,12 +932,12 @@ export default function CadastrarProdutoPage() {
         <div className="ficha-grid">
           <FichaTecnica
             ficha={ficha} setFicha={setFicha}
-            rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento}
+            rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento || rendimentoErroInline}
             mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
-            botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo} onCriarCatalogo={() => salvar('catalogo')}
+            botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido} onCriarCatalogo={() => salvar('catalogo')}
           />
           <Calculadora
-            ficha={ficha} tempo={dados.tempo}
+            ficha={ficha} tempo={dados.tempo} rendimento={rendimento}
             margem={margem} setMargem={setMargem}
             modoMargem={modoMargem} setModoMargem={setModoMargem}
             precoFinal={precoFinal} setPrecoFinal={(v: string) => { setPrecoFinalManual(true); setPrecoFinal(v) }}
@@ -959,7 +970,7 @@ export default function CadastrarProdutoPage() {
             <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
               Cancelar
             </Button>
-            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando || bloqueioEstoqueNegativo}>
+            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido}>
               {salvando === 'padrao'
                 ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
                 : (editando ? 'Salvar alterações' : 'Salvar produto')
