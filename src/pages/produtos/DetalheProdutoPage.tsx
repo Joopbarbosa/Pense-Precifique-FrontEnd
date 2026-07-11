@@ -406,6 +406,11 @@ export default function DetalheProdutoPage() {
                   <Icons.x width={13} height={13} /> Bloqueia estoque negativo
                 </span>
               )}
+              {produto.algumInsumoNaoFracionavel && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 11px', borderRadius: 999, background: '#EFEDE8', color: '#6B6860', fontSize: 12.5, fontWeight: 600 }}>
+                  Receita não fracionável
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>
               Atualizado em <strong style={{ color: '#5C594F', fontWeight: 600 }}>{fmtData(produto.updatedAt)}</strong>
@@ -537,7 +542,12 @@ export default function DetalheProdutoPage() {
           ) : (
             <>
               {produto.fichaTecnica.map((item, idx) => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: idx === 0 ? 'none' : '1px solid #EFEDE8', animation: 'fadeUp .35s ease both' }}>
+                <div key={item.id}
+                  onClick={() => navigate(item.produtoBaseId ? `/produtos/${item.produtoBaseId}` : `/insumos/${item.insumoId}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderTop: idx === 0 ? 'none' : '1px solid #EFEDE8', animation: 'fadeUp .35s ease both', cursor: 'pointer', transition: 'background .12s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#EFEDE8')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
                   <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: item.produtoBaseId ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: item.produtoBaseId ? '#2A9D8F' : '#9A968E' }}>
                     {item.produtoBaseId ? <Icons.cubeSmall /> : <Icons.box width={20} height={20} />}
                   </span>
