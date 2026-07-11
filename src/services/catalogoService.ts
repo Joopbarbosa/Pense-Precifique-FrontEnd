@@ -1,9 +1,15 @@
 import api from './api'
 import type { CatalogoRequest, CatalogoResponse } from '../types/catalogo'
 
+export interface CatalogoListarParams {
+  busca?: string
+  ordenarPor?: 'numero' | 'nome' | 'margem' | 'quantidadeItens'
+  direcao?: 'ASC' | 'DESC'
+}
+
 export const catalogoService = {
-  listar: async (): Promise<CatalogoResponse[]> => {
-    const response = await api.get('/catalogos')
+  listar: async (params?: CatalogoListarParams): Promise<CatalogoResponse[]> => {
+    const response = await api.get('/catalogos', { params })
     return response.data
   },
 

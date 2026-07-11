@@ -9,6 +9,17 @@ import { Icons } from '../../components/ui/Icons'
 import { catalogoService } from '../../services/catalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 
+type CampoOrdenacao = 'numero' | 'nome' | 'margem' | 'quantidadeItens'
+
+const COLUNAS: { label: string; campo: CampoOrdenacao | null }[] = [
+  { label: 'Identificador', campo: 'numero' },
+  { label: 'Nome', campo: 'nome' },
+  { label: 'Margem', campo: 'margem' },
+  { label: 'Itens', campo: 'quantidadeItens' },
+  { label: 'Status', campo: null },
+  { label: '', campo: null },
+]
+
 const num = (v: string) => {
   const n = parseFloat(v.replace(',', '.'))
   return isNaN(n) ? 0 : n
@@ -244,18 +255,38 @@ export default function ListaCatalogosPage() {
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [processando, setProcessando] = useState(false)
 
+  const [busca, setBusca] = useState('')
+  const [buscaFocus, setBuscaFocus] = useState(false)
+  const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacao | null>(null)
+  const [direcao, setDirecao] = useState<'ASC' | 'DESC'>('ASC')
+
   const carregar = useCallback(() => {
     setLoading(true)
     setErro(null)
-    catalogoService.listar()
+    catalogoService.listar({
+      busca: busca.trim() || undefined,
+      ordenarPor: ordenarPor ?? undefined,
+      direcao,
+    })
       .then(setCatalogos)
       .catch(() => setErro('Não foi possível carregar os catálogos. Tente novamente.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [busca, ordenarPor, direcao])
 
   useEffect(() => {
-    carregar()
+    const delay = busca.trim() ? 300 : 0
+    const t = setTimeout(() => carregar(), delay)
+    return () => clearTimeout(t)
   }, [carregar])
+
+  const handleSort = (campo: CampoOrdenacao) => {
+    if (ordenarPor === campo) {
+      setDirecao(prev => prev === 'ASC' ? 'DESC' : 'ASC')
+    } else {
+      setOrdenarPor(campo)
+      setDirecao('ASC')
+    }
+  }
 
   const handleEditarSucesso = (atualizado: CatalogoResponse) => {
     setCatalogos(prev => prev.map(c => c.id === atualizado.id ? atualizado : c))
@@ -323,6 +354,28 @@ export default function ListaCatalogosPage() {
         </div>
       )}
 
+      {/* BUSCA */}
+      <div style={{ position: 'relative', maxWidth: 420, marginBottom: 18 }}>
+        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
+          <Icons.search />
+        </span>
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          onFocus={() => setBuscaFocus(true)}
+          onBlur={() => setBuscaFocus(false)}
+          placeholder="Buscar por nome..."
+          style={{
+            width: '100%', height: 46, padding: '0 14px 0 42px',
+            border: `1.5px solid ${buscaFocus ? '#2A9D8F' : '#EFEDE8'}`,
+            borderRadius: 10, fontSize: 14.5, color: '#3A372F',
+            background: '#fff', outline: 'none', fontFamily: 'inherit',
+            boxShadow: buscaFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+            transition: 'border-color .15s, box-shadow .15s',
+          }}
+        />
+      </div>
+
       {/* CONTEÚDO */}
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
@@ -337,19 +390,35 @@ export default function ListaCatalogosPage() {
       ) : catalogos.length === 0 ? (
         <EmptyState
           icon={<Icons.fileStack />}
-          title="Nenhum catálogo cadastrado ainda"
-          description="Crie seu primeiro catálogo para organizar produtos com uma margem própria."
-          action={{ label: 'Criar primeiro catálogo', icon: <Icons.plus />, onClick: () => navigate('/catalogos/novo') }}
+          title={busca.trim() ? 'Nenhum catálogo encontrado' : 'Nenhum catálogo cadastrado ainda'}
+          description={busca.trim() ? 'Nenhum catálogo encontrado para essa busca.' : 'Crie seu primeiro catálogo para organizar produtos com uma margem própria.'}
+          action={!busca.trim() ? { label: 'Criar primeiro catálogo', icon: <Icons.plus />, onClick: () => navigate('/catalogos/novo') } : undefined}
         />
       ) : (
         <>
           <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <div className="cat-head">
-              {['Identificador', 'Nome', 'Margem', 'Itens', 'Status', ''].map((h, k) => (
-                <div key={k} style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
-                  {h}
-                </div>
-              ))}
+              {COLUNAS.map((col, k) => {
+                const ativa = col.campo != null && ordenarPor === col.campo
+                return (
+                  <div
+                    key={k}
+                    onClick={col.campo ? () => handleSort(col.campo!) : undefined}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
+                      color: ativa ? '#2A9D8F' : '#A8A49C',
+                      cursor: col.campo ? 'pointer' : 'default',
+                      userSelect: 'none',
+                    }}
+                  >
+                    {col.label}
+                    {ativa && (
+                      <Icons.arrowDown width={11} height={11} style={{ transform: direcao === 'ASC' ? 'rotate(180deg)' : 'none' }} />
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {catalogos.map((c, i) => (
