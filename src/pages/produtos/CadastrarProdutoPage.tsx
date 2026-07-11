@@ -4,6 +4,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Icons, Button } from '../../components/ui'
 import { produtoService } from '../../services/produtoService'
 import { empresaService } from '../../services/empresaService'
+import { tipoProdutoBadge } from '../../utils/badges'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
 const num = (s: string) =>
@@ -195,15 +196,25 @@ function DadosBasicos({ st, set, onNext, nomeErro }: { st: any; set: (k: string,
 // ---------- TipoBadge ----------
 
 function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
-  const produto = tipo === 'produto'
+  if (tipo === 'produto') {
+    const b = tipoProdutoBadge('PRODUTO_BASE')
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', height: 18, padding: '0 7px', borderRadius: 999,
+        fontSize: 10.5, fontWeight: 600, letterSpacing: '0.01em', whiteSpace: 'nowrap',
+        background: b.bg, color: b.fg,
+      }}>
+        {b.label}
+      </span>
+    )
+  }
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', height: 18, padding: '0 7px', borderRadius: 999,
       fontSize: 10.5, fontWeight: 600, letterSpacing: '0.01em', whiteSpace: 'nowrap',
-      background: produto ? 'rgba(42,157,143,0.12)' : '#F1F0EC',
-      color: produto ? '#2A9D8F' : '#7C786F',
+      background: '#F1F0EC', color: '#7C786F',
     }}>
-      {produto ? 'Produto Base' : 'Insumo'}
+      Insumo
     </span>
   )
 }
@@ -216,6 +227,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [f, setF] = useState(false)
   const [insumos, setInsumos] = useState<ItemDb[]>([])
   const [produtosBase, setProdutosBase] = useState<ItemDb[]>([])
+  const [loadingBusca, setLoadingBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -225,17 +237,16 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   }, [])
 
   useEffect(() => {
-    if (!q.trim()) {
-      setInsumos([])
-      setProdutosBase([])
-      return
-    }
-    const qLower = q.trim().toLowerCase()
+    if (!open) return
+    const termo = q.trim()
+    const qLower = termo.toLowerCase()
+    setLoadingBusca(true)
+    const delay = termo ? 300 : 0
     const timer = setTimeout(async () => {
       try {
         const [ins, prods] = await Promise.all([
-          produtoService.buscarInsumos(q),
-          produtoService.buscarProdutosBase(q),
+          produtoService.buscarInsumos(termo),
+          produtoService.buscarProdutosBase(termo),
         ])
         setInsumos(
           ins
@@ -248,11 +259,14 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
         )
       } catch {
-        // silent
+        setInsumos([])
+        setProdutosBase([])
+      } finally {
+        setLoadingBusca(false)
       }
-    }, 300)
+    }, delay)
     return () => clearTimeout(timer)
-  }, [q, jaAdicionados])
+  }, [q, open, jaAdicionados])
 
   const total = insumos.length + produtosBase.length
 
@@ -304,10 +318,18 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
           transition: 'border-color .15s, box-shadow .15s',
         }}
       />
-      {open && total > 0 && (
+      {open && (
         <div style={{ position: 'absolute', top: 50, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 14px 34px -10px rgba(0,0,0,0.2)', padding: 6, animation: 'pop .14s ease both', maxHeight: 320, overflowY: 'auto' }}>
-          {grupo('Insumos', insumos)}
-          {grupo('Produtos Base', produtosBase)}
+          {loadingBusca ? (
+            <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Buscando...</div>
+          ) : total === 0 ? (
+            <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Nenhum componente encontrado</div>
+          ) : (
+            <>
+              {grupo('Insumos', insumos)}
+              {grupo('Produtos Base', produtosBase)}
+            </>
+          )}
         </div>
       )}
     </div>
