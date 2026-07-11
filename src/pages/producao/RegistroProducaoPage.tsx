@@ -405,13 +405,23 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             <div style={{ fontSize: 13, color: '#A29E96' }}>Carregando dados do produto...</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {produtoDetalhe && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: fracionavel ? '#2A9D8F' : '#6B6860' }}>
+                  {fracionavel ? <Icons.check width={13} height={13} /> : <Icons.alertCircle width={13} height={13} />}
+                  {fracionavel
+                    ? 'Esta receita permite fracionamento'
+                    : `Esta receita não permite fracionamento${rendimento != null ? ` — 1 receita = ${rendimento} unidades` : ''}`
+                  }
+                </div>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
                   <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F' }}>
-                    {fracionavel ? 'Quantidade produzida' : 'Quantos lotes você produziu?'}
+                    {fracionavel ? 'Quantidade produzida' : 'Quantas receitas você produziu?'}
                   </span>
                   {!fracionavel && rendimento != null && (
-                    <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 2 }}>1 lote = {rendimento} unidades</span>
+                    <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 2 }}>1 receita = {rendimento} unidades</span>
                   )}
                 </div>
                 {fracionavel
@@ -428,7 +438,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
 
               {!fracionavel && rendimento != null && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(42,157,143,0.06)', border: '1px dashed rgba(42,157,143,0.3)' }}>
-                  <span style={{ fontSize: 13, color: '#5C594F' }}>Quantidade final ({lotesNum} {lotesNum === 1 ? 'lote' : 'lotes'} × {rendimento} un)</span>
+                  <span style={{ fontSize: 13, color: '#5C594F' }}>Quantidade final ({lotesNum} {lotesNum === 1 ? 'receita' : 'receitas'} × {rendimento} un)</span>
                   <span style={{ fontSize: 16, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums' }}>{quantidadeFinal} unidades</span>
                 </div>
               )}
