@@ -421,6 +421,7 @@ body:has(.drawer-open) {
 .i-row {
   border-bottom: 1px solid #EFEDE8;
   transition: background .12s;
+  cursor: pointer;
 }
 
 .i-row:last-child { border-bottom: none; }

@@ -96,6 +96,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
       animation: `fadeUp .4s ease both`,
       animationDelay: `${index * 0.04}s`,
     }}
+      onClick={onVer}
       onAnimationEnd={e => { e.currentTarget.style.animation = 'none' }}
     >
       <div style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
@@ -126,7 +127,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
 
       <div><InsumoStatusBadge insumo={insumo} /></div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
         <ActionMenu items={menuItems} align="right" />
       </div>
     </div>
@@ -153,7 +154,10 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
       opacity: !insumo.ativo ? 0.65 : 1,
       animation: `fadeUp .4s ease both`,
       animationDelay: `${index * 0.04}s`,
-    }}>
+      cursor: 'pointer',
+    }}
+      onClick={onVer}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#A29E96' }}>{insumo.identificador}</div>
@@ -171,7 +175,9 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
             <div style={{ fontSize: 11, color: '#A29E96', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Custo</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(insumo.custoUnitario, 2)}/{insumo.unidadeMedida}</div>
           </div>
-          <ActionMenu items={menuItems} align="right" />
+          <div onClick={e => e.stopPropagation()}>
+            <ActionMenu items={menuItems} align="right" />
+          </div>
         </div>
       </div>
     </div>
