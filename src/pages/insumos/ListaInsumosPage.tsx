@@ -17,7 +17,7 @@ interface ItemCarrinho {
   preco: string
 }
 
-const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo', 'Estoque negativo', 'Estoque positivo', 'Abaixo do mínimo']
+const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo', 'Estoque negativo', 'Estoque positivo']
 
 const isLow = (o: InsumoResponse) =>
   o.ativo && o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
@@ -25,9 +25,6 @@ const isLow = (o: InsumoResponse) =>
 const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
 
 const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
-
-const isBelowMinimo = (o: InsumoResponse) =>
-  o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
 
 const num = (s: string) => parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
 
@@ -551,14 +548,28 @@ export default function ListaInsumosPage() {
   if (filtro === 'Estoque baixo')     lista = lista.filter(isLow)
   if (filtro === 'Estoque negativo')  lista = lista.filter(isNegative)
   if (filtro === 'Estoque positivo')  lista = lista.filter(isPositive)
-  if (filtro === 'Abaixo do mínimo')  lista = lista.filter(isBelowMinimo)
   if (query.trim()) lista = lista.filter(o =>
     o.nome.toLowerCase().includes(query.toLowerCase()) ||
     (o.marca?.toLowerCase().includes(query.toLowerCase()) ?? false)
   )
 
   const lowCount = insumos.filter(isLow).length
+  const negativeCount = insumos.filter(isNegative).length
+  const positiveCount = insumos.filter(isPositive).length
   const empty = !loading && insumos.length === 0
+
+  const chipConfig: Record<string, {
+    icon: (p?: React.SVGProps<SVGSVGElement>) => React.ReactElement
+    color: string
+    activeBg: string
+    badgeBg: string
+    badgeColor: string
+    count: number
+  }> = {
+    'Estoque baixo':    { icon: Icons.alertCircle, color: '#E8973A', activeBg: '#F2913C', badgeBg: '#FFF1E8', badgeColor: '#C8721F', count: lowCount },
+    'Estoque negativo': { icon: Icons.alertCircle, color: '#EF4444', activeBg: '#EF4444', badgeBg: '#FDECEA', badgeColor: '#C0392B', count: negativeCount },
+    'Estoque positivo': { icon: Icons.checkCircle, color: '#1F8A5B', activeBg: '#1F8A5B', badgeBg: '#E8F5EE', badgeColor: '#1F8A5B', count: positiveCount },
+  }
 
   return (
     <AppLayout active="insumos">
@@ -598,34 +609,34 @@ export default function ListaInsumosPage() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {FILTERS.map(f => {
                 const on = filtro === f
-                const isLowChip = f === 'Estoque baixo'
+                const chip = chipConfig[f]
                 return (
                   <button key={f} onClick={() => setFiltro(f)} style={{
                     height: 34, padding: '0 14px', borderRadius: 999, cursor: 'pointer',
                     fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 7,
-                    border: `1.5px solid ${on ? (isLowChip ? '#E8973A' : '#2A9D8F') : '#EFEDE8'}`,
-                    background: on ? (isLowChip ? '#F2913C' : '#2A9D8F') : '#fff',
+                    border: `1.5px solid ${on ? (chip ? chip.color : '#2A9D8F') : '#EFEDE8'}`,
+                    background: on ? (chip ? chip.activeBg : '#2A9D8F') : '#fff',
                     color: on ? '#fff' : '#5C594F',
                     transition: 'all .14s',
                   }}
                     onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#FAF8F5' }}
                     onMouseLeave={e => { if (!on) e.currentTarget.style.background = '#fff' }}
                   >
-                    {isLowChip && (
-                      <span style={{ display: 'flex', color: on ? '#fff' : '#E8973A' }}>
-                        <Icons.alertCircle width={14} height={14} />
+                    {chip && (
+                      <span style={{ display: 'flex', color: on ? '#fff' : chip.color }}>
+                        <chip.icon width={14} height={14} />
                       </span>
                     )}
                     {f}
-                    {isLowChip && lowCount > 0 && (
+                    {chip && chip.count > 0 && (
                       <span style={{
                         minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
                         display: 'grid', placeItems: 'center',
                         fontSize: 11, fontWeight: 700,
-                        background: on ? 'rgba(255,255,255,0.28)' : '#FFF1E8',
-                        color: on ? '#fff' : '#C8721F',
-                      }}>{lowCount}</span>
+                        background: on ? 'rgba(255,255,255,0.28)' : chip.badgeBg,
+                        color: on ? '#fff' : chip.badgeColor,
+                      }}>{chip.count}</span>
                     )}
                   </button>
                 )
