@@ -806,6 +806,10 @@ export default function CadastrarProdutoPage() {
         ? await produtoService.editar(id, request)
         : await produtoService.cadastrar(request)
 
+      if (isCustomizacao && result.precoVenda != null) {
+        setPrecoFinal(result.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+      }
+
       if (destino === 'catalogo') {
         navigate(`/catalogos/itens/novo?produtoId=${result.id}`)
       } else if (editando) {
