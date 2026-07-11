@@ -14,8 +14,9 @@ import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-function ItemRow({ item, onEditar, onRemover }: {
+function ItemRow({ item, onClick, onEditar, onRemover }: {
   item: ItemCatalogoResponse
+  onClick: () => void
   onEditar: () => void
   onRemover: () => void
 }) {
@@ -25,7 +26,10 @@ function ItemRow({ item, onEditar, onRemover }: {
   ]
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', borderTop: '1px solid #EFEDE8' }}>
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', borderTop: '1px solid #EFEDE8', cursor: 'pointer', transition: 'background .12s' }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#EFEDE8')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
       <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
         <Icons.box width={20} height={20} />
       </span>
@@ -60,7 +64,7 @@ function ItemRow({ item, onEditar, onRemover }: {
           </div>
         )}
       </div>
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }} onClick={e => e.stopPropagation()}>
         <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           {moeda(item.precoVenda)}
         </span>
@@ -221,6 +225,7 @@ export default function DetalheCatalogoPage() {
             <ItemRow
               key={item.id}
               item={item}
+              onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}&itemId=${item.id}`)}
               onEditar={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}&itemId=${item.id}`)}
               onRemover={() => setItemParaRemover(item)}
             />
