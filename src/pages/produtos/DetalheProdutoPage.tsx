@@ -105,7 +105,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   produtoId: string
   nomeProduto: string
   onClose: () => void
-  onSuccess: (novoEstoque: number) => void
+  onSuccess: () => void
 }) {
   const [qtd, setQtd] = useState('')
   const [motivo, setMotivo] = useState<BaixaManualProdutoRequest['motivo']>('PERDA')
@@ -143,12 +143,12 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
     setErro(null)
     setSalvando(true)
     try {
-      const result = await produtoService.baixaManual(produtoId, {
+      await produtoService.baixaManual(produtoId, {
         quantidade: qtdNum,
         motivo,
         observacao: obs.trim(),
       })
-      onSuccess(result.quantidade)
+      onSuccess()
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao registrar baixa.')
     } finally {
@@ -316,23 +316,18 @@ export default function DetalheProdutoPage() {
       .finally(() => setMovLoadingMore(false))
   }
 
-  const recarregarMovimentacoes = () => {
-    if (!id) return
-    produtoService.listarMovimentacoes(id, 0)
-      .then(data => {
-        setMovimentacoes(data.content)
-        setMovHasNext(!data.last)
-        setMovPage(0)
-      })
-      .catch(console.error)
-  }
-
-  const handleBaixaSuccess = (qtdSubtraida: number) => {
+  const handleBaixaSuccess = () => {
     setModal(null)
-    if (produto) {
-      setProduto(prev => prev ? { ...prev, estoqueAtual: Math.max(0, prev.estoqueAtual - qtdSubtraida) } : prev)
-    }
-    recarregarMovimentacoes()
+    if (!id) return
+    Promise.all([
+      produtoService.buscarPorId(id),
+      produtoService.listarMovimentacoes(id, 0),
+    ]).then(([prod, movs]) => {
+      setProduto(prod)
+      setMovimentacoes(movs.content)
+      setMovHasNext(!movs.last)
+      setMovPage(0)
+    }).catch(console.error)
   }
 
   if (loading || !produto) {
