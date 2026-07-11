@@ -189,23 +189,25 @@ export default function ListaProdutosPage() {
 
   useEffect(() => {
     setLoading(true)
-    setProdutos([])
-    setPage(0)
-    setHasNext(false)
-    produtoService.listar(0, 20, CAT_TO_TIPO[cat])
-      .then(data => {
-        setProdutos(data.content)
-        setHasNext(!data.last)
-        setTotalElements(data.totalElements)
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [cat])
+    const buscaAtual = busca.trim() || undefined
+    const t = setTimeout(() => {
+      produtoService.listar(0, 20, CAT_TO_TIPO[cat], buscaAtual)
+        .then(data => {
+          setProdutos(data.content)
+          setHasNext(!data.last)
+          setTotalElements(data.totalElements)
+          setPage(0)
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false))
+    }, buscaAtual ? 300 : 0)
+    return () => clearTimeout(t)
+  }, [cat, busca])
 
   const carregarMais = () => {
     const nextPage = page + 1
     setLoadingMore(true)
-    produtoService.listar(nextPage, 20, CAT_TO_TIPO[cat])
+    produtoService.listar(nextPage, 20, CAT_TO_TIPO[cat], busca.trim() || undefined)
       .then(data => {
         setProdutos(prev => [...prev, ...data.content])
         setHasNext(!data.last)
@@ -229,10 +231,6 @@ export default function ListaProdutosPage() {
     if (c === cat) return
     setCat(c)
   }
-
-  const filtered = busca.trim()
-    ? produtos.filter(p => p.nome.toLowerCase().includes(busca.trim().toLowerCase()))
-    : produtos
 
   const counts = (c: string) => c === cat ? totalElements : 0
 
@@ -315,17 +313,17 @@ export default function ListaProdutosPage() {
           <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
           Carregando produtos…
         </div>
-      ) : filtered.length === 0 ? (
+      ) : produtos.length === 0 ? (
         <EmptyState
           icon={<Icons.box />}
-          title={cat === 'Inativos' ? 'Nenhum produto inativo' : 'Seu catálogo começa aqui'}
-          description={cat === 'Inativos' ? 'Nenhum produto inativo no momento.' : 'Você ainda não cadastrou produtos. Comece criando seu primeiro!'}
-          action={cat !== 'Inativos' ? { label: 'Criar primeiro produto', icon: <Icons.plus />, onClick: () => navigate('/produtos/novo') } : undefined}
+          title={busca.trim() ? 'Nenhum produto encontrado' : cat === 'Inativos' ? 'Nenhum produto inativo' : 'Seu catálogo começa aqui'}
+          description={busca.trim() ? 'Nenhum produto encontrado para essa busca.' : cat === 'Inativos' ? 'Nenhum produto inativo no momento.' : 'Você ainda não cadastrou produtos. Comece criando seu primeiro!'}
+          action={!busca.trim() && cat !== 'Inativos' ? { label: 'Criar primeiro produto', icon: <Icons.plus />, onClick: () => navigate('/produtos/novo') } : undefined}
         />
       ) : (
         <>
           <div className="prod-grid">
-            {filtered.map((p, i) => (
+            {produtos.map((p, i) => (
               <ProductCard
                 key={p.id}
                 p={p}
@@ -342,9 +340,9 @@ export default function ListaProdutosPage() {
           {/* Contador + Carregar mais */}
           <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 13, color: '#A29E96', alignSelf: 'flex-end', width: '100%', textAlign: 'right' }}>
-              {filtered.length} de {totalElements} {totalElements === 1 ? 'produto' : 'produtos'}
+              {produtos.length} de {totalElements} {totalElements === 1 ? 'produto' : 'produtos'}
             </div>
-            {hasNext && !busca.trim() && (
+            {hasNext && (
               <button
                 onClick={carregarMais}
                 disabled={loadingMore}
