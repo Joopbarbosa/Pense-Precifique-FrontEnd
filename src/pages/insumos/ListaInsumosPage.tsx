@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -191,6 +191,12 @@ function CompraLoteModal({ onClose, onSuccess }: {
   const [openList, setOpenList] = useState(false)
   const [loadingBusca, setLoadingBusca] = useState(false)
   const [loadingConfirm, setLoadingConfirm] = useState(false)
+  const buscaInputRef = useRef<HTMLInputElement>(null)
+
+  const focarBusca = () => {
+    buscaInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    buscaInputRef.current?.focus()
+  }
 
   useEffect(() => {
     if (!openList) return
@@ -271,6 +277,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                 <Icons.search width={16} height={16} />
               </span>
               <input
+                ref={buscaInputRef}
                 value={busca}
                 onChange={e => setBusca(e.target.value)}
                 onFocus={() => setOpenList(true)}
@@ -365,6 +372,17 @@ function CompraLoteModal({ onClose, onSuccess }: {
                   </div>
                 )
               })}
+              <button onClick={focarBusca} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                height: 44, borderRadius: 10, border: '1.5px dashed #C9C5BC',
+                background: 'transparent', color: '#5C594F', fontSize: 13.5, fontWeight: 600,
+                fontFamily: 'inherit', cursor: 'pointer', transition: 'background .12s, border-color .12s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FAF8F5'; e.currentTarget.style.borderColor = '#2A9D8F' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#C9C5BC' }}
+              >
+                <Icons.plus width={16} height={16} /> Adicionar mais um insumo
+              </button>
             </div>
           )}
 
