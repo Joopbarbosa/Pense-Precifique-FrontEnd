@@ -433,7 +433,7 @@ export default function FormInsumoPage() {
               <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#DC2626', boxShadow: '0 4px 12px -4px rgba(220,38,38,0.25)' }}>
                 <Icons.alertTriangle />
               </span>
-              <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: '#DC2626', lineHeight: 1.5 }}>{estoqueNegativoErro}</p>
+              <p style={{ margin: 0, fontSize: 13.5, fontWeight: 'normal', color: '#DC2626', lineHeight: 1.5 }}>{estoqueNegativoErro}</p>
             </div>
           )}
         </div>
