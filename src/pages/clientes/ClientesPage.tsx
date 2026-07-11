@@ -53,8 +53,10 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
         transition: 'background .12s',
         animation: `fadeUp .4s ease both`,
         animationDelay: `${index * 0.05}s`,
+        cursor: 'pointer',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = inativa ? '#F5F3EF' : '#FCFBF9' }}
+      onClick={() => onEdit(cliente)}
+      onMouseEnter={(e) => { e.currentTarget.style.background = '#EFEDE8' }}
       onMouseLeave={(e) => { e.currentTarget.style.background = inativa ? '#FAF9F6' : 'transparent' }}
     >
       {/* Nome */}
@@ -107,7 +109,7 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
       </div>
 
       {/* Menu de ações */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
         <ActionMenu items={menuItems} align="right" />
       </div>
     </div>

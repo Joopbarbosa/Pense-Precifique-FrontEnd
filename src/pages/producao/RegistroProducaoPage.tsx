@@ -887,7 +887,9 @@ export default function RegistroProducaoPage() {
 
           {filtrado.map((h) => (
             <React.Fragment key={h.id}>
-              <div className="prod-row" style={{ animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}>
+              <div className="prod-row" style={{ animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}
+                onClick={() => navigate(`/producao/${h.id}`)}
+              >
                 <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{fmtData(h.dataProducao)}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
                   <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
@@ -902,12 +904,14 @@ export default function RegistroProducaoPage() {
                     : <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 11, fontWeight: 700 }}>Ativa</span>
                   }
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
                   <ActionMenu items={menuItems(h)} align="right" />
                 </div>
               </div>
 
-              <div className="prod-card" style={{ padding: '16px 18px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}>
+              <div className="prod-card" style={{ padding: '16px 18px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}
+                onClick={() => navigate(`/producao/${h.id}`)}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
@@ -924,7 +928,9 @@ export default function RegistroProducaoPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11 }}>
                   <span style={{ fontSize: 12, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{fmtData(h.dataProducao)}</span>
-                  <ActionMenu items={menuItems(h)} align="right" />
+                  <div onClick={e => e.stopPropagation()}>
+                    <ActionMenu items={menuItems(h)} align="right" />
+                  </div>
                 </div>
               </div>
             </React.Fragment>

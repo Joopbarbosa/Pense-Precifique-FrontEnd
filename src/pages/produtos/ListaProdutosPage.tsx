@@ -52,7 +52,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
   return (
     <div
       style={{
-        background: '#fff',
+        background: hover ? '#EFEDE8' : '#fff',
         border: '1px solid #F0EEE9',
         borderRadius: 'var(--r-card)',
         boxShadow: hover ? '0 10px 26px -10px rgba(0,0,0,0.18)' : '0 2px 8px rgba(0,0,0,0.06)',
@@ -63,8 +63,10 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
         animation: inativo ? 'none' : 'fadeUp .4s ease both',
         animationDelay: `${index * 0.05}s`,
         transform: hover ? 'translateY(-3px)' : 'none',
-        transition: 'box-shadow .18s, transform .18s',
+        transition: 'box-shadow .18s, transform .18s, background .12s',
+        cursor: 'pointer',
       }}
+      onClick={onVer}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -92,7 +94,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
         {inativo && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(120,118,112,0.2)', pointerEvents: 'none' }} />
         )}
-        <div style={{ position: 'absolute', top: 10, right: 10 }}>
+        <div style={{ position: 'absolute', top: 10, right: 10 }} onClick={e => e.stopPropagation()}>
           <ActionMenu items={menuItems} align="right" />
         </div>
         <div style={{ position: 'absolute', top: 10, left: 10 }}>

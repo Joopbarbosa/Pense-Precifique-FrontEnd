@@ -262,10 +262,11 @@ body:has(.drawer-open) {
   padding: 14px 18px;
   border-bottom: 1px solid #EFEDE8;
   transition: background .12s;
+  cursor: pointer;
 }
 
 .q-row:last-child { border-bottom: none; }
-.q-row:hover { background: #FCFBF9; }
+.q-row:hover { background: #EFEDE8; }
 .q-card-mobile { display: none; }
 
 @media (max-width: 680px) {
@@ -543,9 +544,12 @@ body:has(.drawer-open) {
   align-items: center;
   padding: 16px 22px;
   border-top: 1px solid #EFEDE8;
+  transition: background .12s;
+  cursor: pointer;
 }
 
-.prod-card { display: none; }
+.prod-row:hover { background: #EFEDE8; }
+.prod-card { display: none; cursor: pointer; }
 
 @media (max-width: 720px) {
   .prod-head { display: none; }

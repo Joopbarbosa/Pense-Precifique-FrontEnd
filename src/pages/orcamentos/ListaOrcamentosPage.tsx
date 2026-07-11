@@ -65,7 +65,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
   ]
 
   return (
-    <div className="q-row">
+    <div className="q-row" onClick={onVerDetalhes}>
       <span style={{ fontSize: 14, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>
         ORÇ-{String(orc.numero).padStart(4, '0')}
       </span>
@@ -85,7 +85,9 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
         {isVencido(orc) && <VencidoBadge />}
       </div>
 
-      <ActionMenu items={menuItems} align="right" />
+      <div onClick={e => e.stopPropagation()}>
+        <ActionMenu items={menuItems} align="right" />
+      </div>
     </div>
   )
 }
@@ -107,7 +109,10 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
       borderBottom: '1px solid #EFEDE8',
       animation: `fadeUp .4s ease both`,
       animationDelay: `${index * 0.05}s`,
-    }}>
+      cursor: 'pointer',
+    }}
+      onClick={onVerDetalhes}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -124,7 +129,9 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F' }}>{fmt(orc.total)}</span>
-          <ActionMenu items={menuItems} align="right" />
+          <div onClick={e => e.stopPropagation()}>
+            <ActionMenu items={menuItems} align="right" />
+          </div>
         </div>
       </div>
     </div>
