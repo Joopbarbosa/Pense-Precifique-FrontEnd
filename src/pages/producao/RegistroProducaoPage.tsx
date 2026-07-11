@@ -225,8 +225,8 @@ function QuantidadeProduzidaInput({ value, onChange }: { value: string; onChange
 
 /* ── ConfirmEstoqueModal ─────────────────────────────────────── */
 
-function ConfirmEstoqueModal({ insumos, onCancel, onConfirm, confirming }: {
-  insumos: InsumoConsumidoResponse[]
+function ConfirmEstoqueModal({ mensagem, onCancel, onConfirm, confirming }: {
+  mensagem: string
   onCancel: () => void
   onConfirm: () => void
   confirming: boolean
@@ -244,19 +244,9 @@ function ConfirmEstoqueModal({ insumos, onCancel, onConfirm, confirming }: {
           </div>
         </div>
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 13.5, color: '#5C594F', lineHeight: 1.5 }}>
-            {insumos.length === 1 ? 'Este insumo não tem' : 'Estes insumos não têm'} saldo suficiente para esta produção:
-          </p>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#B23A1E', lineHeight: 1.7 }}>
-            {insumos.map(i => (
-              <li key={i.insumoId}>
-                <strong style={{ fontWeight: 700 }}>{i.nomeInsumo}{i.marca ? ` (${i.marca})` : ''}</strong>
-                {' — precisa '}{i.quantidade} {i.unidadeMedida}, disponível {i.estoqueAntes ?? 0} {i.unidadeMedida}
-              </li>
-            ))}
-          </ul>
+          <p style={{ margin: 0, fontSize: 13.5, color: '#B23A1E', lineHeight: 1.5 }}>{mensagem}</p>
           <p style={{ margin: 0, fontSize: 12.5, color: '#A29E96', lineHeight: 1.5 }}>
-            Deseja continuar mesmo assim? O sistema pode rejeitar a produção se o saldo não permitir.
+            Deseja continuar mesmo assim? O sistema vai gravar a(s) produção(ões) e deixar o saldo negativo.
           </p>
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -272,9 +262,32 @@ function ConfirmEstoqueModal({ insumos, onCancel, onConfirm, confirming }: {
 
 /* ── NovaProducaoModal ───────────────────────────────────────── */
 
+interface ItemSessao {
+  id: string
+  produto: ProdutoResponse
+  fracionavel: boolean
+  quantidade: number | null
+  lotes: number | null
+  rendimento: number | null
+  quantidadeFinal: number
+}
+
+function extrairMensagemErro(err: unknown): string {
+  return (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao lançar produção.'
+}
+
+function itemSessaoParaRequest(item: ItemSessao, forcar: boolean): LancarProducaoRequest {
+  return {
+    produtoId: item.produto.id,
+    quantidade: item.fracionavel ? item.quantidade ?? undefined : undefined,
+    lotes: item.fracionavel ? undefined : item.lotes ?? undefined,
+    confirmarEstoqueNegativo: forcar,
+  }
+}
+
 function NovaProducaoModal({ onClose, onSuccess }: {
   onClose: () => void
-  onSuccess: (p: ProducaoDetalheResponse) => void
+  onSuccess: (producoes: ProducaoDetalheResponse[]) => void
 }) {
   const [tipoAtivo, setTipoAtivo] = useState<TipoProduto>('PRODUTO')
   const [produto, setProduto] = useState<ProdutoResponse | null>(null)
@@ -285,7 +298,11 @@ function NovaProducaoModal({ onClose, onSuccess }: {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [erroBloqueio, setErroBloqueio] = useState<string | null>(null)
   const [confirmEstoque, setConfirmEstoque] = useState(false)
+  const [mensagemConfirmEstoque, setMensagemConfirmEstoque] = useState('')
+  const [itensPendentes, setItensPendentes] = useState<LancarProducaoRequest[] | null>(null)
+  const [sessao, setSessao] = useState<ItemSessao[]>([])
 
   const trocaTipo = (v: TipoProduto) => {
     setTipoAtivo(v)
@@ -316,6 +333,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
   const lotesNum = parseInt(qtdInput, 10) || 0
   const quantidadeNum = parseFloat(qtdInput.replace(',', '.')) || 0
   const quantidadeFinal = fracionavel ? quantidadeNum : lotesNum * (rendimento ?? 0)
+  const itemAtualValido = !!produto && !!produtoDetalhe && !loadingDetalhe && quantidadeFinal > 0
 
   useEffect(() => {
     if (!produto || !produtoDetalhe || quantidadeFinal <= 0) { setPreviewInsumos(null); return }
@@ -333,33 +351,89 @@ function NovaProducaoModal({ onClose, onSuccess }: {
     return () => clearTimeout(t)
   }, [produto, produtoDetalhe, quantidadeFinal])
 
-  const doLancar = async () => {
-    if (!produto) return
+  const limparFormulario = () => {
+    setProduto(null)
+    setProdutoDetalhe(null)
+    setQtdInput('1')
+    setPreviewInsumos(null)
+    setErro(null)
+  }
+
+  const handleAdicionar = () => {
+    if (!produto || !produtoDetalhe || !itemAtualValido) return
+    const novo: ItemSessao = {
+      id: crypto.randomUUID(),
+      produto,
+      fracionavel,
+      quantidade: fracionavel ? quantidadeNum : null,
+      lotes: fracionavel ? null : lotesNum,
+      rendimento,
+      quantidadeFinal,
+    }
+    setSessao(prev => [...prev, novo])
+    limparFormulario()
+  }
+
+  const handleRemoverSessao = (id: string) => {
+    setSessao(prev => prev.filter(i => i.id !== id))
+  }
+
+  const handleEditarSessao = (item: ItemSessao) => {
+    setSessao(prev => prev.filter(i => i.id !== item.id))
+    setProduto(item.produto)
+    setQtdInput(String(item.fracionavel ? item.quantidade ?? 1 : item.lotes ?? 1))
+    setErro(null)
+  }
+
+  const construirListaFinal = (): LancarProducaoRequest[] => {
+    const itens = sessao.map(i => itemSessaoParaRequest(i, false))
+    if (itemAtualValido && produto) {
+      itens.push({
+        produtoId: produto.id,
+        quantidade: fracionavel ? quantidadeNum : undefined,
+        lotes: fracionavel ? undefined : lotesNum,
+        confirmarEstoqueNegativo: false,
+      })
+    }
+    return itens
+  }
+
+  const doLancarLote = async (itens: LancarProducaoRequest[]) => {
     setSubmitting(true)
     setErro(null)
+    setErroBloqueio(null)
     try {
-      const payload: LancarProducaoRequest = fracionavel
-        ? { produtoId: produto.id, quantidade: quantidadeNum, confirmarEstoqueNegativo: temFalta }
-        : { produtoId: produto.id, lotes: lotesNum, confirmarEstoqueNegativo: temFalta }
-      const result = await producaoService.lancar(payload)
-      onSuccess(result)
+      const resultado = await producaoService.lancarLote({ producoes: itens })
+      onSuccess(resultado)
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao lançar produção.'
-      setErro(msg)
+      const msg = extrairMensagemErro(err)
+      if (msg.includes('não permite')) {
+        setErroBloqueio(msg)
+      } else if (msg.toLowerCase().includes('estoque insuficiente')) {
+        setItensPendentes(itens)
+        setMensagemConfirmEstoque(msg)
+        setConfirmEstoque(true)
+      } else {
+        setErro(msg)
+      }
     } finally {
       setSubmitting(false)
-      setConfirmEstoque(false)
     }
   }
 
-  const temFalta = previewInsumos?.some(i => i.estoqueInsuficiente) ?? false
-
   const handleConfirmarClick = () => {
-    if (temFalta) { setConfirmEstoque(true); return }
-    doLancar()
+    const itens = construirListaFinal()
+    if (itens.length === 0) return
+    doLancarLote(itens)
   }
 
-  const podeConfirmar = !!produto && !!produtoDetalhe && !submitting && !loadingDetalhe && quantidadeFinal > 0
+  const handleForcarConfirm = () => {
+    if (!itensPendentes) return
+    setConfirmEstoque(false)
+    doLancarLote(itensPendentes.map(i => ({ ...i, confirmarEstoqueNegativo: true })))
+  }
+
+  const podeConfirmar = (sessao.length > 0 || itemAtualValido) && !submitting
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto', background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
@@ -486,12 +560,54 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             </div>
           )}
 
-          {temFalta && (
-            <div style={{ animation: 'fadeUp .3s ease both' }}>
-              <div style={{ display: 'flex', gap: 10, padding: '13px 15px', borderRadius: 12, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                <span style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }}><Icons.alertTriangle width={16} height={16} /></span>
-                <p style={{ margin: 0, fontSize: 12.8, color: '#7A5A33', lineHeight: 1.55 }}>Um ou mais insumos estão com <strong style={{ fontWeight: 700 }}>saldo insuficiente</strong>. Ao confirmar, vamos pedir uma confirmação extra antes de enviar.</p>
+          {itemAtualValido && (
+            <button type="button" onClick={handleAdicionar} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 16px', borderRadius: 10, border: '1.5px solid #F97316', background: '#fff', color: '#F97316', fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', transition: 'background .12s' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(249,115,22,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+            >
+              <Icons.plus width={16} height={16} /> Adicionar mais uma produção
+            </button>
+          )}
+
+          {sessao.length > 0 && (
+            <div style={{ borderRadius: 14, background: '#FAF8F5', border: '1.5px solid #EFEDE8', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: '1px solid #EFEDE8' }}>
+                <span style={{ display: 'flex', color: '#5C594F' }}><Icons.stack width={15} height={15} /></span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#3A372F' }}>Produções nesta sessão ({sessao.length})</span>
               </div>
+              <div>
+                {sessao.map((item, i) => (
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #EFEDE8' }}>
+                    <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+                      <Icons.cube width={16} height={16} />
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.produto.nome}</div>
+                      <div style={{ fontSize: 12, color: '#A29E96', marginTop: 1 }}>
+                        {item.fracionavel
+                          ? `${item.quantidade} unidades`
+                          : `${item.lotes} ${item.lotes === 1 ? 'receita' : 'receitas'} (${item.quantidadeFinal} unidades)`
+                        }
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleEditarSessao(item)} aria-label="Editar" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: '#A29E96', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#EFEDE8'; e.currentTarget.style.color = '#5C594F' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#A29E96' }}
+                    ><Icons.edit width={15} height={15} /></button>
+                    <button type="button" onClick={() => handleRemoverSessao(item.id)} aria-label="Remover" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: '#A29E96', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#A29E96' }}
+                    ><Icons.x width={15} height={15} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {erroBloqueio && (
+            <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
+              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><Icons.alertCircle width={16} height={16} /></span>
+              <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erroBloqueio}</p>
             </div>
           )}
 
@@ -513,16 +629,21 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
           >
             <Icons.factory width={17} height={17} />
-            {submitting ? 'Lançando...' : 'Confirmar produção'}
+            {submitting
+              ? 'Lançando...'
+              : sessao.length + (itemAtualValido ? 1 : 0) > 1
+                ? `Confirmar ${sessao.length + (itemAtualValido ? 1 : 0)} produções`
+                : 'Confirmar produção'
+            }
           </button>
         </div>
       </div>
 
       {confirmEstoque && (
         <ConfirmEstoqueModal
-          insumos={(previewInsumos ?? []).filter(i => i.estoqueInsuficiente)}
+          mensagem={mensagemConfirmEstoque}
           onCancel={() => setConfirmEstoque(false)}
-          onConfirm={doLancar}
+          onConfirm={handleForcarConfirm}
           confirming={submitting}
         />
       )}
@@ -778,20 +899,14 @@ export default function RegistroProducaoPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  const handleSuccess = (p: ProducaoDetalheResponse) => {
-    const novaProd: ProducaoResponse = {
-      id: p.id,
-      numero: p.numero,
-      produtoId: p.produtoId,
-      nomeProduto: p.nomeProduto,
-      tipoProduto: p.tipoProduto,
-      quantidade: p.quantidade,
-      dataProducao: p.dataProducao,
-      status: p.status,
-    }
-    setProducoes(prev => [novaProd, ...prev])
+  const handleSuccess = (producoesNovas: ProducaoDetalheResponse[]) => {
     setModal(false)
-    setToast('Produção lançada com sucesso!')
+    carregarLista(0, true)
+    const identificadores = producoesNovas.map(p => p.identificador).join(', ')
+    setToast(producoesNovas.length > 1
+      ? `Produções ${identificadores} registradas com sucesso!`
+      : `Produção ${identificadores} registrada com sucesso!`
+    )
   }
 
   const handleCancelSuccess = () => {
@@ -842,7 +957,7 @@ export default function RegistroProducaoPage() {
     <AppLayout active="producao">
 
       {toast && (
-        <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 200, padding: '12px 20px', borderRadius: 10, background: '#2A9D8F', color: '#fff', fontSize: 14, fontWeight: 600, boxShadow: '0 8px 24px -8px rgba(42,157,143,0.6)', animation: 'fadeUp .25s ease both', whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 200, maxWidth: 'min(90vw, 460px)', padding: '12px 20px', borderRadius: 10, background: '#2A9D8F', color: '#fff', fontSize: 14, fontWeight: 600, textAlign: 'center', boxShadow: '0 8px 24px -8px rgba(42,157,143,0.6)', animation: 'fadeUp .25s ease both' }}>
           {toast}
         </div>
       )}

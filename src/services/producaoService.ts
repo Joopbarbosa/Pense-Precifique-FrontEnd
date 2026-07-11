@@ -1,6 +1,7 @@
 import api from './api'
 import type {
   LancarProducaoRequest,
+  LancarProducaoLoteRequest,
   ProducaoResponse,
   ProducaoDetalheResponse,
   InsumoConsumidoResponse,
@@ -20,6 +21,11 @@ export const producaoService = {
 
   lancar: async (data: LancarProducaoRequest): Promise<ProducaoDetalheResponse> => {
     const response = await api.post('/producoes', data)
+    return response.data
+  },
+
+  lancarLote: async (data: LancarProducaoLoteRequest): Promise<ProducaoDetalheResponse[]> => {
+    const response = await api.post('/producoes/lote', data)
     return response.data
   },
 

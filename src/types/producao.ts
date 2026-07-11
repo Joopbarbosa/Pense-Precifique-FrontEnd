@@ -10,6 +10,10 @@ export interface LancarProducaoRequest {
   confirmarEstoqueNegativo?: boolean
 }
 
+export interface LancarProducaoLoteRequest {
+  producoes: LancarProducaoRequest[]
+}
+
 export interface InsumoConsumidoResponse {
   insumoId: string
   nomeInsumo: string
@@ -23,6 +27,7 @@ export interface InsumoConsumidoResponse {
 export interface ProducaoResponse {
   id: string
   numero: number
+  identificador: string
   produtoId: string
   nomeProduto: string
   tipoProduto: TipoProduto
