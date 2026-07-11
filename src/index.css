@@ -425,7 +425,7 @@ body:has(.drawer-open) {
 }
 
 .i-row:last-child { border-bottom: none; }
-.i-row:hover { background: #FCFBF9; }
+.i-row:hover { background: #EFEDE8; }
 .i-card-mobile { display: none; }
 
 @media (max-width: 700px) {
