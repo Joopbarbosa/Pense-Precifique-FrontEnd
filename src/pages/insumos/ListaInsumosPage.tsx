@@ -17,10 +17,17 @@ interface ItemCarrinho {
   preco: string
 }
 
-const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo']
+const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo', 'Estoque negativo', 'Estoque positivo', 'Abaixo do mínimo']
 
 const isLow = (o: InsumoResponse) =>
   o.ativo && o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
+
+const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
+
+const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
+
+const isBelowMinimo = (o: InsumoResponse) =>
+  o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
 
 const num = (s: string) => parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
 
@@ -533,9 +540,12 @@ export default function ListaInsumosPage() {
   }
 
   let lista = insumos
-  if (filtro === 'Ativos')        lista = lista.filter(o => o.ativo)
-  if (filtro === 'Inativos')      lista = lista.filter(o => !o.ativo)
-  if (filtro === 'Estoque baixo') lista = lista.filter(isLow)
+  if (filtro === 'Ativos')            lista = lista.filter(o => o.ativo)
+  if (filtro === 'Inativos')          lista = lista.filter(o => !o.ativo)
+  if (filtro === 'Estoque baixo')     lista = lista.filter(isLow)
+  if (filtro === 'Estoque negativo')  lista = lista.filter(isNegative)
+  if (filtro === 'Estoque positivo')  lista = lista.filter(isPositive)
+  if (filtro === 'Abaixo do mínimo')  lista = lista.filter(isBelowMinimo)
   if (query.trim()) lista = lista.filter(o =>
     o.nome.toLowerCase().includes(query.toLowerCase()) ||
     (o.marca?.toLowerCase().includes(query.toLowerCase()) ?? false)
