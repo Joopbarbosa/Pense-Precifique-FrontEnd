@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button } from '../../components/ui'
+import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2, Calculator, Sparkles,
   Info, Check, AlertTriangle, ChevronRight, Pencil, FileText,
@@ -29,6 +31,8 @@ const TIPO_API_TO_LABEL: Record<string, string> = {
   'CUSTOMIZACAO': 'Customização',
 }
 
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+
 interface ItemDb {
   id: string
   nome: string
@@ -49,10 +53,10 @@ function Field({ label, opt, required, children }: {
   label: string; opt?: boolean; required?: boolean; children: React.ReactNode
 }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-        {label}{required && <span style={{ color: '#F97316', marginLeft: 3 }}>*</span>}
-        {opt && <span style={{ fontSize: 12, fontWeight: 500, color: '#B0ACA4', marginLeft: 6 }}>(opcional)</span>}
+    <label className="block">
+      <span className="mb-2 block text-[13.5px] font-semibold text-body">
+        {label}{required && <span className="ml-[3px] text-orange">*</span>}
+        {opt && <span className="ml-1.5 text-xs font-medium text-faint">(opcional)</span>}
       </span>
       {children}
     </label>
@@ -65,29 +69,25 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
   value: string; onChange: (v: string) => void; placeholder?: string
   suffix?: string; prefix?: string; inputMode?: 'text' | 'numeric' | 'decimal'
 }) {
-  const [f, setF] = useState(false)
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       {prefix && (
-        <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 44, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, color: '#6B6860', background: '#FAF8F5', borderRadius: '10px 0 0 10px', borderRight: '1px solid #EFEDE8', pointerEvents: 'none' }}>{prefix}</span>
+        <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-[#FAF8F5] text-sm font-semibold text-[#6B6860]">
+          {prefix}
+        </span>
       )}
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        onFocus={() => setF(true)}
-        onBlur={() => setF(false)}
-        style={{
-          width: '100%', height: 48, padding: `0 ${suffix ? 64 : 14}px 0 ${prefix ? 56 : 14}px`,
-          border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`,
-          borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-          background: '#fff', outline: 'none', fontFamily: 'inherit',
-          boxShadow: f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-          transition: 'border-color .15s, box-shadow .15s',
-        }}
+        className={clsx(inputBase, prefix ? 'pl-14' : 'pl-3.5', suffix ? 'pr-16' : 'pr-3.5')}
       />
-      {suffix && <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{suffix}</span>}
+      {suffix && (
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+          {suffix}
+        </span>
+      )}
     </div>
   )
 }
@@ -102,33 +102,31 @@ const TIPOS = [
 
 function TipoSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
       {TIPOS.map(tp => {
         const on = value === tp.v
         return (
-          <button key={tp.v} type="button" onClick={() => onChange(tp.v)} style={{
-            textAlign: 'left', padding: '13px 14px', borderRadius: 10,
-            border: `1.5px solid ${on ? '#2A9D8F' : '#EFEDE8'}`,
-            background: on ? 'rgba(42,157,143,0.06)' : '#fff',
-            cursor: 'pointer', fontFamily: 'inherit',
-            boxShadow: on ? '0 0 0 3px rgba(42,157,143,0.12)' : 'none',
-            transition: 'border-color .15s, box-shadow .15s',
-            display: 'flex', flexDirection: 'column', gap: 6,
-          }}
-            onMouseEnter={e => { if (!on) e.currentTarget.style.borderColor = '#DCD8D0' }}
-            onMouseLeave={e => { if (!on) e.currentTarget.style.borderColor = '#EFEDE8' }}
+          <button
+            key={tp.v}
+            type="button"
+            onClick={() => onChange(tp.v)}
+            className={clsx(
+              'flex flex-col gap-1.5 rounded-input border-[1.5px] px-3.5 py-[13px] text-left font-[inherit] transition-[border-color,box-shadow] duration-150',
+              on
+                ? 'border-teal bg-teal/[0.06] shadow-[0_0_0_3px_rgba(42,157,143,0.12)]'
+                : 'border-line bg-white hover:border-[#DCD8D0]'
+            )}
           >
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: on ? '#1F7A6F' : '#3A372F', whiteSpace: 'nowrap' }}>{tp.v}</span>
-              <span style={{
-                flexShrink: 0, width: 18, height: 18, borderRadius: '50%',
-                border: `1.5px solid ${on ? '#2A9D8F' : '#CFCBC3'}`,
-                background: on ? '#2A9D8F' : '#fff', display: 'grid', placeItems: 'center',
-              }}>
-                {on && <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5 10 17.5 19.5 7"/></svg>}
+            <span className="flex items-center justify-between gap-2">
+              <span className={clsx('whitespace-nowrap text-sm font-bold', on ? 'text-[#1F7A6F]' : 'text-dark')}>{tp.v}</span>
+              <span className={clsx(
+                'grid h-[18px] w-[18px] flex-shrink-0 place-items-center rounded-full border-[1.5px]',
+                on ? 'border-teal bg-teal' : 'border-[#CFCBC3] bg-white'
+              )}>
+                {on && <Check size={11} strokeWidth={3} className="text-white" />}
               </span>
             </span>
-            <span style={{ fontSize: 12, color: '#A29E96', lineHeight: 1.4 }}>{tp.desc}</span>
+            <span className="text-xs leading-[1.4] text-muted">{tp.desc}</span>
           </button>
         )
       })}
@@ -139,24 +137,13 @@ function TipoSelector({ value, onChange }: { value: string; onChange: (v: string
 // ---------- DescTextarea ----------
 
 function DescTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [f, setF] = useState(false)
   return (
     <textarea
       value={value}
       onChange={e => onChange(e.target.value)}
-      onFocus={() => setF(true)}
-      onBlur={() => setF(false)}
       rows={3}
       placeholder="Conte os detalhes que tornam esse produto especial..."
-      style={{
-        width: '100%', padding: '12px 14px',
-        border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`,
-        borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-        background: '#fff', outline: 'none', fontFamily: 'inherit',
-        resize: 'vertical', lineHeight: 1.5,
-        boxShadow: f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-        transition: 'border-color .15s, box-shadow .15s',
-      }}
+      className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
     />
   )
 }
@@ -168,33 +155,33 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
 }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '28px 30px', maxWidth: 760, animation: 'fadeUp .35s ease both' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '22px 24px' }}>
-        <div style={{ gridColumn: '1 / -1' }}>
+    <div className="max-w-[760px] animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-[22px]">
+        <div className="col-span-2">
           <Field label="Nome do produto" required>
             <TextInput value={st.nome} onChange={v => set('nome', v)} placeholder="Ex: Kit Convite Casamento" />
-            {nomeErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{nomeErro}</span>}
+            {nomeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{nomeErro}</span>}
           </Field>
         </div>
-        <div style={{ gridColumn: '1 / -1' }}>
+        <div className="col-span-2">
           <Field label="Tipo do produto" required>
             <TipoSelector value={st.tipo} onChange={v => set('tipo', v)} />
           </Field>
         </div>
         <Field label="Tempo de produção" required>
           <TextInput value={st.tempo} onChange={v => set('tempo', v.replace(/[^\d]/g, ''))} placeholder="45" suffix="minutos" inputMode="numeric" />
-          <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Tempo para produzir o lote inteiro, não a unidade.</span>
+          <span className="mt-1.5 block text-xs text-muted">Tempo para produzir o lote inteiro, não a unidade.</span>
         </Field>
-        <div style={{ gridColumn: '1 / -1' }}>
+        <div className="col-span-2">
           <ConfiguracoesEstoque permitir={permitirEstoqueNegativo} setPermitir={setPermitirEstoqueNegativo} erro={estoqueNegativoErro} />
         </div>
-        <div style={{ gridColumn: '1 / -1' }}>
+        <div className="col-span-2">
           <Field label="Descrição" opt>
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
           </Field>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 28, paddingTop: 22, borderTop: '1px solid #EFEDE8' }}>
+      <div className="mt-7 flex justify-end border-t border-line pt-[22px]">
         <Button variant="primary" iconRight={<ArrowRight size={17} />} onClick={onNext}>
           Próximo: Ficha Técnica
         </Button>
@@ -209,21 +196,16 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
   if (tipo === 'produto') {
     const b = tipoProdutoBadge('PRODUTO_BASE')
     return (
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', height: 18, padding: '0 7px', borderRadius: 999,
-        fontSize: 10.5, fontWeight: 600, letterSpacing: '0.01em', whiteSpace: 'nowrap',
-        background: b.bg, color: b.fg,
-      }}>
+      <span
+        className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
+        style={{ background: b.bg, color: b.fg }}
+      >
         {b.label}
       </span>
     )
   }
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', height: 18, padding: '0 7px', borderRadius: 999,
-      fontSize: 10.5, fontWeight: 600, letterSpacing: '0.01em', whiteSpace: 'nowrap',
-      background: '#F1F0EC', color: '#7C786F',
-    }}>
+    <span className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full bg-line-soft px-[7px] text-[10.5px] font-semibold tracking-[0.01em] text-subtle">
       Insumo
     </span>
   )
@@ -234,7 +216,6 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
 function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; jaAdicionados: string[] }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [f, setF] = useState(false)
   const [insumos, setInsumos] = useState<ItemDb[]>([])
   const [produtosBase, setProdutosBase] = useState<ItemDb[]>([])
   const [loadingBusca, setLoadingBusca] = useState(false)
@@ -282,58 +263,50 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
-      <div style={{ padding: '8px 11px 5px', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#A8A49C' }}>{titulo}</div>
+      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#A8A49C]">{titulo}</div>
       {itens.map(i => (
-        <button key={i.id} onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutosBase([]) }} style={{
-          display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
-          padding: '10px 11px', borderRadius: 9, border: 'none', background: 'transparent',
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}
-          onMouseEnter={e => e.currentTarget.style.background = '#F7F5F1'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        <button
+          key={i.id}
+          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutosBase([]) }}
+          className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-[#F7F5F1]"
         >
-          <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: i.tipo === 'produto' ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: i.tipo === 'produto' ? '#2A9D8F' : '#9A968E' }}>
-            {i.tipo === 'produto' ? <Box size={16} /> : <Box size={16} />}
+          <span className={clsx(
+            'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
+            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-[#9A968E]'
+          )}>
+            <Box size={16} />
           </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.nome}</span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-[7px]">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{i.nome}</span>
               <TipoBadge tipo={i.tipo} />
             </span>
-            <span style={{ display: 'block', fontSize: 12, color: '#A29E96' }}>{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
+            <span className="block text-xs text-muted">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
           </span>
-          <Plus size={16} style={{ flexShrink: 0, color: '#2A9D8F' }} />
+          <Plus size={16} className="flex-shrink-0 text-teal" />
         </button>
       ))}
     </div>
   )
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: f ? '#2A9D8F' : '#A29E96', display: 'flex' }}>
+    <div ref={ref} className="relative">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
         <Search size={18} />
       </span>
       <input
         value={q}
         onChange={e => { setQ(e.target.value); setOpen(true) }}
-        onFocus={() => { setF(true); setOpen(true) }}
-        onBlur={() => setF(false)}
+        onFocus={() => setOpen(true)}
         placeholder="Buscar insumo ou produto base..."
-        style={{
-          width: '100%', height: 46, padding: '0 14px 0 42px',
-          border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`,
-          borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-          background: '#fff', outline: 'none', fontFamily: 'inherit',
-          boxShadow: f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-          transition: 'border-color .15s, box-shadow .15s',
-        }}
+        className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
       />
       {open && (
-        <div style={{ position: 'absolute', top: 50, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 14px 34px -10px rgba(0,0,0,0.2)', padding: 6, animation: 'pop .14s ease both', maxHeight: 320, overflowY: 'auto' }}>
+        <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
-            <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Buscando...</div>
+            <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
           ) : total === 0 ? (
-            <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Nenhum componente encontrado</div>
+            <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum componente encontrado</div>
           ) : (
             <>
               {grupo('Insumos', insumos)}
@@ -349,7 +322,6 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 // ---------- QtyInput ----------
 
 function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: string; fracionavel: boolean; onChange: (v: string) => void }) {
-  const [f, setF] = useState(false)
   const maxFrac = fracionavel ? 2 : 0
   const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
 
@@ -359,7 +331,7 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
   }, [value, maxFrac])
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <input
         value={display}
         onChange={e => {
@@ -371,18 +343,9 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
           onChange(cleaned)
         }}
         inputMode={fracionavel ? 'decimal' : 'numeric'}
-        onFocus={() => setF(true)}
-        onBlur={() => setF(false)}
-        style={{
-          width: '100%', height: 40, padding: '0 38px 0 11px',
-          border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`,
-          borderRadius: 8, fontSize: 14, color: '#3A372F',
-          background: '#fff', outline: 'none', fontFamily: 'inherit',
-          fontVariantNumeric: 'tabular-nums',
-          boxShadow: f ? '0 0 0 3px rgba(42,157,143,0.12)' : 'none',
-        }}
+        className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
       />
-      <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11.5, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{un}</span>
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-[#A8A49C]">{un}</span>
     </div>
   )
 }
@@ -399,57 +362,58 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
   const setQtd = (idx: number, v: string) => setFicha(f => f.map((row, k) => k === idx ? { ...row, qtd: num(v) } : row))
 
   return (
-    <div style={{ animation: 'fadeUp .35s ease both' }}>
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-        <div style={{ padding: '20px 22px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-            <Layers size={18} style={{ color: '#2A9D8F' }} />
-            <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#3A372F', whiteSpace: 'nowrap' }}>Componentes do produto</h3>
+    <div className="animate-fade-up">
+      <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="px-[22px] pb-4 pt-5">
+          <div className="mb-3.5 flex items-center gap-[9px]">
+            <Layers size={18} className="text-teal" />
+            <h3 className="m-0 whitespace-nowrap text-[15.5px] font-bold text-dark">Componentes do produto</h3>
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 132px 96px 44px', gap: 12, padding: '10px 22px', background: '#FBFAF8', borderTop: '1px solid #EFEDE8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
-          <span>Componente</span><span>Quantidade</span><span style={{ textAlign: 'right' }}>Custo</span><span></span>
+        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-[#FBFAF8] px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+          <span>Componente</span><span>Quantidade</span><span className="text-right">Custo</span><span></span>
         </div>
         {ficha.length === 0 ? (
-          <div style={{ padding: '34px 22px', textAlign: 'center', color: '#A29E96', fontSize: 13.5, borderTop: '1px solid #EFEDE8' }}>
+          <div className="border-t border-line px-[22px] py-[34px] text-center text-[13.5px] text-muted">
             Nenhum componente ainda. Use a busca acima para adicionar.
           </div>
         ) : ficha.map((row, idx) => (
-          <div key={`${row.id}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '1fr 132px 96px 44px', gap: 12, alignItems: 'center', padding: '13px 22px', borderTop: '1px solid #EFEDE8', animation: 'rowIn .25s ease both' }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.nome}</span>
+          <div key={`${row.id}-${idx}`} className="grid animate-row-in grid-cols-[1fr_132px_96px_44px] items-center gap-3 border-t border-line px-[22px] py-[13px]">
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-[7px]">
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{row.nome}</span>
                 <TipoBadge tipo={row.tipo} />
               </div>
-              <div style={{ fontSize: 12, color: '#A29E96' }}>{row.marca}{row.marca ? ' · ' : ''}{moeda(row.custo)}/{row.un}</div>
+              <div className="text-xs text-muted">{row.marca}{row.marca ? ' · ' : ''}{moeda(row.custo)}/{row.un}</div>
             </div>
             <QtyInput value={row.qtd} un={row.un} fracionavel={row.fracionavel} onChange={v => setQtd(idx, v)} />
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#3A372F', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{moeda(row.qtd * row.custo)}</div>
-            <button onClick={() => remove(idx)} aria-label="Remover componente" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: 'transparent', color: '#BDB9B1', cursor: 'pointer', display: 'grid', placeItems: 'center', justifySelf: 'end' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BDB9B1' }}
+            <div className="text-right text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(row.qtd * row.custo)}</div>
+            <button
+              onClick={() => remove(idx)}
+              aria-label="Remover componente"
+              className="grid h-[34px] w-[34px] place-items-center justify-self-end rounded-[9px] border-none bg-transparent text-[#BDB9B1] hover:bg-danger-bg hover:text-danger-deep"
             >
               <Trash2 size={16} />
             </button>
           </div>
         ))}
-        <div style={{ padding: '18px 22px', borderTop: '1px solid #EFEDE8' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+        <div className="border-t border-line px-[22px] py-[18px]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-                Rendimento<span style={{ color: '#F97316', marginLeft: 3 }}>*</span>
+              <span className="mb-2 block text-[13.5px] font-semibold text-body">
+                Rendimento<span className="ml-[3px] text-orange">*</span>
               </span>
-              <div style={{ maxWidth: 200 }}>
+              <div className="max-w-[200px]">
                 <TextInput value={rendimento} onChange={v => setRendimento(v.replace(/[^\d,]/g, ''))} placeholder="1" suffix="un" inputMode="decimal" />
               </div>
-              <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Quantidade de unidades que este lote produz.</span>
-              {rendimentoErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{rendimentoErro}</span>}
+              <span className="mt-1.5 block text-xs text-muted">Quantidade de unidades que este lote produz.</span>
+              {rendimentoErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{rendimentoErro}</span>}
             </div>
             {mostrarBotaoCatalogo && (
               <Button variant="primary" iconRight={!salvandoCatalogo ? <ArrowRight size={17} /> : undefined} onClick={onCriarCatalogo} disabled={botaoCatalogoDisabled}>
                 {salvandoCatalogo
-                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Criando…</span>
+                  ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" />Criando…</span>
                   : 'Criar produto catálogo'
                 }
               </Button>
@@ -464,25 +428,15 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
 // ---------- MargemInput ----------
 
 function MargemInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [f, setF] = useState(false)
   return (
-    <div style={{ position: 'relative', width: 92 }}>
+    <div className="relative w-[92px]">
       <input
         value={value}
         onChange={e => onChange(e.target.value.replace(/[^\d]/g, ''))}
         inputMode="numeric"
-        onFocus={() => setF(true)}
-        onBlur={() => setF(false)}
-        style={{
-          width: '100%', height: 40, padding: '0 30px 0 12px',
-          border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`,
-          borderRadius: 9, fontSize: 15, fontWeight: 600, color: '#3A372F',
-          background: '#fff', outline: 'none', fontFamily: 'inherit',
-          textAlign: 'right', fontVariantNumeric: 'tabular-nums',
-          boxShadow: f ? '0 0 0 3px rgba(42,157,143,0.12)' : 'none',
-        }}
+        className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
       />
-      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>%</span>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#A8A49C]">%</span>
     </div>
   )
 }
@@ -490,33 +444,22 @@ function MargemInput({ value, onChange }: { value: string; onChange: (v: string)
 // ---------- PrecoFinalInput ----------
 
 function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChange: (v: string) => void; highlight: boolean }) {
-  const [f, setF] = useState(false)
-  const bc = highlight ? '#F97316' : (f ? '#2A9D8F' : '#EFEDE8')
   return (
-    <div style={{ position: 'relative' }}>
-      <span style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0, width: 46, display: 'grid', placeItems: 'center',
-        fontSize: 15, fontWeight: 700, color: highlight ? '#F97316' : '#6B6860',
-        background: highlight ? 'rgba(249,115,22,0.08)' : '#FAF8F5',
-        borderRadius: '10px 0 0 10px',
-        borderRight: `1px solid ${highlight ? 'rgba(249,115,22,0.3)' : '#EFEDE8'}`,
-        pointerEvents: 'none',
-      }}>R$</span>
+    <div className="relative">
+      <span className={clsx(
+        'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
+        highlight ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-[#FAF8F5] text-[#6B6860]'
+      )}>R$</span>
       <input
         value={value}
         onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
         inputMode="decimal"
-        onFocus={() => setF(true)}
-        onBlur={() => setF(false)}
-        style={{
-          width: '100%', height: 52, padding: '0 14px 0 58px',
-          border: `1.5px solid ${bc}`, borderRadius: 10,
-          fontSize: 20, fontWeight: 700, color: highlight ? '#F97316' : '#3A372F',
-          background: '#fff', outline: 'none', fontFamily: 'inherit',
-          fontVariantNumeric: 'tabular-nums',
-          boxShadow: f ? `0 0 0 4px ${highlight ? 'rgba(249,115,22,0.12)' : 'rgba(42,157,143,0.12)'}` : 'none',
-          transition: 'border-color .15s, box-shadow .15s',
-        }}
+        className={clsx(
+          'h-[52px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-xl font-bold outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums]',
+          highlight
+            ? 'border-orange text-orange focus:ring-4 focus:ring-orange/[0.12]'
+            : 'border-line text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+        )}
       />
     </div>
   )
@@ -547,110 +490,111 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
   const manual = mostrarPrecoMargem && Math.abs(diff) > 0.005
 
   const linha = (label: string, val: string, sub?: string) => (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '9px 0' }}>
-      <span style={{ fontSize: 13.2, color: '#5C594F' }}>
+    <div className="flex items-baseline justify-between gap-2.5 py-[9px]">
+      <span className="text-[13.2px] text-body">
         {label}
-        {sub && <span style={{ display: 'block', fontSize: 11.5, color: '#A8A49C', marginTop: 1 }}>{sub}</span>}
+        {sub && <span className="mt-px block text-[11.5px] text-[#A8A49C]">{sub}</span>}
       </span>
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</span>
+      <span className="whitespace-nowrap text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{val}</span>
     </div>
   )
 
   return (
-    <div className="calc-card">
-      <div style={{ background: '#fff', border: '1.5px solid rgba(42,157,143,0.3)', borderRadius: 'var(--r-card)', boxShadow: '0 8px 26px -12px rgba(42,157,143,0.4)', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '16px 20px', background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.04))', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
-          <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: '#fff', color: '#2A9D8F', boxShadow: '0 3px 10px -3px rgba(42,157,143,0.4)' }}>
+    <div className="static lg:sticky lg:top-6">
+      <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
+        <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
+          <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
             <Calculator size={20} />
           </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1F7A6F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Calculadora de Custo</div>
-            <div style={{ fontSize: 11.5, color: '#2A9D8F', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+          <div className="min-w-0">
+            <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Calculadora de Custo</div>
+            <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
               <Sparkles size={12} /> Atualiza em tempo real
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '10px 20px 18px' }}>
+        <div className="px-5 pb-[18px] pt-2.5">
           {linha('Custo dos insumos', moeda(custoInsumos))}
           {linha('Mão de obra', moeda(maoObra), `${num(tempo)} min × ${moeda(valorHora ?? 0)}/h`)}
-          <div style={{ height: 1, background: '#EFEDE8', margin: '4px 0' }} />
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '10px 0' }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Custo Total da Receita</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(subtotal)}</span>
+          <div className="my-1 h-px bg-line" />
+          <div className="flex items-baseline justify-between gap-2.5 py-2.5">
+            <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo Total da Receita</span>
+            <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(subtotal)}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '10px 0' }}>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>Custo unitário</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoUnitarioAoVivo)}</span>
+          <div className="flex items-baseline justify-between gap-2.5 py-2.5">
+            <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo unitário</span>
+            <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(custoUnitarioAoVivo)}</span>
           </div>
 
           {(custoTotalLote != null || custoUnitario != null) && (
-            <div style={{ marginTop: 6, marginBottom: 8, padding: '12px 16px', borderRadius: 10, background: 'rgba(58,111,160,0.07)', border: '1px solid rgba(58,111,160,0.2)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#3A6FA0', marginBottom: 8 }}>Valores salvos</div>
+            <div className="mb-2 mt-1.5 rounded-[10px] border border-azul/20 bg-azul/[0.07] px-4 py-3">
+              <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.04em] text-azul">Valores salvos</div>
               {custoTotalLote != null && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
-                  <span style={{ color: '#5C594F' }}>Custo Total do lote</span>
-                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoTotalLote)}</span>
+                <div className="flex justify-between gap-2.5 py-[3px] text-[13.5px]">
+                  <span className="text-body">Custo Total do lote</span>
+                  <span className="font-bold text-azul [font-variant-numeric:tabular-nums]">{moeda(custoTotalLote)}</span>
                 </div>
               )}
               {custoUnitario != null && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '3px 0' }}>
-                  <span style={{ color: '#5C594F' }}>Custo Unitário</span>
-                  <span style={{ fontWeight: 700, color: '#3A6FA0', fontVariantNumeric: 'tabular-nums' }}>{moeda(custoUnitario)}</span>
+                <div className="flex justify-between gap-2.5 py-[3px] text-[13.5px]">
+                  <span className="text-body">Custo Unitário</span>
+                  <span className="font-bold text-azul [font-variant-numeric:tabular-nums]">{moeda(custoUnitario)}</span>
                 </div>
               )}
             </div>
           )}
 
           {!mostrarPrecoMargem ? (
-            <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: '#1F7A6F', fontWeight: 600 }}>{mensagemSemPreco}</div>
-              <div style={{ fontSize: 11.5, color: '#A29E96', marginTop: 3 }}>O custo acima é registrado automaticamente.</div>
+            <div className="mt-2 rounded-xl border border-teal/[0.18] bg-teal/[0.06] px-4 py-3.5 text-center">
+              <div className="text-xs font-semibold text-[#1F7A6F]">{mensagemSemPreco}</div>
+              <div className="mt-[3px] text-[11.5px] text-muted">O custo acima é registrado automaticamente.</div>
             </div>
           ) : (
             <>
-              <div style={{ marginTop: 8, padding: 14, borderRadius: 12, background: '#FBFAF8', border: '1px solid #EFEDE8' }}>
-                <div style={{ display: 'flex', padding: 3, background: '#F1F0EC', borderRadius: 9, gap: 3, marginBottom: modoMargem === 'personalizar' ? 12 : 0 }}>
+              <div className="mt-2 rounded-xl border border-line bg-[#FBFAF8] p-3.5">
+                <div className={clsx('flex gap-[3px] rounded-[9px] bg-line-soft p-[3px]', modoMargem === 'personalizar' ? 'mb-3' : 'mb-0')}>
                   {([['padrao', `Margem padrão (${margemPadrao ?? 0}%)`], ['personalizar', 'Personalizar']] as [string, string][]).map(([v, l]) => {
                     const on = modoMargem === v
                     return (
-                      <button key={v} onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }} style={{
-                        flex: 1, height: 34, borderRadius: 7, border: 'none',
-                        background: on ? '#fff' : 'transparent',
-                        color: on ? '#3A372F' : '#8A8780',
-                        fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                        boxShadow: on ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', whiteSpace: 'nowrap',
-                      }}>{l}</button>
+                      <button
+                        key={v}
+                        onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }}
+                        className={clsx(
+                          'h-[34px] flex-1 whitespace-nowrap rounded-[7px] border-none font-[inherit] text-xs font-semibold',
+                          on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-[#8A8780]'
+                        )}
+                      >{l}</button>
                     )
                   })}
                 </div>
                 {modoMargem === 'personalizar' && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#5C594F' }}>Margem de lucro</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[13px] font-semibold text-body">Margem de lucro</span>
                     <MargemInput value={margem} onChange={setMargem} />
                   </div>
                 )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '12px 0 4px' }}>
-                <span style={{ fontSize: 13, color: '#5C594F' }}>Lucro ({num(margem)}%)</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#1F8A5B', fontVariantNumeric: 'tabular-nums' }}>+ {moeda(lucro)}</span>
+              <div className="flex items-baseline justify-between gap-2.5 pb-1 pt-3">
+                <span className="text-[13px] text-body">Lucro ({num(margem)}%)</span>
+                <span className="text-sm font-bold text-success [font-variant-numeric:tabular-nums]">+ {moeda(lucro)}</span>
               </div>
 
-              <div key={Math.round(sugerido * 100)} style={{ marginTop: 8, padding: '16px 18px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(42,157,143,0.14), rgba(42,157,143,0.05))', border: '1.5px solid rgba(42,157,143,0.28)', animation: 'flash .55s ease' }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Preço sugerido</div>
-                <div style={{ fontSize: 30, fontWeight: 700, color: '#2A9D8F', letterSpacing: '-0.02em', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{moeda(sugerido)}</div>
+              <div key={Math.round(sugerido * 100)} className="mt-2 animate-flash rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-[18px] py-4">
+                <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">Preço sugerido</div>
+                <div className="mt-0.5 text-[30px] font-bold tracking-[-0.02em] text-teal [font-variant-numeric:tabular-nums]">{moeda(sugerido)}</div>
               </div>
 
-              <div style={{ marginTop: 16 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>Preço final de venda</span>
+              <div className="mt-4">
+                <span className="mb-[7px] block text-[13px] font-semibold text-body">Preço final de venda</span>
                 <PrecoFinalInput value={precoFinal} onChange={setPrecoFinal} highlight={manual} />
               </div>
               {manual && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '11px 13px', borderRadius: 11, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                  <Info size={15} style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
-                  <p style={{ margin: 0, fontSize: 12.3, color: '#7A5A33', lineHeight: 1.5 }}>
-                    Você ajustou o preço manualmente (<strong style={{ fontWeight: 700 }}>{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
+                <div className="mt-3 flex gap-2 rounded-[11px] border border-[#F6E4CE] bg-[#FFF8F0] px-[13px] py-[11px]">
+                  <Info size={15} className="mt-px flex-shrink-0 text-warning" />
+                  <p className="m-0 text-[12.3px] leading-[1.5] text-[#7A5A33]">
+                    Você ajustou o preço manualmente (<strong className="font-bold">{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
                   </p>
                 </div>
               )}
@@ -667,29 +611,27 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
 function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boolean; setPermitir: (v: boolean) => void; erro?: string }) {
   return (
     <div>
-      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>Configurações de estoque</span>
-      <label onClick={() => setPermitir(!permitir)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-        <span style={{
-          flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6,
-          border: `1.5px solid ${permitir ? '#2A9D8F' : '#EFEDE8'}`,
-          background: permitir ? '#2A9D8F' : '#fff',
-          display: 'grid', placeItems: 'center', transition: 'background .15s, border-color .15s',
-        }}>
-          {permitir && <Check size={14} style={{ color: '#fff' }} />}
+      <span className="mb-2 block text-[13.5px] font-semibold text-body">Configurações de estoque</span>
+      <label onClick={() => setPermitir(!permitir)} className="flex cursor-pointer items-start gap-3">
+        <span className={clsx(
+          'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
+          permitir ? 'border-teal bg-teal' : 'border-line bg-white'
+        )}>
+          {permitir && <Check size={14} className="text-white" />}
         </span>
         <span>
-          <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Permitir estoque negativo</span>
-          <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginTop: 3, lineHeight: 1.5 }}>
+          <span className="block text-[14.5px] font-semibold text-dark">Permitir estoque negativo</span>
+          <span className="mt-[3px] block text-[12.5px] leading-[1.5] text-muted">
             Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
           </span>
         </span>
       </label>
       {erro && (
-        <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: '#FEF2F2', border: '1px solid #FECACA' }}>
-          <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#DC2626', boxShadow: '0 4px 12px -4px rgba(220,38,38,0.25)' }}>
+        <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-[#FECACA] bg-danger-bg-soft px-5 py-[18px]">
+          <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-[#DC2626] shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
             <AlertTriangle size={20} />
           </span>
-          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 'normal', color: '#DC2626', lineHeight: 1.5 }}>{erro}</p>
+          <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-[#DC2626]">{erro}</p>
         </div>
       )}
     </div>
@@ -879,47 +821,47 @@ export default function CadastrarProdutoPage() {
     <AppLayout active="produtos">
 
       {/* BREADCRUMB */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#A29E96', marginBottom: 12 }}>
-        <span style={{ cursor: 'pointer', fontWeight: 500 }}
-          onClick={() => navigate('/produtos')}
-          onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
-          onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
-        >Produtos</span>
-        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>
+      <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
+        <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/produtos')}>
+          Produtos
+        </span>
+        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <span className="whitespace-nowrap font-semibold text-body">
           {editando ? dados.nome || 'Editar Produto' : 'Novo Produto'}
         </span>
       </div>
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
-        <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <div className="mb-[22px] flex items-center gap-[15px]">
+        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
           {editando ? <Pencil size={26} /> : <Box size={26} />}
         </span>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F', whiteSpace: 'nowrap' }}>
+        <h1 className="m-0 whitespace-nowrap text-[26px] font-bold tracking-[-0.02em] text-dark">
           {editando ? 'Editar Produto' : 'Novo Produto'}
         </h1>
       </div>
 
       {/* ABAS */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1.5px solid #EFEDE8', overflowX: 'auto' }}>
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b-[1.5px] border-line">
         {ABAS.map((a, i) => {
           const on = aba === a.id
           return (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{
-              position: 'relative', display: 'flex', alignItems: 'center', gap: 9,
-              padding: '12px 18px', border: 'none', background: 'transparent', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 14.5, fontWeight: on ? 600 : 500,
-              color: on ? '#2A9D8F' : '#8A8780', whiteSpace: 'nowrap', transition: 'color .14s',
-            }}
-              onMouseEnter={e => { if (!on) e.currentTarget.style.color = '#5C594F' }}
-              onMouseLeave={e => { if (!on) e.currentTarget.style.color = '#8A8780' }}
+            <button
+              key={a.id}
+              onClick={() => setAba(a.id)}
+              className={clsx(
+                'relative flex items-center gap-[9px] whitespace-nowrap border-none bg-transparent px-[18px] py-3 font-[inherit] text-[14.5px] transition-colors duration-150',
+                on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+              )}
             >
-              <span style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, borderRadius: 7, background: on ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: on ? '#2A9D8F' : '#A8A49C', fontSize: 12, fontWeight: 700 }}>
+              <span className={clsx(
+                'grid h-6 w-6 place-items-center rounded-[7px] text-xs font-bold',
+                on ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-[#A8A49C]'
+              )}>
                 {i + 1}
               </span>
               {a.label}
-              {on && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1.5, height: 2.5, borderRadius: 3, background: '#2A9D8F' }} />}
+              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}
@@ -933,7 +875,7 @@ export default function CadastrarProdutoPage() {
         />
       )}
       {aba === 'ficha' && (
-        <div className="ficha-grid">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_360px]">
           <FichaTecnica
             ficha={ficha} setFicha={setFicha}
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento || rendimentoErroInline}
@@ -956,13 +898,13 @@ export default function CadastrarProdutoPage() {
 
       {/* AÇÕES GLOBAIS */}
       {aba !== 'dados' && (
-        <div style={{ marginTop: 26 }}>
+        <div className="mt-[26px]">
           {(erro || estoqueNegativoErro || Object.keys(fieldErrors).length > 0) && (
-            <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5, marginBottom: 12 }}>
+            <div className="mb-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
               <div>{erro}</div>
               {estoqueNegativoErro && <div>{estoqueNegativoErro}</div>}
               {Object.keys(fieldErrors).length > 0 && (
-                <ul style={{ margin: (erro || estoqueNegativoErro) ? '6px 0 0' : 0, padding: '0 0 0 18px' }}>
+                <ul className={clsx('pl-[18px]', (erro || estoqueNegativoErro) ? 'mt-1.5' : 'mt-0')}>
                   {Object.entries(fieldErrors).map(([k, v]) => (
                     <li key={k}>{v}</li>
                   ))}
@@ -970,13 +912,13 @@ export default function CadastrarProdutoPage() {
               )}
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap justify-end gap-[11px]">
             <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
               Cancelar
             </Button>
             <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido}>
               {salvando === 'padrao'
-                ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
+                ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
                 : (editando ? 'Salvar alterações' : 'Salvar produto')
               }
             </Button>

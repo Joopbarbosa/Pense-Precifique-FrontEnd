@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Eye, Power, Pencil, Copy, Camera, Layers, Plus, Search, Box, ChevronRight } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
+import Spinner from '../../components/ui/Spinner'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { produtoService } from '../../services/produtoService'
@@ -35,7 +37,6 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
   const inativo = !p.ativo
   const semEstoque = p.estoqueAtual === 0
   const badge = tipoProdutoBadge(p.tipo)
-  const [hover, setHover] = useState(false)
 
   const menuItems: ActionMenuItem[] = inativo
     ? [
@@ -51,71 +52,38 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
 
   return (
     <div
-      style={{
-        background: hover ? '#EFEDE8' : '#fff',
-        border: '1px solid #F0EEE9',
-        borderRadius: 'var(--r-card)',
-        boxShadow: hover ? '0 10px 26px -10px rgba(0,0,0,0.18)' : '0 2px 8px rgba(0,0,0,0.06)',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        opacity: inativo ? 0.72 : 1,
-        animation: inativo ? 'none' : 'fadeUp .4s ease both',
-        animationDelay: `${index * 0.05}s`,
-        transform: hover ? 'translateY(-3px)' : 'none',
-        transition: 'box-shadow .18s, transform .18s, background .12s',
-        cursor: 'pointer',
-      }}
+      className={clsx(
+        'group flex cursor-pointer flex-col overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-card transition-[box-shadow,transform,background] duration-150 hover:-translate-y-[3px] hover:bg-line hover:shadow-[0_10px_26px_-10px_rgba(0,0,0,0.18)]',
+        inativo ? 'opacity-70' : 'animate-fade-up'
+      )}
+      style={inativo ? undefined : { animationDelay: `${index * 0.05}s` }}
       onClick={onVer}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
     >
       {/* FOTO */}
-      <div style={{ position: 'relative' }}>
-        <div style={{
-          width: '100%',
-          aspectRatio: '1 / 1',
-          background: 'linear-gradient(135deg, #F6F4F0, #EEEBE5)',
-          display: 'grid',
-          placeItems: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 13px, rgba(0,0,0,0.018) 13px, rgba(0,0,0,0.018) 26px)',
-          }} />
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#C2BEB5' }}>
+      <div className="relative">
+        <div className="relative aspect-square w-full overflow-hidden bg-[linear-gradient(135deg,#F6F4F0,#EEEBE5)]">
+          <div className="absolute inset-0 [background-image:repeating-linear-gradient(45deg,transparent,transparent_13px,rgba(0,0,0,0.018)_13px,rgba(0,0,0,0.018)_26px)]" />
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-[#C2BEB5]">
             <Camera size={22} />
-            <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em' }}>Sem foto</span>
+            <span className="text-[11.5px] font-semibold tracking-[0.02em]">Sem foto</span>
           </div>
         </div>
         {inativo && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(120,118,112,0.2)', pointerEvents: 'none' }} />
+          <div className="pointer-events-none absolute inset-0 bg-[#787670]/20" />
         )}
-        <div style={{ position: 'absolute', top: 10, right: 10 }} onClick={e => e.stopPropagation()}>
+        <div className="absolute right-2.5 top-2.5" onClick={e => e.stopPropagation()}>
           <ActionMenu items={menuItems} align="right" />
         </div>
-        <div style={{ position: 'absolute', top: 10, left: 10 }}>
+        <div className="absolute left-2.5 top-2.5">
           {inativo ? (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center',
-              height: 25, padding: '0 11px', borderRadius: 999,
-              background: '#FBEDE7', border: '1px solid #F2D8CF',
-              color: '#C0492B', fontSize: 11.5, fontWeight: 700,
-              letterSpacing: '0.01em', boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
-            }}>
+            <span className="inline-flex h-[25px] items-center whitespace-nowrap rounded-full border border-[#F2D8CF] bg-[#FBEDE7] px-[11px] text-[11.5px] font-bold tracking-[0.01em] text-[#C0492B] shadow-[0_1px_4px_rgba(0,0,0,0.10)]">
               Inativo
             </span>
           ) : (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center',
-              height: 25, padding: '0 11px', borderRadius: 999,
-              background: badge.bg, backdropFilter: 'blur(4px)',
-              color: badge.fg, fontSize: 11.5, fontWeight: 700,
-              letterSpacing: '0.01em', boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
-            }}>
+            <span
+              className="inline-flex h-[25px] items-center whitespace-nowrap rounded-full px-[11px] text-[11.5px] font-bold tracking-[0.01em] shadow-[0_1px_4px_rgba(0,0,0,0.10)] backdrop-blur-[4px]"
+              style={{ background: badge.bg, color: badge.fg }}
+            >
               {badge.label}
             </span>
           )}
@@ -123,48 +91,38 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
       </div>
 
       {/* CORPO */}
-      <div style={{ padding: '15px 16px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-[15px]">
         {p.identificador && (
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums', marginBottom: 3 }}>
+          <div className="mb-[3px] text-xs font-semibold text-[#A29E96] [font-variant-numeric:tabular-nums]">
             {p.identificador}
           </div>
         )}
-        <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 600, lineHeight: 1.3, color: '#3A372F', letterSpacing: '-0.01em' }}>
+        <h3 className="m-0 text-[15.5px] font-semibold leading-[1.3] tracking-[-0.01em] text-dark">
           {p.nome}
         </h3>
-        <div style={{
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-          gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid #F4F2EE',
-        }}>
+        <div className="mt-3.5 flex items-end justify-between gap-2.5 border-t border-[#F4F2EE] pt-3.5">
           <div>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
               {isCustom ? 'Valor adicional' : 'Preço de venda'}
             </div>
-            <div style={{
-              fontSize: 20, fontWeight: 700,
-              color: isCustom ? '#2A9D8F' : '#3A372F',
-              marginTop: 3, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
-            }}>
+            <div className={clsx('mt-[3px] text-xl font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]', isCustom ? 'text-teal' : 'text-dark')}>
               {p.precoVenda != null
                 ? (isCustom ? '+ ' + BRL(p.precoVenda) : BRL(p.precoVenda))
-                : <span style={{ fontSize: 15, color: '#C2BEB5' }}>—</span>
+                : <span className="text-[15px] text-[#C2BEB5]">—</span>
               }
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
+          <div className="text-right">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
               Estoque
             </div>
             {isCustom ? (
-              <div style={{ marginTop: 7, fontSize: 15, fontWeight: 600, color: '#C2BEB5' }}>—</div>
+              <div className="mt-[7px] text-[15px] font-semibold text-[#C2BEB5]">—</div>
             ) : (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 5,
-                height: 26, padding: '0 10px', borderRadius: 999,
-                fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
-                background: semEstoque ? '#F1F0EC' : 'rgba(42,157,143,0.10)',
-                color: semEstoque ? '#9A968E' : '#2A9D8F',
-              }}>
+              <div className={clsx(
+                'mt-[5px] inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold [font-variant-numeric:tabular-nums]',
+                semEstoque ? 'bg-[#F1F0EC] text-[#9A968E]' : 'bg-teal/10 text-teal'
+              )} style={{ height: 26 }}>
                 <Layers size={14} /> {p.estoqueAtual} un
               </div>
             )}
@@ -184,7 +142,6 @@ export default function ListaProdutosPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [busca, setBusca] = useState('')
-  const [buscaFocus, setBuscaFocus] = useState(false)
   const [cat, setCat] = useState('Todos')
 
   useEffect(() => {
@@ -238,10 +195,10 @@ export default function ListaProdutosPage() {
     <AppLayout active="produtos">
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 22 }}>
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
         <div>
-          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Meus Produtos</h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#A29E96' }}>O coração do seu negócio — tudo o que você cria e vende.</p>
+          <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Meus Produtos</h1>
+          <p className="mt-1.5 mb-0 text-[14.5px] text-muted">O coração do seu negócio — tudo o que você cria e vende.</p>
         </div>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/produtos/novo')}>
           Novo Produto
@@ -249,57 +206,40 @@ export default function ListaProdutosPage() {
       </div>
 
       {/* BUSCA */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
-        <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 220, maxWidth: 420 }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
+      <div className="mb-[18px] flex flex-wrap items-center gap-3.5">
+        <div className="relative max-w-[420px] flex-[1_1_260px] min-w-[220px]">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
             <Search size={18} />
           </span>
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            onFocus={() => setBuscaFocus(true)}
-            onBlur={() => setBuscaFocus(false)}
             placeholder="Buscar por nome..."
-            style={{
-              width: '100%', height: 46, padding: '0 14px 0 42px',
-              border: `1.5px solid ${buscaFocus ? '#2A9D8F' : '#EFEDE8'}`,
-              borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-              background: '#fff', outline: 'none', fontFamily: 'inherit',
-              boxShadow: buscaFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-              transition: 'border-color .15s, box-shadow .15s',
-            }}
+            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
           />
         </div>
       </div>
 
       {/* CHIPS DE CATEGORIA */}
-      <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginBottom: 24, overflowX: 'auto' }}>
+      <div className="mb-6 flex flex-wrap gap-[9px] overflow-x-auto">
         {CATS.map(c => {
           const active = cat === c
           return (
             <button
               key={c}
               onClick={() => handleCatChange(c)}
-              style={{
-                height: 36, padding: '0 15px', borderRadius: 999,
-                border: `1.5px solid ${active ? 'transparent' : '#EFEDE8'}`,
-                background: active ? '#F97316' : '#fff',
-                color: active ? '#fff' : '#5C594F',
-                fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 7,
-                transition: 'all .14s',
-                boxShadow: active ? '0 6px 14px -7px rgba(249,115,22,0.8)' : 'none',
-              }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#FAF8F5'; e.currentTarget.style.borderColor = '#DEDBD4' } }}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#EFEDE8' } }}
+              className={clsx(
+                'inline-flex h-9 items-center gap-[7px] whitespace-nowrap rounded-full border-[1.5px] px-[15px] font-[inherit] text-[13.5px] font-semibold transition-all duration-150',
+                active
+                  ? 'border-transparent bg-orange text-white shadow-[0_6px_14px_-7px_rgba(249,115,22,0.8)]'
+                  : 'border-line bg-white text-body hover:border-[#DEDBD4] hover:bg-[#FAF8F5]'
+              )}
             >
               {c}
-              <span style={{
-                fontSize: 11.5, fontWeight: 700, opacity: 0.85,
-                background: active ? 'rgba(255,255,255,0.25)' : '#F1F0EC',
-                color: active ? '#fff' : '#9A968E',
-                borderRadius: 999, padding: '1px 7px',
-              }}>
+              <span className={clsx(
+                'rounded-full px-[7px] py-px text-[11.5px] font-bold opacity-85',
+                active ? 'bg-white/25 text-white' : 'bg-[#F1F0EC] text-[#9A968E]'
+              )}>
                 {counts(c)}
               </span>
             </button>
@@ -309,8 +249,8 @@ export default function ListaProdutosPage() {
 
       {/* CONTEÚDO */}
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando produtos…
         </div>
       ) : produtos.length === 0 ? (
@@ -322,7 +262,7 @@ export default function ListaProdutosPage() {
         />
       ) : (
         <>
-          <div className="prod-grid">
+          <div className="grid grid-cols-4 gap-5 max-[1180px]:grid-cols-3 max-[860px]:grid-cols-2 max-[860px]:gap-3.5 max-[520px]:grid-cols-1">
             {produtos.map((p, i) => (
               <ProductCard
                 key={p.id}
@@ -338,28 +278,22 @@ export default function ListaProdutosPage() {
           </div>
 
           {/* Contador + Carregar mais */}
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 13, color: '#A29E96', alignSelf: 'flex-end', width: '100%', textAlign: 'right' }}>
+          <div className="mt-[18px] flex flex-col items-center gap-3">
+            <div className="w-full self-end text-right text-[13px] text-muted">
               {produtos.length} de {totalElements} {totalElements === 1 ? 'produto' : 'produtos'}
             </div>
             {hasNext && (
               <button
                 onClick={carregarMais}
                 disabled={loadingMore}
-                style={{
-                  height: 44, padding: '0 24px', borderRadius: 10,
-                  border: '1.5px solid #EFEDE8', background: '#fff',
-                  color: '#2A9D8F', fontSize: 14, fontWeight: 600,
-                  fontFamily: 'inherit', cursor: loadingMore ? 'default' : 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  opacity: loadingMore ? 0.7 : 1,
-                }}
-                onMouseEnter={e => { if (!loadingMore) e.currentTarget.style.background = 'rgba(42,157,143,0.06)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+                className={clsx(
+                  'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
+                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/[0.06]'
+                )}
               >
                 {loadingMore
-                  ? <><span style={{ width: 16, height: 16, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
-                  : <>Carregar mais <ChevronRight size={15} style={{ transform: 'rotate(90deg)' }} /></>
+                  ? <><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
+                  : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
                 }
               </button>
             )}

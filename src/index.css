@@ -323,40 +323,6 @@ body:has(.drawer-open) {
   }
 }
 
-.hist-head {
-  display: grid;
-  grid-template-columns: 116px 1fr 110px 84px 1fr;
-  gap: 16px;
-  padding: 13px 20px;
-  background: #FBFAF8;
-}
-
-.hist-row {
-  display: grid;
-  grid-template-columns: 116px 1fr 110px 84px 1fr;
-  gap: 16px;
-  align-items: center;
-  padding: 15px 20px;
-  border-top: 1px solid #EFEDE8;
-}
-
-.hist-card { display: none; }
-
-@media (max-width: 720px) {
-  .hist-head, .hist-row { display: none; }
-  .hist-card { display: block; }
-}
-
-.prod-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 1180px) { .prod-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 860px)  { .prod-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
-@media (max-width: 520px)  { .prod-grid { grid-template-columns: 1fr; } }
-
 .ficha-grid {
   display: grid;
   grid-template-columns: 1fr 360px;
