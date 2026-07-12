@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import Spinner from '../../components/ui/Spinner'
 import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
@@ -22,7 +24,7 @@ const TIPO_LABEL: Record<string, string> = {
   CUSTOMIZACAO: 'Customização',
 }
 
-const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
 
 const hexA = (hex: string, a: number) => {
   const h = hex.replace('#', '')
@@ -46,16 +48,20 @@ function refText(m: MovimentacaoInsumoResponse): string {
 
 function ModalHead({ icon, tint, title, sub, onClose }: { icon: React.ReactNode; tint: string; title: string; sub?: string; onClose: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
-        <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: hexA(tint, 0.12), color: tint }}>{icon}</span>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{title}</div>
-          {sub && <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>{sub}</div>}
+    <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-5">
+      <div className="flex min-w-0 items-center gap-[13px]">
+        <span className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl" style={{ background: hexA(tint, 0.12), color: tint }}>
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <div className="text-[16.5px] font-bold tracking-[-0.01em] text-dark">{title}</div>
+          {sub && <div className="mt-0.5 text-[12.5px] text-muted">{sub}</div>}
         </div>
       </div>
-      <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
-        onMouseEnter={e => e.currentTarget.style.background = '#E9E7E2'} onMouseLeave={e => e.currentTarget.style.background = '#F1F0EC'}
+      <button
+        onClick={onClose}
+        aria-label="Fechar"
+        className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle hover:bg-line-deep"
       >
         <X size={20} />
       </button>
@@ -72,7 +78,6 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
   const [qtd, setQtd] = useState('')
   const [motivo, setMotivo] = useState('Perda')
   const [obs, setObs] = useState('')
-  const [focus, setFocus] = useState<string | null>(null)
   const [selOpen, setSelOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -105,63 +110,57 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     }
   }
 
-  const baseStyle = (k: string): React.CSSProperties => ({
-    width: '100%', minHeight: 48, padding: '0 14px',
-    border: `1.5px solid ${focus === k ? '#2A9D8F' : '#EFEDE8'}`,
-    borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-    background: '#fff', outline: 'none', fontFamily: 'inherit',
-    boxShadow: focus === k ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-    transition: 'border-color .15s, box-shadow .15s',
-  })
-
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(500px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
+    <div onClick={onClose} className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]">
+      <div onClick={e => e.stopPropagation()} className="flex max-h-[92vh] w-[min(500px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
 
         <ModalHead icon={<Minus size={17} />} tint="#C8721F" title="Baixa manual" sub="Registra uma saída fora de produção." onClose={onClose} />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-[22px]">
+          <div className="grid grid-cols-2 gap-4">
             <label>
-              <span style={fieldLabel}>Quantidade *</span>
-              <div style={{ position: 'relative' }}>
+              <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade *</span>
+              <div className="relative">
                 <input
                   value={qtd}
                   onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
-                  onFocus={() => setFocus('qtd')}
-                  onBlur={() => setFocus(null)}
                   inputMode="decimal"
                   placeholder="3"
-                  style={{ ...baseStyle('qtd'), height: 48, paddingRight: 62 }}
+                  className={clsx(inputBase, 'pr-[62px]')}
                 />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unidade}</span>
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                  {unidade}
+                </span>
               </div>
             </label>
             <label>
-              <span style={fieldLabel}>Motivo *</span>
-              <div ref={selRef} style={{ position: 'relative' }}>
-                <button type="button" onClick={() => setSelOpen(o => !o)} style={{
-                  ...baseStyle('sel'), height: 48,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  cursor: 'pointer', textAlign: 'left',
-                  borderColor: selOpen ? '#2A9D8F' : '#EFEDE8',
-                  boxShadow: selOpen ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-                }}>
-                  {motivo}<span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
+              <span className="mb-[7px] block text-[13px] font-semibold text-body">Motivo *</span>
+              <div ref={selRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSelOpen(o => !o)}
+                  className={clsx(
+                    inputBase,
+                    'flex cursor-pointer items-center justify-between text-left',
+                    selOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                  )}
+                >
+                  {motivo}<span className="flex text-muted"><ChevronDown size={16} /></span>
                 </button>
                 {selOpen && (
-                  <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
+                  <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
                     {MOTIVOS_BAIXA_INSUMO.map(m => (
-                      <button key={m} type="button" onClick={() => { setMotivo(m); setSelOpen(false) }} style={{
-                        width: '100%', textAlign: 'left', padding: '10px 11px', borderRadius: 8,
-                        border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14,
-                        background: m === motivo ? 'rgba(42,157,143,0.08)' : 'transparent',
-                        fontWeight: m === motivo ? 600 : 500,
-                        color: m === motivo ? '#2A9D8F' : '#3A372F',
-                      }}
-                        onMouseEnter={e => { if (m !== motivo) e.currentTarget.style.background = '#F7F5F1' }}
-                        onMouseLeave={e => { if (m !== motivo) e.currentTarget.style.background = 'transparent' }}
-                      >{m}</button>
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => { setMotivo(m); setSelOpen(false) }}
+                        className={clsx(
+                          'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
+                          m === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
+                        )}
+                      >
+                        {m}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -169,38 +168,38 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
             </label>
           </div>
           <label>
-            <span style={fieldLabel}>
-              Observação <span style={{ color: '#F97316' }}>*</span>
-              <span style={{ fontWeight: 400, color: obs.length >= 50 ? '#3E9D5A' : '#A29E96', marginLeft: 8 }}>
+            <span className="mb-[7px] block text-[13px] font-semibold text-body">
+              Observação <span className="text-orange">*</span>
+              <span className={clsx('ml-2 font-normal', obs.length >= 50 ? 'text-[#3E9D5A]' : 'text-muted')}>
                 {obs.length}/50 caracteres mín.
               </span>
             </span>
             <textarea
               value={obs}
               onChange={e => setObs(e.target.value)}
-              onFocus={() => setFocus('obs')}
-              onBlur={() => setFocus(null)}
               placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
               rows={3}
-              style={{
-                ...baseStyle('obs'), height: 'auto', padding: '12px 14px', resize: 'vertical', lineHeight: 1.5,
-                borderColor: obs.length > 0 && obs.length < 50 ? '#F2B8A6' : (focus === 'obs' ? '#2A9D8F' : '#EFEDE8'),
-              }}
+              className={clsx(
+                'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
+                obs.length > 0 && obs.length < 50
+                  ? 'border-[#F2B8A6]'
+                  : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+              )}
             />
             {obs.length > 0 && obs.length < 50 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
+              <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
                 <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
               </div>
             )}
           </label>
           {error && (
-            <p style={{ margin: 0, fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
               {error}
             </p>
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap justify-end gap-[11px] border-t border-line px-6 py-4">
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar || loading} onClick={handleSubmit}>
             {loading ? 'Registrando…' : 'Registrar baixa'}
@@ -212,19 +211,18 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
 }
 
 function HistTipo({ tipo, titulo }: { tipo: 'entrada' | 'saida' | 'estorno'; titulo: string }) {
-  const cores = {
-    entrada: { c: '#1F8A5B', bg: '#E8F5EE' },
-    saida:   { c: '#C0492B', bg: '#FBEDE9' },
-    estorno: { c: '#C0492B', bg: '#FBEDE9' },
-  }[tipo]
+  const isEntrada = tipo === 'entrada'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-      <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: cores.bg, color: cores.c }}>
+    <div className="flex min-w-0 items-center gap-[11px]">
+      <span className={clsx(
+        'grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-[9px]',
+        isEntrada ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'
+      )}>
         {tipo === 'estorno'
           ? <AlertCircle size={15} />
-          : <ArrowDown size={14} style={{ transform: tipo === 'entrada' ? 'rotate(180deg)' : 'none' }} />}
+          : <ArrowDown size={14} className={isEntrada ? 'rotate-180' : undefined} />}
       </span>
-      <span style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F' }}>{titulo}</span>
+      <span className="text-[13.8px] font-semibold text-dark">{titulo}</span>
     </div>
   )
 }
@@ -236,7 +234,7 @@ function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsum
         const { titulo, tipoDisplay } = tituloMovimentacao(m)
         const positivo = m.tipo === 'ENTRADA'
         const isEstorno = tipoDisplay === 'estorno'
-        const deltaC = isEstorno ? '#C0492B' : (positivo ? '#1F8A5B' : '#C0492B')
+        const deltaClass = positivo && !isEstorno ? 'text-success' : 'text-danger'
         const deltaT = (positivo ? '+ ' : '− ') + m.quantidade + ` ${unidade}`
         const riscado = m.estornada
         const ref = refText(m)
@@ -244,44 +242,54 @@ function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsum
         return (
           <React.Fragment key={m.id}>
             {/* desktop row */}
-            <div className="hist-row" style={{
-              animation: 'fadeUp .35s ease both',
-              opacity: riscado ? 0.6 : 1,
-              background: isEstorno ? '#FBEDE9' : 'transparent',
-            }}>
-              <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{formatDate(m.createdAt)}</div>
-              <div style={{ textDecoration: riscado ? 'line-through' : 'none' }}>
+            <div className={clsx(
+              'hidden grid-cols-[116px_1fr_110px_84px_1fr] items-center gap-4 border-t border-line px-5 py-[15px] animate-fade-up md:grid',
+              riscado && 'opacity-60',
+              isEstorno && 'bg-danger-bg'
+            )}>
+              <div className="text-[13px] text-body [font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</div>
+              <div className={riscado ? 'line-through' : undefined}>
                 <HistTipo tipo={tipoDisplay} titulo={titulo} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: riscado ? 'line-through' : 'none' }}>{deltaT}</div>
-              <div style={{ fontSize: 13.5, color: '#3A372F', fontVariantNumeric: 'tabular-nums', textDecoration: riscado ? 'line-through' : 'none' }}>—</div>
-              <div style={{ fontSize: 13, color: isEstorno ? '#B23A1E' : '#A29E96', whiteSpace: isEstorno ? 'normal' : 'nowrap', overflow: isEstorno ? 'visible' : 'hidden', textOverflow: 'ellipsis', fontStyle: isEstorno ? 'italic' : 'normal' }}>
+              <div className={clsx('whitespace-nowrap text-sm font-bold [font-variant-numeric:tabular-nums]', deltaClass, riscado && 'line-through')}>
+                {deltaT}
+              </div>
+              <div className={clsx('text-[13.5px] text-dark [font-variant-numeric:tabular-nums]', riscado && 'line-through')}>—</div>
+              <div className={clsx(
+                'text-[13px]',
+                isEstorno ? 'whitespace-normal italic text-danger-deep' : 'overflow-hidden text-ellipsis whitespace-nowrap text-muted'
+              )}>
                 {ref}
               </div>
             </div>
             {m.observacao && (
-              <div className="hist-row" style={{ gridTemplateColumns: '1fr', padding: '0 20px 15px', borderTop: 'none', marginTop: -15 }}>
-                <div style={{ fontSize: 12.5, color: '#A29E96', fontStyle: 'italic', lineHeight: 1.5, paddingLeft: 132 }}>
+              <div className="hidden -mt-[15px] px-5 pb-[15px] md:block">
+                <div className="pl-[132px] text-[12.5px] italic leading-[1.5] text-muted">
                   "{m.observacao}"
                 </div>
               </div>
             )}
             {/* mobile card */}
-            <div className="hist-card" style={{
-              padding: '15px 18px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both',
-              opacity: riscado ? 0.6 : 1,
-              background: isEstorno ? '#FBEDE9' : 'transparent',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, textDecoration: riscado ? 'line-through' : 'none' }}>
+            <div className={clsx(
+              'block animate-fade-up border-t border-line px-[18px] py-[15px] md:hidden',
+              riscado && 'opacity-60',
+              isEstorno && 'bg-danger-bg'
+            )}>
+              <div className={clsx('flex items-center justify-between gap-3', riscado && 'line-through')}>
                 <HistTipo tipo={tipoDisplay} titulo={titulo} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: deltaC, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{deltaT}</span>
+                <span className={clsx('whitespace-nowrap text-sm font-bold [font-variant-numeric:tabular-nums]', deltaClass)}>
+                  {deltaT}
+                </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap', fontSize: 12.5, color: isEstorno ? '#B23A1E' : '#A29E96', fontStyle: isEstorno ? 'italic' : 'normal' }}>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(m.createdAt)}</span>
-                {ref && <><span style={{ color: '#D8D4CC' }}>·</span><span>{ref}</span></>}
+              <div className={clsx(
+                'mt-2.5 flex flex-wrap items-center gap-2 text-[12.5px]',
+                isEstorno ? 'italic text-danger-deep' : 'text-muted'
+              )}>
+                <span className="[font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</span>
+                {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
               </div>
               {m.observacao && (
-                <div style={{ marginTop: 8, fontSize: 12.5, color: '#A29E96', fontStyle: 'italic', lineHeight: 1.5 }}>
+                <div className="mt-2 text-[12.5px] italic leading-[1.5] text-muted">
                   "{m.observacao}"
                 </div>
               )}
@@ -296,8 +304,8 @@ function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsum
 function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean; onSelect: (produtoId: string) => void }) {
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '32px 20px', justifyContent: 'center' }}>
-        <span style={{ width: 18, height: 18, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+      <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
+        <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
         Carregando fichas técnicas…
       </div>
     )
@@ -305,7 +313,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
 
   if (produtos.length === 0) {
     return (
-      <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 14, color: '#A29E96' }}>
+      <div className="px-5 py-8 text-center text-sm text-muted">
         Nenhuma ficha técnica usa este insumo ainda.
       </div>
     )
@@ -314,30 +322,26 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
   return (
     <div>
       {produtos.map((p) => (
-        <button key={p.id} onClick={() => onSelect(p.id)} style={{
-          display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
-          borderTop: '1px solid #EFEDE8', borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
-          animation: 'fadeUp .35s ease both', width: '100%',
-          background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-        }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#FAF8F5')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        <button
+          key={p.id}
+          onClick={() => onSelect(p.id)}
+          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] hover:bg-[#FAF8F5]"
         >
-          <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+          <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
             <Box size={16} />
           </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               {p.identificador && (
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{p.identificador}</span>
+                <span className="flex-shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
               )}
-              <span style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{p.nome}</span>
             </div>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11.5px] font-semibold text-subtle">
             {TIPO_LABEL[p.tipo] ?? p.tipo}
           </span>
-          <span style={{ flexShrink: 0, color: '#CFCBC3', display: 'flex' }}>
+          <span className="flex flex-shrink-0 text-[#CFCBC3]">
             <ChevronRight size={15} />
           </span>
         </button>
@@ -419,8 +423,8 @@ export default function DetalheInsumoPage() {
   if (loading || !insumo) {
     return (
       <AppLayout active="insumos">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando insumo…
         </div>
       </AppLayout>
@@ -432,56 +436,56 @@ export default function DetalheInsumoPage() {
   return (
     <AppLayout active="insumos">
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#A29E96', marginBottom: 12 }}>
-        <span style={{ cursor: 'pointer', fontWeight: 500 }}
-          onClick={() => navigate('/insumos')}
-          onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
-          onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
-        >Insumos</span>
-        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{insumo.nome}</span>
+      <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
+        <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/insumos')}>
+          Insumos
+        </span>
+        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <span className="whitespace-nowrap font-semibold text-body">{insumo.nome}</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 15, minWidth: 0 }}>
-          <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-[18px]">
+        <div className="flex min-w-0 items-center gap-[15px]">
+          <span className="grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
             <Box size={26} />
           </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
               {insumo.identificador && (
-                <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{insumo.identificador}</span>
+                <span className="flex-shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{insumo.identificador}</span>
               )}
-              <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>{insumo.nome}</h1>
+              <h1 className="m-0 text-[25px] font-bold tracking-[-0.02em] text-dark">{insumo.nome}</h1>
               {insumo.ativo ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 12.5, fontWeight: 600 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} /> Ativo
+                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-success-bg px-[11px] text-[12.5px] font-semibold text-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#34A56F]" /> Ativo
                 </span>
               ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: '#F1F0EC', color: '#7C786F', fontSize: 12.5, fontWeight: 600 }}>
+                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-line-soft px-[11px] text-[12.5px] font-semibold text-subtle">
                   Inativo
                 </span>
               )}
               {insumo.permitirEstoqueNegativo ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#2A9D8F', 0.12), color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
+                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-teal/[0.12] px-[11px] text-[12.5px] font-semibold text-teal">
                   <Check size={13} /> Permite estoque negativo
                 </span>
               ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#EF4444', 0.12), color: '#EF4444', fontSize: 12.5, fontWeight: 600 }}>
+                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-[#EF4444]/[0.12] px-[11px] text-[12.5px] font-semibold text-[#EF4444]">
                   <X size={13} /> Bloqueia estoque negativo
                 </span>
               )}
               {insumo.fracionavel ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#2A9D8F', 0.10), color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
+                <span className="inline-flex h-[27px] items-center rounded-full bg-teal/10 px-[11px] text-[12.5px] font-semibold text-teal">
                   Fracionável
                 </span>
               ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#6B6860', 0.10), color: '#6B6860', fontSize: 12.5, fontWeight: 600 }}>
+                <span className="inline-flex h-[27px] items-center rounded-full bg-[#6B6860]/10 px-[11px] text-[12.5px] font-semibold text-[#6B6860]">
                   Não fracionável
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>Marca: <strong style={{ color: '#5C594F', fontWeight: 600 }}>{insumo.marca || '—'}</strong></div>
+            <div className="mt-1 text-sm text-muted">
+              Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong>
+            </div>
           </div>
         </div>
         <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
@@ -489,64 +493,63 @@ export default function DetalheInsumoPage() {
         </Button>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', animation: 'fadeUp .4s ease both' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1, background: '#EFEDE8' }}>
+      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
           {[
             { k: 'Unidade de medida',    v: insumo.unidadeMedida },
             { k: 'Saldo atual',          v: `${insumo.estoqueAtual} ${insumo.unidadeMedida}`, big: true, warn: isLow },
             { k: 'Estoque mínimo',       v: insumo.estoqueMinimo != null ? `${insumo.estoqueMinimo} ${insumo.unidadeMedida}` : '—' },
             { k: 'Custo unitário atual', v: `${moeda(insumo.custoUnitario, 2)} / ${insumo.unidadeMedida}`, accent: true },
           ].map((c, i) => (
-            <div key={i} style={{ background: '#fff', padding: '18px 20px' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{c.k}</div>
-              <div style={{
-                marginTop: 7, fontVariantNumeric: 'tabular-nums',
-                fontSize: c.big ? 28 : c.accent ? 18 : 16,
-                fontWeight: c.big || c.accent ? 700 : 600,
-                letterSpacing: c.big ? '-0.02em' : '0',
-                color: c.warn ? '#C8721F' : (c.big || c.accent ? '#2A9D8F' : '#3A372F'),
-              }}>{c.v}</div>
+            <div key={i} className="bg-white px-5 py-[18px]">
+              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{c.k}</div>
+              <div className={clsx(
+                'mt-[7px] [font-variant-numeric:tabular-nums]',
+                c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',
+                c.warn ? 'text-warning' : (c.big || c.accent) ? 'text-teal' : 'text-dark'
+              )}>
+                {c.v}
+              </div>
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 11, padding: '16px 20px', borderTop: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
           <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
             Baixa manual
           </Button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginTop: 26, borderBottom: '1.5px solid #EFEDE8', overflowX: 'auto' }}>
+      <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line">
         {ABAS.map(a => {
           const on = aba === a.id
           return (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{
-              position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
-              padding: '12px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 14, fontWeight: on ? 600 : 500,
-              color: on ? '#2A9D8F' : '#8A8780', whiteSpace: 'nowrap', transition: 'color .14s',
-            }}
-              onMouseEnter={e => { if (!on) e.currentTarget.style.color = '#5C594F' }}
-              onMouseLeave={e => { if (!on) e.currentTarget.style.color = '#8A8780' }}
+            <button
+              key={a.id}
+              onClick={() => setAba(a.id)}
+              className={clsx(
+                'relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-sm transition-colors duration-150',
+                on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+              )}
             >
-              <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon size={a.size} /></span>
+              <span className={clsx('flex', on ? 'text-teal' : 'text-[#B0ACA4]')}><a.icon size={a.size} /></span>
               {a.label}
-              {on && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1.5, height: 2.5, borderRadius: 3, background: '#2A9D8F' }} />}
+              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}
       </div>
 
-      <div style={{ marginTop: 16, background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+      <div className="mt-4 rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         {aba === 'historico' ? (
           <>
-            <div className="hist-head">
+            <div className="hidden grid-cols-[116px_1fr_110px_84px_1fr] gap-4 bg-[#FBFAF8] px-5 py-[13px] md:grid">
               {['Data', 'Movimentação', 'Quantidade', 'Custo unit.', 'Referência'].map((h, k) => (
-                <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{h}</div>
+                <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{h}</div>
               ))}
             </div>
             {movimentacoes.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 14, color: '#A29E96' }}>
+              <div className="px-5 py-8 text-center text-sm text-muted">
                 Nenhuma movimentação registrada ainda.
               </div>
             ) : (
@@ -559,25 +562,22 @@ export default function DetalheInsumoPage() {
       </div>
 
       {aba === 'historico' && (
-        <div style={{ marginTop: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 12.5, color: '#A29E96', alignSelf: 'flex-end', width: '100%', textAlign: 'right' }}>
+        <div className="mt-[13px] flex flex-col items-center gap-3">
+          <div className="w-full text-right text-[12.5px] text-muted">
             {movimentacoes.length} movimentações
           </div>
           {histHasNext && (
-            <button onClick={carregarMaisHistorico} disabled={loadingMoreHist} style={{
-              height: 44, padding: '0 24px', borderRadius: 10,
-              border: '1.5px solid #EFEDE8', background: '#fff',
-              color: '#2A9D8F', fontSize: 14, fontWeight: 600,
-              fontFamily: 'inherit', cursor: loadingMoreHist ? 'default' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              opacity: loadingMoreHist ? 0.7 : 1,
-            }}
-              onMouseEnter={e => { if (!loadingMoreHist) e.currentTarget.style.background = 'rgba(42,157,143,0.06)' }}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            <button
+              onClick={carregarMaisHistorico}
+              disabled={loadingMoreHist}
+              className={clsx(
+                'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
+                loadingMoreHist ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/[0.06]'
+              )}
             >
               {loadingMoreHist
-                ? <><span style={{ width: 16, height: 16, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
-                : <>Carregar mais <ChevronRight size={15} style={{ transform: 'rotate(90deg)' }} /></>
+                ? <><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
+                : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
               }
             </button>
           )}

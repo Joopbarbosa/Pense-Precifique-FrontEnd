@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import SectionTitle from '../../components/shared/SectionTitle'
+import Spinner from '../../components/ui/Spinner'
 import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
 import { insumoService } from '../../services/insumoService'
 import type { InsumoRequest, NovoInsumoRequest } from '../../types/insumo'
@@ -17,17 +19,19 @@ const num = (v: string) => {
   return isNaN(n) ? 0 : n
 }
 
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+
 function Field({ label, opt, hint, erro, children }: { label: string; opt?: boolean; hint?: string; erro?: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
+    <label className="block">
+      <span className="mb-[7px] flex items-center gap-1.5 text-[13px] font-semibold text-body">
         {label}
-        {opt && <span style={{ fontSize: 11.5, fontWeight: 500, color: '#A29E96' }}>(opcional)</span>}
+        {opt && <span className="text-[11.5px] font-medium text-muted">(opcional)</span>}
       </span>
       {children}
       {erro
-        ? <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{erro}</span>
-        : hint && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#A29E96', lineHeight: 1.5 }}>{hint}</p>
+        ? <span className="mt-1.5 block text-[12.5px] text-danger-deep">{erro}</span>
+        : hint && <p className="mt-1.5 mb-0 text-xs leading-[1.5] text-muted">{hint}</p>
       }
     </label>
   )
@@ -56,27 +60,24 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <p style={{ margin: '0 0 16px', fontSize: 14, color: '#5C594F', lineHeight: 1.55 }}>
+      <p className="mb-4 mt-0 text-sm leading-[1.55] text-body">
         Desativar este insumo pode afetar o custo das fichas técnicas abaixo:
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+      <div className="flex flex-col gap-[9px]">
         {fichas.map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 11, background: '#FCFBF9', border: '1px solid #EFEDE8' }}>
-            <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+          <div key={i} className="flex items-center gap-3 rounded-[11px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+            <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
               <f.icon size={f.size} />
             </span>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{f.nome}</span>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '3px 9px', borderRadius: 999 }}>{f.tipo}</span>
+            <span className="flex-1 text-sm font-semibold text-dark">{f.nome}</span>
+            <span className="rounded-full bg-line-soft px-[9px] py-[3px] text-[11.5px] font-semibold text-subtle">
+              {f.tipo}
+            </span>
           </div>
         ))}
       </div>
     </ModalShell>
   )
-}
-
-const SECTION_STYLE: React.CSSProperties = {
-  padding: '24px 26px',
-  borderBottom: '1px solid #EFEDE8',
 }
 
 export default function FormInsumoPage() {
@@ -96,7 +97,6 @@ export default function FormInsumoPage() {
   const [precoTocado, setPrecoTocado] = useState(false)
   const [qtdTocado, setQtdTocado] = useState(false)
   const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
-  const [focus, setFocus] = useState<string | null>(null)
   const [modal, setModal] = useState<'desativar' | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
@@ -200,25 +200,13 @@ export default function FormInsumoPage() {
     }
   }
 
-  const inputBase = (active: boolean): React.CSSProperties => ({
-    width: '100%', height: 48, padding: '0 14px',
-    border: `1.5px solid ${active ? '#2A9D8F' : '#EFEDE8'}`,
-    borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-    background: '#fff', outline: 'none', fontFamily: 'inherit',
-    boxShadow: active ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-    transition: 'border-color .15s, box-shadow .15s',
-  })
-
-  const bind = (k: string, val: string, set: (v: string) => void) => ({
+  const bind = (val: string, set: (v: string) => void) => ({
     value: val,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value),
-    onFocus: () => setFocus(k),
-    onBlur: () => setFocus(null),
-    style: inputBase(focus === k),
   })
 
-  const numBind = (k: string, val: string, set: (v: string) => void) => ({
-    ...bind(k, val, set),
+  const numBind = (val: string, set: (v: string) => void) => ({
+    value: val,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value.replace(/[^\d.,]/g, '')),
     inputMode: 'decimal' as const,
   })
@@ -226,8 +214,8 @@ export default function FormInsumoPage() {
   if (loadingData) {
     return (
       <AppLayout active="insumos">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando dados do insumo…
         </div>
       </AppLayout>
@@ -238,73 +226,76 @@ export default function FormInsumoPage() {
     <AppLayout active="insumos">
 
       {/* HEADER + breadcrumb */}
-      <div style={{ marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#A29E96', marginBottom: 8 }}>
+      <div className="mb-[22px]">
+        <div className="mb-2 flex items-center gap-[7px] text-[12.5px] text-muted">
           <span
-            style={{ cursor: 'pointer', fontWeight: 500 }}
+            className="cursor-pointer font-medium hover:text-teal"
             onClick={() => navigate('/insumos')}
-            onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
-            onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
           >
             Insumos
           </span>
-          <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
-          <span style={{ color: '#5C594F', fontWeight: 600 }}>{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
+          <ChevronRight size={15} className="text-[#CFCBC3]" />
+          <span className="font-semibold text-body">{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
         </div>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>
+        <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
           {editando ? 'Editar Insumo' : 'Novo Insumo'}
         </h1>
       </div>
 
       {/* CARD FORM */}
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', animation: 'fadeUp .4s ease both' }}>
+      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
         {/* SEÇÃO 1 — Identificação */}
-        <div style={SECTION_STYLE}>
+        <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="1" title="Identificação" subtitle="Como você reconhece este insumo." />
-          <div className="two-col">
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
             <Field label="Nome do insumo *">
-              <input placeholder="Papel couchê 180g" {...bind('nome', nome, setNome)} />
+              <input placeholder="Papel couchê 180g" className={inputBase} {...bind(nome, setNome)} />
             </Field>
             <Field label="Marca" opt>
-              <input placeholder="Suzano" {...bind('marca', marca, setMarca)} />
+              <input placeholder="Suzano" className={inputBase} {...bind(marca, setMarca)} />
             </Field>
           </div>
-          <div style={{ display: 'flex', gap: 9, marginTop: 14, padding: '11px 13px', borderRadius: 11, background: 'rgba(42,157,143,0.05)', border: '1px solid rgba(42,157,143,0.15)' }}>
-            <Info size={15} style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
-            <p style={{ margin: 0, fontSize: 12.3, color: '#5C594F', lineHeight: 1.5 }}>
-              O par <strong style={{ fontWeight: 600 }}>nome + marca</strong> deve ser único. O mesmo insumo de marcas diferentes pode ser cadastrado separadamente.
+          <div className="mt-3.5 flex gap-[9px] rounded-[11px] border border-teal/[0.15] bg-teal/[0.05] px-[13px] py-[11px]">
+            <Info size={15} className="mt-px flex-shrink-0 text-teal" />
+            <p className="m-0 text-[12.3px] leading-[1.5] text-body">
+              O par <strong className="font-semibold">nome + marca</strong> deve ser único. O mesmo insumo de marcas diferentes pode ser cadastrado separadamente.
             </p>
           </div>
         </div>
 
         {/* SEÇÃO 2 — Medida e fracionamento */}
-        <div style={SECTION_STYLE}>
+        <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="2" title="Medida e fracionamento" subtitle="Como este insumo é medido e consumido." />
-          <div className="two-col">
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
             <Field label="Unidade de medida *">
-              <div ref={unRef} style={{ position: 'relative' }}>
-                <button type="button" onClick={() => setUnidadeOpen(o => !o)} style={{
-                  ...inputBase(unidadeOpen),
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  cursor: 'pointer', textAlign: 'left',
-                }}>
+              <div ref={unRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUnidadeOpen(o => !o)}
+                  className={clsx(
+                    inputBase,
+                    'flex cursor-pointer items-center justify-between text-left',
+                    unidadeOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                  )}
+                >
                   {unidade}
-                  <span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
+                  <span className="flex text-muted"><ChevronDown size={16} /></span>
                 </button>
                 {unidadeOpen && (
-                  <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
+                  <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
                     {UNIDADES.map(u => (
-                      <button key={u} type="button" onClick={() => { setUnidade(u); setUnidadeOpen(false) }} style={{
-                        width: '100%', textAlign: 'left', padding: '10px 11px', borderRadius: 8,
-                        border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14,
-                        background: u === unidade ? 'rgba(42,157,143,0.08)' : 'transparent',
-                        fontWeight: u === unidade ? 600 : 500,
-                        color: u === unidade ? '#2A9D8F' : '#3A372F',
-                      }}
-                        onMouseEnter={e => { if (u !== unidade) e.currentTarget.style.background = '#F7F5F1' }}
-                        onMouseLeave={e => { if (u !== unidade) e.currentTarget.style.background = 'transparent' }}
-                      >{u}</button>
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => { setUnidade(u); setUnidadeOpen(false) }}
+                        className={clsx(
+                          'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
+                          u === unidade ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
+                        )}
+                      >
+                        {u}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -314,14 +305,21 @@ export default function FormInsumoPage() {
               label="Pode ser usado em frações?"
               hint={fracao ? 'Permite consumo de 0,5g, por exemplo.' : 'Sempre será consumido em quantidades inteiras.'}
             >
-              <div style={{ display: 'flex', borderRadius: 10, border: '1.5px solid #EFEDE8', overflow: 'hidden', height: 48 }}>
+              <div className="flex h-12 overflow-hidden rounded-input border-[1.5px] border-line">
                 {([['Não', false], ['Sim', true]] as [string, boolean][]).map(([lbl, val]) => (
-                  <button key={lbl} type="button" onClick={() => setFracao(val)} style={{
-                    flex: 1, border: 'none', cursor: 'pointer', fontSize: 14.5, fontWeight: 600, fontFamily: 'inherit',
-                    background: fracao === val ? (val ? '#2A9D8F' : '#F1F0EC') : '#fff',
-                    color: fracao === val ? (val ? '#fff' : '#5C594F') : '#A8A49C',
-                    transition: 'background .14s',
-                  }}>{lbl}</button>
+                  <button
+                    key={lbl}
+                    type="button"
+                    onClick={() => setFracao(val)}
+                    className={clsx(
+                      'flex-1 border-none font-[inherit] text-[14.5px] font-semibold transition-colors duration-150',
+                      fracao === val
+                        ? val ? 'bg-teal text-white' : 'bg-line-soft text-body'
+                        : 'bg-white text-[#A8A49C]'
+                    )}
+                  >
+                    {lbl}
+                  </button>
                 ))}
               </div>
             </Field>
@@ -329,9 +327,9 @@ export default function FormInsumoPage() {
         </div>
 
         {/* SEÇÃO 3 — Estoque e custo */}
-        <div style={SECTION_STYLE}>
+        <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="3" title="Estoque e custo" subtitle={editando ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe a compra inicial para calcular o custo unitário automaticamente.'} />
-          <div className="two-col">
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
             <Field
               label="Quantidade em estoque *"
               hint={
@@ -342,45 +340,53 @@ export default function FormInsumoPage() {
                     : 'Informe o preço e a quantidade da compra para calcular o custo unitário.'
               }
             >
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <input
                   placeholder="100"
                   readOnly={editando || usaLote}
-                  {...numBind('estoque', usaLote ? qtdCompra : estoque, usaLote ? () => {} : setEstoque)}
-                  style={{ ...inputBase(!editando && !usaLote && focus === 'estoque'), paddingRight: 64, background: (editando || usaLote) ? '#FAF8F5' : '#fff', color: (editando || usaLote) ? '#7C786F' : '#3A372F' }}
+                  {...numBind(usaLote ? qtdCompra : estoque, usaLote ? () => {} : setEstoque)}
+                  className={clsx(inputBase, 'pr-16', (editando || usaLote) && 'bg-[#FAF8F5] text-subtle')}
                 />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                  {unLabel(unidade)}
+                </span>
               </div>
             </Field>
             <Field label="Estoque mínimo para alerta" opt>
-              <div style={{ position: 'relative' }}>
-                <input placeholder="10" {...numBind('minimo', minimo, setMinimo)} style={{ ...inputBase(focus === 'minimo'), paddingRight: 64 }} />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
+              <div className="relative">
+                <input placeholder="10" {...numBind(minimo, setMinimo)} className={clsx(inputBase, 'pr-16')} />
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                  {unLabel(unidade)}
+                </span>
               </div>
             </Field>
 
             {!editando && (
               <>
                 <Field label="Preço total da compra *" erro={precoErro}>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 44, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 600, color: '#6B6860', background: '#FAF8F5', borderRadius: '10px 0 0 10px', borderRight: '1px solid #EFEDE8', pointerEvents: 'none' }}>R$</span>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-[#FAF8F5] text-sm font-semibold text-[#6B6860]">
+                      R$
+                    </span>
                     <input
                       placeholder="45,00"
-                      {...numBind('preco', precoCompra, setPrecoCompra)}
-                      onBlur={() => { setFocus(null); setPrecoTocado(true) }}
-                      style={{ ...inputBase(focus === 'preco'), paddingLeft: 56, borderColor: precoErro ? '#B23A1E' : (focus === 'preco' ? '#2A9D8F' : '#EFEDE8') }}
+                      {...numBind(precoCompra, setPrecoCompra)}
+                      onBlur={() => setPrecoTocado(true)}
+                      className={clsx(inputBase, 'pl-14', precoErro && 'border-danger-deep focus:border-danger-deep focus:ring-danger-deep/10')}
                     />
                   </div>
                 </Field>
                 <Field label="Quantidade comprada *" erro={qtdErro}>
-                  <div style={{ position: 'relative' }}>
+                  <div className="relative">
                     <input
                       placeholder="100"
-                      {...numBind('qtd', qtdCompra, setQtdCompra)}
-                      onBlur={() => { setFocus(null); setQtdTocado(true) }}
-                      style={{ ...inputBase(focus === 'qtd'), paddingRight: 64, borderColor: qtdErro ? '#B23A1E' : (focus === 'qtd' ? '#2A9D8F' : '#EFEDE8') }}
+                      {...numBind(qtdCompra, setQtdCompra)}
+                      onBlur={() => setQtdTocado(true)}
+                      className={clsx(inputBase, 'pr-16', qtdErro && 'border-danger-deep focus:border-danger-deep focus:ring-danger-deep/10')}
                     />
-                    <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>{unLabel(unidade)}</span>
+                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                      {unLabel(unidade)}
+                    </span>
                   </div>
                 </Field>
               </>
@@ -389,18 +395,28 @@ export default function FormInsumoPage() {
 
           {/* CARD RESULTADO */}
           {(editando || custoUnit != null) && (
-            <div key={custoFmt} style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.05))', border: '1.5px solid rgba(42,157,143,0.25)', animation: custoUnit != null ? 'flash .6s ease' : 'none' }}>
-              <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#2A9D8F', boxShadow: '0 4px 12px -4px rgba(31,122,111,0.3)' }}>
+            <div
+              key={custoFmt}
+              className={clsx(
+                'mt-[18px] flex items-center gap-[15px] rounded-2xl border-[1.5px] border-teal/25 bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.05))] px-5 py-[18px]',
+                custoUnit != null && 'animate-flash'
+              )}
+            >
+              <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-teal shadow-[0_4px_12px_-4px_rgba(31,122,111,0.3)]">
                 <Calculator size={20} />
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Custo unitário calculado</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 3 }}>
-                  <span style={{ fontSize: 26, fontWeight: 700, color: '#2A9D8F', letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>{custoFmt}</span>
-                  {custoUnit != null && <span style={{ fontSize: 15, fontWeight: 600, color: '#5C594F' }}>/ {unLabel(unidade)}</span>}
+              <div className="min-w-0 flex-1">
+                <div className="text-[12.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">
+                  Custo unitário calculado
+                </div>
+                <div className="mt-[3px] flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold tracking-[-0.01em] text-teal [font-variant-numeric:tabular-nums]">
+                    {custoFmt}
+                  </span>
+                  {custoUnit != null && <span className="text-[15px] font-semibold text-body">/ {unLabel(unidade)}</span>}
                 </div>
                 {custoUnit == null && (
-                  <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>
+                  <div className="mt-0.5 text-[12.5px] text-muted">
                     Atualize o custo registrando uma nova compra na tela de insumos.
                   </div>
                 )}
@@ -410,42 +426,40 @@ export default function FormInsumoPage() {
         </div>
 
         {/* SEÇÃO 4 — Configurações de estoque */}
-        <div style={SECTION_STYLE}>
+        <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="4" title="Configurações de estoque" subtitle="Comportamento quando o estoque fica insuficiente." />
-          <label onClick={() => setPermitirEstoqueNegativo(v => !v)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-            <span style={{
-              flexShrink: 0, width: 22, height: 22, marginTop: 1, borderRadius: 6,
-              border: `1.5px solid ${permitirEstoqueNegativo ? '#2A9D8F' : '#EFEDE8'}`,
-              background: permitirEstoqueNegativo ? '#2A9D8F' : '#fff',
-              display: 'grid', placeItems: 'center', transition: 'background .15s, border-color .15s',
-            }}>
-              {permitirEstoqueNegativo && <Check size={14} style={{ color: '#fff' }} />}
+          <label onClick={() => setPermitirEstoqueNegativo(v => !v)} className="flex cursor-pointer items-start gap-3">
+            <span className={clsx(
+              'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
+              permitirEstoqueNegativo ? 'border-teal bg-teal' : 'border-line bg-white'
+            )}>
+              {permitirEstoqueNegativo && <Check size={14} className="text-white" />}
             </span>
             <span>
-              <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Permitir estoque negativo</span>
-              <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginTop: 3, lineHeight: 1.5 }}>
+              <span className="block text-[14.5px] font-semibold text-dark">Permitir estoque negativo</span>
+              <span className="mt-[3px] block text-[12.5px] leading-[1.5] text-muted">
                 Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
               </span>
             </span>
           </label>
           {estoqueNegativoErro && (
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: '#FEF2F2', border: '1px solid #FECACA' }}>
-              <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#DC2626', boxShadow: '0 4px 12px -4px rgba(220,38,38,0.25)' }}>
+            <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-[#FECACA] bg-danger-bg-soft px-5 py-[18px]">
+              <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-[#DC2626] shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
                 <AlertTriangle size={20} />
               </span>
-              <p style={{ margin: 0, fontSize: 13.5, fontWeight: 'normal', color: '#DC2626', lineHeight: 1.5 }}>{estoqueNegativoErro}</p>
+              <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-[#DC2626]">{estoqueNegativoErro}</p>
             </div>
           )}
         </div>
 
         {/* BOTÕES */}
-        <div style={{ padding: '18px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3 px-[26px] py-[18px]">
           {error && (
-            <p style={{ margin: 0, fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
               {error}
             </p>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate('/insumos')}>Cancelar</Button>
             <Button variant="primary" icon={<Save size={16} />} disabled={loading || !podeSubmeter} onClick={handleSubmit}>
               {loading ? 'Salvando…' : 'Salvar insumo'}

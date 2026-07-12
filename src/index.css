@@ -289,39 +289,6 @@ body:has(.drawer-open) {
   }
 }
 
-/* Grid da tabela de insumos */
-.i-head, .i-row {
-  display: grid;
-  grid-template-columns: 0.7fr 2.0fr 0.55fr 0.85fr 0.8fr 1fr 1fr 40px;
-  gap: 12px;
-  align-items: center;
-  padding: 13px 18px;
-}
-
-.i-head {
-  border-bottom: 1px solid #EFEDE8;
-}
-
-.i-row {
-  border-bottom: 1px solid #EFEDE8;
-  transition: background .12s;
-  cursor: pointer;
-}
-
-.i-row:last-child { border-bottom: none; }
-.i-row:hover { background: #EFEDE8; }
-.i-card-mobile { display: none; }
-
-@media (max-width: 700px) {
-  .i-head { display: none; }
-  .i-row { display: none; }
-  .i-card-mobile {
-    display: block;
-    padding: 16px 18px;
-    border-bottom: 1px solid #EFEDE8;
-  }
-}
-
 /* Grid da tabela de catálogos */
 .cat-head, .cat-row {
   display: grid;
