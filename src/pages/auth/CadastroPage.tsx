@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import { Logo, Wordmark, Button, Input, Spinner } from '../../components/ui'
 import { X, Image, AlertCircle, Mail, Lock } from 'lucide-react'
 import { authService } from '../../services/authService'
@@ -8,29 +9,21 @@ import { useAuthStore } from '../../store/authStore'
 // ── Stepper ────────────────────────────────────────────────────────────────
 function Stepper() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <span style={{
-          width: 28, height: 28, borderRadius: '50%',
-          display: 'grid', placeItems: 'center',
-          fontSize: 13, fontWeight: 700,
-          background: '#2A9D8F', color: '#fff',
-          boxShadow: '0 4px 10px -4px rgba(42,157,143,0.6)',
-        }}>1</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap' }}>
+    <div className="mb-6 flex items-center gap-3.5">
+      <div className="flex items-center gap-[9px]">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-teal text-[13px] font-bold text-white shadow-[0_4px_10px_-4px_rgba(42,157,143,0.6)]">
+          1
+        </span>
+        <span className="whitespace-nowrap text-sm font-semibold text-dark">
           Sua conta
         </span>
       </div>
-      <span style={{ flex: 1, height: 2, background: '#EFEDE8', borderRadius: 2, minWidth: 24 }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <span style={{
-          width: 28, height: 28, borderRadius: '50%',
-          display: 'grid', placeItems: 'center',
-          fontSize: 13, fontWeight: 700,
-          background: '#fff', color: '#B7B4AD',
-          border: '1.5px solid #EFEDE8',
-        }}>2</span>
-        <span style={{ fontSize: 14, fontWeight: 500, color: '#A29E96', whiteSpace: 'nowrap' }}>
+      <span className="h-0.5 min-w-6 flex-1 rounded-sm bg-line" />
+      <div className="flex items-center gap-[9px]">
+        <span className="grid h-7 w-7 place-items-center rounded-full border-[1.5px] border-line bg-white text-[13px] font-bold text-faint">
+          2
+        </span>
+        <span className="whitespace-nowrap text-sm font-medium text-muted">
           Precificação
         </span>
       </div>
@@ -58,21 +51,21 @@ function StrengthMeter({ senha }: { senha: string }) {
   const cur = levels[score]
 
   return (
-    <div style={{ marginTop: 9, animation: 'fadeUp .2s ease both' }}>
-      <div style={{ display: 'flex', gap: 5 }}>
+    <div className="mt-[9px] animate-fade-up">
+      <div className="flex gap-[5px]">
         {[0, 1, 2, 3].map((i) => (
-          <span key={i} style={{
-            flex: 1, height: 5, borderRadius: 3,
-            background: i < score ? cur.color : '#EFEDE8',
-            transition: 'background .2s',
-          }} />
+          <span
+            key={i}
+            className="h-[5px] flex-1 rounded-[3px] transition-colors duration-200"
+            style={{ background: i < score ? cur.color : '#EFEDE8' }}
+          />
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12 }}>
-        <span style={{ color: '#A29E96' }}>
+      <div className="mt-1.5 flex justify-between text-xs">
+        <span className="text-muted">
           {senha.length < 8 ? 'Use no mínimo 8 caracteres' : 'Boa combinação ajuda na segurança'}
         </span>
-        <span style={{ fontWeight: 600, color: cur.color }}>{cur.label}</span>
+        <span className="font-semibold" style={{ color: cur.color }}>{cur.label}</span>
       </div>
     </div>
   )
@@ -96,59 +89,47 @@ function LogoUpload({ preview, onPick, onRemove }: {
   }
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 16,
-      border: preview ? '1.5px solid #EFEDE8' : '1.6px dashed #D4D0C8',
-      background: preview ? '#fff' : '#FCFBF9',
-      borderRadius: 14, padding: 14,
-      transition: 'all .15s',
-    }}>
-      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+    <div className={clsx(
+      'flex items-center gap-4 rounded-[14px] p-3.5 transition-all duration-150',
+      preview ? 'border-[1.5px] border-line bg-white' : 'border-[1.6px] border-dashed border-[#D4D0C8] bg-[#FCFBF9]'
+    )}>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {preview ? (
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <img src={preview} alt="Logo" style={{
-            width: 72, height: 72, borderRadius: '50%', objectFit: 'cover',
-            border: '2px solid rgba(42,157,143,0.35)',
-            animation: 'pop .25s ease both',
-          }} />
-          <button type="button" onClick={onRemove} aria-label="Remover logo" style={{
-            position: 'absolute', top: -5, right: -5,
-            width: 24, height: 24, borderRadius: '50%',
-            background: '#fff', border: '1px solid #EFEDE8',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-            color: '#C0492B', display: 'grid', placeItems: 'center', cursor: 'pointer',
-          }}>
+        <div className="relative flex-shrink-0">
+          <img
+            src={preview}
+            alt="Logo"
+            className="h-[72px] w-[72px] animate-pop rounded-full border-2 border-teal/35 object-cover"
+          />
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Remover logo"
+            className="absolute -top-[5px] -right-[5px] grid h-6 w-6 place-items-center rounded-full border border-line bg-white text-danger shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+          >
             <X size={14} />
           </button>
         </div>
       ) : (
-        <div style={{
-          width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-          display: 'grid', placeItems: 'center',
-          background: 'rgba(42,157,143,0.08)', color: '#2A9D8F',
-        }}>
+        <div className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[14px] bg-teal/[0.08] text-teal">
           <Image size={28} />
         </div>
       )}
 
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', marginBottom: 3 }}>
+      <div className="flex-1">
+        <div className="mb-[3px] text-sm font-semibold text-dark">
           {preview ? 'Logo enviada' : 'Logo do ateliê'}
-          <span style={{ fontSize: 12, fontWeight: 400, color: '#A29E96', marginLeft: 6 }}>opcional</span>
+          <span className="ml-1.5 text-xs font-normal text-muted">opcional</span>
         </div>
-        <div style={{ fontSize: 12.5, color: '#A29E96', marginBottom: preview ? 0 : 9 }}>
+        <div className={clsx('text-[12.5px] text-muted', !preview && 'mb-[9px]')}>
           {preview ? 'Aparece nos seus PDFs e orçamentos.' : 'PNG ou JPG, até 2 MB. Aparece nos PDFs.'}
         </div>
         {!preview && (
-          <button type="button" onClick={() => inputRef.current?.click()} style={{
-            height: 34, padding: '0 14px', borderRadius: 8,
-            border: '1.5px solid #EFEDE8', background: '#fff',
-            color: '#5C594F', fontSize: 13, fontWeight: 600,
-            fontFamily: 'inherit', cursor: 'pointer',
-          }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#FAF8F5'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="h-[34px] rounded-lg border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[13px] font-semibold text-body hover:bg-[#FAF8F5]"
           >
             Escolher arquivo
           </button>
@@ -161,22 +142,17 @@ function LogoUpload({ preview, onPick, onRemove }: {
 // ── SuccessNote ────────────────────────────────────────────────────────────
 function SuccessNote({ nome }: { nome: string }) {
   return (
-    <div style={{ textAlign: 'center', padding: '30px 0 10px', animation: 'fadeUp .4s ease both' }}>
-      <div style={{
-        width: 64, height: 64, borderRadius: '50%',
-        margin: '0 auto', display: 'grid', placeItems: 'center',
-        background: 'rgba(42,157,143,0.12)', color: '#2A9D8F',
-        animation: 'pop .35s ease both',
-      }}>
+    <div className="animate-fade-up pt-[30px] pb-2.5 text-center">
+      <div className="mx-auto grid h-16 w-16 animate-pop place-items-center rounded-full bg-teal/[0.12] text-teal">
         <svg viewBox="0 0 24 24" width="30" height="30" fill="none">
           <path d="m4 12.5 5 5L20 6.5" stroke="#2A9D8F" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-      <h2 style={{ margin: '18px 0 6px', fontSize: 22, fontWeight: 700, color: '#3A372F' }}>
+      <h2 className="mt-[18px] mb-1.5 text-[22px] font-bold text-dark">
         Conta criada{nome ? `, ${nome.split(' ')[0]}` : ''}! 🎉
       </h2>
-      <p style={{ margin: 0, fontSize: 14.5, color: '#A29E96', lineHeight: 1.55 }}>
-        Agora vamos para a <strong style={{ color: '#2A9D8F' }}>Etapa 2 — Precificação</strong> para configurar seus custos.
+      <p className="m-0 text-[14.5px] leading-[1.55] text-muted">
+        Agora vamos para a <strong className="text-teal">Etapa 2 — Precificação</strong> para configurar seus custos.
       </p>
     </div>
   )
@@ -246,92 +222,43 @@ export default function CadastroPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'grid',
-      placeItems: 'center',
-      padding: 24,
-      background: '#FAFAF8',
-    }}>
-      <div className="login-card" style={{
-        width: 'min(1000px, 100%)',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1.15fr',
-        background: '#fff',
-        borderRadius: 24,
-        overflow: 'hidden',
-        boxShadow: '0 20px 60px -28px rgba(31,122,111,0.28), 0 2px 8px rgba(0,0,0,0.06)',
-        border: '1px solid #F0EEE9',
-        animation: 'fadeUp .5s ease both',
-      }}>
+    <div className="grid min-h-screen place-items-center bg-app p-6">
+      <div className="grid w-[min(1000px,100%)] animate-fade-up grid-cols-1 overflow-hidden rounded-[24px] border border-[#F0EEE9] bg-white shadow-[0_20px_60px_-28px_rgba(31,122,111,0.28),0_2px_8px_rgba(0,0,0,0.06)] md:grid-cols-[1fr_1.15fr]">
         {/* Painel esquerdo — brand */}
-        <div className="brand-col" style={{
-          background: 'linear-gradient(150deg, #2A9D8F 0%, #1F7A6F 78%, #15665C 100%)',
-          padding: '46px 44px',
-          position: 'relative',
-          overflow: 'hidden',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{
-            position: 'absolute', width: 280, height: 280,
-            borderRadius: '46% 54% 60% 40% / 50% 44% 56% 50%',
-            background: 'rgba(255,255,255,0.10)',
-            top: -90, right: -70,
-            animation: 'floaty 9s ease-in-out infinite',
-          }} />
-          <div style={{
-            position: 'absolute', width: 200, height: 200,
-            borderRadius: '60% 40% 45% 55% / 55% 50% 50% 45%',
-            background: 'rgba(249,115,22,0.30)',
-            bottom: -60, left: -40,
-            animation: 'floaty 11s ease-in-out infinite reverse',
-          }} />
+        <div className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(150deg,#2A9D8F_0%,#1F7A6F_78%,#15665C_100%)] p-11 md:flex">
+          <div className="absolute -top-[90px] -right-[70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
+          <div className="absolute -bottom-[60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14,
-              background: 'rgba(255,255,255,0.18)',
-              display: 'grid', placeItems: 'center',
-              backdropFilter: 'blur(4px)',
-            }}>
+          <div className="relative flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/[0.18] backdrop-blur-[4px]">
               <Logo size={32} />
             </div>
             <Wordmark size={18} darkMode />
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <h2 style={{
-              margin: 0, fontSize: 28, fontWeight: 700,
-              color: '#fff', lineHeight: 1.25, letterSpacing: '-0.02em',
-            }}>
+          <div className="relative">
+            <h2 className="m-0 text-[28px] font-bold leading-[1.25] tracking-[-0.02em] text-white">
               Preço certo,<br />negócio saudável.
             </h2>
-            <p style={{
-              margin: '14px 0 0', fontSize: 15, color: 'rgba(255,255,255,0.82)', lineHeight: 1.6,
-            }}>
+            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/[0.82]">
               Calcule, orce e controle o estoque do seu ateliê em um só lugar.
             </p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11, position: 'relative' }}>
+          <div className="relative flex flex-col gap-[11px]">
             {[
               'Precificação com margem real',
               'Orçamentos profissionais em PDF',
               'Controle de insumos e produtos',
             ].map((text, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{
-                  width: 20, height: 20, borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.20)',
-                  display: 'grid', placeItems: 'center', flexShrink: 0,
-                }}>
+              <div key={i} className="flex items-center gap-2.5">
+                <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" width="11" height="11" fill="none"
                     stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m5 12.5 4.2 4.2L19 7"/>
                   </svg>
                 </span>
-                <span style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.88)', fontWeight: 500 }}>
+                <span className="text-[13.5px] font-medium text-white/[0.88]">
                   {text}
                 </span>
               </div>
@@ -340,15 +267,9 @@ export default function CadastroPage() {
         </div>
 
         {/* Painel direito — formulário */}
-        <div style={{
-          padding: '40px 46px 36px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          overflowY: 'auto',
-        }}>
+        <div className="flex flex-col justify-center overflow-y-auto px-[46px] pt-10 pb-9">
           {/* Logo mobile */}
-          <div className="mobile-logo" style={{ alignItems: 'center', gap: 10, marginBottom: 22 }}>
+          <div className="mb-[22px] flex items-center gap-2.5 md:hidden">
             <Logo size={34} />
             <Wordmark size={18} />
           </div>
@@ -359,29 +280,23 @@ export default function CadastroPage() {
             <SuccessNote nome={nome} />
           ) : (
             <>
-              <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>
+              <h1 className="mt-0 mb-1.5 text-2xl font-bold tracking-[-0.02em] text-dark">
                 Vamos criar sua conta!
               </h1>
-              <p style={{ margin: '0 0 22px', fontSize: 14, color: '#A29E96', lineHeight: 1.55 }}>
+              <p className="mt-0 mb-[22px] text-sm leading-[1.55] text-muted">
                 Leva menos de 2 minutos. Sem cartão de crédito.
               </p>
 
               {apiError && (
-                <div role="alert" style={{
-                  display: 'flex', gap: 10, alignItems: 'flex-start',
-                  background: '#FEF3F0', border: '1.5px solid #F6C6B7',
-                  color: '#C0492B', borderRadius: 10, padding: '12px 14px',
-                  marginBottom: 4, fontSize: 13.5, lineHeight: 1.45,
-                  animation: 'shake .45s ease',
-                }}>
-                  <AlertCircle size={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
+                <div role="alert" className="mb-1 flex animate-shake items-start gap-2.5 rounded-[10px] border-[1.5px] border-[#F6C6B7] bg-[#FEF3F0] p-[12px_14px] text-[13.5px] leading-[1.45] text-danger">
+                  <AlertCircle size={18} className="mt-px flex-shrink-0 text-[#D9603C]" />
                   <span>{apiError}</span>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3.5">
                 {/* Nome + Empresa */}
-                <div className="two-col">
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                   <Input
                     label="Nome"
                     placeholder="Seu nome"
@@ -413,7 +328,7 @@ export default function CadastroPage() {
                 />
 
                 {/* Senha + Confirmar */}
-                <div className="two-col">
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                   <Input
                     label="Senha"
                     type="password"
@@ -450,18 +365,16 @@ export default function CadastroPage() {
                   fullWidth
                   disabled={loading}
                   icon={loading ? <Spinner size={16} /> : undefined}
-                  iconRight={loading ? undefined : <span style={{ fontSize: 18, marginTop: -1 }}>→</span>}
+                  iconRight={loading ? undefined : <span className="-mt-px text-lg">→</span>}
                   size="lg"
                 >
                   {loading ? 'Criando sua conta…' : 'Próximo'}
                 </Button>
               </form>
 
-              <p style={{ margin: '18px 0 0', textAlign: 'center', fontSize: 14, color: '#A29E96' }}>
+              <p className="mt-[18px] mb-0 text-center text-sm text-muted">
                 Já tem conta?{' '}
-                <a href="/login" style={{ color: '#2A9D8F', fontWeight: 600, textDecoration: 'none' }}
-                  onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                  onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}>
+                <a href="/login" className="font-semibold text-teal no-underline hover:underline">
                   Faça login
                 </a>
               </p>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui'
 import { Box, Factory, FileText, ArrowRight, DollarSign, Files, AlertTriangle } from 'lucide-react'
@@ -34,19 +35,20 @@ interface MetricProps {
 
 function MetricCard({ icon, iconBg, iconColor, label, value, valueColor, sub }: MetricProps) {
   return (
-    <Card padding="20px 22px" style={{ animation: 'fadeUp .45s ease both' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <span style={{ fontSize: 13.5, fontWeight: 500, color: '#8A8780' }}>{label}</span>
-        <span style={{
-          flexShrink: 0, display: 'grid', placeItems: 'center',
-          width: 42, height: 42, borderRadius: 12,
-          background: iconBg, color: iconColor,
-        }}>{icon}</span>
+    <Card padding="20px 22px" className="animate-[fadeUp_.45s_ease_both]">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[13.5px] font-medium text-[#8A8780]">{label}</span>
+        <span
+          className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl"
+          style={{ background: iconBg, color: iconColor }}
+        >
+          {icon}
+        </span>
       </div>
-      <div style={{ marginTop: 10, fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', color: valueColor, lineHeight: 1.1 }}>
+      <div className="mt-2.5 text-[30px] font-bold leading-[1.1] tracking-[-0.02em]" style={{ color: valueColor }}>
         {value}
       </div>
-      <div style={{ marginTop: 9, fontSize: 12.5, color: '#B7B4AD' }}>{sub ?? ' '}</div>
+      <div className="mt-[9px] text-[12.5px] text-faint">{sub ?? ' '}</div>
     </Card>
   )
 }
@@ -106,15 +108,12 @@ export default function DashboardPage() {
   return (
     <AppLayout active="dashboard">
       {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-        gap: 20, flexWrap: 'wrap', marginBottom: 26,
-      }}>
+      <div className="mb-[26px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', color: '#2D2A26' }}>
+          <h1 className="m-0 text-[30px] font-bold tracking-[-0.025em] text-[#2D2A26]">
             Dashboard
           </h1>
-          <p style={{ margin: '7px 0 0', fontSize: 15, color: '#8A8780', lineHeight: 1.5 }}>
+          <p className="mt-[7px] mb-0 text-[15px] leading-[1.5] text-[#8A8780]">
             Aqui está o resumo do seu negócio.
           </p>
         </div>
@@ -129,17 +128,13 @@ export default function DashboardPage() {
 
       {/* Erro de carregamento */}
       {erro && (
-        <div style={{
-          padding: '16px 20px', borderRadius: 12,
-          background: '#FEF2F2', border: '1px solid #FECACA',
-          color: '#B91C1C', fontSize: 14, marginBottom: 18,
-        }}>
+        <div className="mb-[18px] rounded-xl border border-[#FECACA] bg-danger-bg-soft px-5 py-4 text-sm text-[#B91C1C]">
           Falha ao carregar o dashboard. Tente novamente.
         </div>
       )}
 
       {/* Metrics */}
-      <div className="metrics">
+      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
         <MetricCard
           icon={<DollarSign size={22} />}
           iconBg={hexA(ORANGE, 0.12)} iconColor={ORANGE}
@@ -170,39 +165,21 @@ export default function DashboardPage() {
 
       {/* Alerta de insumos com estoque baixo */}
       {!loading && insumosEstoqueBaixo.length > 0 && (
-        <div style={{
-          marginTop: 18,
-          background: '#fff',
-          border: '1px solid #F0EEE9',
-          borderLeft: `4px solid ${ORANGE}`,
-          borderRadius: 'var(--r-card)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-          padding: '18px 22px',
-          animation: 'fadeUp .5s ease both',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{
-              flexShrink: 0, display: 'grid', placeItems: 'center',
-              width: 40, height: 40, borderRadius: 11,
-              background: hexA(ORANGE, 0.12), color: ORANGE, marginTop: 1,
-            }}>
+        <div className="mt-[18px] animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] border-l-4 border-l-orange bg-white p-[18px_22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <div className="flex flex-wrap items-start gap-3.5">
+            <span className="mt-px grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-orange/[0.12] text-orange">
               <AlertTriangle size={20} />
             </span>
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600, color: '#2D2A26' }}>
+            <div className="min-w-[220px] flex-1">
+              <div className="text-[15.5px] font-semibold text-[#2D2A26]">
                 {insumosEstoqueBaixo.length} {insumosEstoqueBaixo.length === 1 ? 'insumo com estoque baixo' : 'insumos com estoque baixo'}
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 11 }}>
+              <div className="mt-[11px] flex flex-wrap gap-2">
                 {insumosEstoqueBaixo.slice(0, 6).map((ins) => (
-                  <span key={ins.id} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    fontSize: 13, color: '#6B6860', whiteSpace: 'nowrap',
-                    background: '#FCFBF9', border: '1px solid #ECEAE5',
-                    borderRadius: 999, padding: '6px 12px',
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: ORANGE, flexShrink: 0 }} />
+                  <span key={ins.id} className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#ECEAE5] bg-[#FCFBF9] px-3 py-1.5 text-[13px] text-[#6B6860]">
+                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange" />
                     {ins.nome}
-                    <strong style={{ fontWeight: 600, color: '#A35A26' }}>
+                    <strong className="font-semibold text-[#A35A26]">
                       · {ins.estoqueAtual} {ins.unidadeMedida}
                     </strong>
                   </span>
@@ -211,15 +188,7 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={() => navigate('/insumos')}
-              style={{
-                flexShrink: 0, alignSelf: 'center',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 13.5, fontWeight: 600, color: ORANGE,
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'inherit', padding: 0,
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.textDecoration = 'underline' }}
-              onMouseOut={(e) => { e.currentTarget.style.textDecoration = 'none' }}
+              className="inline-flex flex-shrink-0 items-center gap-1.5 self-center border-none bg-none p-0 font-[inherit] text-[13.5px] font-semibold text-orange hover:underline"
             >
               Ver todos os insumos <ArrowRight size={17} />
             </button>
@@ -229,56 +198,42 @@ export default function DashboardPage() {
 
       {/* Lower grid: listas de dados reais */}
       {!loading && !erro && data && (
-        <div className="lower-grid" style={{ marginTop: 18 }}>
+        <div className="mt-[18px] grid grid-cols-1 gap-[18px] lg:grid-cols-[1.05fr_1fr]">
 
           {/* Orçamentos Recentes */}
-          <Card padding="22px 24px" style={{ animation: 'fadeUp .55s ease both' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{
-                display: 'grid', placeItems: 'center',
-                width: 42, height: 42, borderRadius: 12,
-                background: hexA(TEAL, 0.12), color: TEAL,
-              }}>
+          <Card padding="22px 24px" className="animate-[fadeUp_.55s_ease_both]">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-teal/[0.12] text-teal">
                 <Files size={22} />
               </span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Orçamentos Recentes</div>
-                <div style={{ fontSize: 13, color: '#8A8780', marginTop: 1 }}>Últimas movimentações</div>
+                <div className="text-base font-bold text-[#2D2A26]">Orçamentos Recentes</div>
+                <div className="mt-px text-[13px] text-[#8A8780]">Últimas movimentações</div>
               </div>
             </div>
 
             {data.orcamentosRecentes.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 14, color: '#B7B4AD' }}>Nenhum orçamento ainda.</p>
+              <p className="m-0 text-sm text-faint">Nenhum orçamento ainda.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 {data.orcamentosRecentes.map((orc) => (
                   <div
                     key={orc.id}
                     onClick={() => navigate(`/orcamentos/${orc.id}`)}
-                    style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '11px 14px', borderRadius: 10,
-                      border: '1px solid #ECEAE5', background: '#FCFBF9',
-                      cursor: 'pointer', transition: 'background .14s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#F6F4F0' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#FCFBF9' }}
+                    className="flex cursor-pointer items-center justify-between rounded-[10px] border border-[#ECEAE5] bg-[#FCFBF9] px-3.5 py-[11px] transition-colors duration-150 hover:bg-[#F6F4F0]"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#6B6860', flexShrink: 0 }}>
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="flex-shrink-0 text-[13px] font-bold text-[#6B6860]">
                         #{orc.numero}
                       </span>
-                      <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2D2A26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-[#2D2A26]">
                         {orc.nomeCliente}
                       </span>
-                      <span style={{
-                        flexShrink: 0, fontSize: 11.5, fontWeight: 500, color: '#8A8780',
-                        background: '#F1F0EC', borderRadius: 999, padding: '3px 8px',
-                      }}>
+                      <span className="flex-shrink-0 rounded-full bg-line-soft px-2 py-[3px] text-[11.5px] font-medium text-[#8A8780]">
                         {STATUS_LABEL[orc.status] ?? orc.status}
                       </span>
                     </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: TEAL, flexShrink: 0, marginLeft: 12 }}>
+                    <span className="ml-3 flex-shrink-0 text-[13.5px] font-semibold text-teal">
                       {fmtBRL(orc.total ?? 0)}
                     </span>
                   </div>
@@ -288,49 +243,38 @@ export default function DashboardPage() {
           </Card>
 
           {/* Produtos Mais Vendidos */}
-          <Card padding="22px 24px" style={{ animation: 'fadeUp .6s ease both' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <span style={{
-                display: 'grid', placeItems: 'center',
-                width: 42, height: 42, borderRadius: 12,
-                background: hexA(ORANGE, 0.12), color: ORANGE,
-              }}>
+          <Card padding="22px 24px" className="animate-[fadeUp_.6s_ease_both]">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-orange/[0.12] text-orange">
                 <Box size={20} />
               </span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Mais Vendidos</div>
-                <div style={{ fontSize: 13, color: '#8A8780', marginTop: 1 }}>Top produtos do período</div>
+                <div className="text-base font-bold text-[#2D2A26]">Mais Vendidos</div>
+                <div className="mt-px text-[13px] text-[#8A8780]">Top produtos do período</div>
               </div>
             </div>
 
             {data.produtosMaisVendidos.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 14, color: '#B7B4AD' }}>Nenhum produto vendido ainda.</p>
+              <p className="m-0 text-sm text-faint">Nenhum produto vendido ainda.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 {data.produtosMaisVendidos.map((prod, i) => (
                   <div
                     key={prod.nomeProduto}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '11px 14px', borderRadius: 10,
-                      border: '1px solid #ECEAE5', background: '#FCFBF9',
-                    }}
+                    className="flex items-center gap-3 rounded-[10px] border border-[#ECEAE5] bg-[#FCFBF9] px-3.5 py-[11px]"
                   >
-                    <span style={{
-                      width: 26, height: 26, borderRadius: '50%',
-                      background: i === 0 ? hexA(ORANGE, 0.15) : '#F1F0EC',
-                      color: i === 0 ? ORANGE : '#8A8780',
-                      display: 'grid', placeItems: 'center',
-                      fontSize: 12, fontWeight: 700, flexShrink: 0,
-                    }}>
+                    <span className={clsx(
+                      'grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full text-xs font-bold',
+                      i === 0 ? 'bg-orange/[0.15] text-orange' : 'bg-line-soft text-[#8A8780]'
+                    )}>
                       {i + 1}
                     </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2D2A26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-[#2D2A26]">
                         {prod.nomeProduto}
                       </div>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#6B6860', flexShrink: 0 }}>
+                    <span className="flex-shrink-0 text-[13px] font-semibold text-[#6B6860]">
                       {prod.quantidade} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
                     </span>
                   </div>
@@ -344,43 +288,24 @@ export default function DashboardPage() {
 
       {/* Ações Rápidas */}
       {!loading && !erro && (
-        <Card padding="22px 24px" style={{ marginTop: 18, animation: 'fadeUp .65s ease both' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26', marginBottom: 14 }}>
+        <Card padding="22px 24px" className="mt-[18px] animate-[fadeUp_.65s_ease_both]">
+          <div className="mb-3.5 text-base font-bold text-[#2D2A26]">
             Ações Rápidas
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <div className="flex flex-wrap gap-2.5">
             {ACOES_RAPIDAS.map((acao) => (
               <button
                 key={acao.rota}
                 onClick={() => navigate(acao.rota)}
-                style={{
-                  flex: '1 1 180px',
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '13px 16px', borderRadius: 12, cursor: 'pointer',
-                  border: '1px solid #ECEAE5', background: '#FCFBF9',
-                  fontFamily: 'inherit', transition: 'background .14s, border-color .14s, transform .12s',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#F6F4F0'
-                  e.currentTarget.style.transform = 'translateY(-1px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#FCFBF9'
-                  e.currentTarget.style.transform = 'none'
-                }}
+                className="flex flex-[1_1_180px] items-center gap-3 rounded-xl border border-[#ECEAE5] bg-[#FCFBF9] px-4 py-[13px] text-left font-[inherit] transition-[background-color,border-color,transform] duration-150 hover:-translate-y-px hover:bg-[#F6F4F0]"
               >
-                <span style={{
-                  display: 'grid', placeItems: 'center',
-                  width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-                  background: hexA(TEAL, 0.10), color: TEAL,
-                }}>
+                <span className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                   {acao.icon}
                 </span>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#2D2A26' }}>
+                <span className="flex-1 text-sm font-semibold text-[#2D2A26]">
                   {acao.label}
                 </span>
-                <span style={{ color: '#B7B4AD', display: 'flex' }}>
+                <span className="flex text-faint">
                   <ArrowRight size={17} />
                 </span>
               </button>
