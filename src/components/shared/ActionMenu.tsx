@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreVertical } from 'lucide-react'
+import clsx from 'clsx'
 
 export interface ActionMenuItem {
   label: string
@@ -70,50 +71,26 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
     <div
       ref={dropRef}
       style={{
-        position: 'fixed',
         top: pos.top,
         ...(pos.right !== undefined ? { right: pos.right } : { left: pos.left }),
-        zIndex: 9999,
-        width: 180,
-        background: '#fff',
-        border: '1px solid #EFEDE8',
-        borderRadius: 12,
-        boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)',
-        padding: 6,
-        animation: 'pop .14s ease both',
       }}
+      className="fixed z-[9999] w-[180px] animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
     >
       {items.map((item, i) => (
         <React.Fragment key={i}>
           {item.dividerBefore && (
-            <div style={{ height: 1, background: '#EFEDE8', margin: '5px 8px' }} />
+            <div className="mx-2 my-[5px] h-px bg-line" />
           )}
           <button
             onClick={(e) => { e.stopPropagation(); item.onClick(); setOpen(false) }}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '9px 10px',
-              borderRadius: 8,
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontFamily: 'inherit',
-              fontSize: 13.5,
-              fontWeight: 500,
-              color: item.danger ? '#C0492B' : '#5C594F',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = item.danger ? '#FCF1ED' : '#F7F5F1'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-            }}
+            className={clsx(
+              'flex w-full items-center gap-2.5 rounded-lg border-none bg-transparent px-2.5 py-[9px] text-left font-[inherit] text-[13.5px] font-medium',
+              item.danger
+                ? 'text-danger hover:bg-[#FCF1ED]'
+                : 'text-body hover:bg-[#F7F5F1]'
+            )}
           >
-            <span style={{ display: 'flex', color: item.danger ? '#C0492B' : '#A29E96' }}>
+            <span className={clsx('flex', item.danger ? 'text-danger' : 'text-muted')}>
               {item.icon}
             </span>
             {item.label}
@@ -125,26 +102,16 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
   ) : null
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <button
         ref={btnRef}
         onClick={openMenu}
         aria-label="Mais ações"
         aria-expanded={open}
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 9,
-          border: 'none',
-          background: open ? '#F1F0EC' : 'transparent',
-          color: '#8A8780',
-          cursor: 'pointer',
-          display: 'grid',
-          placeItems: 'center',
-          transition: 'background .12s',
-        }}
-        onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = '#F1F0EC' }}
-        onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = 'transparent' }}
+        className={clsx(
+          'grid h-[34px] w-[34px] place-items-center rounded-[9px] border-none text-[#8A8780] transition-colors duration-100',
+          open ? 'bg-line-soft' : 'bg-transparent hover:bg-line-soft'
+        )}
       >
         <MoreVertical size={18} />
       </button>

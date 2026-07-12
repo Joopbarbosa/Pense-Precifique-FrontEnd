@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import clsx from 'clsx'
 
 interface InputProps {
   label?: string
@@ -30,54 +31,23 @@ export default function Input({
   id,
   autoComplete,
 }: InputProps) {
-  const [focused, setFocused] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   const isPassword = type === 'password'
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type
 
-  const borderColor = error
-    ? '#F2B8A6'
-    : focused
-    ? '#2A9D8F'
-    : '#EFEDE8'
-
-  const boxShadow = focused && !error ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none'
-  const background = disabled ? '#F5F4F2' : error ? '#FFFBFA' : '#FFFFFF'
-
-  const paddingLeft = icon ? '40px' : '16px'
-  const paddingRight = isPassword ? '44px' : '16px'
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="flex flex-col">
       {label && (
-        <label
-          htmlFor={id}
-          style={{
-            fontSize: '13.5px',
-            fontWeight: 600,
-            color: '#5C594F',
-            marginBottom: '7px',
-          }}
-        >
+        <label htmlFor={id} className="mb-[7px] text-[13.5px] font-semibold text-body">
           {label}
-          {required && <span style={{ color: '#C0492B', marginLeft: 2 }}>*</span>}
+          {required && <span className="ml-0.5 text-danger">*</span>}
         </label>
       )}
 
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         {icon && (
-          <span
-            style={{
-              position: 'absolute',
-              left: '13px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#A29E96',
-              display: 'flex',
-              pointerEvents: 'none',
-            }}
-          >
+          <span className="pointer-events-none absolute left-[13px] top-1/2 flex -translate-y-1/2 text-muted">
             {icon}
           </span>
         )}
@@ -91,24 +61,16 @@ export default function Input({
           disabled={disabled}
           required={required}
           autoComplete={autoComplete}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{
-            width: '100%',
-            height: '48px',
-            paddingLeft,
-            paddingRight,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: 'var(--r-input)',
-            fontSize: '15px',
-            color: '#3A372F',
-            background,
-            outline: 'none',
-            fontFamily: 'inherit',
-            transition: 'border-color .15s, box-shadow .15s',
-            boxShadow,
-            cursor: disabled ? 'not-allowed' : 'text',
-          }}
+          className={clsx(
+            'h-12 w-full rounded-input text-[15px] text-dark outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]',
+            icon ? 'pl-10' : 'pl-4',
+            isPassword ? 'pr-11' : 'pr-4',
+            disabled
+              ? 'cursor-not-allowed bg-[#F5F4F2] border-[1.5px] border-line'
+              : error
+              ? 'cursor-text bg-[#FFFBFA] border-[1.5px] border-[#F2B8A6]'
+              : 'cursor-text bg-white border-[1.5px] border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+          )}
         />
 
         {isPassword && (
@@ -116,20 +78,11 @@ export default function Input({
             type="button"
             onClick={() => setShowPassword(v => !v)}
             disabled={disabled}
-            style={{
-              position: 'absolute',
-              right: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'transparent',
-              border: 'none',
-              padding: '6px',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              color: '#A29E96',
-              display: 'flex',
-              alignItems: 'center',
-            }}
             tabIndex={-1}
+            className={clsx(
+              'absolute right-2 top-1/2 flex -translate-y-1/2 items-center border-none bg-transparent p-1.5 text-muted',
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+            )}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -137,23 +90,14 @@ export default function Input({
       </div>
 
       {error && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            marginTop: '6px',
-            fontSize: '13px',
-            color: '#C0492B',
-          }}
-        >
-          <AlertCircle size={15} style={{ color: '#C0492B', flexShrink: 0 }} />
+        <div className="mt-1.5 flex items-center gap-[5px] text-[13px] text-danger">
+          <AlertCircle size={15} className="flex-shrink-0 text-danger" />
           {error}
         </div>
       )}
 
       {hint && !error && (
-        <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#A29E96' }}>{hint}</p>
+        <p className="mt-1.5 mb-0 text-[13px] text-muted">{hint}</p>
       )}
     </div>
   )

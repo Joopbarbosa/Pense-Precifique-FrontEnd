@@ -60,7 +60,7 @@ export default function ConfirmacaoModal({
       }
     >
       {description && (
-        <p style={{ margin: '0 0 16px', fontSize: 14, color: '#5C594F', lineHeight: 1.6 }}>
+        <p className="mb-4 mt-0 text-sm leading-[1.6] text-body">
           {description}
         </p>
       )}

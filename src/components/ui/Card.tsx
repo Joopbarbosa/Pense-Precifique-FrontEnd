@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import clsx from 'clsx'
 
 interface CardProps {
   children: React.ReactNode
@@ -20,30 +20,16 @@ interface CardFooterProps {
 }
 
 export function Card({ children, padding = 0, style, onClick, hoverable, className }: CardProps) {
-  const [hovered, setHovered] = useState(false)
-
-  const baseStyle: React.CSSProperties = {
-    background: '#fff',
-    border: '1px solid #F0EEE9',
-    borderRadius: 'var(--r-card)',
-    boxShadow: hoverable && hovered
-      ? '0 10px 26px -10px rgba(0,0,0,0.18)'
-      : '0 2px 8px rgba(0,0,0,0.05)',
-    overflow: 'hidden',
-    transform: hoverable && hovered ? 'translateY(-3px)' : 'none',
-    transition: hoverable ? 'box-shadow .18s, transform .18s' : undefined,
-    cursor: onClick ? 'pointer' : undefined,
-    padding: padding || undefined,
-    ...style,
-  }
-
   return (
     <div
-      style={baseStyle}
-      className={className}
+      className={clsx(
+        'overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]',
+        hoverable && 'transition-[box-shadow,transform] duration-[180ms] hover:-translate-y-[3px] hover:shadow-[0_10px_26px_-10px_rgba(0,0,0,0.18)]',
+        onClick && 'cursor-pointer',
+        className
+      )}
+      style={{ padding: padding || undefined, ...style }}
       onClick={onClick}
-      onMouseEnter={hoverable ? () => setHovered(true) : undefined}
-      onMouseLeave={hoverable ? () => setHovered(false) : undefined}
     >
       {children}
     </div>
@@ -52,10 +38,7 @@ export function Card({ children, padding = 0, style, onClick, hoverable, classNa
 
 export function CardHeader({ children, border = true }: CardHeaderProps) {
   return (
-    <div style={{
-      padding: '16px 20px',
-      borderBottom: border ? '1px solid #EFEDE8' : 'none',
-    }}>
+    <div className={clsx('px-5 py-4', border && 'border-b border-line')}>
       {children}
     </div>
   )
@@ -63,13 +46,7 @@ export function CardHeader({ children, border = true }: CardHeaderProps) {
 
 export function CardFooter({ children, border = true }: CardFooterProps) {
   return (
-    <div style={{
-      padding: '16px 20px',
-      borderTop: border ? '1px solid #EFEDE8' : 'none',
-      display: 'flex',
-      gap: 11,
-      flexWrap: 'wrap',
-    }}>
+    <div className={clsx('flex flex-wrap gap-[11px] px-5 py-4', border && 'border-t border-line')}>
       {children}
     </div>
   )

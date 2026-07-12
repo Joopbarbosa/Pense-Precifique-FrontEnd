@@ -14,35 +14,21 @@ export default function SectionTitle({
   const bg = `rgba(${hexToRgb(color)}, 0.12)`
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13, marginBottom: 20 }}>
+    <div className="mb-5 flex items-start gap-[13px]">
       {number !== undefined && (
-        <span style={{
-          flexShrink: 0,
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          display: 'grid',
-          placeItems: 'center',
-          background: bg,
-          color,
-          fontWeight: 700,
-          fontSize: 13.5,
-        }}>
+        <span
+          className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg text-[13.5px] font-bold"
+          style={{ background: bg, color }}
+        >
           {number}
         </span>
       )}
       <div>
-        <h2 style={{
-          margin: 0,
-          fontSize: 16,
-          fontWeight: 700,
-          color: '#3A372F',
-          letterSpacing: '-0.01em',
-        }}>
+        <h2 className="m-0 text-base font-bold tracking-[-0.01em] text-dark">
           {title}
         </h2>
         {subtitle && (
-          <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#A29E96' }}>
+          <p className="mb-0 mt-[3px] text-[12.5px] text-muted">
             {subtitle}
           </p>
         )}

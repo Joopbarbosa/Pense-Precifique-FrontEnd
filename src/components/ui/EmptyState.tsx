@@ -32,64 +32,44 @@ export default function EmptyState({
 }: EmptyStateProps) {
   if (compact) {
     return (
-      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#3A372F' }}>{title}</div>
+      <div className="px-6 py-12 text-center">
+        <div className="text-[15px] font-semibold text-dark">{title}</div>
         {description && (
-          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: '#A29E96' }}>{description}</p>
+          <p className="mb-0 mt-1.5 text-[13.5px] text-muted">{description}</p>
         )}
       </div>
     )
   }
 
   return (
-    <div style={{
-      position: 'relative',
-      overflow: 'hidden',
-      marginTop: 8,
-      padding: '72px 28px',
-      textAlign: 'center',
-      background: '#fff',
-      border: '1px solid #F0EEE9',
-      borderRadius: 'var(--r-card)',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-    }}>
+    <div className="relative mt-2 overflow-hidden rounded-card border border-[#F0EEE9] bg-white px-7 py-[72px] text-center shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       {/* Background decoration */}
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.5, pointerEvents: 'none' }}>
-        <svg viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <div className="pointer-events-none absolute inset-0 opacity-50">
+        <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
           {dots.map(([x, y, r], i) => (
             <circle key={i} cx={x} cy={y} r={r * 0.5} fill="#F97316" opacity={0.5 + (i % 3) * 0.18} />
           ))}
         </svg>
-        <div style={{
-          position: 'absolute',
-          width: 160, height: 160,
-          borderRadius: '46% 54% 60% 40% / 50% 44% 56% 50%',
-          background: 'rgba(42,157,143,0.08)',
-          top: -50, right: 40,
-          animation: 'floaty 10s ease-in-out infinite',
-        }} />
+        <div
+          className="absolute -top-[50px] right-10 h-40 w-40 animate-[floaty_10s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-teal/[0.08]"
+        />
       </div>
 
       {/* Content */}
-      <div style={{ position: 'relative' }}>
-        <span style={{
-          display: 'inline-grid',
-          placeItems: 'center',
-          width: 74, height: 74,
-          borderRadius: '50%',
-          background: iconBg,
-          color: iconColor,
-          marginBottom: 18,
-        }}>
+      <div className="relative">
+        <span
+          className="mb-[18px] inline-grid h-[74px] w-[74px] place-items-center rounded-full"
+          style={{ background: iconBg, color: iconColor }}
+        >
           {icon ?? <PackageOpen size={32} />}
         </span>
 
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#3A372F' }}>
+        <h2 className="m-0 text-xl font-bold text-dark">
           {title}
         </h2>
 
         {description && (
-          <p style={{ margin: '8px auto 22px', maxWidth: 380, fontSize: 14.5, color: '#A29E96', lineHeight: 1.55 }}>
+          <p className="mx-auto mb-[22px] mt-2 max-w-[380px] text-[14.5px] leading-[1.55] text-muted">
             {description}
           </p>
         )}

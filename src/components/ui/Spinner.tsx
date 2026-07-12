@@ -13,15 +13,12 @@ export default function Spinner({
 }: SpinnerProps) {
   return (
     <span
+      className="inline-block flex-shrink-0 animate-spin rounded-full"
       style={{
         width: size,
         height: size,
-        borderRadius: '50%',
         border: `${thickness}px solid ${trackColor}`,
         borderTopColor: color,
-        display: 'inline-block',
-        animation: 'spin .7s linear infinite',
-        flexShrink: 0,
       }}
     />
   )

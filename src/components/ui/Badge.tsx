@@ -1,4 +1,5 @@
 import { AlertCircle } from 'lucide-react'
+import clsx from 'clsx'
 
 type StatusOrcamento =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -37,23 +38,19 @@ const TIPO_META: Record<TipoProduto, { bg: string; fg: string }> = {
   'Customização': { bg: 'rgba(42,157,143,0.14)', fg: '#2A9D8F' },
 }
 
+const badgeSize = {
+  sm: 'h-6 px-[9px] text-[11.5px]',
+  md: 'h-7 px-[11px] text-[12.5px]',
+}
+
 export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
   const meta = STATUS_META[status]
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 6,
-      height: size === 'sm' ? 24 : 28,
-      padding: size === 'sm' ? '0 9px' : '0 11px',
-      borderRadius: 999,
-      background: meta.bg,
-      color: meta.fg,
-      fontSize: size === 'sm' ? 11.5 : 12.5,
-      fontWeight: 600,
-      whiteSpace: 'nowrap',
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: meta.dot, flexShrink: 0 }} />
+    <span
+      className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold', badgeSize[size])}
+      style={{ background: meta.bg, color: meta.fg }}
+    >
+      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: meta.dot }} />
       {status}
     </span>
   )
@@ -62,18 +59,10 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
 export function TipoProdutoBadge({ tipo, size = 'md' }: TipoProdutoBadgeProps) {
   const meta = TIPO_META[tipo]
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      height: size === 'sm' ? 24 : 28,
-      padding: size === 'sm' ? '0 9px' : '0 11px',
-      borderRadius: 999,
-      background: meta.bg,
-      color: meta.fg,
-      fontSize: size === 'sm' ? 11.5 : 12.5,
-      fontWeight: 600,
-      whiteSpace: 'nowrap',
-    }}>
+    <span
+      className={clsx('inline-flex items-center whitespace-nowrap rounded-full font-semibold', badgeSize[size])}
+      style={{ background: meta.bg, color: meta.fg }}
+    >
       {tipo}
     </span>
   )
@@ -81,20 +70,8 @@ export function TipoProdutoBadge({ tipo, size = 'md' }: TipoProdutoBadgeProps) {
 
 export function VencidoBadge() {
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 5,
-      height: 24,
-      padding: '0 9px',
-      borderRadius: 999,
-      background: '#FCF0EC',
-      color: '#C0492B',
-      fontSize: 11.5,
-      fontWeight: 600,
-      whiteSpace: 'nowrap',
-    }}>
-      <AlertCircle size={12} style={{ color: '#C0492B' }} />
+    <span className="inline-flex h-6 items-center gap-[5px] whitespace-nowrap rounded-full bg-[#FCF0EC] px-[9px] text-[11.5px] font-semibold text-danger">
+      <AlertCircle size={12} className="text-danger" />
       Vencido
     </span>
   )

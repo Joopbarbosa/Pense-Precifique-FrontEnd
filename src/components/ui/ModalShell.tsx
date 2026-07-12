@@ -40,83 +40,33 @@ export default function ModalShell({
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        background: 'rgba(20,18,16,0.4)',
-        backdropFilter: 'blur(1.5px)',
-        animation: 'fadeIn .2s ease both',
-      }}
+      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]"
     >
       <div
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'relative',
-          zIndex: 110,
-          width: `min(${width}px, 100%)`,
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#fff',
-          borderRadius: 20,
-          boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)',
-          overflow: 'hidden',
-          animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both',
-        }}
+        style={{ width: `min(${width}px, 100%)` }}
+        className="relative z-[110] flex max-h-[90vh] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
       >
         {/* Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          padding: '20px 24px',
-          borderBottom: '1px solid #EFEDE8',
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-line px-6 py-5">
+          <div className="flex min-w-0 items-center gap-3">
             {icon && (
-              <span style={{
-                flexShrink: 0,
-                display: 'grid',
-                placeItems: 'center',
-                width: 40,
-                height: 40,
-                borderRadius: 11,
-                background: iconBg,
-                color: iconColor,
-              }}>
+              <span
+                className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]"
+                style={{ background: iconBg, color: iconColor }}
+              >
                 {icon}
               </span>
             )}
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               {subtitle && (
-                <div style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: '#A29E96',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  marginBottom: 2,
-                }}>
+                <div className="mb-0.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted">
                   {subtitle}
                 </div>
               )}
-              <div style={{
-                fontSize: 16.5,
-                fontWeight: 700,
-                color: '#3A372F',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
+              <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[16.5px] font-bold text-dark">
                 {title}
               </div>
             </div>
@@ -125,42 +75,20 @@ export default function ModalShell({
           <button
             onClick={onClose}
             aria-label="Fechar"
-            style={{
-              flexShrink: 0,
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              border: 'none',
-              background: '#F1F0EC',
-              color: '#7C786F',
-              cursor: 'pointer',
-              display: 'grid',
-              placeItems: 'center',
-            }}
+            className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '22px 24px',
-        }}>
+        <div className="flex-1 overflow-y-auto px-6 py-[22px]">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div style={{
-            padding: '16px 24px',
-            borderTop: '1px solid #EFEDE8',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 10,
-            flexShrink: 0,
-          }}>
+          <div className="flex flex-shrink-0 justify-end gap-2.5 border-t border-line px-6 py-4">
             {footer}
           </div>
         )}

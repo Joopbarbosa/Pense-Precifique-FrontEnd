@@ -9,11 +9,7 @@ function Logo({ size = 40 }: LogoProps) {
       width={size}
       height={size}
       alt="Pense & Precifique"
-      style={{
-        display: "block",
-        objectFit: "contain",
-        transform: "translateX(3%)",
-      }}
+      className="block object-contain translate-x-[3%]"
     />
   );
 }
@@ -30,15 +26,11 @@ function Wordmark({ size = 17, darkMode = false }: WordmarkProps) {
 
   return (
     <span
-      style={{
-        fontWeight: 700,
-        letterSpacing: "-0.01em",
-        lineHeight: 1.05,
-        fontSize: size,
-      }}
+      className="font-bold leading-[1.05] tracking-[-0.01em]"
+      style={{ fontSize: size }}
     >
       <span style={{ color: pense }}>Pense</span>
-      <span style={{ color: amp, margin: "0 1px" }}>&amp;</span>
+      <span className="mx-px" style={{ color: amp }}>&amp;</span>
       <span style={{ color: precifique }}>Precifique</span>
     </span>
   );
