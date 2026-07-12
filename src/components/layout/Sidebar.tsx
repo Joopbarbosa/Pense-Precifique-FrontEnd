@@ -1,13 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Logo, Wordmark } from '../ui'
-import { LayoutGrid, Users, FileText, Box, X, LogOut, Files, Factory, Settings } from 'lucide-react'
+import { LayoutGrid, Users, FileText, Box, Package, X, LogOut, Files, Factory, Settings } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 const NAV = [
   { id: 'dashboard',  label: 'Dashboard',    icon: LayoutGrid, size: 20, href: '/dashboard' },
   { id: 'clientes',   label: 'Clientes',      icon: Users,     size: 20, href: '/clientes' },
   { id: 'orcamentos', label: 'Orçamentos',    icon: FileText,  size: 20, href: '/orcamentos' },
-  { id: 'insumos',    label: 'Insumos',       icon: Box,       size: 20, href: '/insumos' },
+  { id: 'insumos',    label: 'Insumos',       icon: Package,   size: 20, href: '/insumos' },
   { id: 'produtos',   label: 'Produtos',      icon: Box,       size: 20, href: '/produtos' },
   { id: 'catalogos',  label: 'Catálogos',     icon: Files,     size: 22, href: '/catalogos' },
   { id: 'producao',   label: 'Produção',      icon: Factory,   size: 20, href: '/producao' },
