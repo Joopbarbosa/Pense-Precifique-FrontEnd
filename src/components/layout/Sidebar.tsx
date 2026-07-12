@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
 import { LayoutGrid, Users, FileText, Box, Package, X, LogOut, Files, Factory, Settings } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
@@ -35,53 +36,51 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      <div className={`scrim${open ? ' show' : ''}`} onClick={onClose} />
-      <nav className={`sidebar${open ? ' open' : ''}`}>
+      <div
+        className={clsx('fixed inset-0 z-[49] bg-black/35', open ? 'block md:hidden' : 'hidden')}
+        onClick={onClose}
+      />
+      <nav
+        className={clsx(
+          'fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-shrink-0 flex-col bg-app shadow-[4px_0_24px_rgba(0,0,0,0.10)] transition-transform duration-[220ms] ease-out',
+          open ? 'translate-x-0' : '-translate-x-full',
+          'md:static md:translate-x-0 md:border-r md:border-line md:shadow-none'
+        )}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 14px 12px' }}>
-          <div style={{
-            width: 44, height: 44, background: '#fff',
-            border: '1px solid #EFEDE8', borderRadius: 13,
-            boxShadow: '0 2px 7px rgba(0,0,0,0.07)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
+        <div className="flex items-center gap-2.5 px-[14px] pb-3 pt-4">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[13px] border border-line bg-white shadow-[0_2px_7px_rgba(0,0,0,0.07)]">
             <Logo size={32} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div className="flex flex-col gap-px">
             <Wordmark size={15.5} />
-            <span style={{ fontSize: 11.5, color: '#A29E96', fontWeight: 500 }}>Para artesãs</span>
+            <span className="text-[11.5px] font-medium text-muted">Para artesãs</span>
           </div>
           <button
-            className="drawer-close"
             onClick={onClose}
-            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: '#A29E96', padding: 4 }}
+            className="ml-auto flex border-none bg-transparent p-1 text-muted md:hidden"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Nav */}
-        <div style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div className="flex flex-1 flex-col gap-[3px] p-[14px]">
           {NAV.map(({ id, label, icon: Icon, size, href }) => (
             <NavLink
               key={id}
               to={href}
               onClick={closeIfMobile}
-              style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center', gap: 13,
-                padding: '11px 13px', borderRadius: 11,
-                fontSize: 14.5, textDecoration: 'none',
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? '#F97316' : '#5C594F',
-                background: isActive ? 'rgba(249,115,22,0.08)' : 'transparent',
-                boxShadow: isActive ? 'inset 3px 0 0 #F97316' : 'none',
-              })}
-              className="nav-item"
+              className={({ isActive }) => clsx(
+                'flex items-center gap-[13px] rounded-[11px] px-[13px] py-[11px] text-[14.5px] no-underline transition-colors hover:bg-[#FAF8F5]',
+                isActive
+                  ? 'bg-orange/[0.08] font-semibold text-orange shadow-[inset_3px_0_0_#F97316]'
+                  : 'font-medium text-body'
+              )}
             >
               {({ isActive }) => (
                 <>
-                  <span style={{ color: isActive ? '#F97316' : '#A29E96', display: 'flex' }}>
+                  <span className={clsx('flex', isActive ? 'text-orange' : 'text-muted')}>
                     <Icon size={size} />
                   </span>
                   {label}
@@ -92,18 +91,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid #EFEDE8', padding: '12px 14px 18px' }}>
+        <div className="border-t border-line px-[14px] pb-[18px] pt-3">
           <button
             onClick={() => { closeIfMobile(); handleLogout() }}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 13,
-              padding: '11px 13px', borderRadius: 11, border: 'none',
-              background: 'transparent', cursor: 'pointer',
-              fontSize: 14.5, fontWeight: 500, color: '#7C786F',
-            }}
-            className="nav-item"
+            className="flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-[14.5px] font-medium text-subtle hover:bg-[#FAF8F5]"
           >
-            <span style={{ color: '#A29E96', display: 'flex' }}>
+            <span className="flex text-muted">
               <LogOut size={20} />
             </span>
             Sair

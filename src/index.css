@@ -25,84 +25,6 @@ body {
   margin: 0;
 }
 
-.app-shell {
-  display: flex;
-  min-height: 100vh;
-}
-
-.main-area {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.content {
-  padding: 34px 40px 56px;
-  max-width: 1280px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-@media (max-width: 767px) {
-  .content {
-    padding: 22px 18px 48px;
-  }
-}
-
-/* Sidebar layout */
-.sidebar {
-  width: 220px;
-  height: 100vh;
-  background: #FAFAF8;
-  border-right: 1px solid #EFEDE8;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-}
-
-.nav-item:hover {
-  background: #FAF8F5 !important;
-}
-
-/* Mobile: drawer */
-@media (max-width: 767px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 50;
-    transform: translateX(-100%);
-    transition: transform 0.22s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.10);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .scrim {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.35);
-    z-index: 49;
-  }
-  .scrim.show {
-    display: block;
-  }
-}
-
-/* Desktop: botão fechar fica oculto */
-@media (min-width: 768px) {
-  .drawer-close {
-    display: none;
-  }
-  .scrim {
-    display: none !important;
-  }
-}
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -219,25 +141,6 @@ body {
     letter-spacing: 0.04em;
     color: #B7B4AD;
     margin-right: 6px;
-  }
-}
-
-/* TopBar — apenas mobile */
-.mobile-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #EFEDE8;
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
-
-@media (min-width: 768px) {
-  .mobile-topbar {
-    display: none;
   }
 }
 
