@@ -1579,6 +1579,7 @@ export default function DetalheOrcamentoPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modal, setModal] = useState<null | "sinal" | "cancel">(null);
+  const [erroAvanco, setErroAvanco] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -1607,13 +1608,17 @@ export default function DetalheOrcamentoPage() {
   const handleAvancar = async (data?: AvancaStatusRequest) => {
     if (!id) return;
     setSaving(true);
+    setErroAvanco(null);
     try {
       const updated = await orcamentoService.avancarStatus(id, data);
       setOrcamento(updated);
       setModal(null);
     } catch (err) {
       console.error("Erro ao avançar status:", err);
-      alert("Erro ao avançar status do orçamento");
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Erro ao avançar status do orçamento.";
+      setErroAvanco(msg);
     } finally {
       setSaving(false);
     }
@@ -1851,6 +1856,27 @@ export default function DetalheOrcamentoPage() {
                   {saving ? "Processando..." : actionLabel}
                 </Button>
               )}
+            </div>
+          )}
+
+          {erroAvanco && (
+            <div
+              style={{
+                marginTop: 18,
+                display: "flex",
+                gap: 8,
+                padding: "12px 14px",
+                borderRadius: 10,
+                background: "#FBEDE9",
+                border: "1px solid #F2D8CF",
+              }}
+            >
+              <span style={{ flexShrink: 0, color: "#C0492B", display: "flex", marginTop: 1 }}>
+                <Icons.alertCircle width={16} height={16} />
+              </span>
+              <p style={{ margin: 0, fontSize: 13, color: "#C0492B", lineHeight: 1.5 }}>
+                {erroAvanco}
+              </p>
             </div>
           )}
         </section>
