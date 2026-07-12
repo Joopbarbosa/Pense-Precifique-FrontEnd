@@ -5,6 +5,7 @@ import { Pencil, List, Ban, Phone, User, X, Mail, Plus, Users, Search } from 'lu
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ModalShell from '../../components/ui/ModalShell'
 import { clienteService } from '../../services/clienteService'
+import { useToast } from '../../hooks/useToast'
 import type { ClienteResponse, ClienteRequest } from '../../types/cliente'
 
 // ---------- Avatar ----------
@@ -318,7 +319,7 @@ export default function ClientesPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [drawer, setDrawer] = useState(false)
   const [editData, setEditData] = useState<ClienteResponse | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, setToast } = useToast()
   const [confirmInativar, setConfirmInativar] = useState<ClienteResponse | null>(null)
   const isFirstRender = useRef(true)
 
@@ -347,13 +348,6 @@ export default function ClientesPage() {
     const t = setTimeout(() => loadPage(0, query, true), 400)
     return () => clearTimeout(t)
   }, [query, loadPage])
-
-  // Toast auto-dismiss
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   const handleSuccess = (cliente: ClienteResponse) => {
     const exists = clientes.some(c => c.id === cliente.id)

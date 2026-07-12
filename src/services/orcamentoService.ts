@@ -2,9 +2,10 @@ import api from './api';
 import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, PageResponse, ItemCatalogoBuscaResponse } from '../types/orcamento';
 
 export const orcamentoService = {
-  listar: async (page: number, size = 20, status?: string): Promise<PageResponse<OrcamentoResponse>> => {
+  listar: async (page: number, size = 20, status?: string, busca?: string): Promise<PageResponse<OrcamentoResponse>> => {
     const params: Record<string, any> = { page, size };
     if (status) params.status = status;
+    if (busca) params.busca = busca;
     const response = await api.get('/orcamentos', { params });
     return response.data;
   },

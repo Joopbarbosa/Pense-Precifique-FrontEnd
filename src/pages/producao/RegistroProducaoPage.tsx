@@ -9,6 +9,7 @@ import {
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { produtoService } from '../../services/produtoService'
+import { useToast } from '../../hooks/useToast'
 import type { ProducaoResponse, ProducaoDetalheResponse, InsumoConsumidoResponse, LancarProducaoRequest } from '../../types/producao'
 import type { ProdutoResponse, ProdutoDetalheResponse } from '../../types/produto'
 import type { TipoProduto } from '../../types'
@@ -862,7 +863,7 @@ export default function RegistroProducaoPage() {
   const [busca, setBusca] = useState('')
   const [buscaFocus, setBuscaFocus] = useState(false)
   const [modal, setModal] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, setToast } = useToast()
 
   const [detalhe, setDetalhe] = useState<ProducaoDetalheResponse | null>(null)
   const [loadingDetalhe, setLoadingDetalhe] = useState(false)
@@ -895,12 +896,6 @@ export default function RegistroProducaoPage() {
       .catch(() => navigate('/producao'))
       .finally(() => setLoadingDetalhe(false))
   }, [id, navigate])
-
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   const handleSuccess = (producoesNovas: ProducaoDetalheResponse[]) => {
     setModal(false)

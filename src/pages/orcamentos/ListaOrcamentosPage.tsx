@@ -155,9 +155,9 @@ export default function ListaOrcamentosPage() {
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  const carregar = useCallback(async (pg: number, statusFiltro: StatusOrcamento | '') => {
+  const carregar = useCallback(async (pg: number, statusFiltro: StatusOrcamento | '', q: string) => {
     try {
-      const res = await orcamentoService.listar(pg, 20, statusFiltro || undefined)
+      const res = await orcamentoService.listar(pg, 20, statusFiltro || undefined, q.trim() || undefined)
       if (pg === 0) {
         setOrcamentos(res.content)
       } else {
@@ -173,8 +173,12 @@ export default function ListaOrcamentosPage() {
 
   useEffect(() => {
     setLoading(true)
-    carregar(0, filtro).finally(() => setLoading(false))
-  }, [filtro, carregar])
+    const delay = query.trim() ? 300 : 0
+    const t = setTimeout(() => {
+      carregar(0, filtro, query).finally(() => setLoading(false))
+    }, delay)
+    return () => clearTimeout(t)
+  }, [filtro, query, carregar])
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -194,16 +198,8 @@ export default function ListaOrcamentosPage() {
 
   const handleCarregarMais = async () => {
     setLoadingMore(true)
-    await carregar(page + 1, filtro)
+    await carregar(page + 1, filtro, query)
     setLoadingMore(false)
-  }
-
-  let lista = orcamentos
-  if (query.trim()) {
-    lista = lista.filter(o =>
-      o.nomeCliente.toLowerCase().includes(query.toLowerCase()) ||
-      String(o.numero).includes(query)
-    )
   }
 
   const periodActive = !!(dateFrom || dateTo)
@@ -220,8 +216,9 @@ export default function ListaOrcamentosPage() {
     setDateTo(iso(today))
   }
 
-  const globalEmpty = !loading && orcamentos.length === 0 && filtro === ''
-  const filtroEmpty = !loading && orcamentos.length === 0 && filtro !== ''
+  const searchActive = query.trim().length > 0
+  const globalEmpty = !loading && orcamentos.length === 0 && filtro === '' && !searchActive
+  const filtroEmpty = !loading && orcamentos.length === 0 && (filtro !== '' || searchActive)
 
   return (
     <AppLayout active="orcamentos">
@@ -398,7 +395,10 @@ export default function ListaOrcamentosPage() {
 
           {filtroEmpty ? (
             <div style={{ padding: '48px 0', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
-              Nenhum orçamento encontrado em &ldquo;{STATUS_LABEL[filtro as StatusOrcamento]}&rdquo;.
+              {searchActive
+                ? <>Nenhum orçamento encontrado para &ldquo;{query.trim()}&rdquo;.</>
+                : <>Nenhum orçamento encontrado em &ldquo;{STATUS_LABEL[filtro as StatusOrcamento]}&rdquo;.</>
+              }
             </div>
           ) : (
             <>
@@ -412,13 +412,7 @@ export default function ListaOrcamentosPage() {
                   ))}
                 </div>
 
-                {lista.length === 0 ? (
-                  <EmptyState
-                    compact
-                    title="Nenhum orçamento encontrado"
-                    description="Ajuste os filtros ou a busca."
-                  />
-                ) : lista.map((o, i) => {
+                {orcamentos.map((o, i) => {
                   const pdfUrl = orcamentoService.downloadPdf(o.id)
                   const onBaixarPdf = o.status !== 'CANCELADO'
                     ? () => window.open(pdfUrl, '_blank')
@@ -444,7 +438,7 @@ export default function ListaOrcamentosPage() {
               {/* Contador + Carregar mais */}
               <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12.5, color: '#A29E96' }}>
-                  {lista.length} {lista.length === 1 ? 'orçamento' : 'orçamentos'}
+                  {orcamentos.length} {orcamentos.length === 1 ? 'orçamento' : 'orçamentos'}
                 </span>
                 {hasMore && (
                   <button

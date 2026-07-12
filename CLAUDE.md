@@ -109,6 +109,8 @@ Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 
 **Bug de backend que afetava a UI — corrigido:** `GET /produtos?busca=` ignorava o parâmetro de busca (`BUG-BUSCA-PRODUTO`). Corrigido no backend em 2026-07-09, commit `222b939`. Validado via curl e Playwright na tela de Orçamento (modo "Tudo"). Não é mais uma hipótese a descartar antes de investigar o frontend.
 
+**Bug de backend ainda aberto — bloqueia busca de Orçamentos:** `GET /orcamentos` nunca teve parâmetro `busca` implementado (`BUG-BUSCA-ORCAMENTO`, descoberto no P006/V0.4). Diferente do `BUG-BUSCA-PRODUTO` (onde o parâmetro existia mas era ignorado na query), aqui o parâmetro não existe em nenhuma camada: `OrcamentoController.listar()` só aceita `status` e `pageable`; `OrcamentoService.listar()` não recebe busca; `OrcamentoRepository` só tem `findByUsuarioIdAndDeletedAtIsNull` e a variante com `status`, nenhuma com filtro textual. O frontend (`ListaOrcamentosPage.tsx`, `orcamentoService.listar()`) já envia `busca` corretamente desde o P006 — a UI de busca por cliente/número simplesmente não filtra nada até o backend implementar. Confirmado via curl: `busca=zzzznaoexiste` retorna os mesmos 16 resultados que sem busca. Precisa de fix no `pense-precifique-backend` (controller + service + repository, provavelmente busca em `nomeCliente` e `numero`) antes de fechar `[Orcamentos/Lista] - corrigir busca client-side para busca via API` (ClickUp `86e29zrcv`) de fato ponta a ponta.
+
 ---
 
 ## Aprendizados críticos
