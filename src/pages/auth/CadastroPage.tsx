@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Logo, Wordmark, Icons, Button, Input, Spinner } from '../../components/ui'
+import { Logo, Wordmark, Button, Input, Spinner } from '../../components/ui'
+import { X, Image, AlertCircle, Mail, Lock } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { useAuthStore } from '../../store/authStore'
 
@@ -118,7 +119,7 @@ function LogoUpload({ preview, onPick, onRemove }: {
             boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
             color: '#C0492B', display: 'grid', placeItems: 'center', cursor: 'pointer',
           }}>
-            <Icons.x width={14} height={14} />
+            <X size={14} />
           </button>
         </div>
       ) : (
@@ -127,7 +128,7 @@ function LogoUpload({ preview, onPick, onRemove }: {
           display: 'grid', placeItems: 'center',
           background: 'rgba(42,157,143,0.08)', color: '#2A9D8F',
         }}>
-          <Icons.image />
+          <Image size={28} />
         </div>
       )}
 
@@ -373,7 +374,7 @@ export default function CadastroPage() {
                   marginBottom: 4, fontSize: 13.5, lineHeight: 1.45,
                   animation: 'shake .45s ease',
                 }}>
-                  <Icons.alertCircle width={18} height={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
+                  <AlertCircle size={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
                   <span>{apiError}</span>
                 </div>
               )}
@@ -406,7 +407,7 @@ export default function CadastroPage() {
                   placeholder="seuemail@email.com"
                   value={email}
                   onChange={(v) => { setEmail(v); setEmailEmUso(false) }}
-                  icon={<Icons.mail />}
+                  icon={<Mail size={18} />}
                   error={erros.email}
                   autoComplete="email"
                 />
@@ -419,7 +420,7 @@ export default function CadastroPage() {
                     placeholder="Mínimo 8 caracteres"
                     value={senha}
                     onChange={setSenha}
-                    icon={<Icons.lock />}
+                    icon={<Lock size={18} />}
                     error={erros.senha}
                     autoComplete="new-password"
                   />
@@ -429,7 +430,7 @@ export default function CadastroPage() {
                     placeholder="Repita a senha"
                     value={senha2}
                     onChange={setSenha2}
-                    icon={<Icons.lock />}
+                    icon={<Lock size={18} />}
                     error={erros.senha2}
                     autoComplete="new-password"
                   />

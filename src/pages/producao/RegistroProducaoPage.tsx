@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
-import { Icons } from '../../components/ui/Icons'
+import {
+  Minus, Plus, Box, ChevronDown, Check, AlertTriangle, Factory, X,
+  AlertCircle, Layers, Pencil, ChevronRight, Eye, Ban, Search,
+} from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { produtoService } from '../../services/produtoService'
@@ -41,7 +44,7 @@ function Counter({ value, setValue }: { value: number; setValue: (n: number) => 
   )
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-      {btn(<Icons.minus />, () => setValue(Math.max(1, value - 1)), value <= 1)}
+      {btn(<Minus size={17} />, () => setValue(Math.max(1, value - 1)), value <= 1)}
       <input
         type="text"
         inputMode="numeric"
@@ -67,7 +70,7 @@ function Counter({ value, setValue }: { value: number; setValue: (n: number) => 
           transition: 'border-color .15s',
         }}
       />
-      {btn(<Icons.plus />, () => setValue(value + 1), false)}
+      {btn(<Plus size={16} />, () => setValue(value + 1), false)}
     </div>
   )
 }
@@ -136,7 +139,7 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
         transition: 'border-color .15s, box-shadow .15s',
       }}>
         <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-          <Icons.cube />
+          <Box size={20} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
           {value ? (
@@ -148,7 +151,7 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
             <span style={{ display: 'block', fontSize: 14.5, fontWeight: 400, color: '#A29E96' }}>Selecione um produto...</span>
           )}
         </span>
-        <span style={{ color: '#A29E96', display: 'flex' }}><Icons.caret /></span>
+        <span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
       </button>
 
       {open && (
@@ -181,12 +184,12 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
                   onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F5F1' }}
                   onMouseLeave={e => { e.currentTarget.style.background = on ? 'rgba(42,157,143,0.08)' : 'transparent' }}
                 >
-                  <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}><Icons.cube /></span>
+                  <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}><Box size={20} /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: on ? '#2A9D8F' : '#3A372F' }}>{p.nome}</span>
                     <span style={{ display: 'block', fontSize: 12, color: '#A29E96' }}>Estoque: {p.estoqueAtual}</span>
                   </span>
-                  {on && <span style={{ color: '#2A9D8F', display: 'flex' }}><Icons.check /></span>}
+                  {on && <span style={{ color: '#2A9D8F', display: 'flex' }}><Check size={14} /></span>}
                 </button>
               )
             })}
@@ -236,7 +239,7 @@ function ConfirmEstoqueModal({ mensagem, onCancel, onConfirm, confirming }: {
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ width: 'min(460px, 100%)', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(192,73,43,0.12)', color: '#C0492B' }}>
-            <Icons.alertTriangle width={22} height={22} />
+            <AlertTriangle size={22} />
           </span>
           <div>
             <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Saldo insuficiente de insumo</div>
@@ -442,7 +445,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
             <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(249,115,22,0.12)', color: '#F97316' }}>
-              <Icons.factory width={24} height={24} />
+              <Factory size={24} />
             </span>
             <div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Nova Produção</div>
@@ -452,7 +455,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
           <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
             onMouseEnter={e => (e.currentTarget.style.background = '#E9E7E2')}
             onMouseLeave={e => (e.currentTarget.style.background = '#F1F0EC')}
-          ><Icons.x /></button>
+          ><X size={20} /></button>
         </div>
 
         <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -481,7 +484,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {produtoDetalhe && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: fracionavel ? '#2A9D8F' : '#6B6860' }}>
-                  {fracionavel ? <Icons.check width={13} height={13} /> : <Icons.alertCircle width={13} height={13} />}
+                  {fracionavel ? <Check size={13} /> : <AlertCircle size={13} />}
                   {fracionavel
                     ? 'Esta receita permite fracionamento'
                     : `Esta receita não permite fracionamento${rendimento != null ? ` — 1 receita = ${rendimento} unidades` : ''}`
@@ -506,7 +509,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
 
               {!fracionavel && rendimento == null && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#C0492B' }}>
-                  <Icons.alertCircle width={13} height={13} /> Este produto não tem rendimento definido — edite o produto antes de lançar produção.
+                  <AlertCircle size={13} /> Este produto não tem rendimento definido — edite o produto antes de lançar produção.
                 </div>
               )}
 
@@ -522,7 +525,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
           {produto && (
             <div style={{ borderRadius: 14, background: 'rgba(42,157,143,0.05)', border: '1.5px solid rgba(42,157,143,0.22)', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
-                <span style={{ display: 'flex', color: '#2A9D8F' }}><Icons.layers /></span>
+                <span style={{ display: 'flex', color: '#2A9D8F' }}><Layers size={18} /></span>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E7268' }}>Insumos que serão consumidos para {quantidadeFinal} {quantidadeFinal === 1 ? 'unidade' : 'unidades'}</span>
               </div>
               {loadingPreview ? (
@@ -532,7 +535,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
                   {previewInsumos.map((ins, i) => (
                     <div key={ins.insumoId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid rgba(42,157,143,0.12)', animation: 'rowIn .25s ease both' }}>
                       <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, display: 'grid', placeItems: 'center', background: ins.estoqueInsuficiente ? '#FBEDE9' : '#E8F5EE', color: ins.estoqueInsuficiente ? '#C0492B' : '#1F8A5B' }}>
-                        {ins.estoqueInsuficiente ? <Icons.alertCircle width={13} height={13} /> : <Icons.check width={13} height={13} />}
+                        {ins.estoqueInsuficiente ? <AlertCircle size={13} /> : <Check size={13} />}
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -547,7 +550,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontSize: 14.5, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{ins.quantidade} {ins.unidadeMedida}</div>
                         {ins.estoqueInsuficiente
-                          ? <div style={{ fontSize: 11, fontWeight: 700, color: '#C0492B', display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end', marginTop: 1 }}><Icons.alertCircle width={11} height={11} /> Saldo insuficiente</div>
+                          ? <div style={{ fontSize: 11, fontWeight: 700, color: '#C0492B', display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end', marginTop: 1 }}><AlertCircle size={11} /> Saldo insuficiente</div>
                           : <div style={{ fontSize: 11, fontWeight: 600, color: '#1F8A5B', marginTop: 1 }}>OK</div>
                         }
                       </div>
@@ -565,21 +568,21 @@ function NovaProducaoModal({ onClose, onSuccess }: {
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(249,115,22,0.08)')}
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >
-              <Icons.plus width={16} height={16} /> Adicionar mais uma produção
+              <Plus size={16} /> Adicionar mais uma produção
             </button>
           )}
 
           {sessao.length > 0 && (
             <div style={{ borderRadius: 14, background: '#FAF8F5', border: '1.5px solid #EFEDE8', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: '1px solid #EFEDE8' }}>
-                <span style={{ display: 'flex', color: '#5C594F' }}><Icons.stack width={15} height={15} /></span>
+                <span style={{ display: 'flex', color: '#5C594F' }}><Layers size={15} /></span>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: '#3A372F' }}>Produções nesta sessão ({sessao.length})</span>
               </div>
               <div>
                 {sessao.map((item, i) => (
                   <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #EFEDE8' }}>
                     <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-                      <Icons.cube width={16} height={16} />
+                      <Box size={16} />
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.produto.nome}</div>
@@ -593,11 +596,11 @@ function NovaProducaoModal({ onClose, onSuccess }: {
                     <button type="button" onClick={() => handleEditarSessao(item)} aria-label="Editar" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: '#A29E96', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#EFEDE8'; e.currentTarget.style.color = '#5C594F' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#A29E96' }}
-                    ><Icons.edit width={15} height={15} /></button>
+                    ><Pencil size={15} /></button>
                     <button type="button" onClick={() => handleRemoverSessao(item.id)} aria-label="Remover" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: '#A29E96', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#A29E96' }}
-                    ><Icons.x width={15} height={15} /></button>
+                    ><X size={15} /></button>
                   </div>
                 ))}
               </div>
@@ -606,14 +609,14 @@ function NovaProducaoModal({ onClose, onSuccess }: {
 
           {erroBloqueio && (
             <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><Icons.alertCircle width={16} height={16} /></span>
+              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
               <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erroBloqueio}</p>
             </div>
           )}
 
           {erro && (
             <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><Icons.alertCircle width={16} height={16} /></span>
+              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
               <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erro}</p>
             </div>
           )}
@@ -628,7 +631,7 @@ function NovaProducaoModal({ onClose, onSuccess }: {
             onMouseEnter={e => { if (podeConfirmar) e.currentTarget.style.filter = 'brightness(1.05)' }}
             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
           >
-            <Icons.factory width={17} height={17} />
+            <Factory size={17} />
             {submitting
               ? 'Lançando...'
               : sessao.length + (itemAtualValido ? 1 : 0) > 1
@@ -686,7 +689,7 @@ function CancelarProducaoModal({ prod, onClose, onSuccess }: {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
             <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(192,73,43,0.12)', color: '#C0492B' }}>
-              <Icons.alertCircle />
+              <AlertCircle size={15} />
             </span>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Cancelar produção #{prod.numero}</div>
@@ -696,7 +699,7 @@ function CancelarProducaoModal({ prod, onClose, onSuccess }: {
           <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
             onMouseEnter={e => (e.currentTarget.style.background = '#E9E7E2')}
             onMouseLeave={e => (e.currentTarget.style.background = '#F1F0EC')}
-          ><Icons.x /></button>
+          ><X size={20} /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -736,14 +739,14 @@ function CancelarProducaoModal({ prod, onClose, onSuccess }: {
             />
             {obs.length > 0 && obs.length < 50 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
-                <Icons.alertCircle width={13} height={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
+                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
               </div>
             )}
           </label>
 
           {erro && (
             <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><Icons.alertCircle width={16} height={16} /></span>
+              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
               <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erro}</p>
             </div>
           )}
@@ -772,13 +775,13 @@ function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoDetalheResponse; onBa
           onMouseEnter={e => (e.currentTarget.style.background = '#FAF8F5')}
           onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
         >
-          <span style={{ display: 'flex', transform: 'rotate(180deg)' }}><Icons.chevron /></span> Voltar para Produção
+          <span style={{ display: 'flex', transform: 'rotate(180deg)' }}><ChevronRight size={15} /></span> Voltar para Produção
         </button>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22, flexWrap: 'wrap' }}>
         <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,0.12)', color: '#F97316' }}>
-          <Icons.factory width={24} height={24} />
+          <Factory size={24} />
         </span>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -797,7 +800,7 @@ function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoDetalheResponse; onBa
 
       {cancelada && prod.observacaoCancelamento && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 18, padding: '13px 15px', borderRadius: 12, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-          <span style={{ flexShrink: 0, color: '#C0492B', marginTop: 1 }}><Icons.alertCircle /></span>
+          <span style={{ flexShrink: 0, color: '#C0492B', marginTop: 1 }}><AlertCircle size={15} /></span>
           <p style={{ margin: 0, fontSize: 12.8, color: '#8A5A4C', lineHeight: 1.55 }}>
             <strong style={{ fontWeight: 700 }}>Motivo do cancelamento:</strong> {prod.observacaoCancelamento}
           </p>
@@ -806,7 +809,7 @@ function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoDetalheResponse; onBa
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '18px 20px', marginBottom: 18, opacity: cancelada ? 0.65 : 1 }}>
         <span style={{ flexShrink: 0, width: 48, height: 48, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-          <Icons.cube width={22} height={22} />
+          <Box size={22} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em', textDecoration: cancelada ? 'line-through' : 'none' }}>{prod.nomeProduto}</div>
@@ -820,7 +823,7 @@ function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoDetalheResponse; onBa
 
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden', opacity: cancelada ? 0.65 : 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '14px 18px', borderBottom: '1px solid #EFEDE8' }}>
-          <span style={{ display: 'flex', color: '#2A9D8F' }}><Icons.layers /></span>
+          <span style={{ display: 'flex', color: '#2A9D8F' }}><Layers size={18} /></span>
           <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#5C594F', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Insumos consumidos</h2>
         </div>
         {prod.insumosConsumidos.length === 0 ? (
@@ -829,7 +832,7 @@ function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoDetalheResponse; onBa
           <div key={row.insumoId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderTop: i === 0 ? 'none' : '1px solid #F4F2EE' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
               <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: '#F1F0EC', color: '#9A968E' }}>
-                <Icons.box width={16} height={16} />
+                <Box size={16} />
               </span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', textDecoration: cancelada ? 'line-through' : 'none' }}>
                 {row.nomeInsumo}{row.marca ? ` (${row.marca})` : ''}
@@ -924,12 +927,12 @@ export default function RegistroProducaoPage() {
 
   const menuItems = (h: ProducaoResponse): ActionMenuItem[] => {
     const items: ActionMenuItem[] = [
-      { label: 'Ver detalhes', icon: <Icons.eye />, onClick: () => navigate(`/producao/${h.id}`) },
+      { label: 'Ver detalhes', icon: <Eye size={18} />, onClick: () => navigate(`/producao/${h.id}`) },
     ]
     if (h.status === 'ATIVA') {
       items.push({
         label: 'Cancelar produção',
-        icon: <Icons.ban />,
+        icon: <Ban size={16} />,
         onClick: () => setCancelarProd(h),
         danger: true,
         dividerBefore: true,
@@ -971,14 +974,14 @@ export default function RegistroProducaoPage() {
           onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.05)')}
           onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
         >
-          <Icons.plus /> Nova Produção
+          <Plus size={16} /> Nova Produção
         </button>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
         <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 200, maxWidth: 380 }}>
           <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
-            <Icons.search />
+            <Search size={18} />
           </span>
           <input
             value={busca}
@@ -992,7 +995,7 @@ export default function RegistroProducaoPage() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ display: 'flex', color: '#A8A49C' }}><Icons.factory width={17} height={17} /></span>
+        <span style={{ display: 'flex', color: '#A8A49C' }}><Factory size={17} /></span>
         <h2 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: '#5C594F', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Histórico de produções</h2>
       </div>
 
@@ -1019,7 +1022,7 @@ export default function RegistroProducaoPage() {
                 <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{fmtData(h.dataProducao)}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
                   <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-                    <Icons.cube />
+                    <Box size={20} />
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.nomeProduto}</span>
                 </div>
@@ -1041,7 +1044,7 @@ export default function RegistroProducaoPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-                      <Icons.cube />
+                      <Box size={20} />
                     </span>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 11.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{h.identificador}</div>

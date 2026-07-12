@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
-import { Icons } from '../../components/ui/Icons'
+import { Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
 
@@ -72,7 +72,7 @@ function Toast({ show }: { show: boolean }) {
       animation: 'toastIn .3s cubic-bezier(.34,1.3,.5,1) both', maxWidth: 'calc(100vw - 32px)',
     }}>
       <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: '50%', background: '#34A56F', color: '#fff' }}>
-        <Icons.check />
+        <Check size={14} />
       </span>
       <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>Configurações salvas com sucesso!</span>
     </div>
@@ -82,9 +82,9 @@ function Toast({ show }: { show: boolean }) {
 /* ── SubNav ──────────────────────────────────────────────────── */
 
 const SUBABAS = [
-  { id: 'precificacao' as const, label: 'Precificação',      icon: Icons.sliders },
-  { id: 'perfil' as const,       label: 'Perfil da empresa', icon: Icons.building },
-  { id: 'conta' as const,        label: 'Conta',             icon: Icons.shield },
+  { id: 'precificacao' as const, label: 'Precificação',      icon: SlidersHorizontal, size: 15 },
+  { id: 'perfil' as const,       label: 'Perfil da empresa', icon: Building2,         size: 17 },
+  { id: 'conta' as const,        label: 'Conta',             icon: ShieldCheck,       size: 17 },
 ]
 
 type SubAba = typeof SUBABAS[number]['id']
@@ -104,7 +104,7 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
             onMouseEnter={e => { if (!on) e.currentTarget.style.color = '#5C594F' }}
             onMouseLeave={e => { if (!on) e.currentTarget.style.color = '#8A8780' }}
           >
-            <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon /></span>
+            <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon size={a.size} /></span>
             {a.label}
             {on && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1.5, height: 2.5, borderRadius: 3, background: '#2A9D8F' }} />}
           </button>
@@ -142,7 +142,7 @@ function PerfilCard({ nome, email }: { nome?: string; email?: string }) {
         <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 16, fontSize: 13.5, fontWeight: 600, color: '#2A9D8F', background: 'transparent', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', padding: 0 }}
           onMouseEnter={e => e.currentTarget.style.gap = '9px'} onMouseLeave={e => e.currentTarget.style.gap = '6px'}
         >
-          Editar perfil <Icons.arrowRight />
+          Editar perfil <ArrowRight size={17} />
         </button>
       </div>
     </div>
@@ -213,7 +213,7 @@ function Precificacao({
         <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px', animation: 'fadeUp .35s ease both' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 5 }}>
             <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-              <Icons.sliders />
+              <SlidersHorizontal size={15} />
             </span>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Como você quer precificar?</h2>
           </div>
@@ -226,7 +226,7 @@ function Precificacao({
               <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
                 Valor da sua hora de trabalho <span style={{ color: '#E05C3A' }}>*</span>
               </label>
-              <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Icons.clock />} inputMode="decimal" error={fieldErrors.hora} />
+              <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Clock size={18} />} inputMode="decimal" error={fieldErrors.hora} />
               {fieldErrors.hora
                 ? <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#E05C3A', fontWeight: 500 }}>{fieldErrors.hora}</p>
                 : <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Quanto vale uma hora do seu tempo produzindo.</p>
@@ -245,7 +245,7 @@ function Precificacao({
           </div>
 
           <div style={{ display: 'flex', gap: 12, marginTop: 24, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', borderLeft: '3px solid #2A9D8F' }}>
-            <Icons.info style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
+            <Info size={15} style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
             <p style={{ margin: 0, fontSize: 13, color: '#3F5B54', lineHeight: 1.55 }}>
               Alterar estes valores <strong style={{ fontWeight: 700 }}>não recalcula orçamentos já criados</strong>. Somente novos orçamentos usarão os parâmetros atualizados.
             </p>
@@ -256,7 +256,7 @@ function Precificacao({
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: dirty ? '#E8913B' : '#CFCBC3', boxShadow: dirty ? '0 0 0 4px rgba(232,145,59,0.18)' : 'none' }} />
               {dirty ? 'Você tem alterações não salvas' : 'Tudo salvo'}
             </span>
-            <Button variant="primary" icon={<Icons.check />} disabled={!dirty || saving || !isValid} onClick={salvar}>
+            <Button variant="primary" icon={<Check size={14} />} disabled={!dirty || saving || !isValid} onClick={salvar}>
               {saving ? 'Salvando…' : 'Salvar alterações'}
             </Button>
           </div>
@@ -372,7 +372,7 @@ function PerfilEmpresa({
   return (
     <div style={{ maxWidth: 640, animation: 'fadeUp .35s ease both' }}>
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px' }}>
-        <SectionHead icon={<Icons.building />} titulo="Perfil da empresa" />
+        <SectionHead icon={<Building2 size={17} />} titulo="Perfil da empresa" />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, paddingBottom: 22, marginBottom: 22, borderBottom: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
           <span style={{ flexShrink: 0, width: 84, height: 84, borderRadius: '50%', background: '#FAF8F5', border: '1px solid #EFEDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
@@ -400,7 +400,7 @@ function PerfilEmpresa({
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 22, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', borderLeft: '3px solid #2A9D8F' }}>
-          <Icons.info style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
+          <Info size={15} style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
           <p style={{ margin: 0, fontSize: 13, color: '#3F5B54', lineHeight: 1.55 }}>
             Estas informações aparecem em todos os PDFs gerados pelo sistema (orçamentos, recibos e multas).
           </p>
@@ -413,7 +413,7 @@ function PerfilEmpresa({
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingTop: 22, borderTop: '1px solid #EFEDE8' }}>
-          <Button variant="primary" icon={<Icons.check />} disabled={saving} onClick={salvar}>
+          <Button variant="primary" icon={<Check size={14} />} disabled={saving} onClick={salvar}>
             {saving ? 'Salvando…' : 'Salvar alterações'}
           </Button>
         </div>
@@ -430,7 +430,7 @@ function ContaSeguranca() {
   return (
     <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 22, animation: 'fadeUp .35s ease both' }}>
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px' }}>
-        <SectionHead icon={<Icons.shield />} titulo="Dados de acesso" />
+        <SectionHead icon={<ShieldCheck size={17} />} titulo="Dados de acesso" />
 
         <CfgField label="E-mail atual">
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -519,7 +519,7 @@ export default function ConfiguracoesPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
         <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-          <Icons.gear width={26} height={26} />
+          <Settings size={26} />
         </span>
         <div>
           <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Configurações</h1>

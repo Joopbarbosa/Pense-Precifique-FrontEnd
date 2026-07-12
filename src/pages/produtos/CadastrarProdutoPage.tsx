@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons, Button } from '../../components/ui'
+import { Button } from '../../components/ui'
+import {
+  ArrowRight, Box, Plus, Search, Layers, Trash2, Calculator, Sparkles,
+  Info, Check, AlertTriangle, ChevronRight, Pencil, FileText,
+} from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
@@ -191,7 +195,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 28, paddingTop: 22, borderTop: '1px solid #EFEDE8' }}>
-        <Button variant="primary" iconRight={<Icons.arrowRight />} onClick={onNext}>
+        <Button variant="primary" iconRight={<ArrowRight size={17} />} onClick={onNext}>
           Próximo: Ficha Técnica
         </Button>
       </div>
@@ -289,7 +293,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: i.tipo === 'produto' ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: i.tipo === 'produto' ? '#2A9D8F' : '#9A968E' }}>
-            {i.tipo === 'produto' ? <Icons.cubeSmall /> : <Icons.box width={16} height={16} />}
+            {i.tipo === 'produto' ? <Box size={16} /> : <Box size={16} />}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -298,7 +302,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             </span>
             <span style={{ display: 'block', fontSize: 12, color: '#A29E96' }}>{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
           </span>
-          <Icons.plus style={{ flexShrink: 0, color: '#2A9D8F' }} />
+          <Plus size={16} style={{ flexShrink: 0, color: '#2A9D8F' }} />
         </button>
       ))}
     </div>
@@ -307,7 +311,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: f ? '#2A9D8F' : '#A29E96', display: 'flex' }}>
-        <Icons.search />
+        <Search size={18} />
       </span>
       <input
         value={q}
@@ -399,7 +403,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
         <div style={{ padding: '20px 22px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-            <Icons.layers style={{ color: '#2A9D8F' }} />
+            <Layers size={18} style={{ color: '#2A9D8F' }} />
             <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#3A372F', whiteSpace: 'nowrap' }}>Componentes do produto</h3>
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
@@ -426,7 +430,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BDB9B1' }}
             >
-              <Icons.trash />
+              <Trash2 size={16} />
             </button>
           </div>
         ))}
@@ -443,7 +447,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               {rendimentoErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{rendimentoErro}</span>}
             </div>
             {mostrarBotaoCatalogo && (
-              <Button variant="primary" iconRight={!salvandoCatalogo ? <Icons.arrowRight /> : undefined} onClick={onCriarCatalogo} disabled={botaoCatalogoDisabled}>
+              <Button variant="primary" iconRight={!salvandoCatalogo ? <ArrowRight size={17} /> : undefined} onClick={onCriarCatalogo} disabled={botaoCatalogoDisabled}>
                 {salvandoCatalogo
                   ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />Criando…</span>
                   : 'Criar produto catálogo'
@@ -557,12 +561,12 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
       <div style={{ background: '#fff', border: '1.5px solid rgba(42,157,143,0.3)', borderRadius: 'var(--r-card)', boxShadow: '0 8px 26px -12px rgba(42,157,143,0.4)', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '16px 20px', background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.04))', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: '#fff', color: '#2A9D8F', boxShadow: '0 3px 10px -3px rgba(42,157,143,0.4)' }}>
-            <Icons.calc />
+            <Calculator size={20} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#1F7A6F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Calculadora de Custo</div>
             <div style={{ fontSize: 11.5, color: '#2A9D8F', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-              <Icons.sparkles width={12} height={12} /> Atualiza em tempo real
+              <Sparkles size={12} /> Atualiza em tempo real
             </div>
           </div>
         </div>
@@ -644,7 +648,7 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
               </div>
               {manual && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '11px 13px', borderRadius: 11, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                  <Icons.info style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
+                  <Info size={15} style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
                   <p style={{ margin: 0, fontSize: 12.3, color: '#7A5A33', lineHeight: 1.5 }}>
                     Você ajustou o preço manualmente (<strong style={{ fontWeight: 700 }}>{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
                   </p>
@@ -671,7 +675,7 @@ function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boole
           background: permitir ? '#2A9D8F' : '#fff',
           display: 'grid', placeItems: 'center', transition: 'background .15s, border-color .15s',
         }}>
-          {permitir && <Icons.check style={{ color: '#fff', width: 14, height: 14 }} />}
+          {permitir && <Check size={14} style={{ color: '#fff' }} />}
         </span>
         <span>
           <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Permitir estoque negativo</span>
@@ -683,7 +687,7 @@ function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boole
       {erro && (
         <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: '#FEF2F2', border: '1px solid #FECACA' }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#DC2626', boxShadow: '0 4px 12px -4px rgba(220,38,38,0.25)' }}>
-            <Icons.alertTriangle />
+            <AlertTriangle size={20} />
           </span>
           <p style={{ margin: 0, fontSize: 13.5, fontWeight: 'normal', color: '#DC2626', lineHeight: 1.5 }}>{erro}</p>
         </div>
@@ -867,8 +871,8 @@ export default function CadastrarProdutoPage() {
   }
 
   const ABAS = [
-    { id: 'dados' as const, label: 'Dados básicos',  icon: Icons.fileText },
-    { id: 'ficha' as const, label: 'Ficha Técnica',  icon: Icons.layers },
+    { id: 'dados' as const, label: 'Dados básicos',  icon: FileText },
+    { id: 'ficha' as const, label: 'Ficha Técnica',  icon: Layers },
   ]
 
   return (
@@ -881,7 +885,7 @@ export default function CadastrarProdutoPage() {
           onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
           onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
         >Produtos</span>
-        <Icons.chevron style={{ color: '#CFCBC3' }} />
+        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
         <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>
           {editando ? dados.nome || 'Editar Produto' : 'Novo Produto'}
         </span>
@@ -890,7 +894,7 @@ export default function CadastrarProdutoPage() {
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
         <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-          {editando ? <Icons.edit width={26} height={26} /> : <Icons.cube width={26} height={26} />}
+          {editando ? <Pencil size={26} /> : <Box size={26} />}
         </span>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F', whiteSpace: 'nowrap' }}>
           {editando ? 'Editar Produto' : 'Novo Produto'}

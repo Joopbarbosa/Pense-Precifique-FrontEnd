@@ -4,7 +4,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import SectionTitle from '../../components/shared/SectionTitle'
-import { Icons } from '../../components/ui/Icons'
+import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
 import { insumoService } from '../../services/insumoService'
 import type { InsumoRequest, NovoInsumoRequest } from '../../types/insumo'
 
@@ -35,9 +35,9 @@ function Field({ label, opt, hint, erro, children }: { label: string; opt?: bool
 
 function DesativarModal({ onClose }: { onClose: () => void }) {
   const fichas = [
-    { nome: 'Kit Convite Casamento', tipo: 'Produto', icon: Icons.cubeSmall },
-    { nome: 'Etiqueta personalizada', tipo: 'Produto', icon: Icons.cubeSmall },
-    { nome: 'Laminação fosca', tipo: 'Customização', icon: Icons.tag },
+    { nome: 'Kit Convite Casamento', tipo: 'Produto', icon: Box, size: 16 },
+    { nome: 'Etiqueta personalizada', tipo: 'Produto', icon: Box, size: 16 },
+    { nome: 'Laminação fosca', tipo: 'Customização', icon: Tag, size: 17 },
   ]
 
   return (
@@ -45,7 +45,7 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
       open
       onClose={onClose}
       title="Atenção — este insumo está em uso"
-      icon={<Icons.alertCircle />}
+      icon={<AlertCircle size={15} />}
       iconBg="#FFF4E8"
       iconColor="#C8721F"
       footer={
@@ -63,7 +63,7 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
         {fichas.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 11, background: '#FCFBF9', border: '1px solid #EFEDE8' }}>
             <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-              <f.icon />
+              <f.icon size={f.size} />
             </span>
             <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{f.nome}</span>
             <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7C786F', background: '#F1F0EC', padding: '3px 9px', borderRadius: 999 }}>{f.tipo}</span>
@@ -248,7 +248,7 @@ export default function FormInsumoPage() {
           >
             Insumos
           </span>
-          <Icons.chevron style={{ color: '#CFCBC3' }} />
+          <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
           <span style={{ color: '#5C594F', fontWeight: 600 }}>{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
         </div>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>
@@ -271,7 +271,7 @@ export default function FormInsumoPage() {
             </Field>
           </div>
           <div style={{ display: 'flex', gap: 9, marginTop: 14, padding: '11px 13px', borderRadius: 11, background: 'rgba(42,157,143,0.05)', border: '1px solid rgba(42,157,143,0.15)' }}>
-            <Icons.info style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
+            <Info size={15} style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
             <p style={{ margin: 0, fontSize: 12.3, color: '#5C594F', lineHeight: 1.5 }}>
               O par <strong style={{ fontWeight: 600 }}>nome + marca</strong> deve ser único. O mesmo insumo de marcas diferentes pode ser cadastrado separadamente.
             </p>
@@ -290,7 +290,7 @@ export default function FormInsumoPage() {
                   cursor: 'pointer', textAlign: 'left',
                 }}>
                   {unidade}
-                  <span style={{ color: '#A29E96', display: 'flex' }}><Icons.caret /></span>
+                  <span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
                 </button>
                 {unidadeOpen && (
                   <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
@@ -391,7 +391,7 @@ export default function FormInsumoPage() {
           {(editando || custoUnit != null) && (
             <div key={custoFmt} style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.05))', border: '1.5px solid rgba(42,157,143,0.25)', animation: custoUnit != null ? 'flash .6s ease' : 'none' }}>
               <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#2A9D8F', boxShadow: '0 4px 12px -4px rgba(31,122,111,0.3)' }}>
-                <Icons.calc />
+                <Calculator size={20} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Custo unitário calculado</div>
@@ -419,7 +419,7 @@ export default function FormInsumoPage() {
               background: permitirEstoqueNegativo ? '#2A9D8F' : '#fff',
               display: 'grid', placeItems: 'center', transition: 'background .15s, border-color .15s',
             }}>
-              {permitirEstoqueNegativo && <Icons.check style={{ color: '#fff', width: 14, height: 14 }} />}
+              {permitirEstoqueNegativo && <Check size={14} style={{ color: '#fff' }} />}
             </span>
             <span>
               <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Permitir estoque negativo</span>
@@ -431,7 +431,7 @@ export default function FormInsumoPage() {
           {estoqueNegativoErro && (
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 15, padding: '18px 20px', borderRadius: 14, background: '#FEF2F2', border: '1px solid #FECACA' }}>
               <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 48, height: 48, borderRadius: 13, background: '#fff', color: '#DC2626', boxShadow: '0 4px 12px -4px rgba(220,38,38,0.25)' }}>
-                <Icons.alertTriangle />
+                <AlertTriangle size={20} />
               </span>
               <p style={{ margin: 0, fontSize: 13.5, fontWeight: 'normal', color: '#DC2626', lineHeight: 1.5 }}>{estoqueNegativoErro}</p>
             </div>
@@ -447,7 +447,7 @@ export default function FormInsumoPage() {
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
             <Button variant="ghost" onClick={() => navigate('/insumos')}>Cancelar</Button>
-            <Button variant="primary" icon={<Icons.save />} disabled={loading || !podeSubmeter} onClick={handleSubmit}>
+            <Button variant="primary" icon={<Save size={16} />} disabled={loading || !podeSubmeter} onClick={handleSubmit}>
               {loading ? 'Salvando…' : 'Salvar insumo'}
             </Button>
           </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card } from '../../components/ui/Card'
-import { Icons } from '../../components/ui/Icons'
 import { Button } from '../../components/ui'
+import { Box, Factory, FileText, ArrowRight, DollarSign, Files, AlertTriangle } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { dashboardService } from '../../services/dashboardService'
 import { produtoService } from '../../services/produtoService'
@@ -69,10 +69,10 @@ const ORANGE = '#F97316'
 const TEAL   = '#2A9D8F'
 
 const ACOES_RAPIDAS = [
-  { label: 'Cadastrar insumo',  icon: <Icons.box />,     rota: '/insumos/novo'    },
-  { label: 'Cadastrar produto', icon: <Icons.cube />,    rota: '/produtos/novo'   },
-  { label: 'Lançar produção',   icon: <Icons.factory />, rota: '/producao'        },
-  { label: 'Criar orçamento',   icon: <Icons.doc />,     rota: '/orcamentos/novo' },
+  { label: 'Cadastrar insumo',  icon: <Box size={20} />,      rota: '/insumos/novo'    },
+  { label: 'Cadastrar produto', icon: <Box size={20} />,      rota: '/produtos/novo'   },
+  { label: 'Lançar produção',   icon: <Factory size={20} />,  rota: '/producao'        },
+  { label: 'Criar orçamento',   icon: <FileText size={20} />, rota: '/orcamentos/novo' },
 ]
 
 // ── DashboardPage ──────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ export default function DashboardPage() {
         </div>
         <Button
           variant="primary"
-          iconRight={<Icons.arrowRight />}
+          iconRight={<ArrowRight size={17} />}
           onClick={() => navigate('/orcamentos/novo')}
         >
           Novo Orçamento
@@ -141,7 +141,7 @@ export default function DashboardPage() {
       {/* Metrics */}
       <div className="metrics">
         <MetricCard
-          icon={<Icons.dollar />}
+          icon={<DollarSign size={22} />}
           iconBg={hexA(ORANGE, 0.12)} iconColor={ORANGE}
           label="Faturamento do Mês"
           value={loading ? '—' : fmtBRL(data?.receitaMes ?? 0)}
@@ -149,7 +149,7 @@ export default function DashboardPage() {
           sub={!loading && (data?.receitaMes ?? 0) === 0 ? 'Sem receita este mês' : undefined}
         />
         <MetricCard
-          icon={<Icons.cube />}
+          icon={<Box size={20} />}
           iconBg={hexA(TEAL, 0.12)} iconColor={TEAL}
           label="Produtos Cadastrados"
           value={loading ? '—' : String(produtosCadastrados)}
@@ -157,7 +157,7 @@ export default function DashboardPage() {
           sub={!loading && produtosCadastrados === 0 ? 'Nenhum produto ainda' : undefined}
         />
         <MetricCard
-          icon={<Icons.fileStack />}
+          icon={<Files size={22} />}
           iconBg="#F1F0EC" iconColor="#7C786F"
           label="Orçamentos Pendentes"
           value={loading ? '—' : String(data?.orcamentosPendentes ?? 0)}
@@ -186,7 +186,7 @@ export default function DashboardPage() {
               width: 40, height: 40, borderRadius: 11,
               background: hexA(ORANGE, 0.12), color: ORANGE, marginTop: 1,
             }}>
-              <Icons.alertTriangle />
+              <AlertTriangle size={20} />
             </span>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: '#2D2A26' }}>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
               onMouseOver={(e) => { e.currentTarget.style.textDecoration = 'underline' }}
               onMouseOut={(e) => { e.currentTarget.style.textDecoration = 'none' }}
             >
-              Ver todos os insumos <Icons.arrowRight />
+              Ver todos os insumos <ArrowRight size={17} />
             </button>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                 width: 42, height: 42, borderRadius: 12,
                 background: hexA(TEAL, 0.12), color: TEAL,
               }}>
-                <Icons.fileStack />
+                <Files size={22} />
               </span>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Orçamentos Recentes</div>
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                 width: 42, height: 42, borderRadius: 12,
                 background: hexA(ORANGE, 0.12), color: ORANGE,
               }}>
-                <Icons.cube />
+                <Box size={20} />
               </span>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#2D2A26' }}>Mais Vendidos</div>
@@ -381,7 +381,7 @@ export default function DashboardPage() {
                   {acao.label}
                 </span>
                 <span style={{ color: '#B7B4AD', display: 'flex' }}>
-                  <Icons.arrowRight />
+                  <ArrowRight size={17} />
                 </span>
               </button>
             ))}

@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ModalShell from '../../components/ui/ModalShell'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Icons } from '../../components/ui/Icons'
+import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
@@ -21,8 +21,8 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
   onRemover: () => void
 }) {
   const menuItems: ActionMenuItem[] = [
-    { label: 'Editar',  icon: <Icons.edit />,  onClick: onEditar },
-    { label: 'Remover', icon: <Icons.trash />, onClick: onRemover, danger: true, dividerBefore: true },
+    { label: 'Editar',  icon: <Pencil size={16} />, onClick: onEditar },
+    { label: 'Remover', icon: <Trash2 size={16} />, onClick: onRemover, danger: true, dividerBefore: true },
   ]
 
   return (
@@ -31,7 +31,7 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
       <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-        <Icons.box width={20} height={20} />
+        <Box size={20} />
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
@@ -40,7 +40,7 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
             const diff = item.precoVenda - item.precoSugerido
             return (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#C8721F', background: '#FFF1E8', padding: '2px 9px', borderRadius: 999 }}>
-                <Icons.info width={12} height={12} />
+                <Info size={12} />
                 {diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))} {diff > 0 ? 'acima' : 'abaixo'} do sugerido
               </span>
             )
@@ -154,14 +154,14 @@ export default function DetalheCatalogoPage() {
           onMouseEnter={e => (e.currentTarget.style.color = '#2A9D8F')}
           onMouseLeave={e => (e.currentTarget.style.color = '#A29E96')}
         >Catálogos</span>
-        <Icons.chevron style={{ color: '#CFCBC3' }} />
+        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
         <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{catalogo.nome}</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15, minWidth: 0, flex: '1 1 auto' }}>
           <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-            <Icons.fileStack width={26} height={26} />
+            <Files size={26} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -207,7 +207,7 @@ export default function DetalheCatalogoPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 26, marginBottom: 12 }}>
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#3A372F' }}>Itens do catálogo</h2>
-        <Button variant="primary" icon={<Icons.plus />} onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)}>
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)}>
           Adicionar item
         </Button>
       </div>
@@ -215,10 +215,10 @@ export default function DetalheCatalogoPage() {
       <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
         {itens.length === 0 ? (
           <EmptyState
-            icon={<Icons.box />}
+            icon={<Box size={20} />}
             title="Nenhum item neste catálogo ainda"
             description="Adicione produtos para compor este catálogo com a margem definida."
-            action={{ label: 'Adicionar item', icon: <Icons.plus />, onClick: () => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`) }}
+            action={{ label: 'Adicionar item', icon: <Plus size={16} />, onClick: () => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`) }}
           />
         ) : (
           itens.map(item => (
@@ -237,7 +237,7 @@ export default function DetalheCatalogoPage() {
         open={!!itemParaRemover}
         onClose={() => setItemParaRemover(null)}
         title={`Remover "${itemParaRemover?.produtoNome}"?`}
-        icon={<Icons.trash />}
+        icon={<Trash2 size={16} />}
         iconBg="rgba(192,73,43,0.10)"
         iconColor="#C0492B"
         width={440}

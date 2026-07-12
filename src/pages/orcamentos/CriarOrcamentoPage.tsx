@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons, Button, ModalShell } from '../../components/ui'
+import { Button, ModalShell } from '../../components/ui'
+import {
+  Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle,
+  Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus,
+} from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
 import { orcamentoService } from '../../services/orcamentoService'
@@ -121,7 +125,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15.5, fontWeight: 600, color: '#3A372F' }}>{cliente.nome}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: '#5C594F', marginTop: 2 }}>
-              <Icons.phone style={{ color: '#2A9D8F' }} /> {cliente.whatsapp || 'Sem telefone'}
+              <Phone size={16} style={{ color: '#2A9D8F' }} /> {cliente.whatsapp || 'Sem telefone'}
             </div>
           </div>
           <button onClick={onClear} style={{
@@ -139,7 +143,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
     <div style={{ padding: '14px 20px 20px' }}>
       <div ref={wrapRef} style={{ position: 'relative' }}>
         <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-          <Icons.search />
+          <Search size={18} />
         </span>
         <input
           value={q}
@@ -249,7 +253,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
                 display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px',
                 borderRadius: 999, fontSize: 11.5, fontWeight: 600, color: origemColor, background: origemBg,
               }}>
-                {item.itemCatalogoId ? <Icons.layers width={11} height={11} /> : <Icons.cube width={11} height={11} />}
+                {item.itemCatalogoId ? <Layers size={11} /> : <Box size={11} />}
                 {origemLabel}
               </span>
             )}
@@ -269,7 +273,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
           onMouseEnter={e => { e.currentTarget.style.background = '#FCF1ED'; e.currentTarget.style.color = '#C0492B' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#B7B4AD' }}
         >
-          <Icons.trash />
+          <Trash2 size={16} />
         </button>
       </div>
 
@@ -281,14 +285,14 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
           color: item.customs.length ? '#A35A26' : '#5C594F',
           fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
         }}>
-          <Icons.sliders /> Customizações{item.customs.length ? ` (${item.customs.length})` : ''}
+          <SlidersHorizontal size={15} /> Customizações{item.customs.length ? ` (${item.customs.length})` : ''}
         </button>
         {item.customs.map((c, k) => (
           <span key={k} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 11px',
             borderRadius: 999, background: '#fff', border: '1px solid #EFEDE8', fontSize: 12.5, color: '#6B6860',
           }}>
-            <Icons.tag style={{ color: '#F97316' }} />
+            <Tag size={17} style={{ color: '#F97316' }} />
             {c.nome} <strong style={{ fontWeight: 600, color: '#A35A26' }}>+{BRL(c.valor)}/un</strong>
           </span>
         ))}
@@ -352,7 +356,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
       onClose={onClose}
       title={item.nome}
       subtitle="Customizações"
-      icon={<Icons.sliders width={20} height={20} />}
+      icon={<SlidersHorizontal size={20} />}
       iconBg="rgba(249,115,22,0.10)"
       iconColor="#F97316"
       footer={
@@ -367,7 +371,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
       {/* Campo de busca */}
       <div style={{ position: 'relative', marginBottom: 14 }}>
         <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-          <Icons.search width={16} height={16} />
+          <Search size={16} />
         </span>
         <input
           value={busca}
@@ -532,7 +536,7 @@ function PrazoSection({
       </div>
       {error && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#C0492B' }}>
-          <Icons.alertCircle width={13} height={13} />
+          <AlertCircle size={13} />
           {error}
         </div>
       )}
@@ -573,7 +577,7 @@ function PrazoSection({
         <div style={{ animation: 'fadeUp .2s ease both' }}>
           <label style={{ display: 'block' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-              <Icons.calendar style={{ color: '#2A9D8F' }} /> Data estimada de início
+              <Calendar size={16} style={{ color: '#2A9D8F' }} /> Data estimada de início
             </span>
             <input
               type="date"
@@ -631,7 +635,7 @@ function PagamentoSection({
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <span style={{ display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-            <Icons.wallet />
+            <Wallet size={18} />
           </span>
           <div>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Método de pagamento</div>
@@ -688,7 +692,7 @@ function PagamentoSection({
               />
               {obsCharCount > 0 && obsCharCount < 50 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 13, color: '#C0492B' }}>
-                  <Icons.alertCircle width={13} height={13} />
+                  <AlertCircle size={13} />
                   Mínimo de 50 caracteres. Faltam {50 - obsCharCount}.
                 </div>
               )}
@@ -705,7 +709,7 @@ function PagamentoSection({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-              <Icons.dollar />
+              <DollarSign size={22} />
             </span>
             <div>
               <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>Cobrar entrada (sinal)?</div>
@@ -759,7 +763,7 @@ function PagamentoSection({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(42,157,143,0.06)', border: '1px dashed rgba(42,157,143,0.35)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#2A9D8F' }}>
-                  <Icons.wallet width={15} height={15} /> Sinal solicitado
+                  <Wallet size={15} /> Sinal solicitado
                 </span>
                 <span style={{ fontSize: 15, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums' }}>
                   {BRL(sinalAplicado)}
@@ -803,7 +807,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
     <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #EFEDE8', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 9, background: 'rgba(42,157,143,0.12)', color: '#2A9D8F' }}>
-          <Icons.doc />
+          <FileText size={20} />
         </span>
         <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#3A372F' }}>Resumo do orçamento</h2>
       </div>
@@ -855,7 +859,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: -2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(42,157,143,0.06)', border: '1px dashed rgba(42,157,143,0.35)' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#2A9D8F' }}>
-                <Icons.wallet width={15} height={15} /> Sinal solicitado
+                <Wallet size={15} /> Sinal solicitado
               </span>
               <span style={{ fontSize: 15, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums' }}>{BRL(sinalAplicado)}</span>
             </div>
@@ -868,7 +872,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
 
         <label style={{ display: 'block' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 6, whiteSpace: 'nowrap' }}>
-            <Icons.calendar style={{ color: '#2A9D8F' }} /> Validade do orçamento
+            <Calendar size={16} style={{ color: '#2A9D8F' }} /> Validade do orçamento
           </span>
           <input
             type="date" value={validade}
@@ -886,7 +890,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
 
         <label style={{ display: 'block' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 6 }}>
-            <Icons.note /> Observações
+            <StickyNote size={15} /> Observações
           </span>
           <textarea
             value={obs} onChange={e => setObs(e.target.value)}
@@ -1039,7 +1043,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
               ))}
             </select>
             <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', pointerEvents: 'none' }}>
-              <Icons.filter width={14} height={14} />
+              <Filter size={14} />
             </span>
           </div>
         )}
@@ -1063,7 +1067,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F', flexShrink: 0 }}>
-                  <Icons.layers width={16} height={16} />
+                  <Layers size={16} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nomeProduto}</div>
@@ -1089,7 +1093,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 8, background: '#F1F0EC', color: '#8A8780', flexShrink: 0 }}>
-                  <Icons.cube width={16} height={16} />
+                  <Box size={16} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
@@ -1154,7 +1158,7 @@ function ModalMargemAvulso({ produto, margemPadrao, onClose, onConfirm }: {
       onClose={onClose}
       title={produto.nome}
       subtitle="Adicionar produto avulso"
-      icon={<Icons.cube width={20} height={20} />}
+      icon={<Box size={20} />}
       iconBg="rgba(42,157,143,0.10)"
       iconColor="#2A9D8F"
       footer={
@@ -1192,7 +1196,7 @@ function ModalMargemAvulso({ produto, margemPadrao, onClose, onConfirm }: {
 
         {erro && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#C0492B' }}>
-            <Icons.alertCircle width={13} height={13} /> {erro}
+            <AlertCircle size={13} /> {erro}
           </div>
         )}
 
@@ -1402,7 +1406,7 @@ export default function CriarOrcamentoPage() {
               {items.length === 0 ? (
                 <div style={{ margin: '4px 20px 20px', padding: '40px 24px', textAlign: 'center', border: '1.5px dashed #EFEDE8', borderRadius: 14, background: '#FCFBF9' }}>
                   <span style={{ display: 'inline-grid', placeItems: 'center', width: 64, height: 64, borderRadius: '50%', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F', marginBottom: 14 }}>
-                    <Icons.cart />
+                    <ShoppingCart size={17} />
                   </span>
                   <div style={{ fontSize: 15.5, fontWeight: 600, color: '#3A372F' }}>Nenhum produto adicionado</div>
                   <p style={{ margin: '6px 0 0', fontSize: 13.5, color: '#A29E96' }}>Comece pelo botão abaixo.</p>
@@ -1430,7 +1434,7 @@ export default function CriarOrcamentoPage() {
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(42,157,143,0.10)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(42,157,143,0.05)')}
                 >
-                  <Icons.plus /> Adicionar item
+                  <Plus size={16} /> Adicionar item
                 </button>
                 <ItemSearch
                   open={productOpen}

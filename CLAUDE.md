@@ -11,7 +11,7 @@
 
 React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 **Estilo:** CSS inline + classes utilitárias em `src/index.css` — sem Tailwind
-**Ícones:** sempre em `src/components/ui/Icons.tsx` — nunca redefinir inline
+**Ícones:** sempre via Lucide React (`import { X } from 'lucide-react'`). Nunca criar SVG manual inline. Nunca recriar ícone fora do Lucide.
 **localhost:** `http://localhost:3000` (Docker) / `http://localhost:5173` (dev direto)
 **Conta de teste:** `penseprecifique@admin.com` / `senha12345`
 

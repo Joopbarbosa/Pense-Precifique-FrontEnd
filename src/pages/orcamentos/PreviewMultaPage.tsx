@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons, Logo, Button } from '../../components/ui'
+import { Logo, Button } from '../../components/ui'
+import { Mail, Phone, AlertCircle, Ban, Box, Wallet, FileText, ChevronRight, ArrowLeft, Download } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { orcamentoService } from '../../services/orcamentoService'
 import { empresaService } from '../../services/empresaService'
@@ -75,12 +76,12 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
               {empresa?.email && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                  <Mail size={13} style={{ color: TEAL }} /> {empresa.email}
                 </span>
               )}
               {empresa?.whatsapp && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                  <Phone size={13} style={{ color: TEAL }} /> {empresa.whatsapp}
                 </span>
               )}
             </div>
@@ -96,7 +97,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
       <div style={{ marginTop: 26, padding: '20px 22px', borderRadius: 12, background: DANGER_SOFT, border: `1px solid ${DANGER_LINE}`, borderLeft: `4px solid ${DANGER}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 44, height: 44, borderRadius: 12, background: '#fff', color: DANGER, border: `1px solid ${DANGER_LINE}` }}>
-            <Icons.alertCircle width={24} height={24} />
+            <AlertCircle size={24} />
           </span>
           <div>
             <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: DANGER, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
@@ -132,7 +133,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
 
       {/* DETALHES DO CANCELAMENTO */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.ban />} color={DANGER}>Detalhes do cancelamento</DocSectionTitle>
+        <DocSectionTitle icon={<Ban size={16} />} color={DANGER}>Detalhes do cancelamento</DocSectionTitle>
         <div style={{ border: '1px solid #F0EEE9', borderRadius: 12, overflow: 'hidden' }}>
           {[
             { k: 'Valor total do orçamento original', v: BRL(orcamento.total) },
@@ -145,7 +146,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, padding: '15px 16px', background: DANGER_SOFT }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: DANGER }}>
-              <Icons.alertCircle width={16} height={16} /> Valor da multa
+              <AlertCircle size={16} /> Valor da multa
             </span>
             <span style={{ fontSize: 22, fontWeight: 700, color: DANGER, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}>
               {BRL(valorMulta)}
@@ -156,7 +157,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
 
       {/* ITENS DO PEDIDO */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.box width={15} height={15} />}>Itens do pedido</DocSectionTitle>
+        <DocSectionTitle icon={<Box size={15} />}>Itens do pedido</DocSectionTitle>
         <table className="a4-table">
           <thead>
             <tr>
@@ -183,7 +184,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
 
       {/* INSTRUÇÃO DE PAGAMENTO */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.wallet width={15} height={15} />}>Instrução de pagamento</DocSectionTitle>
+        <DocSectionTitle icon={<Wallet size={15} />}>Instrução de pagamento</DocSectionTitle>
         <div style={{ padding: '16px 18px', borderRadius: 12, background: '#FBFAF8', border: '1px solid #F0EEE9' }}>
           <p style={{ margin: 0, fontSize: 13.5, color: '#3A372F', lineHeight: 1.65 }}>
             O valor de <strong style={{ fontWeight: 700, color: DANGER }}>{BRL(valorMulta)}</strong> referente à multa por cancelamento deve ser pago em prazo acordado entre as partes.{' '}
@@ -195,7 +196,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
       {/* RODAPÉ */}
       <div style={{ marginTop: 'auto', paddingTop: 30 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 18, borderTop: '1px solid #F0EEE9', fontSize: 11.5, color: '#9A968E', flexWrap: 'wrap' }}>
-          <Icons.doc width={15} height={15} style={{ color: TEAL, flexShrink: 0 }} />
+          <FileText size={15} style={{ color: TEAL, flexShrink: 0 }} />
           Este documento foi gerado pelo sistema
           <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>Pense &amp; Precifique</strong>
           em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{emissao}</strong>.
@@ -299,7 +300,7 @@ export default function PreviewMultaPage() {
                   >
                     {label}
                   </button>
-                  <Icons.chevron style={{ color: '#CFCBC3', flexShrink: 0 }} />
+                  <ChevronRight size={15} style={{ color: '#CFCBC3', flexShrink: 0 }} />
                 </span>
               ))}
               <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>PDF de Multa</span>
@@ -316,10 +317,10 @@ export default function PreviewMultaPage() {
 
           {/* Botões */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="ghost" icon={<Icons.back />} onClick={() => navigate(`/orcamentos/${id}`)}>
+            <Button variant="ghost" icon={<ArrowLeft size={17} />} onClick={() => navigate(`/orcamentos/${id}`)}>
               Voltar ao orçamento
             </Button>
-            <Button variant="secondary" icon={<Icons.download />} onClick={handleDownload}>
+            <Button variant="secondary" icon={<Download size={17} />} onClick={handleDownload}>
               Baixar PDF
             </Button>
           </div>

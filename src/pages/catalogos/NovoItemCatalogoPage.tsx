@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
-import { Icons } from '../../components/ui/Icons'
+import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
@@ -95,7 +95,7 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: f ? '#2A9D8F' : '#A29E96', display: 'flex' }}>
-        <Icons.search width={16} height={16} />
+        <Search size={16} />
       </span>
       <input
         value={q}
@@ -356,14 +356,14 @@ export default function NovoItemCatalogoPage() {
           onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
           onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
         >{catalogoInfo ? catalogoInfo.nome : 'Catálogos'}</span>
-        <Icons.chevron style={{ color: '#CFCBC3' }} />
+        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
         <span style={{ color: '#5C594F', fontWeight: 600 }}>{isEdicao ? 'Editar Item' : 'Novo Item'}</span>
       </div>
 
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
         <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-          <Icons.fileStack width={26} height={26} />
+          <Files size={26} />
         </span>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>
           {isEdicao ? 'Editar Item de Catálogo' : 'Novo Item de Catálogo'}
@@ -379,7 +379,7 @@ export default function NovoItemCatalogoPage() {
           <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '22px 24px' }}>
             {catalogoInfo ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Icons.fileStack style={{ color: '#2A9D8F' }} width={18} height={18} />
+                <Files size={18} style={{ color: '#2A9D8F' }} />
                 <span style={{ fontSize: 14, color: '#5C594F' }}>
                   Adicionando item ao catálogo <strong style={{ color: '#3A372F', fontWeight: 700 }}>{catalogoInfo.nome}</strong>
                 </span>
@@ -419,7 +419,7 @@ export default function NovoItemCatalogoPage() {
                     <div style={{ fontSize: 12, color: '#A29E96' }}>{moeda(produto.precoCusto)} de custo</div>
                   </div>
                   <button onClick={() => { setProduto(null); produtoBloqueadoRef.current = null; setProdutoErro(null) }} aria-label="Trocar produto" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: 'none', background: 'transparent', color: '#BDB9B1', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-                    <Icons.x width={15} height={15} />
+                    <X size={15} />
                   </button>
                 </div>
               ) : (
@@ -434,7 +434,7 @@ export default function NovoItemCatalogoPage() {
             <Field label="Quantidade do pacote" required hint="Quantas unidades do produto compõem este item do catálogo.">
               <div style={{ position: 'relative', maxWidth: 160 }}>
                 <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-                  <Icons.box width={16} height={16} />
+                  <Box size={16} />
                 </span>
                 <input
                   value={quantidade}
@@ -452,7 +452,7 @@ export default function NovoItemCatalogoPage() {
           <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <div style={{ padding: '20px 24px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4 }}>
-                <Icons.sliders style={{ color: '#F97316' }} width={16} height={16} />
+                <SlidersHorizontal size={16} style={{ color: '#F97316' }} />
                 <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#3A372F' }}>Customizações anexadas</h3>
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#A29E96' }}>(opcional)</span>
               </div>
@@ -480,7 +480,7 @@ export default function NovoItemCatalogoPage() {
                       onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BDB9B1' }}
                       >
-                        <Icons.trash width={15} height={15} />
+                        <Trash2 size={15} />
                       </button>
                   </div>
                 ))}
@@ -510,7 +510,7 @@ export default function NovoItemCatalogoPage() {
           <div style={{ background: '#fff', border: '1.5px solid rgba(42,157,143,0.3)', borderRadius: 'var(--r-card)', boxShadow: '0 8px 26px -12px rgba(42,157,143,0.4)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '16px 20px', background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.04))', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
               <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: '#fff', color: '#2A9D8F', boxShadow: '0 3px 10px -3px rgba(42,157,143,0.4)' }}>
-                <Icons.calc />
+                <Calculator size={20} />
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#1F7A6F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Preço do item</div>
@@ -562,7 +562,7 @@ export default function NovoItemCatalogoPage() {
                 const diff = num(precoVenda) - precoSugerido
                 return (
                   <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '11px 13px', borderRadius: 11, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                    <Icons.info style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
+                    <Info size={15} style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
                     <p style={{ margin: 0, fontSize: 12.3, color: '#7A5A33', lineHeight: 1.5 }}>
                       Você ajustou o preço manualmente (<strong style={{ fontWeight: 700 }}>{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
                     </p>

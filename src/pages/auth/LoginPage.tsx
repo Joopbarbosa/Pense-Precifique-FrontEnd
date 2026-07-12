@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Logo, Wordmark, Icons, Button, Input, Spinner } from '../../components/ui'
+import { Logo, Wordmark, Button, Input, Spinner } from '../../components/ui'
+import { AlertCircle, Mail, Lock } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { useAuthStore } from '../../store/authStore'
 
@@ -165,7 +166,7 @@ export default function LoginPage() {
               marginBottom: 18, fontSize: 13.5, lineHeight: 1.45,
               animation: 'shake .45s ease',
             }}>
-              <Icons.alertCircle width={18} height={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
+              <AlertCircle size={18} style={{ color: '#D9603C', flexShrink: 0, marginTop: 1 }} />
               <span>{authError}</span>
             </div>
           )}
@@ -178,7 +179,7 @@ export default function LoginPage() {
               placeholder="seuemail@email.com"
               value={email}
               onChange={setEmail}
-              icon={<Icons.mail />}
+              icon={<Mail size={18} />}
               error={emailErr}
               autoComplete="email"
             />
@@ -189,7 +190,7 @@ export default function LoginPage() {
               placeholder="Sua senha"
               value={senha}
               onChange={setSenha}
-              icon={<Icons.lock />}
+              icon={<Lock size={18} />}
               error={senhaErr}
               autoComplete="current-password"
             />

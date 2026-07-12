@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
-import { Icons } from '../../components/ui/Icons'
+import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
@@ -60,8 +60,8 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
   onBaixarPdf: (() => void) | null
 }) {
   const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Icons.externalLink />, onClick: onVerDetalhes },
-    ...(onBaixarPdf ? [{ label: 'Baixar PDF', icon: <Icons.download />, onClick: onBaixarPdf }] : []),
+    { label: 'Ver detalhes', icon: <ExternalLink size={14} />, onClick: onVerDetalhes },
+    ...(onBaixarPdf ? [{ label: 'Baixar PDF', icon: <Download size={17} />, onClick: onBaixarPdf }] : []),
   ]
 
   return (
@@ -99,8 +99,8 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
   onBaixarPdf: (() => void) | null
 }) {
   const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Icons.externalLink />, onClick: onVerDetalhes },
-    ...(onBaixarPdf ? [{ label: 'Baixar PDF', icon: <Icons.download />, onClick: onBaixarPdf }] : []),
+    { label: 'Ver detalhes', icon: <ExternalLink size={14} />, onClick: onVerDetalhes },
+    ...(onBaixarPdf ? [{ label: 'Baixar PDF', icon: <Download size={17} />, onClick: onBaixarPdf }] : []),
   ]
 
   return (
@@ -232,7 +232,7 @@ export default function ListaOrcamentosPage() {
           <h1 style={{ margin: 0, fontSize: 29, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>Orçamentos</h1>
           <p style={{ margin: '7px 0 0', fontSize: 14.5, color: '#A29E96' }}>Acompanhe e gerencie todos os seus orçamentos.</p>
         </div>
-        <Button variant="primary" icon={<Icons.plus />} onClick={() => navigate('/orcamentos/novo')}>
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/orcamentos/novo')}>
           Novo Orçamento
         </Button>
       </div>
@@ -249,10 +249,10 @@ export default function ListaOrcamentosPage() {
         </div>
       ) : globalEmpty ? (
         <EmptyState
-          icon={<Icons.filter />}
+          icon={<Filter size={20} />}
           title="Você ainda não tem orçamentos"
           description="Que tal criar o primeiro? Leva poucos minutos e já sai com o preço certo."
-          action={{ label: 'Criar primeiro orçamento', icon: <Icons.plus />, onClick: () => navigate('/orcamentos/novo') }}
+          action={{ label: 'Criar primeiro orçamento', icon: <Plus size={16} />, onClick: () => navigate('/orcamentos/novo') }}
         />
       ) : (
         <>
@@ -284,7 +284,7 @@ export default function ListaOrcamentosPage() {
               {/* Campo de busca */}
               <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
                 <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-                  <Icons.search />
+                  <Search size={18} />
                 </span>
                 <input
                   value={query}
@@ -315,7 +315,7 @@ export default function ListaOrcamentosPage() {
                   fontFamily: 'inherit', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
                 }}>
-                  <Icons.calendar style={{ color: '#2A9D8F' }} />
+                  <Calendar size={16} style={{ color: '#2A9D8F' }} />
                   {periodLabel}
                   <span style={{ color: periodActive ? '#2A9D8F' : '#B7B4AD', fontSize: 12 }}>▾</span>
                 </button>

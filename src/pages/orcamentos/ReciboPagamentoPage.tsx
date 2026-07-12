@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons, Logo } from '../../components/ui'
+import { Logo } from '../../components/ui'
+import { Mail, Phone, BadgeCheck, Check, ShoppingBag, ChevronRight, ArrowLeft, Download } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { orcamentoService } from '../../services/orcamentoService'
 import { empresaService } from '../../services/empresaService'
@@ -78,12 +79,12 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
               {empresa?.email && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                  <Mail size={13} style={{ color: TEAL }} /> {empresa.email}
                 </span>
               )}
               {empresa?.whatsapp && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                  <Phone size={13} style={{ color: TEAL }} /> {empresa.whatsapp}
                 </span>
               )}
             </div>
@@ -99,7 +100,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
       <div style={{ marginTop: 26, padding: '20px 22px', borderRadius: 12, background: GREEN_SOFT, border: `1px solid ${GREEN_LINE}`, borderLeft: `4px solid ${GREEN}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 44, height: 44, borderRadius: 12, background: '#fff', color: GREEN, border: `1px solid ${GREEN_LINE}` }}>
-            <Icons.seal />
+            <BadgeCheck size={22} />
           </span>
           <div>
             <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: GREEN_DEEP, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
@@ -123,7 +124,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
       <div style={{ marginTop: 24, borderRadius: 14, border: `1.5px solid ${hexA(GREEN, 0.38)}`, background: hexA(GREEN, 0.05), overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', background: `linear-gradient(135deg, ${hexA(GREEN, 0.15)}, ${hexA(GREEN, 0.04)})`, borderBottom: `1px solid ${hexA(GREEN, 0.22)}` }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 9, background: '#fff', color: GREEN, boxShadow: `0 3px 9px -3px ${hexA(GREEN, 0.45)}` }}>
-            <Icons.check />
+            <Check size={14} />
           </span>
           <span style={{ fontSize: 15, fontWeight: 700, color: GREEN_DEEP, letterSpacing: '-0.005em' }}>Pedido quitado</span>
         </div>
@@ -131,7 +132,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
           <div style={{ flex: '1 1 220px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: GREEN_DEEP }}>
               <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: '50%', background: GREEN, color: '#fff' }}>
-                <Icons.check width={12} height={12} />
+                <Check size={12} />
               </span>
               Pagamento recebido em sua totalidade
             </div>
@@ -148,7 +149,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
 
       {/* DETALHES FINANCEIROS */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.bag />} color={GREEN}>Detalhes financeiros</DocSectionTitle>
+        <DocSectionTitle icon={<ShoppingBag size={15} />} color={GREEN}>Detalhes financeiros</DocSectionTitle>
         <table className="a4-table">
           <thead>
             <tr>
@@ -197,7 +198,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, padding: '11px 12px', marginTop: 4, borderRadius: 9, background: hexA(GREEN, 0.08), border: `1px dashed ${hexA(GREEN, 0.4)}` }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: GREEN_DEEP }}>
-                <Icons.check /> Saldo devedor
+                <Check size={14} /> Saldo devedor
               </span>
               <span style={{ fontWeight: 700, color: GREEN, fontVariantNumeric: 'tabular-nums' }}>{BRL(0)}</span>
             </div>
@@ -212,7 +213,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
       {/* RODAPÉ */}
       <div style={{ marginTop: 'auto', paddingTop: 30 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 18, borderTop: '1px solid #F0EEE9', fontSize: 11.5, color: '#9A968E', flexWrap: 'wrap', lineHeight: 1.6 }}>
-          <Icons.seal width={15} height={15} style={{ color: GREEN, flexShrink: 0 }} />
+          <BadgeCheck size={15} style={{ color: GREEN, flexShrink: 0 }} />
           Este recibo confirma a quitação total do pedido. Gerado pelo sistema
           <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>Pense &amp; Precifique</strong>
           em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{emissao}</strong>.
@@ -307,14 +308,14 @@ export default function ReciboPagamentoPage() {
                 onMouseEnter={e => (e.currentTarget.style.color = TEAL)}
                 onMouseLeave={e => (e.currentTarget.style.color = '#9A968E')}
               >Orçamentos</span>
-              <Icons.chevron style={{ color: '#CFCBC3', flexShrink: 0 }} />
+              <ChevronRight size={15} style={{ color: '#CFCBC3', flexShrink: 0 }} />
               <span
                 style={{ cursor: 'pointer', fontWeight: 500 }}
                 onClick={() => navigate(`/orcamentos/${id}`)}
                 onMouseEnter={e => (e.currentTarget.style.color = TEAL)}
                 onMouseLeave={e => (e.currentTarget.style.color = '#9A968E')}
               >Detalhe do orçamento</span>
-              <Icons.chevron style={{ color: '#CFCBC3', flexShrink: 0 }} />
+              <ChevronRight size={15} style={{ color: '#CFCBC3', flexShrink: 0 }} />
               <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>Recibo de Pagamento</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -334,12 +335,12 @@ export default function ReciboPagamentoPage() {
               onMouseEnter={e => (e.currentTarget.style.background = '#FAF8F5')}
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >
-              <Icons.back /> Voltar ao orçamento
+              <ArrowLeft size={17} /> Voltar ao orçamento
             </button>
             <button
               onClick={handleDownload}
               style={{ height: 44, padding: '0 18px', borderRadius: 10, border: 'none', background: TEAL, color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: `0 8px 18px -8px ${hexA(TEAL, 0.7)}` }}>
-              <Icons.download /> Baixar Recibo
+              <Download size={17} /> Baixar Recibo
             </button>
           </div>
         </div>

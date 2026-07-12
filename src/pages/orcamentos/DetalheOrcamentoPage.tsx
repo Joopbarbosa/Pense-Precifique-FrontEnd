@@ -3,7 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
-import { Icons } from "../../components/ui/Icons";
+import {
+  Check, Wallet, AlertCircle, Receipt, Ban, X, Calendar, Info, FileText,
+  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock,
+} from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
 import { useAuthStore } from "../../store/authStore";
@@ -159,7 +162,7 @@ function Timeline({ current }: { current: ApiStatus }) {
               }}
             >
               {done ? (
-                <Icons.check />
+                <Check size={14} />
               ) : active ? (
                 <span
                   style={{
@@ -236,7 +239,7 @@ function ModalSinal({
       onClose={onClose}
       title="Confirmar recebimento do sinal"
       subtitle="Aguardando Sinal"
-      icon={<Icons.wallet />}
+      icon={<Wallet size={18} />}
       iconBg="#FFF4E8"
       iconColor="#B5701F"
       footer={
@@ -391,7 +394,7 @@ function ModalSinal({
                   color: "#C0492B",
                 }}
               >
-                <Icons.alertCircle width={13} height={13} /> Mínimo de 50
+                <AlertCircle size={13} /> Mínimo de 50
                 caracteres. Faltam {50 - obsCharCount}.
               </div>
             )}
@@ -410,7 +413,7 @@ function ModalSinal({
           border: "1px solid rgba(42,157,143,0.18)",
         }}
       >
-        <Icons.receipt style={{ flexShrink: 0, color: "#2A9D8F", marginTop: 1 }} />
+        <Receipt size={16} style={{ flexShrink: 0, color: "#2A9D8F", marginTop: 1 }} />
         <p style={{ margin: 0, fontSize: 12.5, color: "#5C594F", lineHeight: 1.55 }}>
           Após confirmar, o sistema avançará o orçamento e gerará o recibo do
           sinal com a forma de pagamento registrada.
@@ -460,7 +463,7 @@ function ModalCancelSimples({
             marginBottom: 16,
           }}
         >
-          <Icons.ban width={24} height={24} />
+          <Ban size={24} />
         </span>
         <p style={{ margin: 0, fontSize: 14, color: "#5C594F", lineHeight: 1.6 }}>
           Esta ação não pode ser desfeita. O orçamento será marcado como{" "}
@@ -493,7 +496,7 @@ function ModalCancelJustificativa({
       onClose={onClose}
       title="Cancelar pedido já entregue?"
       subtitle="Justificativa obrigatória"
-      icon={<Icons.ban />}
+      icon={<Ban size={16} />}
       iconBg="#FCF3F0"
       iconColor="#C0492B"
       footer={
@@ -562,7 +565,7 @@ function ModalCancelJustificativa({
             color: "#C0492B",
           }}
         >
-          <Icons.alertCircle width={13} height={13} /> Faltam {50 - len} caracteres.
+          <AlertCircle size={13} /> Faltam {50 - len} caracteres.
         </div>
       )}
     </ModalShell>
@@ -639,7 +642,7 @@ function ModalCancelMulta({
             flexShrink: 0,
           }}
         >
-          <Icons.ban />
+          <Ban size={16} />
         </span>
         <div style={{ minWidth: 0 }}>
           <div
@@ -682,7 +685,7 @@ function ModalCancelMulta({
           flexShrink: 0,
         }}
       >
-        <Icons.x />
+        <X size={20} />
       </button>
     </div>
   );
@@ -974,7 +977,7 @@ function ModalCancelMulta({
                   border: "1px solid rgba(249,115,22,0.3)",
                 }}
               >
-                <Icons.alertCircle style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
+                <AlertCircle size={15} style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
                 <p style={{ margin: 0, fontSize: 12.8, color: "#8A5A33", lineHeight: 1.55 }}>
                   {multaAtiva ? (
                     <>
@@ -1079,7 +1082,7 @@ function ModalCancelEstorno({
             flexShrink: 0,
           }}
         >
-          <Icons.ban />
+          <Ban size={16} />
         </span>
         <div style={{ minWidth: 0 }}>
           <div
@@ -1122,7 +1125,7 @@ function ModalCancelEstorno({
           flexShrink: 0,
         }}
       >
-        <Icons.x />
+        <X size={20} />
       </button>
     </div>
   );
@@ -1210,7 +1213,7 @@ function ModalCancelEstorno({
                     color: "#F97316",
                   }}
                 >
-                  <Icons.wallet />
+                  <Wallet size={18} />
                 </span>
               </div>
 
@@ -1278,7 +1281,7 @@ function ModalCancelEstorno({
                         marginBottom: 7,
                       }}
                     >
-                      <Icons.calendar style={{ color: "#F97316" }} /> Data do estorno
+                      <Calendar size={16} style={{ color: "#F97316" }} /> Data do estorno
                     </span>
                     <input
                       type="date"
@@ -1311,7 +1314,7 @@ function ModalCancelEstorno({
                       border: "1px solid rgba(249,115,22,0.25)",
                     }}
                   >
-                    <Icons.receipt style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
+                    <Receipt size={16} style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
                     <p style={{ margin: 0, fontSize: 12.5, color: "#8A5A33", lineHeight: 1.55 }}>
                       Um <strong style={{ fontWeight: 700 }}>recibo de estorno</strong>{" "}
                       será gerado para enviar à cliente como comprovante da devolução.
@@ -1333,7 +1336,7 @@ function ModalCancelEstorno({
                     animation: "fadeUp .2s ease both",
                   }}
                 >
-                  <Icons.info style={{ flexShrink: 0, color: "#A29E96", marginTop: 1 }} />
+                  <Info size={15} style={{ flexShrink: 0, color: "#A29E96", marginTop: 1 }} />
                   <p style={{ margin: 0, fontSize: 12.5, color: "#6B6860", lineHeight: 1.55 }}>
                     O orçamento será cancelado sem devolução do sinal. Nenhum
                     documento será gerado.
@@ -1458,7 +1461,7 @@ function ModalCancelEstorno({
                   border: "1px solid rgba(249,115,22,0.25)",
                 }}
               >
-                <Icons.receipt style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
+                <Receipt size={16} style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
                 <p style={{ margin: 0, fontSize: 12.5, color: "#8A5A33", lineHeight: 1.55 }}>
                   O recibo de estorno ficará disponível para download na tela de
                   detalhe do orçamento cancelado.
@@ -1503,27 +1506,27 @@ function DownloadsCard({
 
   // PDF do orçamento — qualquer status exceto CANCELADO
   if (status !== "CANCELADO") {
-    links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <Icons.pdf /> });
+    links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <FileText size={18} /> });
   }
 
   // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
   if (orcamento.sinalAtivo && orcamento.dataSinalPago != null) {
-    links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Icons.receipt /> });
+    links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Receipt size={16} /> });
   }
 
   // Recibo de pagamento — apenas PAGO
   if (status === "PAGO") {
-    links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Icons.receipt /> });
+    links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Receipt size={16} /> });
   }
 
   // PDF de multa — somente se percentualMulta > 0
   if (orcamento.percentualMulta != null && orcamento.percentualMulta > 0) {
-    links.push({ label: "PDF de multa", kind: "multa", icon: <Icons.fileText /> });
+    links.push({ label: "PDF de multa", kind: "multa", icon: <FileText size={20} /> });
   }
 
   // Recibo de estorno — somente se houve estorno de fato
   if (orcamento.estornoSinal === true) {
-    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Icons.receipt /> });
+    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Receipt size={16} /> });
   }
 
   return (
@@ -1550,7 +1553,7 @@ function DownloadsCard({
             color: "#2A9D8F",
           }}
         >
-          <Icons.download />
+          <Download size={17} />
         </span>
         <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
           Documentos
@@ -1748,7 +1751,7 @@ export default function DetalheOrcamentoPage() {
               fontFamily: "inherit",
             }}
           >
-            <Icons.back width={13} height={13} /> Orçamentos
+            <ArrowLeft size={13} /> Orçamentos
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 13, flexWrap: "wrap" }}>
             <h1
@@ -1783,7 +1786,7 @@ export default function DetalheOrcamentoPage() {
         </div>
         <Button
           variant="ghost"
-          icon={<Icons.pdf />}
+          icon={<FileText size={18} />}
           onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
         >
           Ver preview do PDF
@@ -1839,7 +1842,7 @@ export default function DetalheOrcamentoPage() {
                   onMouseEnter={(e) => (e.currentTarget.style.color = "#C0492B")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(192,73,43,0.85)")}
                 >
-                  <Icons.ban width={15} height={15} /> Cancelar orçamento
+                  <Ban size={15} /> Cancelar orçamento
                 </button>
               ) : (
                 <span />
@@ -1849,7 +1852,7 @@ export default function DetalheOrcamentoPage() {
                 <Button
                   variant="primary"
                   size="lg"
-                  iconRight={<Icons.arrowRight />}
+                  iconRight={<ArrowRight size={17} />}
                   disabled={saving}
                   onClick={onPrimaryAction}
                 >
@@ -1872,7 +1875,7 @@ export default function DetalheOrcamentoPage() {
               }}
             >
               <span style={{ flexShrink: 0, color: "#C0492B", display: "flex", marginTop: 1 }}>
-                <Icons.alertCircle width={16} height={16} />
+                <AlertCircle size={16} />
               </span>
               <p style={{ margin: 0, fontSize: 13, color: "#C0492B", lineHeight: 1.5 }}>
                 {erroAvanco}
@@ -1908,7 +1911,7 @@ export default function DetalheOrcamentoPage() {
               flexShrink: 0,
             }}
           >
-            <Icons.ban />
+            <Ban size={16} />
           </span>
           <div>
             <div style={{ fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
@@ -1946,7 +1949,7 @@ export default function DetalheOrcamentoPage() {
                 color: "#2A9D8F",
               }}
             >
-              <Icons.doc />
+              <FileText size={20} />
             </span>
             <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
               Resumo do orçamento
@@ -1993,7 +1996,7 @@ export default function DetalheOrcamentoPage() {
                   marginTop: 2,
                 }}
               >
-                <Icons.phone style={{ color: "#2A9D8F" }} /> {cliente?.whatsapp || "—"}
+                <Phone size={16} style={{ color: "#2A9D8F" }} /> {cliente?.whatsapp || "—"}
               </div>
             </div>
           </div>
@@ -2055,9 +2058,9 @@ export default function DetalheOrcamentoPage() {
                       }}
                     >
                       {it.itemCatalogoId ? (
-                        <Icons.layers width={11} height={11} />
+                        <Layers size={11} />
                       ) : (
-                        <Icons.cube width={11} height={11} />
+                        <Box size={11} />
                       )}
                       {it.itemCatalogoId
                         ? it.catalogoNome ?? it.catalogoIdentificador
@@ -2080,7 +2083,7 @@ export default function DetalheOrcamentoPage() {
                         background: "#F1F0EC",
                       }}
                     >
-                      <Icons.sliders width={11} height={11} />
+                      <SlidersHorizontal size={11} />
                       Customizações ({it.customizacoes.length})
                     </div>
                   )}
@@ -2101,7 +2104,7 @@ export default function DetalheOrcamentoPage() {
                           borderRadius: 999,
                         }}
                       >
-                        <Icons.tag /> {c.nomeProduto}
+                        <Tag size={17} /> {c.nomeProduto}
                       </span>
                     ))}
                   </div>
@@ -2150,7 +2153,7 @@ export default function DetalheOrcamentoPage() {
                     marginTop: 2,
                   }}
                 >
-                  <Icons.calendar style={{ color: "#2A9D8F" }} /> {fmtDate(orcamento.dataValidade)}
+                  <Calendar size={16} style={{ color: "#2A9D8F" }} /> {fmtDate(orcamento.dataValidade)}
                 </div>
               </div>
             </div>
@@ -2182,7 +2185,7 @@ export default function DetalheOrcamentoPage() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {sinalRecebido ? <Icons.check /> : <Icons.clock width={12} height={12} />}
+                    {sinalRecebido ? <Check size={14} /> : <Clock size={12} />}
                     {sinalRecebido ? "Sinal recebido" : "Aguardando Sinal"}
                   </div>
                   <div
@@ -2262,7 +2265,7 @@ export default function DetalheOrcamentoPage() {
                   border: "1px solid rgba(42,157,143,0.2)",
                 }}
               >
-                <Icons.layers />
+                <Layers size={18} />
               </span>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#3A372F" }}>

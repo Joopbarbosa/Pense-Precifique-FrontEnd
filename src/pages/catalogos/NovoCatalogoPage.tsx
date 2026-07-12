@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import SectionTitle from '../../components/shared/SectionTitle'
-import { Icons } from '../../components/ui/Icons'
+import { ChevronRight, Files, Save } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
 import { empresaService } from '../../services/empresaService'
 import type { CatalogoRequest } from '../../types/catalogo'
@@ -112,12 +112,12 @@ export default function NovoCatalogoPage() {
           >
             Catálogos
           </span>
-          <Icons.chevron style={{ color: '#CFCBC3' }} />
+          <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
           <span style={{ color: '#5C594F', fontWeight: 600 }}>Novo Catálogo</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-            <Icons.fileStack width={22} height={22} />
+            <Files size={22} />
           </span>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>
             Novo Catálogo
@@ -169,7 +169,7 @@ export default function NovoCatalogoPage() {
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
             <Button variant="ghost" onClick={() => navigate('/catalogos')} disabled={loading}>Cancelar</Button>
-            <Button variant="primary" icon={<Icons.save />} disabled={loading} onClick={handleSubmit}>
+            <Button variant="primary" icon={<Save size={16} />} disabled={loading} onClick={handleSubmit}>
               {loading ? 'Salvando…' : 'Salvar catálogo'}
             </Button>
           </div>

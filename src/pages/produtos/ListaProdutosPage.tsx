@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons } from '../../components/ui/Icons'
+import { Eye, Power, Pencil, Copy, Camera, Layers, Plus, Search, Box, ChevronRight } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
@@ -39,14 +39,14 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
 
   const menuItems: ActionMenuItem[] = inativo
     ? [
-        { label: 'Ver detalhes', icon: <Icons.eye />,   onClick: onVer },
-        { label: 'Reativar',     icon: <Icons.power />, onClick: onReativar, dividerBefore: true },
+        { label: 'Ver detalhes', icon: <Eye size={18} />,   onClick: onVer },
+        { label: 'Reativar',     icon: <Power size={16} />, onClick: onReativar, dividerBefore: true },
       ]
     : [
-        { label: 'Ver detalhes', icon: <Icons.eye />,   onClick: onVer },
-        { label: 'Editar',       icon: <Icons.edit />,  onClick: onEditar },
-        { label: 'Duplicar',     icon: <Icons.copy />,  onClick: onDuplicar },
-        { label: 'Desativar',    icon: <Icons.power />, onClick: onDesativar, danger: true, dividerBefore: true },
+        { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
+        { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
+        { label: 'Duplicar',     icon: <Copy size={16} />,   onClick: onDuplicar },
+        { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
       ]
 
   return (
@@ -87,7 +87,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 13px, rgba(0,0,0,0.018) 13px, rgba(0,0,0,0.018) 26px)',
           }} />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#C2BEB5' }}>
-            <Icons.camera />
+            <Camera size={22} />
             <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em' }}>Sem foto</span>
           </div>
         </div>
@@ -165,7 +165,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
                 background: semEstoque ? '#F1F0EC' : 'rgba(42,157,143,0.10)',
                 color: semEstoque ? '#9A968E' : '#2A9D8F',
               }}>
-                <Icons.stack /> {p.estoqueAtual} un
+                <Layers size={14} /> {p.estoqueAtual} un
               </div>
             )}
           </div>
@@ -243,7 +243,7 @@ export default function ListaProdutosPage() {
           <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Meus Produtos</h1>
           <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#A29E96' }}>O coração do seu negócio — tudo o que você cria e vende.</p>
         </div>
-        <Button variant="primary" icon={<Icons.plus />} onClick={() => navigate('/produtos/novo')}>
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/produtos/novo')}>
           Novo Produto
         </Button>
       </div>
@@ -252,7 +252,7 @@ export default function ListaProdutosPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
         <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 220, maxWidth: 420 }}>
           <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
-            <Icons.search />
+            <Search size={18} />
           </span>
           <input
             value={busca}
@@ -315,10 +315,10 @@ export default function ListaProdutosPage() {
         </div>
       ) : produtos.length === 0 ? (
         <EmptyState
-          icon={<Icons.box />}
+          icon={<Box size={20} />}
           title={busca.trim() ? 'Nenhum produto encontrado' : cat === 'Inativos' ? 'Nenhum produto inativo' : 'Seu catálogo começa aqui'}
           description={busca.trim() ? 'Nenhum produto encontrado para essa busca.' : cat === 'Inativos' ? 'Nenhum produto inativo no momento.' : 'Você ainda não cadastrou produtos. Comece criando seu primeiro!'}
-          action={!busca.trim() && cat !== 'Inativos' ? { label: 'Criar primeiro produto', icon: <Icons.plus />, onClick: () => navigate('/produtos/novo') } : undefined}
+          action={!busca.trim() && cat !== 'Inativos' ? { label: 'Criar primeiro produto', icon: <Plus size={16} />, onClick: () => navigate('/produtos/novo') } : undefined}
         />
       ) : (
         <>
@@ -359,7 +359,7 @@ export default function ListaProdutosPage() {
               >
                 {loadingMore
                   ? <><span style={{ width: 16, height: 16, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
-                  : <>Carregar mais <Icons.chevron style={{ transform: 'rotate(90deg)' }} /></>
+                  : <>Carregar mais <ChevronRight size={15} style={{ transform: 'rotate(90deg)' }} /></>
                 }
               </button>
             )}

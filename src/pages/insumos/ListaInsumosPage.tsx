@@ -5,7 +5,11 @@ import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Icons } from '../../components/ui/Icons'
+import {
+  AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, X, Search, Trash2,
+  ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { InsumoResponse } from '../../types/insumo'
 import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
@@ -44,7 +48,7 @@ function InsumoStatusBadge({ insumo, small = false }: { insumo: InsumoResponse; 
       background: '#FFF1E8', color: '#C8721F',
       fontSize: small ? 11.5 : 12.5, fontWeight: 600, whiteSpace: 'nowrap',
     }}>
-      <Icons.alertCircle width={13} height={13} /> Estoque baixo
+      <AlertCircle size={13} /> Estoque baixo
     </span>
   )
 
@@ -82,9 +86,9 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
   const low = isLow(insumo)
 
   const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Icons.eye />,  onClick: onVer },
-    { label: 'Editar',       icon: <Icons.edit />, onClick: onEditar },
-    { label: 'Desativar',    icon: <Icons.power />, onClick: onDesativar, danger: true, dividerBefore: true },
+    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
+    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
+    { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
   ]
 
   return (
@@ -141,9 +145,9 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
   const low = isLow(insumo)
 
   const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Icons.eye />,  onClick: onVer },
-    { label: 'Editar',       icon: <Icons.edit />, onClick: onEditar },
-    { label: 'Desativar',    icon: <Icons.power />, onClick: onDesativar, danger: true, dividerBefore: true },
+    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
+    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
+    { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
   ]
 
   return (
@@ -257,7 +261,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
             <span style={{ display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(249,115,22,0.12)', color: '#F97316' }}>
-              <Icons.cart />
+              <ShoppingCart size={17} />
             </span>
             <div>
               <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Registrar compras</div>
@@ -265,7 +269,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
             </div>
           </div>
           <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            <Icons.x />
+            <X size={20} />
           </button>
         </div>
 
@@ -274,7 +278,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-                <Icons.search width={16} height={16} />
+                <Search size={16} />
               </span>
               <input
                 ref={buscaInputRef}
@@ -335,7 +339,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                         onMouseEnter={e => e.currentTarget.style.color = '#C0492B'}
                         onMouseLeave={e => e.currentTarget.style.color = '#B7B4AD'}
                       >
-                        <Icons.trash />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -381,7 +385,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                 onMouseEnter={e => { e.currentTarget.style.background = '#FAF8F5'; e.currentTarget.style.borderColor = '#2A9D8F' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#C9C5BC' }}
               >
-                <Icons.plus width={16} height={16} /> Adicionar mais um insumo
+                <Plus size={16} /> Adicionar mais um insumo
               </button>
             </div>
           )}
@@ -390,7 +394,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose} disabled={loadingConfirm}>Cancelar</Button>
-          <Button variant="primary" disabled={!podeConfirmar || loadingConfirm} iconRight={loadingConfirm ? undefined : <Icons.arrowRight />} onClick={confirmar}>
+          <Button variant="primary" disabled={!podeConfirmar || loadingConfirm} iconRight={loadingConfirm ? undefined : <ArrowRight size={17} />} onClick={confirmar}>
             {loadingConfirm
               ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Registrando…</span>
               : `Confirmar${itens.length > 0 ? ` (${itens.length})` : ''} e ver impacto`
@@ -415,7 +419,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
             <span style={{ display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(42,157,143,0.12)', color: '#2A9D8F' }}>
-              <Icons.layers />
+              <Layers size={18} />
             </span>
             <div>
               <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Compra registrada!</div>
@@ -425,7 +429,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
             </div>
           </div>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            <Icons.x />
+            <X size={20} />
           </button>
         </div>
 
@@ -452,11 +456,11 @@ function ImpactoLoteModal({ impacto, onClose }: {
                     </span>
                     {!igual && (
                       <>
-                        <Icons.arrowRight style={{ color: '#A8A49C' }} />
+                        <ArrowRight size={17} style={{ color: '#A8A49C' }} />
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14.5, fontWeight: 700, color: subiu ? '#C0492B' : '#1F8A5B' }}>
                           {subiu
-                            ? <Icons.arrowDown style={{ transform: 'rotate(180deg)' }} />
-                            : <Icons.arrowDown />
+                            ? <ArrowDown size={14} style={{ transform: 'rotate(180deg)' }} />
+                            : <ArrowDown size={14} />
                           }
                           {moeda(item.custoUnitarioNovo, 2)}
                         </span>
@@ -577,16 +581,16 @@ export default function ListaInsumosPage() {
   const empty = !loading && insumos.length === 0
 
   const chipConfig: Record<string, {
-    icon: (p?: React.SVGProps<SVGSVGElement>) => React.ReactElement
+    icon: LucideIcon
     color: string
     activeBg: string
     badgeBg: string
     badgeColor: string
     count: number
   }> = {
-    'Estoque baixo':    { icon: Icons.alertCircle, color: '#E8973A', activeBg: '#F2913C', badgeBg: '#FFF1E8', badgeColor: '#C8721F', count: lowCount },
-    'Estoque negativo': { icon: Icons.alertCircle, color: '#EF4444', activeBg: '#EF4444', badgeBg: '#FDECEA', badgeColor: '#C0392B', count: negativeCount },
-    'Estoque positivo': { icon: Icons.checkCircle, color: '#1F8A5B', activeBg: '#1F8A5B', badgeBg: '#E8F5EE', badgeColor: '#1F8A5B', count: positiveCount },
+    'Estoque baixo':    { icon: AlertCircle, color: '#E8973A', activeBg: '#F2913C', badgeBg: '#FFF1E8', badgeColor: '#C8721F', count: lowCount },
+    'Estoque negativo': { icon: AlertCircle, color: '#EF4444', activeBg: '#EF4444', badgeBg: '#FDECEA', badgeColor: '#C0392B', count: negativeCount },
+    'Estoque positivo': { icon: CheckCircle, color: '#1F8A5B', activeBg: '#1F8A5B', badgeBg: '#E8F5EE', badgeColor: '#1F8A5B', count: positiveCount },
   }
 
   return (
@@ -600,10 +604,10 @@ export default function ListaInsumosPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Button variant="secondary" icon={<Icons.cart />} onClick={() => setModalCompra(true)}>
+          <Button variant="secondary" icon={<ShoppingCart size={17} />} onClick={() => setModalCompra(true)}>
             Registrar compras
           </Button>
-          <Button variant="primary" icon={<Icons.plus />} onClick={() => navigate('/insumos/novo')}>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/insumos/novo')}>
             Novo Insumo
           </Button>
         </div>
@@ -616,10 +620,10 @@ export default function ListaInsumosPage() {
         </div>
       ) : empty ? (
         <EmptyState
-          icon={<Icons.box />}
+          icon={<Box size={20} />}
           title="Nenhum insumo cadastrado ainda"
           description="Cadastre o primeiro para começar a montar suas fichas técnicas."
-          action={{ label: 'Cadastrar primeiro insumo', icon: <Icons.plus />, onClick: () => navigate('/insumos/novo') }}
+          action={{ label: 'Cadastrar primeiro insumo', icon: <Plus size={16} />, onClick: () => navigate('/insumos/novo') }}
         />
       ) : (
         <>
@@ -643,7 +647,7 @@ export default function ListaInsumosPage() {
                   >
                     {chip && (
                       <span style={{ display: 'flex', color: on ? '#fff' : chip.color }}>
-                        <chip.icon width={14} height={14} />
+                        <chip.icon size={14} />
                       </span>
                     )}
                     {f}
@@ -663,7 +667,7 @@ export default function ListaInsumosPage() {
 
             <div style={{ position: 'relative', maxWidth: 440 }}>
               <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-                <Icons.search />
+                <Search size={18} />
               </span>
               <input
                 value={query}
@@ -730,7 +734,7 @@ export default function ListaInsumosPage() {
               >
                 {loadingMore
                   ? <><span style={{ width: 16, height: 16, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
-                  : <>Carregar mais <Icons.chevron style={{ transform: 'rotate(90deg)' }} /></>
+                  : <>Carregar mais <ChevronRight size={15} style={{ transform: 'rotate(90deg)' }} /></>
                 }
               </button>
             )}

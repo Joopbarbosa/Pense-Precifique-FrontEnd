@@ -1,4 +1,4 @@
-import { Icons } from './Icons'
+import { PackageOpen } from 'lucide-react'
 import Button from './Button'
 
 interface EmptyStateProps {
@@ -81,7 +81,7 @@ export default function EmptyState({
           color: iconColor,
           marginBottom: 18,
         }}>
-          {icon ?? <Icons.emptyBox />}
+          {icon ?? <PackageOpen size={32} />}
         </span>
 
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#3A372F' }}>

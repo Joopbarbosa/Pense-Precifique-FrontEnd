@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, Input } from '../../components/ui'
-import { Icons } from '../../components/ui/Icons'
+import { Pencil, List, Ban, Phone, User, X, Mail, Plus, Users, Search } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ModalShell from '../../components/ui/ModalShell'
 import { clienteService } from '../../services/clienteService'
@@ -36,9 +36,9 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
   const inativa = !cliente.ativa
 
   const menuItems: ActionMenuItem[] = [
-    { label: 'Editar',         icon: <Icons.edit />, onClick: () => onEdit(cliente) },
-    { label: 'Ver orçamentos', icon: <Icons.list />, onClick: () => {} },
-    { label: 'Desativar',      icon: <Icons.ban />,  onClick: () => onDesativar(cliente), danger: true, dividerBefore: true },
+    { label: 'Editar',         icon: <Pencil size={16} />, onClick: () => onEdit(cliente) },
+    { label: 'Ver orçamentos', icon: <List size={16} />,   onClick: () => {} },
+    { label: 'Desativar',      icon: <Ban size={16} />,    onClick: () => onDesativar(cliente), danger: true, dividerBefore: true },
   ]
 
   return (
@@ -93,7 +93,7 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 14, color: '#5C594F' }}>
           {cliente.whatsapp ? (
             <>
-              <span style={{ color: '#2A9D8F', display: 'flex' }}><Icons.phone /></span>
+              <span style={{ color: '#2A9D8F', display: 'flex' }}><Phone size={16} /></span>
               {cliente.whatsapp}
             </>
           ) : (
@@ -201,7 +201,7 @@ function NovaClienteDrawer({ onClose, editData, onSuccess }: {
                 background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)',
                 fontWeight: 700, fontSize: 17,
               }}>
-                {isEdit ? (form.nome.trim().charAt(0).toUpperCase() || '?') : <Icons.user />}
+                {isEdit ? (form.nome.trim().charAt(0).toUpperCase() || '?') : <User size={18} />}
               </span>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>
@@ -217,7 +217,7 @@ function NovaClienteDrawer({ onClose, editData, onSuccess }: {
               background: 'rgba(255,255,255,0.16)', color: '#fff', cursor: 'pointer',
               display: 'grid', placeItems: 'center',
             }}>
-              <Icons.x />
+              <X size={20} />
             </button>
           </div>
         </div>
@@ -226,7 +226,7 @@ function NovaClienteDrawer({ onClose, editData, onSuccess }: {
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-              <Icons.user width={14} height={14} /> Nome completo <span style={{ color: '#F97316' }}>*</span>
+              <User size={14} /> Nome completo <span style={{ color: '#F97316' }}>*</span>
             </label>
             <Input label="" type="text" placeholder="Beatriz Santos" value={form.nome}
               onChange={(v) => setForm(f => ({ ...f, nome: v }))} />
@@ -237,7 +237,7 @@ function NovaClienteDrawer({ onClose, editData, onSuccess }: {
 
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-              <Icons.phone /> WhatsApp
+              <Phone size={16} /> WhatsApp
             </label>
             <Input label="" type="tel" placeholder="(11) 99999-0000" value={form.whatsapp}
               onChange={(v) => setForm(f => ({ ...f, whatsapp: maskPhone(v) }))} />
@@ -249,7 +249,7 @@ function NovaClienteDrawer({ onClose, editData, onSuccess }: {
 
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-              <Icons.mail width={14} height={14} /> E-mail <span style={{ fontSize: 12, color: '#A29E96', fontWeight: 400 }}>opcional</span>
+              <Mail size={14} /> E-mail <span style={{ fontSize: 12, color: '#A29E96', fontWeight: 400 }}>opcional</span>
             </label>
             <Input label="" type="email" placeholder="beatriz@email.com" value={form.email}
               onChange={(v) => setForm(f => ({ ...f, email: v }))} />
@@ -411,7 +411,7 @@ export default function ClientesPage() {
             }
           </p>
         </div>
-        <Button variant="primary" icon={<Icons.plus />} onClick={openNova}>
+        <Button variant="primary" icon={<Plus size={16} />} onClick={openNova}>
           Nova Cliente
         </Button>
       </div>
@@ -424,10 +424,10 @@ export default function ClientesPage() {
       ) : empty ? (
         <div style={{ marginTop: 26 }}>
           <EmptyState
-            icon={<Icons.users />}
+            icon={<Users size={20} />}
             title="Nenhuma cliente ainda"
             description="Cadastre sua primeira cliente para começar a criar orçamentos personalizados."
-            action={{ label: 'Cadastrar primeira cliente', icon: <Icons.plus />, onClick: openNova }}
+            action={{ label: 'Cadastrar primeira cliente', icon: <Plus size={16} />, onClick: openNova }}
           />
         </div>
       ) : (
@@ -435,7 +435,7 @@ export default function ClientesPage() {
           {/* BUSCA */}
           <div style={{ position: 'relative', margin: '22px 0 18px', maxWidth: 440 }}>
             <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
-              <Icons.search />
+              <Search size={18} />
             </span>
             <input
               value={query}
@@ -518,7 +518,7 @@ export default function ClientesPage() {
         open={!!confirmInativar}
         onClose={() => setConfirmInativar(null)}
         title={`Inativar "${confirmInativar?.nome}"?`}
-        icon={<Icons.ban />}
+        icon={<Ban size={16} />}
         iconBg="rgba(192,73,43,0.10)"
         iconColor="#C0492B"
         width={420}

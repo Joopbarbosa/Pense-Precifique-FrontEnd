@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
-import { Icons } from '../../components/ui/Icons'
+import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 
@@ -58,7 +58,7 @@ function ModalHead({ icon, tint, title, sub, onClose }: { icon: React.ReactNode;
       <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
         onMouseEnter={e => e.currentTarget.style.background = '#E9E7E2'} onMouseLeave={e => e.currentTarget.style.background = '#F1F0EC'}
       >
-        <Icons.x />
+        <X size={20} />
       </button>
     </div>
   )
@@ -119,7 +119,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(500px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
 
-        <ModalHead icon={<Icons.minus />} tint="#C8721F" title="Baixa manual" sub="Registra uma saída fora de produção." onClose={onClose} />
+        <ModalHead icon={<Minus size={17} />} tint="#C8721F" title="Baixa manual" sub="Registra uma saída fora de produção." onClose={onClose} />
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -148,7 +148,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
                   borderColor: selOpen ? '#2A9D8F' : '#EFEDE8',
                   boxShadow: selOpen ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
                 }}>
-                  {motivo}<span style={{ color: '#A29E96', display: 'flex' }}><Icons.caret /></span>
+                  {motivo}<span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
                 </button>
                 {selOpen && (
                   <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
@@ -190,7 +190,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
             />
             {obs.length > 0 && obs.length < 50 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
-                <Icons.alertCircle width={13} height={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
+                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
               </div>
             )}
           </label>
@@ -203,7 +203,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="secondary" icon={<Icons.minus />} disabled={!podeRegistrar || loading} onClick={handleSubmit}>
+          <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar || loading} onClick={handleSubmit}>
             {loading ? 'Registrando…' : 'Registrar baixa'}
           </Button>
         </div>
@@ -222,8 +222,8 @@ function HistTipo({ tipo, titulo }: { tipo: 'entrada' | 'saida' | 'estorno'; tit
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
       <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: cores.bg, color: cores.c }}>
         {tipo === 'estorno'
-          ? <Icons.alertCircle />
-          : <Icons.arrowDown style={{ transform: tipo === 'entrada' ? 'rotate(180deg)' : 'none' }} />}
+          ? <AlertCircle size={15} />
+          : <ArrowDown size={14} style={{ transform: tipo === 'entrada' ? 'rotate(180deg)' : 'none' }} />}
       </span>
       <span style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F' }}>{titulo}</span>
     </div>
@@ -325,7 +325,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-            <Icons.cubeSmall />
+            <Box size={16} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -339,7 +339,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
             {TIPO_LABEL[p.tipo] ?? p.tipo}
           </span>
           <span style={{ flexShrink: 0, color: '#CFCBC3', display: 'flex' }}>
-            <Icons.chevron />
+            <ChevronRight size={15} />
           </span>
         </button>
       ))}
@@ -362,8 +362,8 @@ export default function DetalheInsumoPage() {
   const [loadingFichas, setLoadingFichas] = useState(false)
 
   const ABAS = [
-    { id: 'historico' as const, label: 'Histórico de movimentações', icon: Icons.history },
-    { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Icons.layers },
+    { id: 'historico' as const, label: 'Histórico de movimentações', icon: History, size: 17 },
+    { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Layers, size: 18 },
   ]
 
   useEffect(() => {
@@ -439,14 +439,14 @@ export default function DetalheInsumoPage() {
           onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
           onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
         >Insumos</span>
-        <Icons.chevron style={{ color: '#CFCBC3' }} />
+        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
         <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{insumo.nome}</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15, minWidth: 0 }}>
           <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-            <Icons.box width={26} height={26} />
+            <Box size={26} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -465,11 +465,11 @@ export default function DetalheInsumoPage() {
               )}
               {insumo.permitirEstoqueNegativo ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#2A9D8F', 0.12), color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
-                  <Icons.check width={13} height={13} /> Permite estoque negativo
+                  <Check size={13} /> Permite estoque negativo
                 </span>
               ) : (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: hexA('#EF4444', 0.12), color: '#EF4444', fontSize: 12.5, fontWeight: 600 }}>
-                  <Icons.x width={13} height={13} /> Bloqueia estoque negativo
+                  <X size={13} /> Bloqueia estoque negativo
                 </span>
               )}
               {insumo.fracionavel ? (
@@ -485,7 +485,7 @@ export default function DetalheInsumoPage() {
             <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>Marca: <strong style={{ color: '#5C594F', fontWeight: 600 }}>{insumo.marca || '—'}</strong></div>
           </div>
         </div>
-        <Button variant="ghost" icon={<Icons.edit />} onClick={() => navigate(`/insumos/${id}/editar`)}>
+        <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
           Editar
         </Button>
       </div>
@@ -511,7 +511,7 @@ export default function DetalheInsumoPage() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 11, padding: '16px 20px', borderTop: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
-          <Button variant="ghost" icon={<Icons.minus />} onClick={() => setModal('baixa')}>
+          <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
             Baixa manual
           </Button>
         </div>
@@ -530,7 +530,7 @@ export default function DetalheInsumoPage() {
               onMouseEnter={e => { if (!on) e.currentTarget.style.color = '#5C594F' }}
               onMouseLeave={e => { if (!on) e.currentTarget.style.color = '#8A8780' }}
             >
-              <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon /></span>
+              <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon size={a.size} /></span>
               {a.label}
               {on && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1.5, height: 2.5, borderRadius: 3, background: '#2A9D8F' }} />}
             </button>
@@ -578,7 +578,7 @@ export default function DetalheInsumoPage() {
             >
               {loadingMoreHist
                 ? <><span style={{ width: 16, height: 16, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
-                : <>Carregar mais <Icons.chevron style={{ transform: 'rotate(90deg)' }} /></>
+                : <>Carregar mais <ChevronRight size={15} style={{ transform: 'rotate(90deg)' }} /></>
               }
             </button>
           )}

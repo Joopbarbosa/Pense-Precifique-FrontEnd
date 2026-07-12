@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons, Logo, Button, StatusBadge } from '../../components/ui'
+import { Logo, Button, StatusBadge } from '../../components/ui'
+import { Mail, Phone, Wallet, FileText, ChevronRight, Download } from 'lucide-react'
 import { orcamentoService } from '../../services/orcamentoService'
 import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
@@ -38,12 +39,12 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
               {empresa?.email && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                  <Mail size={13} style={{ color: TEAL }} /> {empresa.email}
                 </span>
               )}
               {empresa?.whatsapp && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                  <Phone size={13} style={{ color: TEAL }} /> {empresa.whatsapp}
                 </span>
               )}
             </div>
@@ -87,7 +88,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
         <Label>Método de pagamento</Label>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#3A372F' }}>
           <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 7, background: `rgba(42,157,143,0.12)`, color: TEAL }}>
-            <Icons.wallet width={14} height={14} />
+            <Wallet size={14} />
           </span>
           {orcamento.metodoPagamento}
         </div>
@@ -124,7 +125,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
         <div style={{ marginTop: 24, padding: '16px 18px', borderRadius: 12, border: `1.5px solid rgba(42,157,143,0.4)`, background: `rgba(42,157,143,0.05)` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
             <span style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 8, background: '#fff', color: TEAL, border: `1px solid rgba(42,157,143,0.25)` }}>
-              <Icons.wallet width={16} height={16} />
+              <Wallet size={16} />
             </span>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#3A372F' }}>Entrada solicitada</div>
           </div>
@@ -154,7 +155,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
           {sinal && orcamento.sinalAtivo && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0', padding: '8px 12px', borderRadius: 9, background: `rgba(42,157,143,0.07)`, border: `1px dashed rgba(42,157,143,0.4)` }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: TEAL }}>
-                <Icons.wallet width={14} height={14} /> Sinal solicitado
+                <Wallet size={14} /> Sinal solicitado
               </span>
               <span style={{ fontSize: 13.5, fontWeight: 700, color: TEAL, fontVariantNumeric: 'tabular-nums' }}>{BRL(orcamento.valorSinal || 0)}</span>
             </div>
@@ -180,7 +181,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
       {/* RODAPÉ */}
       <div style={{ marginTop: 'auto', paddingTop: 26 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 18, borderTop: '1px solid #F0EEE9', fontSize: 12, color: '#9A968E', flexWrap: 'wrap' }}>
-          <Icons.doc width={15} height={15} style={{ color: TEAL, flexShrink: 0 }} />
+          <FileText size={15} style={{ color: TEAL, flexShrink: 0 }} />
           Este orçamento é válido até
           <strong style={{ fontWeight: 600, color: '#6B6860', margin: '0 2px' }}>{dataValidade}</strong>.
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -328,7 +329,7 @@ export default function PreviewPdfPage() {
               >
                 Orçamentos
               </button>
-              <Icons.chevron style={{ color: '#CFCBC3', flexShrink: 0 }} />
+              <ChevronRight size={15} style={{ color: '#CFCBC3', flexShrink: 0 }} />
               <button
                 onClick={() => navigate(`/orcamentos/${orcamento.id}`)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12.5, fontWeight: 600, color: '#5C594F', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
@@ -348,7 +349,7 @@ export default function PreviewPdfPage() {
 
           {/* Botões de ação */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="secondary" icon={<Icons.download />} onClick={handleDownloadPdf} disabled={downloadLoading}>
+            <Button variant="secondary" icon={<Download size={17} />} onClick={handleDownloadPdf} disabled={downloadLoading}>
               {downloadLoading ? 'Baixando...' : 'Baixar PDF'}
             </Button>
           </div>

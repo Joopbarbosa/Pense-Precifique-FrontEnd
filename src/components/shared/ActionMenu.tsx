@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Icons } from '../ui/Icons'
+import { MoreVertical } from 'lucide-react'
 
 export interface ActionMenuItem {
   label: string
@@ -146,7 +146,7 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
         onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = '#F1F0EC' }}
         onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = 'transparent' }}
       >
-        <Icons.dots />
+        <MoreVertical size={18} />
       </button>
 
       {dropdown}

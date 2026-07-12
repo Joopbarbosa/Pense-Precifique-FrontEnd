@@ -1,4 +1,4 @@
-import { Icons } from './Icons'
+import { AlertCircle } from 'lucide-react'
 
 type StatusOrcamento =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -94,7 +94,7 @@ export function VencidoBadge() {
       fontWeight: 600,
       whiteSpace: 'nowrap',
     }}>
-      <Icons.alertFilled style={{ color: '#C0492B' }} />
+      <AlertCircle size={12} style={{ color: '#C0492B' }} />
       Vencido
     </span>
   )

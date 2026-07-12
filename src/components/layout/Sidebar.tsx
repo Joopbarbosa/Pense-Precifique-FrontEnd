@@ -1,17 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Logo, Wordmark } from '../ui'
-import { Icons } from '../ui/Icons'
+import { LayoutGrid, Users, FileText, Box, X, LogOut, Files, Factory, Settings } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 const NAV = [
-  { id: 'dashboard',  label: 'Dashboard',    icon: Icons.grid,    href: '/dashboard' },
-  { id: 'clientes',   label: 'Clientes',      icon: Icons.users,   href: '/clientes' },
-  { id: 'orcamentos', label: 'Orçamentos',    icon: Icons.doc,     href: '/orcamentos' },
-  { id: 'insumos',    label: 'Insumos',       icon: Icons.box,     href: '/insumos' },
-  { id: 'produtos',   label: 'Produtos',      icon: Icons.cube,    href: '/produtos' },
-  { id: 'catalogos',  label: 'Catálogos',     icon: Icons.fileStack, href: '/catalogos' },
-  { id: 'producao',   label: 'Produção',      icon: Icons.factory, href: '/producao' },
-  { id: 'config',     label: 'Configurações', icon: Icons.gear,    href: '/configuracoes' },
+  { id: 'dashboard',  label: 'Dashboard',    icon: LayoutGrid, size: 20, href: '/dashboard' },
+  { id: 'clientes',   label: 'Clientes',      icon: Users,     size: 20, href: '/clientes' },
+  { id: 'orcamentos', label: 'Orçamentos',    icon: FileText,  size: 20, href: '/orcamentos' },
+  { id: 'insumos',    label: 'Insumos',       icon: Box,       size: 20, href: '/insumos' },
+  { id: 'produtos',   label: 'Produtos',      icon: Box,       size: 20, href: '/produtos' },
+  { id: 'catalogos',  label: 'Catálogos',     icon: Files,     size: 22, href: '/catalogos' },
+  { id: 'producao',   label: 'Produção',      icon: Factory,   size: 20, href: '/producao' },
+  { id: 'config',     label: 'Configurações', icon: Settings,  size: 20, href: '/configuracoes' },
 ] as const
 
 interface SidebarProps {
@@ -57,13 +57,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             onClick={onClose}
             style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: '#A29E96', padding: 4 }}
           >
-            <Icons.x />
+            <X size={20} />
           </button>
         </div>
 
         {/* Nav */}
         <div style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {NAV.map(({ id, label, icon: Icon, href }) => (
+          {NAV.map(({ id, label, icon: Icon, size, href }) => (
             <NavLink
               key={id}
               to={href}
@@ -82,7 +82,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               {({ isActive }) => (
                 <>
                   <span style={{ color: isActive ? '#F97316' : '#A29E96', display: 'flex' }}>
-                    <Icon />
+                    <Icon size={size} />
                   </span>
                   {label}
                 </>
@@ -104,7 +104,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             className="nav-item"
           >
             <span style={{ color: '#A29E96', display: 'flex' }}>
-              <Icons.logout />
+              <LogOut size={20} />
             </span>
             Sair
           </button>

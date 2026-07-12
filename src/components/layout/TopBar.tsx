@@ -1,5 +1,5 @@
 import { Logo, Wordmark } from '../ui'
-import { Icons } from '../ui/Icons'
+import { Menu, Bell } from 'lucide-react'
 
 interface TopBarProps {
   onMenuOpen: () => void
@@ -12,7 +12,7 @@ export default function TopBar({ onMenuOpen }: TopBarProps) {
         onClick={onMenuOpen}
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#3A372F', padding: 4, display: 'flex' }}
       >
-        <Icons.menu />
+        <Menu size={24} />
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -23,7 +23,7 @@ export default function TopBar({ onMenuOpen }: TopBarProps) {
       <button
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#A29E96', padding: 4, display: 'flex' }}
       >
-        <Icons.bell />
+        <Bell size={20} />
       </button>
     </header>
   )

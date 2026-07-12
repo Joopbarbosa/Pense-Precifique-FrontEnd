@@ -1,6 +1,4 @@
 export { Logo, Wordmark } from './Brand'
-export { Icons } from './Icons'
-export type { IconName } from './Icons'
 export { default as Button } from './Button'
 export { default as Input } from './Input'
 export { StatusBadge, TipoProdutoBadge, VencidoBadge } from './Badge'

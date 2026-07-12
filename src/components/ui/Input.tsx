@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Icons } from './Icons'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 
 interface InputProps {
   label?: string
@@ -131,7 +131,7 @@ export default function Input({
             }}
             tabIndex={-1}
           >
-            {showPassword ? <Icons.eyeOff /> : <Icons.eye />}
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         )}
       </div>
@@ -147,7 +147,7 @@ export default function Input({
             color: '#C0492B',
           }}
         >
-          <Icons.alertCircle style={{ color: '#C0492B', flexShrink: 0 }} />
+          <AlertCircle size={15} style={{ color: '#C0492B', flexShrink: 0 }} />
           {error}
         </div>
       )}

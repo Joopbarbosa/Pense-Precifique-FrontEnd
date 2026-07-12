@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Logo, Wordmark, Icons, Button, Spinner } from '../../components/ui'
+import { Logo, Wordmark, Button, Spinner } from '../../components/ui'
+import { Check, Lightbulb, Clock, TrendingUp, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
 
@@ -15,7 +16,7 @@ function Stepper() {
           background: 'rgba(42,157,143,0.14)', color: '#2A9D8F',
           border: '1.5px solid rgba(42,157,143,0.4)',
         }}>
-          <Icons.checkSmall />
+          <Check size={14} />
         </span>
         <span style={{ fontSize: 14, fontWeight: 500, color: '#A29E96', whiteSpace: 'nowrap' }}>
           Sua conta
@@ -127,7 +128,7 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
           borderRadius: 12, padding: '11px 13px',
         }}>
           <span style={{ flexShrink: 0, color: '#EC7A2C', marginTop: 1 }}>
-            <Icons.bulb />
+            <Lightbulb size={15} />
           </span>
           <p style={{ margin: 0, fontSize: 12.7, lineHeight: 1.55, color: '#8A5A33' }}>{dica}</p>
         </div>
@@ -298,7 +299,7 @@ export default function OnboardingPage() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <PriceField
-              icon={<Icons.clock />}
+              icon={<Clock size={18} />}
               question="Quanto vale a sua hora de trabalho?"
               explain="Este valor entra no cálculo de custo de mão de obra de cada produto."
               affix="R$"
@@ -312,7 +313,7 @@ export default function OnboardingPage() {
             />
 
             <PriceField
-              icon={<Icons.trendUp />}
+              icon={<TrendingUp size={20} />}
               question="Qual é a sua margem de lucro padrão?"
               explain="Percentual adicionado ao custo total para formar seu preço de venda."
               affix="%"
@@ -349,7 +350,7 @@ export default function OnboardingPage() {
             alignItems: 'center', justifyContent: 'center', gap: 6,
             fontSize: 12.7, color: '#A29E96', textAlign: 'center',
           }}>
-            <span style={{ color: '#2A9D8F', display: 'flex' }}><Icons.gear /></span>
+            <span style={{ color: '#2A9D8F', display: 'flex' }}><Settings size={20} /></span>
             <span>Dá pra mudar tudo depois em <strong style={{ fontWeight: 600, color: '#6B6860' }}>Configurações</strong>.</span>
           </p>
         </div>

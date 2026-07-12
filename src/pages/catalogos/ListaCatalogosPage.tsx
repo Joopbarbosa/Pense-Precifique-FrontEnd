@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ModalShell from '../../components/ui/ModalShell'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Icons } from '../../components/ui/Icons'
+import { Files, Save, Pencil, Copy, Power, Plus, Search, ArrowDown } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 
@@ -80,14 +80,14 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
       onClose={onClose}
       title="Editar catálogo"
       subtitle={catalogo.identificador}
-      icon={<Icons.fileStack />}
+      icon={<Files size={22} />}
       iconBg="rgba(42,157,143,0.10)"
       iconColor="#2A9D8F"
       width={480}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
-          <Button variant="primary" icon={<Icons.save />} disabled={salvando} onClick={salvar}>
+          <Button variant="primary" icon={<Save size={16} />} disabled={salvando} onClick={salvar}>
             {salvando ? 'Salvando…' : 'Salvar alterações'}
           </Button>
         </>
@@ -167,14 +167,14 @@ interface CatalogoAcoesProps {
 function montarMenuItems(catalogo: CatalogoResponse, { onEditar, onDuplicar, onDesativar, onReativar }: Omit<CatalogoAcoesProps, 'onVer'>): ActionMenuItem[] {
   return catalogo.ativo
     ? [
-        { label: 'Editar',    icon: <Icons.edit />,  onClick: onEditar },
-        { label: 'Duplicar',  icon: <Icons.copy />,  onClick: onDuplicar },
-        { label: 'Desativar', icon: <Icons.power />, onClick: onDesativar, danger: true, dividerBefore: true },
+        { label: 'Editar',    icon: <Pencil size={16} />, onClick: onEditar },
+        { label: 'Duplicar',  icon: <Copy size={16} />,   onClick: onDuplicar },
+        { label: 'Desativar', icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
       ]
     : [
-        { label: 'Editar',   icon: <Icons.edit />,  onClick: onEditar },
-        { label: 'Duplicar', icon: <Icons.copy />,  onClick: onDuplicar },
-        { label: 'Reativar', icon: <Icons.power />, onClick: onReativar, dividerBefore: true },
+        { label: 'Editar',   icon: <Pencil size={16} />, onClick: onEditar },
+        { label: 'Duplicar', icon: <Copy size={16} />,   onClick: onDuplicar },
+        { label: 'Reativar', icon: <Power size={16} />,  onClick: onReativar, dividerBefore: true },
       ]
 }
 
@@ -343,7 +343,7 @@ export default function ListaCatalogosPage() {
           <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Meus Catálogos</h1>
           <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#A29E96' }}>Organize seus produtos em catálogos com margem própria.</p>
         </div>
-        <Button variant="primary" icon={<Icons.plus />} onClick={() => navigate('/catalogos/novo')}>
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/catalogos/novo')}>
           Novo Catálogo
         </Button>
       </div>
@@ -357,7 +357,7 @@ export default function ListaCatalogosPage() {
       {/* BUSCA */}
       <div style={{ position: 'relative', maxWidth: 420, marginBottom: 18 }}>
         <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
-          <Icons.search />
+          <Search size={18} />
         </span>
         <input
           value={busca}
@@ -389,10 +389,10 @@ export default function ListaCatalogosPage() {
         </div>
       ) : catalogos.length === 0 ? (
         <EmptyState
-          icon={<Icons.fileStack />}
+          icon={<Files size={22} />}
           title={busca.trim() ? 'Nenhum catálogo encontrado' : 'Nenhum catálogo cadastrado ainda'}
           description={busca.trim() ? 'Nenhum catálogo encontrado para essa busca.' : 'Crie seu primeiro catálogo para organizar produtos com uma margem própria.'}
-          action={!busca.trim() ? { label: 'Criar primeiro catálogo', icon: <Icons.plus />, onClick: () => navigate('/catalogos/novo') } : undefined}
+          action={!busca.trim() ? { label: 'Criar primeiro catálogo', icon: <Plus size={16} />, onClick: () => navigate('/catalogos/novo') } : undefined}
         />
       ) : (
         <>
@@ -414,7 +414,7 @@ export default function ListaCatalogosPage() {
                   >
                     {col.label}
                     {ativa && (
-                      <Icons.arrowDown width={11} height={11} style={{ transform: direcao === 'ASC' ? 'rotate(180deg)' : 'none' }} />
+                      <ArrowDown size={11} style={{ transform: direcao === 'ASC' ? 'rotate(180deg)' : 'none' }} />
                     )}
                   </div>
                 )
@@ -461,7 +461,7 @@ export default function ListaCatalogosPage() {
         open={modalCatalogo?.tipo === 'desativar'}
         onClose={() => setModalCatalogo(null)}
         title={`Desativar "${modalCatalogo?.catalogo.nome}"?`}
-        icon={<Icons.power />}
+        icon={<Power size={16} />}
         iconBg="rgba(192,73,43,0.10)"
         iconColor="#C0492B"
         width={440}

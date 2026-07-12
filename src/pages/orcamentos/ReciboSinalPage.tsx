@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Icons, Logo, Button } from '../../components/ui'
+import { Logo, Button } from '../../components/ui'
+import { Mail, Phone, CheckCircle, Check, Wallet, ShoppingBag, Sparkles, FileText, ChevronRight, ArrowLeft, Download } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { orcamentoService } from '../../services/orcamentoService'
 import { empresaService } from '../../services/empresaService'
@@ -93,12 +94,12 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 5, fontSize: 12, color: '#7C786F' }}>
               {empresa?.email && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.mail width={13} height={13} style={{ color: TEAL }} /> {empresa.email}
+                  <Mail size={13} style={{ color: TEAL }} /> {empresa.email}
                 </span>
               )}
               {empresa?.whatsapp && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <Icons.phone width={13} height={13} style={{ color: TEAL }} /> {empresa.whatsapp}
+                  <Phone size={13} style={{ color: TEAL }} /> {empresa.whatsapp}
                 </span>
               )}
             </div>
@@ -114,7 +115,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
       <div style={{ marginTop: 26, padding: '20px 22px', borderRadius: 12, background: hexA(TEAL, 0.07), border: `1px solid ${hexA(TEAL, 0.22)}`, borderLeft: `4px solid ${TEAL}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 44, height: 44, borderRadius: 12, background: '#fff', color: TEAL, border: `1px solid ${hexA(TEAL, 0.25)}` }}>
-            <Icons.checkCircle />
+            <CheckCircle size={22} />
           </span>
           <div>
             <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E7268', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
@@ -138,7 +139,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
       <div style={{ marginTop: 24, borderRadius: 14, border: `1.5px solid ${hexA(TEAL, 0.32)}`, background: hexA(TEAL, 0.05), overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', background: `linear-gradient(135deg, ${hexA(TEAL, 0.14)}, ${hexA(TEAL, 0.04)})`, borderBottom: `1px solid ${hexA(TEAL, 0.2)}` }}>
           <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 9, background: '#fff', color: TEAL, boxShadow: `0 3px 9px -3px ${hexA(TEAL, 0.4)}` }}>
-            <Icons.check />
+            <Check size={14} />
           </span>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#1E7268', letterSpacing: '-0.005em' }}>Entrada recebida com sucesso</span>
         </div>
@@ -158,7 +159,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#9A968E' }}>Forma de pagamento</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#3A372F', marginTop: 3 }}>
-                <Icons.wallet width={14} height={14} style={{ color: TEAL }} /> {formaPagamento}
+                <Wallet size={14} style={{ color: TEAL }} /> {formaPagamento}
               </div>
             </div>
           </div>
@@ -185,7 +186,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
 
       {/* DETALHES DO PEDIDO */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.bag />}>Detalhes do pedido</DocSectionTitle>
+        <DocSectionTitle icon={<ShoppingBag size={15} />}>Detalhes do pedido</DocSectionTitle>
         <table className="a4-table">
           <thead>
             <tr>
@@ -222,7 +223,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, padding: '10px 12px', borderRadius: 9, background: hexA(TEAL, 0.07), border: `1px dashed ${hexA(TEAL, 0.4)}`, margin: '2px 0' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: TEAL }}>
-                <Icons.check /> Entrada paga{pctSinal ? ` (${pctSinal}%)` : ''}
+                <Check size={14} /> Entrada paga{pctSinal ? ` (${pctSinal}%)` : ''}
               </span>
               <span style={{ fontWeight: 700, color: TEAL, fontVariantNumeric: 'tabular-nums' }}>{BRL(valorSinal)}</span>
             </div>
@@ -236,7 +237,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
 
       {/* PRÓXIMOS PASSOS */}
       <div style={{ marginTop: 26 }}>
-        <DocSectionTitle icon={<Icons.sparkles />}>Próximos passos</DocSectionTitle>
+        <DocSectionTitle icon={<Sparkles size={16} />}>Próximos passos</DocSectionTitle>
         <div style={{ padding: '16px 18px', borderRadius: 12, background: hexA(TEAL, 0.05), border: `1px solid ${hexA(TEAL, 0.2)}` }}>
           {orcamento.inicioAssimQueAprovado ? (
             <p style={{ margin: 0, fontSize: 13.5, color: '#3A372F', lineHeight: 1.65 }}>
@@ -262,7 +263,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
       {/* RODAPÉ */}
       <div style={{ marginTop: 'auto', paddingTop: 30 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 18, borderTop: '1px solid #F0EEE9', fontSize: 11.5, color: '#9A968E', flexWrap: 'wrap' }}>
-          <Icons.doc width={15} height={15} style={{ color: TEAL, flexShrink: 0 }} />
+          <FileText size={15} style={{ color: TEAL, flexShrink: 0 }} />
           Este recibo foi gerado pelo sistema
           <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>Pense &amp; Precifique</strong>
           em <strong style={{ fontWeight: 600, color: '#6B6860', marginLeft: 3 }}>{emissao}</strong>.
@@ -366,7 +367,7 @@ export default function ReciboSinalPage() {
                   >
                     {label}
                   </button>
-                  <Icons.chevron style={{ color: '#CFCBC3', flexShrink: 0 }} />
+                  <ChevronRight size={15} style={{ color: '#CFCBC3', flexShrink: 0 }} />
                 </span>
               ))}
               <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>Recibo do Sinal</span>
@@ -380,10 +381,10 @@ export default function ReciboSinalPage() {
 
           {/* Botões */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="ghost" icon={<Icons.back />} onClick={() => navigate(`/orcamentos/${id}`)}>
+            <Button variant="ghost" icon={<ArrowLeft size={17} />} onClick={() => navigate(`/orcamentos/${id}`)}>
               Voltar ao orçamento
             </Button>
-            <Button variant="secondary" icon={<Icons.download />} onClick={handleDownload}>
+            <Button variant="secondary" icon={<Download size={17} />} onClick={handleDownload}>
               Baixar Recibo
             </Button>
           </div>

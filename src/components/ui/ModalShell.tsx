@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Icons } from './Icons'
+import { X } from 'lucide-react'
 
 interface ModalShellProps {
   open: boolean
@@ -138,7 +138,7 @@ export default function ModalShell({
               placeItems: 'center',
             }}
           >
-            <Icons.x />
+            <X size={20} />
           </button>
         </div>
 

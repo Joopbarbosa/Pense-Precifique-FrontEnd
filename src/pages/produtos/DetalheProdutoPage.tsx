@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
-import { Icons } from '../../components/ui/Icons'
+import {
+  X, Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
+  Check, Pencil, Factory, History,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
@@ -35,10 +39,10 @@ function resolveKind(mov: MovimentacaoProdutoResponse): MovKind {
   return 'saida'
 }
 
-const MOV_STYLE: Record<MovKind, { c: string; bg: string; icon: keyof typeof Icons }> = {
-  entrada:  { c: '#1F8A5B', bg: '#E8F5EE', icon: 'factorySm' },
-  saida:    { c: '#C0492B', bg: '#FBEDE9', icon: 'minus' },
-  estorno:  { c: '#C0492B', bg: '#FBEDE9', icon: 'alertCircle' },
+const MOV_STYLE: Record<MovKind, { c: string; bg: string; icon: LucideIcon; size: number }> = {
+  entrada:  { c: '#1F8A5B', bg: '#E8F5EE', icon: Factory,     size: 16 },
+  saida:    { c: '#C0492B', bg: '#FBEDE9', icon: Minus,       size: 17 },
+  estorno:  { c: '#C0492B', bg: '#FBEDE9', icon: AlertCircle, size: 15 },
 }
 
 function MovTitulo(mov: MovimentacaoProdutoResponse) {
@@ -51,11 +55,11 @@ function MovTitulo(mov: MovimentacaoProdutoResponse) {
 function HistTipo({ mov }: { mov: MovimentacaoProdutoResponse }) {
   const kind = resolveKind(mov)
   const m = MOV_STYLE[kind]
-  const Ic = Icons[m.icon] as (p?: React.SVGProps<SVGSVGElement>) => JSX.Element
+  const Ic = m.icon
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
       <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: m.bg, color: m.c }}>
-        <Ic />
+        <Ic size={m.size} />
       </span>
       <span style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F' }}>{MovTitulo(mov)}</span>
     </div>
@@ -67,7 +71,7 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
     return <span style={{ color: '#D8D4CC' }}>—</span>
   }
   const isCatalogo = mov.catalogoReferencia.startsWith('CTG-')
-  const Ic = isCatalogo ? Icons.layers : Icons.cube
+  const Ic = isCatalogo ? Layers : Box
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start', minWidth: 0, maxWidth: '100%' }}>
       <span title={mov.catalogoReferencia} style={{
@@ -77,7 +81,7 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
         background: isCatalogo ? 'rgba(42,157,143,0.10)' : '#F1F0EC',
         maxWidth: '100%', minWidth: 0,
       }}>
-        <Ic width={11} height={11} style={{ flexShrink: 0 }} />
+        <Ic size={11} style={{ flexShrink: 0 }} />
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
           {mov.catalogoReferencia}
         </span>
@@ -163,7 +167,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
             <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(249,115,22,0.12)', color: '#F97316' }}>
-              <Icons.minus />
+              <Minus size={17} />
             </span>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -176,7 +180,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
             onMouseEnter={e => (e.currentTarget.style.background = '#E9E7E2')}
             onMouseLeave={e => (e.currentTarget.style.background = '#F1F0EC')}
           >
-            <Icons.x />
+            <X size={20} />
           </button>
         </div>
 
@@ -207,7 +211,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
                   borderColor: selOpen ? '#2A9D8F' : '#EFEDE8',
                   boxShadow: selOpen ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
                 }}>
-                  {motivoLabel}<span style={{ color: '#A29E96', display: 'flex' }}><Icons.caret /></span>
+                  {motivoLabel}<span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
                 </button>
                 {selOpen && (
                   <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
@@ -250,7 +254,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
             />
             {obs.length > 0 && obs.length < 50 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
-                <Icons.alertCircle width={13} height={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
+                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
               </div>
             )}
           </label>
@@ -264,7 +268,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
-          <Button variant="secondary" icon={<Icons.minus />} disabled={!podeRegistrar} onClick={registrar}>
+          <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar} onClick={registrar}>
             {salvando ? 'Registrando…' : 'Registrar baixa'}
           </Button>
         </div>
@@ -362,8 +366,8 @@ export default function DetalheProdutoPage() {
   ]
 
   const ABAS = [
-    { id: 'historico' as const, label: 'Histórico de movimentações', icon: Icons.history },
-    { id: 'ficha'     as const, label: 'Ficha técnica',              icon: Icons.layers },
+    { id: 'historico' as const, label: 'Histórico de movimentações', icon: History, size: 17 },
+    { id: 'ficha'     as const, label: 'Ficha técnica',              icon: Layers,  size: 18 },
   ]
 
   return (
@@ -375,14 +379,14 @@ export default function DetalheProdutoPage() {
           onMouseEnter={e => (e.currentTarget.style.color = '#2A9D8F')}
           onMouseLeave={e => (e.currentTarget.style.color = '#A29E96')}
         >Produtos</span>
-        <Icons.chevron style={{ color: '#CFCBC3' }} />
+        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
         <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{produto.nome}</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15, minWidth: 0 }}>
           <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
-            <Icons.cube width={26} height={26} />
+            <Box size={26} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -399,11 +403,11 @@ export default function DetalheProdutoPage() {
               </span>
               {produto.permitirEstoqueNegativo ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: 'rgba(42,157,143,0.12)', color: '#2A9D8F', fontSize: 12.5, fontWeight: 600 }}>
-                  <Icons.check width={13} height={13} /> Permite estoque negativo
+                  <Check size={13} /> Permite estoque negativo
                 </span>
               ) : (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: 'rgba(239,68,68,0.12)', color: '#EF4444', fontSize: 12.5, fontWeight: 600 }}>
-                  <Icons.x width={13} height={13} /> Bloqueia estoque negativo
+                  <X size={13} /> Bloqueia estoque negativo
                 </span>
               )}
               {produto.algumInsumoNaoFracionavel && (
@@ -417,7 +421,7 @@ export default function DetalheProdutoPage() {
             </div>
           </div>
         </div>
-        <Button variant="ghost" icon={<Icons.edit />} onClick={() => navigate(`/produtos/${id}/editar`)}>
+        <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/produtos/${id}/editar`)}>
           Editar
         </Button>
       </div>
@@ -440,10 +444,10 @@ export default function DetalheProdutoPage() {
         </div>
         {!isProdutoBase && (
           <div style={{ display: 'flex', gap: 11, padding: '16px 20px', borderTop: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
-            <Button variant="primary" icon={<Icons.factory />} onClick={() => navigate('/producao')}>
+            <Button variant="primary" icon={<Factory size={20} />} onClick={() => navigate('/producao')}>
               Registrar produção
             </Button>
-            <Button variant="ghost" icon={<Icons.minus />} onClick={() => setModal('baixa')}>
+            <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
               Baixa manual
             </Button>
           </div>
@@ -463,7 +467,7 @@ export default function DetalheProdutoPage() {
               onMouseEnter={e => { if (!on) e.currentTarget.style.color = '#5C594F' }}
               onMouseLeave={e => { if (!on) e.currentTarget.style.color = '#8A8780' }}
             >
-              <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon /></span>
+              <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon size={a.size} /></span>
               {a.label}
               {on && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1.5, height: 2.5, borderRadius: 3, background: '#2A9D8F' }} />}
             </button>
@@ -549,7 +553,7 @@ export default function DetalheProdutoPage() {
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: item.produtoBaseId ? 'rgba(42,157,143,0.12)' : '#F1F0EC', color: item.produtoBaseId ? '#2A9D8F' : '#9A968E' }}>
-                    {item.produtoBaseId ? <Icons.cubeSmall /> : <Icons.box width={20} height={20} />}
+                    {item.produtoBaseId ? <Box size={20} /> : <Box size={20} />}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
@@ -598,7 +602,7 @@ export default function DetalheProdutoPage() {
             >
               {movLoadingMore
                 ? <><span style={{ width: 15, height: 15, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} /> Carregando…</>
-                : <>Carregar mais <Icons.chevron style={{ transform: 'rotate(90deg)' }} /></>
+                : <>Carregar mais <ChevronRight size={15} style={{ transform: 'rotate(90deg)' }} /></>
               }
             </button>
           )}
