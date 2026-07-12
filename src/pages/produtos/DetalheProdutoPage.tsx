@@ -10,6 +10,7 @@ import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
+import { MOTIVOS_BAIXA_PRODUTO, MOTIVO_LABEL } from '../../constants'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
@@ -17,18 +18,6 @@ const moeda = (n: number, dec?: number) =>
 const fmtData = (iso: string) => {
   const d = new Date(iso)
   return d.toLocaleDateString('pt-BR')
-}
-
-// Mapeamento de motivo da API para label exibido
-const MOTIVO_LABEL: Record<string, string> = {
-  PRODUCAO: 'Produção',
-  ORCAMENTO: 'Orçamento',
-  PERDA: 'Perda',
-  AVARIA: 'Avaria',
-  USO_EXTRA: 'Uso extra',
-  CORRECAO: 'Correção de estoque',
-  OUTRO: 'Outro',
-  ESTORNO_PRODUCAO: 'Cancelamento de produção',
 }
 
 type MovKind = 'entrada' | 'saida' | 'estorno'
@@ -94,14 +83,6 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
     </div>
   )
 }
-
-const MOTIVOS_PRODUTO: { api: BaixaManualProdutoRequest['motivo']; label: string }[] = [
-  { api: 'PERDA',     label: 'Perda' },
-  { api: 'AVARIA',    label: 'Avaria' },
-  { api: 'USO_EXTRA', label: 'Uso extra' },
-  { api: 'CORRECAO',  label: 'Correção de estoque' },
-  { api: 'OUTRO',     label: 'Outro' },
-]
 
 const HIST_COLS = '110px 1fr 88px minmax(120px, 180px) 1fr'
 
@@ -215,8 +196,8 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
                 </button>
                 {selOpen && (
                   <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
-                    {MOTIVOS_PRODUTO.map(m => (
-                      <button key={m.api} type="button" onClick={() => { setMotivo(m.api); setMotivoLabel(m.label); setSelOpen(false) }} style={{
+                    {MOTIVOS_BAIXA_PRODUTO.map(m => (
+                      <button key={m.api} type="button" onClick={() => { setMotivo(m.api as BaixaManualProdutoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }} style={{
                         width: '100%', textAlign: 'left', padding: '10px 11px', borderRadius: 8,
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14,
                         background: m.api === motivo ? 'rgba(42,157,143,0.08)' : 'transparent',

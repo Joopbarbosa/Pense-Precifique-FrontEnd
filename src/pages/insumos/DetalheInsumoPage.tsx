@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button'
 import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
+import { MOTIVOS_BAIXA_INSUMO } from '../../constants'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -14,8 +15,6 @@ const moeda = (n: number, dec?: number) =>
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR')
-
-const MOTIVOS = ['Perda', 'Avaria', 'Uso extra', 'Correção de estoque', 'Outro']
 
 const TIPO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
@@ -152,7 +151,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
                 </button>
                 {selOpen && (
                   <div style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 12px 30px -8px rgba(0,0,0,0.18)', padding: 6, animation: 'pop .14s ease both' }}>
-                    {MOTIVOS.map(m => (
+                    {MOTIVOS_BAIXA_INSUMO.map(m => (
                       <button key={m} type="button" onClick={() => { setMotivo(m); setSelOpen(false) }} style={{
                         width: '100%', textAlign: 'left', padding: '10px 11px', borderRadius: 8,
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14,

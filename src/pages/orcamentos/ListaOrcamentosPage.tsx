@@ -6,25 +6,13 @@ import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-r
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
+import { STATUS_LABEL } from '../../constants'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
   | 'Aguardando Sinal' | 'Sinal Pago'
   | 'Em Produção' | 'Finalizado'
   | 'Entregue' | 'Pago' | 'Cancelado'
-
-const STATUS_LABEL: Record<StatusOrcamento, StatusBadgeLabel> = {
-  RASCUNHO: 'Rascunho',
-  ENVIADO: 'Enviado',
-  APROVADO: 'Aprovado',
-  AGUARDANDO_SINAL: 'Aguardando Sinal',
-  SINAL_PAGO: 'Sinal Pago',
-  EM_PRODUCAO: 'Em Produção',
-  FINALIZADO: 'Finalizado',
-  ENTREGUE: 'Entregue',
-  PAGO: 'Pago',
-  CANCELADO: 'Cancelado',
-}
 
 const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
   { label: 'Todos', value: '' },
@@ -81,7 +69,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
       <span style={{ fontSize: 13.5, color: '#A29E96' }}>{fmtData(orc.createdAt)}</span>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <StatusBadge status={STATUS_LABEL[orc.status]} />
+        <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} />
         {isVencido(orc) && <VencidoBadge />}
       </div>
 
@@ -123,7 +111,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
           </div>
           <div style={{ fontSize: 14, color: '#5C594F', marginBottom: 8 }}>{orc.nomeCliente}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <StatusBadge status={STATUS_LABEL[orc.status]} size="sm" />
+            <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} size="sm" />
             <span style={{ fontSize: 13, color: '#A29E96' }}>{fmtData(orc.createdAt)}</span>
           </div>
         </div>

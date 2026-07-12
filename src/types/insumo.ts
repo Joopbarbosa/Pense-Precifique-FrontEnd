@@ -61,11 +61,3 @@ export interface ProdutoRelacionadoResponse {
   tipo: 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
 }
 
-// Matches Spring Data Page format
-export interface PageResponse<T> {
-  content: T[]
-  number: number    // 0-indexed page number
-  size: number
-  totalElements: number
-  last: boolean     // true if this is the last page
-}

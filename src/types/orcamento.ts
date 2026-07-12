@@ -120,10 +120,3 @@ export interface AvancaStatusRequest {
   justificativa?: string;
 }
 
-export type PageResponse<T> = {
-  content: T[]
-  number: number
-  size: number
-  totalElements: number
-  last: boolean
-}

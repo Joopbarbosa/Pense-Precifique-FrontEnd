@@ -1,5 +1,6 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, PageResponse, ItemCatalogoBuscaResponse } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse } from '../types/orcamento';
+import type { PageResponse } from '../types/shared';
 
 export const orcamentoService = {
   listar: async (page: number, size = 20, status?: string, busca?: string): Promise<PageResponse<OrcamentoResponse>> => {

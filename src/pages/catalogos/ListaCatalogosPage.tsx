@@ -4,6 +4,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ModalShell from '../../components/ui/ModalShell'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { Files, Save, Pencil, Copy, Power, Plus, Search, ArrowDown } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
@@ -457,27 +458,19 @@ export default function ListaCatalogosPage() {
         />
       )}
 
-      <ModalShell
+      <ConfirmacaoModal
         open={modalCatalogo?.tipo === 'desativar'}
         onClose={() => setModalCatalogo(null)}
+        onConfirm={handleDesativarConfirm}
+        variant="danger"
         title={`Desativar "${modalCatalogo?.catalogo.nome}"?`}
         icon={<Power size={16} />}
-        iconBg="rgba(192,73,43,0.10)"
-        iconColor="#C0492B"
         width={440}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setModalCatalogo(null)} disabled={processando}>Cancelar</Button>
-            <Button variant="danger" onClick={handleDesativarConfirm} disabled={processando}>
-              {processando ? 'Desativando…' : 'Desativar catálogo'}
-            </Button>
-          </>
-        }
-      >
-        <p style={{ margin: 0, fontSize: 14, color: '#5C594F', lineHeight: 1.6 }}>
-          Todos os itens deste catálogo ficam bloqueados para venda enquanto ele estiver inativo. Nada é excluído e você pode reativar quando quiser.
-        </p>
-      </ModalShell>
+        confirmLabel="Desativar catálogo"
+        confirmingLabel="Desativando…"
+        confirming={processando}
+        description="Todos os itens deste catálogo ficam bloqueados para venda enquanto ele estiver inativo. Nada é excluído e você pode reativar quando quiser."
+      />
 
     </AppLayout>
   )

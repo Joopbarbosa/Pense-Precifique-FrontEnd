@@ -15,18 +15,9 @@ import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
 import type { OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
+import { METODOS_PAGAMENTO } from '../../constants'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
-
-const METODOS_PAGAMENTO = [
-  { id: 'PIX',           label: 'Pix' },
-  { id: 'DINHEIRO',      label: 'Dinheiro' },
-  { id: 'CREDITO',       label: 'Crédito' },
-  { id: 'DEBITO',        label: 'Débito' },
-  { id: 'TRANSFERENCIA', label: 'Transferência' },
-  { id: 'BOLETO',        label: 'Boleto Bancário' },
-  { id: 'OUTRO',         label: 'Outro' },
-]
 
 interface Item {
   id: number

@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePaginatedList } from './usePaginatedList'
-
-interface PageResponse<T> {
-  content: T[]
-  last: boolean
-  totalElements?: number
-}
+import type { PageResponse } from '../types/shared'
 
 interface UseDebounceSearchOptions<T> {
   fetcher: (page: number, size: number, query?: string) => Promise<PageResponse<T>>

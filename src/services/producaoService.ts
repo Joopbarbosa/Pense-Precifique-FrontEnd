@@ -6,7 +6,7 @@ import type {
   ProducaoDetalheResponse,
   InsumoConsumidoResponse,
 } from '../types/producao'
-import type { PageResponse } from '../types/insumo'
+import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
   listar: async (page: number, size = 20): Promise<PageResponse<ProducaoResponse>> => {

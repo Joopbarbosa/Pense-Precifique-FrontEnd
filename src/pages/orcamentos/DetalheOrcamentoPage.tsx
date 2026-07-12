@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
+import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, X, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock,
@@ -16,6 +17,7 @@ import type {
   MetodoPagamento,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
+import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -31,18 +33,6 @@ type ApiStatus =
   | "PAGO"
   | "CANCELADO";
 
-const STATUS_LABEL: Record<ApiStatus, string> = {
-  RASCUNHO: "Rascunho",
-  ENVIADO: "Enviado",
-  APROVADO: "Aprovado",
-  AGUARDANDO_SINAL: "Aguardando Sinal",
-  SINAL_PAGO: "Sinal Pago",
-  EM_PRODUCAO: "Em Produção",
-  FINALIZADO: "Finalizado",
-  ENTREGUE: "Entregue",
-  PAGO: "Pago",
-  CANCELADO: "Cancelado",
-};
 
 // Botão principal por status
 const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
@@ -93,16 +83,6 @@ const STATUS_META: Record<string, { bg: string; fg: string; dot: string }> = {
   PAGO: { bg: "#E8F5EE", fg: "#1F8A5B", dot: "#34A56F" },
   CANCELADO: { bg: "#FCF0EC", fg: "#C0492B", dot: "#D06A4E" },
 };
-
-const METODOS_PAGAMENTO: { id: MetodoPagamento; label: string }[] = [
-  { id: "PIX", label: "Pix" },
-  { id: "DINHEIRO", label: "Dinheiro" },
-  { id: "CREDITO", label: "Crédito" },
-  { id: "DEBITO", label: "Débito" },
-  { id: "TRANSFERENCIA", label: "Transferência" },
-  { id: "BOLETO", label: "Boleto Bancário" },
-  { id: "OUTRO", label: "Outro" },
-];
 
 const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace(".", ",")}`;
 
@@ -435,42 +415,24 @@ function ModalCancelSimples({
   saving: boolean;
 }) {
   return (
-    <ModalShell
+    <ConfirmacaoModal
       open
       onClose={onClose}
+      onConfirm={onConfirm}
+      variant="danger"
+      icon={<Ban size={16} />}
       title="Cancelar orçamento?"
-      footer={
+      description={
         <>
-          <Button variant="ghost" onClick={onClose}>
-            Voltar
-          </Button>
-          <Button variant="danger" disabled={saving} onClick={onConfirm}>
-            {saving ? "Cancelando..." : "Sim, cancelar"}
-          </Button>
-        </>
-      }
-    >
-      <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-        <span
-          style={{
-            display: "inline-grid",
-            placeItems: "center",
-            width: 54,
-            height: 54,
-            borderRadius: 15,
-            background: "#FCF3F0",
-            color: "#C0492B",
-            marginBottom: 16,
-          }}
-        >
-          <Ban size={24} />
-        </span>
-        <p style={{ margin: 0, fontSize: 14, color: "#5C594F", lineHeight: 1.6 }}>
           Esta ação não pode ser desfeita. O orçamento será marcado como{" "}
           <strong>Cancelado</strong>.
-        </p>
-      </div>
-    </ModalShell>
+        </>
+      }
+      cancelLabel="Voltar"
+      confirmLabel="Sim, cancelar"
+      confirmingLabel="Cancelando..."
+      confirming={saving}
+    />
   );
 }
 
@@ -491,24 +453,19 @@ function ModalCancelJustificativa({
   const valido = len >= 50 && !saving;
 
   return (
-    <ModalShell
+    <ConfirmacaoModal
       open
       onClose={onClose}
+      onConfirm={() => onConfirm(texto)}
+      variant="danger"
+      icon={<Ban size={16} />}
       title="Cancelar pedido já entregue?"
       subtitle="Justificativa obrigatória"
-      icon={<Ban size={16} />}
-      iconBg="#FCF3F0"
-      iconColor="#C0492B"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Voltar
-          </Button>
-          <Button variant="danger" disabled={!valido} onClick={() => onConfirm(texto)}>
-            {saving ? "Cancelando..." : "Confirmar cancelamento"}
-          </Button>
-        </>
-      }
+      cancelLabel="Voltar"
+      confirmLabel="Confirmar cancelamento"
+      confirmingLabel="Cancelando..."
+      confirming={saving}
+      confirmDisabled={!valido}
     >
       <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#5C594F", lineHeight: 1.55 }}>
         Cancelar um pedido neste estágio é uma ação excepcional. Descreva o
@@ -568,7 +525,7 @@ function ModalCancelJustificativa({
           <AlertCircle size={13} /> Faltam {50 - len} caracteres.
         </div>
       )}
-    </ModalShell>
+    </ConfirmacaoModal>
   );
 }
 

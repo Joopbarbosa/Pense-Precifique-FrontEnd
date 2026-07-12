@@ -3,7 +3,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, Input } from '../../components/ui'
 import { Pencil, List, Ban, Phone, User, X, Mail, Plus, Users, Search } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import ModalShell from '../../components/ui/ModalShell'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
 import type { ClienteResponse, ClienteRequest } from '../../types/cliente'
@@ -508,25 +508,17 @@ export default function ClientesPage() {
       )}
 
       {/* MODAL: confirmar inativação */}
-      <ModalShell
+      <ConfirmacaoModal
         open={!!confirmInativar}
         onClose={() => setConfirmInativar(null)}
+        onConfirm={handleInativar}
+        variant="danger"
         title={`Inativar "${confirmInativar?.nome}"?`}
         icon={<Ban size={16} />}
-        iconBg="rgba(192,73,43,0.10)"
-        iconColor="#C0492B"
         width={420}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmInativar(null)}>Cancelar</Button>
-            <Button variant="danger" onClick={handleInativar}>Inativar cliente</Button>
-          </>
-        }
-      >
-        <p style={{ margin: 0, fontSize: 14, color: '#5C594F', lineHeight: 1.6 }}>
-          A cliente será removida da listagem. Esta ação não pode ser desfeita por aqui.
-        </p>
-      </ModalShell>
+        confirmLabel="Inativar cliente"
+        description="A cliente será removida da listagem. Esta ação não pode ser desfeita por aqui."
+      />
 
     </AppLayout>
   )

@@ -1,6 +1,7 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, PageResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
+import type { PageResponse } from '../types/shared'
 
 export const produtoService = {
   listar: async (page: number, size = 20, tipo?: string, busca?: string): Promise<PageResponse<ProdutoResponse>> => {

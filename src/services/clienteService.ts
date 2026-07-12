@@ -1,6 +1,6 @@
 import api from './api'
 import type { ClienteRequest, ClienteResponse } from '../types/cliente'
-import type { PageResponse } from '../types/insumo'
+import type { PageResponse } from '../types/shared'
 
 export const clienteService = {
   listar: async (page: number, size = 20, nome?: string): Promise<PageResponse<ClienteResponse>> => {

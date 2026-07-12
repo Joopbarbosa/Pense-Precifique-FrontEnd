@@ -1,10 +1,5 @@
 import { useState, useCallback } from 'react'
-
-interface PageResponse<T> {
-  content: T[]
-  last: boolean
-  totalElements?: number
-}
+import type { PageResponse } from '../types/shared'
 
 interface UsePaginatedListOptions<T> {
   fetcher: (page: number, size: number) => Promise<PageResponse<T>>

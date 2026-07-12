@@ -8,6 +8,7 @@ import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
 import type { OrcamentoDetalheResponse } from '../../types/orcamento'
 import type { EmpresaResponse } from '../../types/empresa'
+import { STATUS_LABEL } from '../../constants'
 
 const BRL = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -224,19 +225,6 @@ type StatusBadgeType =
   | 'Em Produção' | 'Finalizado'
   | 'Entregue' | 'Pago' | 'Cancelado'
 
-const STATUS_LABEL: Record<string, StatusBadgeType> = {
-  RASCUNHO: 'Rascunho',
-  ENVIADO: 'Enviado',
-  APROVADO: 'Aprovado',
-  AGUARDANDO_SINAL: 'Aguardando Sinal',
-  SINAL_PAGO: 'Sinal Pago',
-  EM_PRODUCAO: 'Em Produção',
-  FINALIZADO: 'Finalizado',
-  ENTREGUE: 'Entregue',
-  PAGO: 'Pago',
-  CANCELADO: 'Cancelado',
-}
-
 export default function PreviewPdfPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -343,7 +331,7 @@ export default function PreviewPdfPage() {
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>
                 Preview do orçamento
               </h1>
-              <StatusBadge status={STATUS_LABEL[orcamento.status] || 'Rascunho'} size="sm" />
+              <StatusBadge status={(STATUS_LABEL[orcamento.status] || 'Rascunho') as StatusBadgeType} size="sm" />
             </div>
           </div>
 

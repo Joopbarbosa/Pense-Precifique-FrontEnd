@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
-import ModalShell from '../../components/ui/ModalShell'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
@@ -233,27 +233,19 @@ export default function DetalheCatalogoPage() {
         )}
       </div>
 
-      <ModalShell
+      <ConfirmacaoModal
         open={!!itemParaRemover}
         onClose={() => setItemParaRemover(null)}
+        onConfirm={handleRemoverConfirm}
+        variant="danger"
         title={`Remover "${itemParaRemover?.produtoNome}"?`}
         icon={<Trash2 size={16} />}
-        iconBg="rgba(192,73,43,0.10)"
-        iconColor="#C0492B"
         width={440}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setItemParaRemover(null)} disabled={processando}>Cancelar</Button>
-            <Button variant="danger" onClick={handleRemoverConfirm} disabled={processando}>
-              {processando ? 'Removendo…' : 'Remover item'}
-            </Button>
-          </>
-        }
-      >
-        <p style={{ margin: 0, fontSize: 14, color: '#5C594F', lineHeight: 1.6 }}>
-          Este item será removido do catálogo. Esta ação não pode ser desfeita.
-        </p>
-      </ModalShell>
+        confirmLabel="Remover item"
+        confirmingLabel="Removendo…"
+        confirming={processando}
+        description="Este item será removido do catálogo. Esta ação não pode ser desfeita."
+      />
 
     </AppLayout>
   )

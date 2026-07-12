@@ -86,10 +86,3 @@ export interface PrecoSugeridoResponse {
   precoSugerido: number
 }
 
-export interface PageResponse<T> {
-  content: T[]
-  number: number
-  size: number
-  totalElements: number
-  last: boolean
-}

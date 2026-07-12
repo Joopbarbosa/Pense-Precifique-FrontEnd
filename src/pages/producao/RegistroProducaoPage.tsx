@@ -7,6 +7,7 @@ import {
   AlertCircle, Layers, Pencil, ChevronRight, Eye, Ban, Search,
 } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { producaoService } from '../../services/producaoService'
 import { produtoService } from '../../services/produtoService'
 import { useToast } from '../../hooks/useToast'
@@ -236,31 +237,27 @@ function ConfirmEstoqueModal({ mensagem, onCancel, onConfirm, confirming }: {
   confirming: boolean
 }) {
   return (
-    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.5)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
-      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ width: 'min(460px, 100%)', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
-          <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(192,73,43,0.12)', color: '#C0492B' }}>
-            <AlertTriangle size={22} />
-          </span>
-          <div>
-            <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Saldo insuficiente de insumo</div>
-            <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>O estoque do insumo pode ficar negativo.</div>
-          </div>
-        </div>
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 13.5, color: '#B23A1E', lineHeight: 1.5 }}>{mensagem}</p>
-          <p style={{ margin: 0, fontSize: 12.5, color: '#A29E96', lineHeight: 1.5 }}>
+    <ConfirmacaoModal
+      open
+      onClose={onCancel}
+      onConfirm={onConfirm}
+      variant="danger"
+      icon={<AlertTriangle size={22} />}
+      title="Saldo insuficiente de insumo"
+      width={460}
+      confirmLabel="Continuar mesmo assim"
+      confirmingLabel="Confirmando..."
+      confirming={confirming}
+      description={
+        <>
+          <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginBottom: 10 }}>O estoque do insumo pode ficar negativo.</span>
+          <span style={{ display: 'block', fontSize: 13.5, color: '#B23A1E', marginBottom: 8 }}>{mensagem}</span>
+          <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96' }}>
             Deseja continuar mesmo assim? O sistema vai gravar a(s) produção(ões) e deixar o saldo negativo.
-          </p>
-        </div>
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Button variant="ghost" onClick={onCancel} disabled={confirming}>Cancelar</Button>
-          <Button variant="danger" onClick={onConfirm} disabled={confirming}>
-            {confirming ? 'Confirmando...' : 'Continuar mesmo assim'}
-          </Button>
-        </div>
-      </div>
-    </div>
+          </span>
+        </>
+      }
+    />
   )
 }
 
@@ -684,83 +681,71 @@ function CancelarProducaoModal({ prod, onClose, onSuccess }: {
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(500px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both' }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
-            <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(192,73,43,0.12)', color: '#C0492B' }}>
-              <AlertCircle size={15} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 16.5, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Cancelar produção #{prod.numero}</div>
-              <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>Esta ação não pode ser desfeita.</div>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#E9E7E2')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#F1F0EC')}
-          ><X size={20} /></button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ padding: '14px 16px', borderRadius: 12, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#B23A1E', marginBottom: 8 }}>Esta ação irá:</div>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#8A5A4C', lineHeight: 1.6 }}>
-              <li>Subtrair <strong style={{ fontWeight: 700 }}>{prod.quantidade} unid.</strong> do estoque de <strong style={{ fontWeight: 700 }}>{prod.nomeProduto}</strong></li>
-              <li>Devolver ao estoque os insumos consumidos nesta produção</li>
-              <li>Marcar a produção como <strong style={{ fontWeight: 700 }}>Cancelada</strong> (não pode ser reativada)</li>
-            </ul>
-          </div>
-
-          <label>
-            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-              Motivo do cancelamento <span style={{ color: '#F97316' }}>*</span>
-              <span style={{ fontWeight: 400, color: obs.length >= 50 ? '#3E9D5A' : '#A29E96', marginLeft: 8 }}>
-                {obs.length}/50 caracteres mín.
-              </span>
-            </span>
-            <textarea
-              value={obs}
-              onChange={e => setObs(e.target.value)}
-              onFocus={() => setFocus(true)}
-              onBlur={() => setFocus(false)}
-              placeholder="Descreva o motivo do cancelamento (ex: quantidade registrada foi incorreta, era para ser outro produto)"
-              rows={3}
-              style={{
-                width: '100%', padding: '12px 14px',
-                border: `1.5px solid ${obs.length > 0 && obs.length < 50 ? '#F2B8A6' : (focus ? '#2A9D8F' : '#EFEDE8')}`,
-                borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-                background: '#fff', outline: 'none', fontFamily: 'inherit',
-                resize: 'vertical', lineHeight: 1.5,
-                boxShadow: focus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-                transition: 'border-color .15s, box-shadow .15s',
-                boxSizing: 'border-box',
-              }}
-            />
-            {obs.length > 0 && obs.length < 50 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
-                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
-              </div>
-            )}
-          </label>
-
-          {erro && (
-            <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
-              <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erro}</p>
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>Voltar</Button>
-          <Button variant="danger" disabled={!podeConfirmar} onClick={handleSubmit}>
-            {submitting ? 'Cancelando...' : 'Cancelar produção'}
-          </Button>
-        </div>
+    <ConfirmacaoModal
+      open
+      onClose={onClose}
+      onConfirm={handleSubmit}
+      variant="danger"
+      icon={<AlertCircle size={15} />}
+      title={`Cancelar produção #${prod.numero}`}
+      width={500}
+      cancelLabel="Voltar"
+      confirmLabel="Cancelar produção"
+      confirmingLabel="Cancelando..."
+      confirming={submitting}
+      confirmDisabled={!podeConfirmar}
+      description={
+        <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96' }}>Esta ação não pode ser desfeita.</span>
+      }
+    >
+      <div style={{ padding: '14px 16px', borderRadius: 12, background: '#FBEDE9', border: '1px solid #F2D8CF', marginBottom: 16 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#B23A1E', marginBottom: 8 }}>Esta ação irá:</div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#8A5A4C', lineHeight: 1.6 }}>
+          <li>Subtrair <strong style={{ fontWeight: 700 }}>{prod.quantidade} unid.</strong> do estoque de <strong style={{ fontWeight: 700 }}>{prod.nomeProduto}</strong></li>
+          <li>Devolver ao estoque os insumos consumidos nesta produção</li>
+          <li>Marcar a produção como <strong style={{ fontWeight: 700 }}>Cancelada</strong> (não pode ser reativada)</li>
+        </ul>
       </div>
-    </div>
+
+      <label>
+        <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
+          Motivo do cancelamento <span style={{ color: '#F97316' }}>*</span>
+          <span style={{ fontWeight: 400, color: obs.length >= 50 ? '#3E9D5A' : '#A29E96', marginLeft: 8 }}>
+            {obs.length}/50 caracteres mín.
+          </span>
+        </span>
+        <textarea
+          value={obs}
+          onChange={e => setObs(e.target.value)}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          placeholder="Descreva o motivo do cancelamento (ex: quantidade registrada foi incorreta, era para ser outro produto)"
+          rows={3}
+          style={{
+            width: '100%', padding: '12px 14px',
+            border: `1.5px solid ${obs.length > 0 && obs.length < 50 ? '#F2B8A6' : (focus ? '#2A9D8F' : '#EFEDE8')}`,
+            borderRadius: 10, fontSize: 14.5, color: '#3A372F',
+            background: '#fff', outline: 'none', fontFamily: 'inherit',
+            resize: 'vertical', lineHeight: 1.5,
+            boxShadow: focus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
+            transition: 'border-color .15s, box-shadow .15s',
+            boxSizing: 'border-box',
+          }}
+        />
+        {obs.length > 0 && obs.length < 50 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
+            <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
+          </div>
+        )}
+      </label>
+
+      {erro && (
+        <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF', marginTop: 16 }}>
+          <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
+          <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erro}</p>
+        </div>
+      )}
+    </ConfirmacaoModal>
   )
 }
 
