@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import {
@@ -35,17 +36,18 @@ function Counter({ value, setValue }: { value: number; setValue: (n: number) => 
   useEffect(() => { setRaw(String(value)) }, [value])
 
   const btn = (icon: React.ReactNode, fn: () => void, disabled: boolean) => (
-    <button onClick={fn} disabled={disabled} aria-label="ajustar" style={{
-      width: 44, height: 44, borderRadius: 11, border: '1.5px solid #EFEDE8',
-      background: disabled ? '#F8F7F4' : '#fff', color: disabled ? '#CFCBC3' : '#5C594F',
-      cursor: disabled ? 'default' : 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0,
-    }}
-      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = '#2A9D8F'; e.currentTarget.style.color = '#2A9D8F' } }}
-      onMouseLeave={e => { if (!disabled) { e.currentTarget.style.borderColor = '#EFEDE8'; e.currentTarget.style.color = '#5C594F' } }}
+    <button
+      onClick={fn}
+      disabled={disabled}
+      aria-label="ajustar"
+      className={clsx(
+        'grid h-11 w-11 flex-shrink-0 place-items-center rounded-[11px] border-[1.5px] border-line transition-colors duration-150',
+        disabled ? 'cursor-default bg-[#F8F7F4] text-[#CFCBC3]' : 'cursor-pointer bg-white text-body hover:border-teal hover:text-teal'
+      )}
     >{icon}</button>
   )
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div className="flex items-center gap-3.5">
       {btn(<Minus size={17} />, () => setValue(Math.max(1, value - 1)), value <= 1)}
       <input
         type="text"
@@ -57,20 +59,14 @@ function Counter({ value, setValue }: { value: number; setValue: (n: number) => 
           const n = parseInt(v, 10)
           if (!isNaN(n) && n >= 1) setValue(n)
         }}
-        onFocus={e => { e.currentTarget.style.borderColor = '#2A9D8F'; e.currentTarget.select() }}
-        onBlur={e => {
-          e.currentTarget.style.borderColor = '#EFEDE8'
+        onFocus={e => e.currentTarget.select()}
+        onBlur={() => {
           const n = parseInt(raw, 10)
           const valid = !isNaN(n) && n >= 1 ? n : 1
           setValue(valid)
           setRaw(String(valid))
         }}
-        style={{
-          width: 68, textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#3A372F',
-          fontVariantNumeric: 'tabular-nums', border: '1.5px solid #EFEDE8', borderRadius: 8,
-          height: 44, outline: 'none', fontFamily: 'inherit', background: '#fff', padding: 0,
-          transition: 'border-color .15s',
-        }}
+        className="h-11 w-[68px] rounded-lg border-[1.5px] border-line bg-white p-0 text-center font-[inherit] text-[22px] font-bold text-dark outline-none transition-colors duration-150 [font-variant-numeric:tabular-nums] focus:border-teal"
       />
       {btn(<Plus size={16} />, () => setValue(value + 1), false)}
     </div>
@@ -132,66 +128,64 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button type="button" onClick={handleOpen} style={{
-        width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-        border: `1.5px solid ${open ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10,
-        background: '#fff', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-        boxShadow: open ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-        transition: 'border-color .15s, box-shadow .15s',
-      }}>
-        <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={handleOpen}
+        className={clsx(
+          'flex w-full cursor-pointer items-center gap-3 rounded-input border-[1.5px] bg-white px-3.5 py-3 text-left font-[inherit] transition-[border-color,box-shadow] duration-150',
+          open ? 'border-teal shadow-[0_0_0_4px_rgba(42,157,143,0.12)]' : 'border-line'
+        )}
+      >
+        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
           <Box size={20} />
         </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
+        <span className="min-w-0 flex-1">
           {value ? (
             <>
-              <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>{value.nome}</span>
-              <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginTop: 1 }}>Clique para trocar</span>
+              <span className="block text-[14.5px] font-semibold text-dark">{value.nome}</span>
+              <span className="mt-px block text-[12.5px] text-muted">Clique para trocar</span>
             </>
           ) : (
-            <span style={{ display: 'block', fontSize: 14.5, fontWeight: 400, color: '#A29E96' }}>Selecione um produto...</span>
+            <span className="block text-[14.5px] font-normal text-muted">Selecione um produto...</span>
           )}
         </span>
-        <span style={{ color: '#A29E96', display: 'flex' }}><ChevronDown size={16} /></span>
+        <span className="flex text-muted"><ChevronDown size={16} /></span>
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 14px 34px -10px rgba(0,0,0,0.2)', overflow: 'hidden', animation: 'pop .14s ease both' }}>
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid #F4F2EE' }}>
+        <div className="absolute inset-x-0 top-[calc(100%+6px)] z-30 animate-pop overflow-hidden rounded-xl border border-line bg-white shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
+          <div className="border-b border-[#F4F2EE] px-2.5 py-2">
             <input
               ref={inputRef}
               value={busca}
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar produto..."
-              style={{ width: '100%', height: 38, padding: '0 12px', border: '1.5px solid #EFEDE8', borderRadius: 8, fontSize: 14, color: '#3A372F', background: '#fff', outline: 'none', fontFamily: 'inherit', transition: 'border-color .15s' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#2A9D8F' }}
-              onBlur={e => { e.currentTarget.style.borderColor = '#EFEDE8' }}
+              className="h-[38px] w-full rounded-lg border-[1.5px] border-line bg-white px-3 font-[inherit] text-sm text-dark outline-none transition-colors duration-150 focus:border-teal"
             />
           </div>
-          <div style={{ maxHeight: 220, overflowY: 'auto', padding: 6 }}>
+          <div className="max-h-[220px] overflow-y-auto p-1.5">
             {loading ? (
-              <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Buscando...</div>
+              <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
             ) : opts.length === 0 ? (
-              <div style={{ padding: '12px 10px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Nenhum produto encontrado</div>
+              <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum produto encontrado</div>
             ) : opts.map(p => {
               const on = value?.id === p.id
               return (
-                <button key={p.id} onClick={() => { onChange(p); setOpen(false); setBusca('') }} style={{
-                  display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
-                  padding: '10px 11px', borderRadius: 9, border: 'none',
-                  background: on ? 'rgba(42,157,143,0.08)' : 'transparent',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-                  onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F5F1' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = on ? 'rgba(42,157,143,0.08)' : 'transparent' }}
+                <button
+                  key={p.id}
+                  onClick={() => { onChange(p); setOpen(false); setBusca('') }}
+                  className={clsx(
+                    'flex w-full cursor-pointer items-center gap-[11px] rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100',
+                    on ? 'bg-teal/[0.08]' : 'bg-transparent hover:bg-[#F7F5F1]'
+                  )}
                 >
-                  <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}><Box size={20} /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: on ? '#2A9D8F' : '#3A372F' }}>{p.nome}</span>
-                    <span style={{ display: 'block', fontSize: 12, color: '#A29E96' }}>Estoque: {p.estoqueAtual}</span>
+                  <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal"><Box size={20} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className={clsx('block text-sm font-semibold', on ? 'text-teal' : 'text-dark')}>{p.nome}</span>
+                    <span className="block text-xs text-muted">Estoque: {p.estoqueAtual}</span>
                   </span>
-                  {on && <span style={{ color: '#2A9D8F', display: 'flex' }}><Check size={14} /></span>}
+                  {on && <span className="flex text-teal"><Check size={14} /></span>}
                 </button>
               )
             })}
@@ -205,25 +199,16 @@ function ProdutoBuscador({ tipoItem, value, onChange }: {
 /* ── QuantidadeProduzidaInput ────────────────────────────────── */
 
 function QuantidadeProduzidaInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [f, setF] = useState(false)
   return (
-    <div style={{ position: 'relative', width: 140 }}>
+    <div className="relative w-[140px]">
       <input
         value={value}
         onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
         inputMode="decimal"
         placeholder="1"
-        onFocus={() => setF(true)}
-        onBlur={() => setF(false)}
-        style={{
-          width: '100%', height: 44, padding: '0 40px 0 14px', textAlign: 'right',
-          border: `1.5px solid ${f ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10,
-          fontSize: 18, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums',
-          background: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-          boxShadow: f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none', transition: 'border-color .15s, box-shadow .15s',
-        }}
+        className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-3.5 pr-10 text-right font-[inherit] text-lg font-bold text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
       />
-      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>un</span>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#A8A49C]">un</span>
     </div>
   )
 }
@@ -250,9 +235,9 @@ function ConfirmEstoqueModal({ mensagem, onCancel, onConfirm, confirming }: {
       confirming={confirming}
       description={
         <>
-          <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96', marginBottom: 10 }}>O estoque do insumo pode ficar negativo.</span>
-          <span style={{ display: 'block', fontSize: 13.5, color: '#B23A1E', marginBottom: 8 }}>{mensagem}</span>
-          <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96' }}>
+          <span className="mb-2.5 block text-[12.5px] text-muted">O estoque do insumo pode ficar negativo.</span>
+          <span className="mb-2 block text-[13.5px] text-danger-deep">{mensagem}</span>
+          <span className="block text-[12.5px] text-muted">
             Deseja continuar mesmo assim? O sistema vai gravar a(s) produção(ões) e deixar o saldo negativo.
           </span>
         </>
@@ -437,51 +422,60 @@ function NovaProducaoModal({ onClose, onSuccess }: {
   const podeConfirmar = (sessao.length > 0 || itemAtualValido) && !submitting
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto', background: 'rgba(20,18,16,0.4)', backdropFilter: 'blur(1.5px)', animation: 'fadeIn .2s ease both' }}>
-      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 'min(680px, 100%)', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, boxShadow: '0 30px 70px -20px rgba(0,0,0,0.4)', animation: 'scaleIn .22s cubic-bezier(.34,1.3,.5,1) both', margin: 'auto' }}>
+    <div onClick={onClose} className="fixed inset-0 z-[100] flex animate-fade-in items-start justify-center overflow-y-auto bg-[rgba(20,18,16,0.4)] px-4 py-10 backdrop-blur-[1.5px]">
+      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} className="relative m-auto flex w-[min(680px,100%)] animate-scale-in flex-col rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 24px', borderBottom: '1px solid #EFEDE8' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-            <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: 'rgba(249,115,22,0.12)', color: '#F97316' }}>
+        <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-5">
+          <div className="flex items-center gap-[13px]">
+            <span className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl bg-orange/[0.12] text-orange">
               <Factory size={24} />
             </span>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Nova Produção</div>
-              <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 2 }}>Produza antecipado e baixe os insumos do estoque.</div>
+              <div className="text-[17px] font-bold tracking-[-0.01em] text-dark">Nova Produção</div>
+              <div className="mt-0.5 text-[12.5px] text-muted">Produza antecipado e baixe os insumos do estoque.</div>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: '#F1F0EC', color: '#7C786F', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#E9E7E2')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#F1F0EC')}
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle transition-colors duration-150 hover:bg-line-deep"
           ><X size={20} /></button>
         </div>
 
-        <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="flex flex-col gap-5 px-6 py-[22px]">
           <div>
-            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>Tipo do item produzido</span>
-            <div style={{ display: 'flex', padding: 4, background: '#F1F0EC', borderRadius: 10, gap: 3 }}>
+            <span className="mb-2 block text-[13.5px] font-semibold text-body">Tipo do item produzido</span>
+            <div className="flex gap-[3px] rounded-input bg-line-soft p-1">
               {TIPO_LABELS.map(({ label, value }) => {
                 const on = tipoAtivo === value
                 return (
-                  <button key={value} type="button" onClick={() => trocaTipo(value)} style={{ flex: 1, height: 40, borderRadius: 8, border: 'none', background: on ? '#fff' : 'transparent', color: on ? '#3A372F' : '#8A8780', fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', padding: '0 4px', boxShadow: on ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all .14s' }}>{label}</button>
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => trocaTipo(value)}
+                    className={clsx(
+                      'h-10 flex-1 whitespace-nowrap rounded-lg border-none px-1 font-[inherit] text-[12.5px] font-semibold transition-all duration-150',
+                      on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-[#8A8780]'
+                    )}
+                  >{label}</button>
                 )
               })}
             </div>
           </div>
 
           <div>
-            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
+            <span className="mb-2 block text-[13.5px] font-semibold text-body">
               {tipoAtivo === 'PRODUTO_BASE' ? 'Produto base a produzir' : tipoAtivo === 'CUSTOMIZACAO' ? 'Customização a produzir' : 'Produto a produzir'}
             </span>
             <ProdutoBuscador tipoItem={tipoAtivo} value={produto} onChange={selecionaProduto} />
           </div>
 
           {produto && loadingDetalhe ? (
-            <div style={{ fontSize: 13, color: '#A29E96' }}>Carregando dados do produto...</div>
+            <div className="text-[13px] text-muted">Carregando dados do produto...</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {produtoDetalhe && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: fracionavel ? '#2A9D8F' : '#6B6860' }}>
+                <div className={clsx('flex items-center gap-[7px] text-[12.5px] font-semibold', fracionavel ? 'text-teal' : 'text-[#6B6860]')}>
                   {fracionavel ? <Check size={13} /> : <AlertCircle size={13} />}
                   {fracionavel
                     ? 'Esta receita permite fracionamento'
@@ -490,13 +484,13 @@ function NovaProducaoModal({ onClose, onSuccess }: {
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F' }}>
+                  <span className="block text-[13.5px] font-semibold text-body">
                     {fracionavel ? 'Quantidade produzida' : 'Quantas receitas você produziu?'}
                   </span>
                   {!fracionavel && rendimento != null && (
-                    <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 2 }}>1 receita = {rendimento} unidades</span>
+                    <span className="mt-0.5 block text-xs text-muted">1 receita = {rendimento} unidades</span>
                   )}
                 </div>
                 {fracionavel
@@ -506,98 +500,103 @@ function NovaProducaoModal({ onClose, onSuccess }: {
               </div>
 
               {!fracionavel && rendimento == null && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#C0492B' }}>
+                <div className="flex items-center gap-2 text-[12.5px] text-danger">
                   <AlertCircle size={13} /> Este produto não tem rendimento definido — edite o produto antes de lançar produção.
                 </div>
               )}
 
               {!fracionavel && rendimento != null && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(42,157,143,0.06)', border: '1px dashed rgba(42,157,143,0.3)' }}>
-                  <span style={{ fontSize: 13, color: '#5C594F' }}>Quantidade final ({lotesNum} {lotesNum === 1 ? 'receita' : 'receitas'} × {rendimento} un)</span>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: '#2A9D8F', fontVariantNumeric: 'tabular-nums' }}>{quantidadeFinal} unidades</span>
+                <div className="flex items-center justify-between rounded-input border border-dashed border-teal/30 bg-teal/[0.06] px-3.5 py-2.5">
+                  <span className="text-[13px] text-body">Quantidade final ({lotesNum} {lotesNum === 1 ? 'receita' : 'receitas'} × {rendimento} un)</span>
+                  <span className="text-base font-bold text-teal [font-variant-numeric:tabular-nums]">{quantidadeFinal} unidades</span>
                 </div>
               )}
             </div>
           )}
 
           {produto && (
-            <div style={{ borderRadius: 14, background: 'rgba(42,157,143,0.05)', border: '1.5px solid rgba(42,157,143,0.22)', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
-                <span style={{ display: 'flex', color: '#2A9D8F' }}><Layers size={18} /></span>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E7268' }}>Insumos que serão consumidos para {quantidadeFinal} {quantidadeFinal === 1 ? 'unidade' : 'unidades'}</span>
+            <div className="overflow-hidden rounded-[14px] border-[1.5px] border-teal/[0.22] bg-teal/[0.05]">
+              <div className="flex items-center gap-[9px] border-b border-teal/[0.18] px-4 py-[13px]">
+                <span className="flex text-teal"><Layers size={18} /></span>
+                <span className="text-[13.5px] font-bold text-teal-deep">Insumos que serão consumidos para {quantidadeFinal} {quantidadeFinal === 1 ? 'unidade' : 'unidades'}</span>
               </div>
               {loadingPreview ? (
-                <div style={{ padding: '16px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Calculando consumo...</div>
+                <div className="px-4 py-4 text-center text-[13px] text-muted">Calculando consumo...</div>
               ) : previewInsumos && previewInsumos.length > 0 ? (
                 <div>
                   {previewInsumos.map((ins, i) => (
-                    <div key={ins.insumoId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid rgba(42,157,143,0.12)', animation: 'rowIn .25s ease both' }}>
-                      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, display: 'grid', placeItems: 'center', background: ins.estoqueInsuficiente ? '#FBEDE9' : '#E8F5EE', color: ins.estoqueInsuficiente ? '#C0492B' : '#1F8A5B' }}>
+                    <div key={ins.insumoId} className={clsx('flex animate-row-in items-center gap-3 px-4 py-3', i !== 0 && 'border-t border-teal/[0.12]')}>
+                      <span className={clsx('grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-[7px]', ins.estoqueInsuficiente ? 'bg-danger-bg text-danger' : 'bg-success-bg text-success')}>
                         {ins.estoqueInsuficiente ? <AlertCircle size={13} /> : <Check size={13} />}
                       </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div className="min-w-0 flex-1">
+                        <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.8px] font-semibold text-dark">
                           {ins.nomeInsumo}{ins.marca ? ` (${ins.marca})` : ''}
                         </div>
                         {ins.estoqueAntes !== undefined && (
-                          <div style={{ fontSize: 12, color: '#A29E96', marginTop: 1 }}>
-                            Disponível: <strong style={{ fontWeight: 600, color: ins.estoqueInsuficiente ? '#C0492B' : '#5C594F' }}>{ins.estoqueAntes} {ins.unidadeMedida}</strong>
+                          <div className="mt-px text-xs text-muted">
+                            Disponível: <strong className={clsx('font-semibold', ins.estoqueInsuficiente ? 'text-danger' : 'text-body')}>{ins.estoqueAntes} {ins.unidadeMedida}</strong>
                           </div>
                         )}
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 14.5, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{ins.quantidade} {ins.unidadeMedida}</div>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="whitespace-nowrap text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">{ins.quantidade} {ins.unidadeMedida}</div>
                         {ins.estoqueInsuficiente
-                          ? <div style={{ fontSize: 11, fontWeight: 700, color: '#C0492B', display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end', marginTop: 1 }}><AlertCircle size={11} /> Saldo insuficiente</div>
-                          : <div style={{ fontSize: 11, fontWeight: 600, color: '#1F8A5B', marginTop: 1 }}>OK</div>
+                          ? <div className="mt-px flex items-center justify-end gap-[3px] text-[11px] font-bold text-danger"><AlertCircle size={11} /> Saldo insuficiente</div>
+                          : <div className="mt-px text-[11px] font-semibold text-success">OK</div>
                         }
                       </div>
                     </div>
                   ))}
                 </div>
               ) : previewInsumos?.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Sem insumos vinculados a este produto</div>
+                <div className="px-4 py-4 text-center text-[13px] text-muted">Sem insumos vinculados a este produto</div>
               ) : null}
             </div>
           )}
 
           {itemAtualValido && (
-            <button type="button" onClick={handleAdicionar} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 16px', borderRadius: 10, border: '1.5px solid #F97316', background: '#fff', color: '#F97316', fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', transition: 'background .12s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(249,115,22,0.08)')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+            <button
+              type="button"
+              onClick={handleAdicionar}
+              className="flex h-[42px] items-center gap-2 self-start rounded-input border-[1.5px] border-orange bg-white px-4 font-[inherit] text-[13.5px] font-semibold text-orange transition-colors duration-100 hover:bg-orange/[0.08]"
             >
               <Plus size={16} /> Adicionar mais uma produção
             </button>
           )}
 
           {sessao.length > 0 && (
-            <div style={{ borderRadius: 14, background: '#FAF8F5', border: '1.5px solid #EFEDE8', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: '1px solid #EFEDE8' }}>
-                <span style={{ display: 'flex', color: '#5C594F' }}><Layers size={15} /></span>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#3A372F' }}>Produções nesta sessão ({sessao.length})</span>
+            <div className="overflow-hidden rounded-[14px] border-[1.5px] border-line bg-[#FAF8F5]">
+              <div className="flex items-center gap-[9px] border-b border-line px-4 py-[13px]">
+                <span className="flex text-body"><Layers size={15} /></span>
+                <span className="text-[13.5px] font-bold text-dark">Produções nesta sessão ({sessao.length})</span>
               </div>
               <div>
                 {sessao.map((item, i) => (
-                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #EFEDE8' }}>
-                    <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+                  <div key={item.id} className={clsx('flex items-center gap-3 px-4 py-3', i !== 0 && 'border-t border-line')}>
+                    <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                       <Box size={16} />
                     </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.8, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.produto.nome}</div>
-                      <div style={{ fontSize: 12, color: '#A29E96', marginTop: 1 }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.8px] font-semibold text-dark">{item.produto.nome}</div>
+                      <div className="mt-px text-xs text-muted">
                         {item.fracionavel
                           ? `${item.quantidade} unidades`
                           : `${item.lotes} ${item.lotes === 1 ? 'receita' : 'receitas'} (${item.quantidadeFinal} unidades)`
                         }
                       </div>
                     </div>
-                    <button type="button" onClick={() => handleEditarSessao(item)} aria-label="Editar" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: '#A29E96', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#EFEDE8'; e.currentTarget.style.color = '#5C594F' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#A29E96' }}
+                    <button
+                      type="button"
+                      onClick={() => handleEditarSessao(item)}
+                      aria-label="Editar"
+                      className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg border-none bg-transparent text-muted transition-colors duration-100 hover:bg-line hover:text-body"
                     ><Pencil size={15} /></button>
-                    <button type="button" onClick={() => handleRemoverSessao(item.id)} aria-label="Remover" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: '#A29E96', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#A29E96' }}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverSessao(item.id)}
+                      aria-label="Remover"
+                      className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg border-none bg-transparent text-muted transition-colors duration-100 hover:bg-danger-bg hover:text-danger"
                     ><X size={15} /></button>
                   </div>
                 ))}
@@ -606,28 +605,29 @@ function NovaProducaoModal({ onClose, onSuccess }: {
           )}
 
           {erroBloqueio && (
-            <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
-              <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erroBloqueio}</p>
+            <div className="flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
+              <span className="mt-px flex flex-shrink-0 text-danger"><AlertCircle size={16} /></span>
+              <p className="m-0 text-[13px] leading-[1.5] text-danger">{erroBloqueio}</p>
             </div>
           )}
 
           {erro && (
-            <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-              <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
-              <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erro}</p>
+            <div className="flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
+              <span className="mt-px flex flex-shrink-0 text-danger"><AlertCircle size={16} /></span>
+              <p className="m-0 text-[13px] leading-[1.5] text-danger">{erro}</p>
             </div>
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EFEDE8', display: 'flex', gap: 11, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap justify-end gap-[11px] border-t border-line px-6 py-4">
           <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancelar</Button>
           <button
             onClick={handleConfirmarClick}
             disabled={!podeConfirmar}
-            style={{ height: 46, padding: '0 22px', borderRadius: 10, border: 'none', background: podeConfirmar ? '#F97316' : '#E7E4DE', color: podeConfirmar ? '#fff' : '#B0ACA4', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: podeConfirmar ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', boxShadow: podeConfirmar ? '0 8px 18px -8px rgba(249,115,22,0.7)' : 'none', transition: 'all .15s' }}
-            onMouseEnter={e => { if (podeConfirmar) e.currentTarget.style.filter = 'brightness(1.05)' }}
-            onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
+            className={clsx(
+              'flex h-[46px] items-center gap-2 whitespace-nowrap rounded-input border-none px-[22px] font-[inherit] text-sm font-semibold transition-all duration-150',
+              podeConfirmar ? 'cursor-pointer bg-orange text-white shadow-[0_8px_18px_-8px_rgba(249,115,22,0.7)] hover:brightness-105' : 'cursor-default bg-[#E7E4DE] text-[#B0ACA4]'
+            )}
           >
             <Factory size={17} />
             {submitting
@@ -660,11 +660,11 @@ function CancelarProducaoModal({ prod, onClose, onSuccess }: {
   onSuccess: () => void
 }) {
   const [obs, setObs] = useState('')
-  const [focus, setFocus] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   const podeConfirmar = obs.trim().length >= 50 && !submitting
+  const invalido = obs.length > 0 && obs.length < 50
 
   const handleSubmit = async () => {
     setSubmitting(true)
@@ -695,54 +695,46 @@ function CancelarProducaoModal({ prod, onClose, onSuccess }: {
       confirming={submitting}
       confirmDisabled={!podeConfirmar}
       description={
-        <span style={{ display: 'block', fontSize: 12.5, color: '#A29E96' }}>Esta ação não pode ser desfeita.</span>
+        <span className="block text-[12.5px] text-muted">Esta ação não pode ser desfeita.</span>
       }
     >
-      <div style={{ padding: '14px 16px', borderRadius: 12, background: '#FBEDE9', border: '1px solid #F2D8CF', marginBottom: 16 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#B23A1E', marginBottom: 8 }}>Esta ação irá:</div>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#8A5A4C', lineHeight: 1.6 }}>
-          <li>Subtrair <strong style={{ fontWeight: 700 }}>{prod.quantidade} unid.</strong> do estoque de <strong style={{ fontWeight: 700 }}>{prod.nomeProduto}</strong></li>
+      <div className="mb-4 rounded-xl border border-[#F2D8CF] bg-danger-bg px-4 py-3.5">
+        <div className="mb-2 text-[13.5px] font-bold text-danger-deep">Esta ação irá:</div>
+        <ul className="m-0 pl-[18px] text-[13px] leading-[1.6] text-[#8A5A4C]">
+          <li>Subtrair <strong className="font-bold">{prod.quantidade} unid.</strong> do estoque de <strong className="font-bold">{prod.nomeProduto}</strong></li>
           <li>Devolver ao estoque os insumos consumidos nesta produção</li>
-          <li>Marcar a produção como <strong style={{ fontWeight: 700 }}>Cancelada</strong> (não pode ser reativada)</li>
+          <li>Marcar a produção como <strong className="font-bold">Cancelada</strong> (não pode ser reativada)</li>
         </ul>
       </div>
 
       <label>
-        <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
-          Motivo do cancelamento <span style={{ color: '#F97316' }}>*</span>
-          <span style={{ fontWeight: 400, color: obs.length >= 50 ? '#3E9D5A' : '#A29E96', marginLeft: 8 }}>
+        <span className="mb-[7px] block text-[13px] font-semibold text-body">
+          Motivo do cancelamento <span className="text-orange">*</span>
+          <span className={clsx('ml-2 font-normal', obs.length >= 50 ? 'text-[#3E9D5A]' : 'text-muted')}>
             {obs.length}/50 caracteres mín.
           </span>
         </span>
         <textarea
           value={obs}
           onChange={e => setObs(e.target.value)}
-          onFocus={() => setFocus(true)}
-          onBlur={() => setFocus(false)}
           placeholder="Descreva o motivo do cancelamento (ex: quantidade registrada foi incorreta, era para ser outro produto)"
           rows={3}
-          style={{
-            width: '100%', padding: '12px 14px',
-            border: `1.5px solid ${obs.length > 0 && obs.length < 50 ? '#F2B8A6' : (focus ? '#2A9D8F' : '#EFEDE8')}`,
-            borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-            background: '#fff', outline: 'none', fontFamily: 'inherit',
-            resize: 'vertical', lineHeight: 1.5,
-            boxShadow: focus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-            transition: 'border-color .15s, box-shadow .15s',
-            boxSizing: 'border-box',
-          }}
+          className={clsx(
+            'w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:ring-4 focus:ring-teal/[0.12]',
+            invalido ? 'border-[#F2B8A6]' : 'border-line focus:border-teal'
+          )}
         />
-        {obs.length > 0 && obs.length < 50 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 12.5, color: '#C0492B' }}>
+        {invalido && (
+          <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
             <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
           </div>
         )}
       </label>
 
       {erro && (
-        <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderRadius: 10, background: '#FBEDE9', border: '1px solid #F2D8CF', marginTop: 16 }}>
-          <span style={{ flexShrink: 0, color: '#C0492B', display: 'flex', marginTop: 1 }}><AlertCircle size={16} /></span>
-          <p style={{ margin: 0, fontSize: 13, color: '#C0492B', lineHeight: 1.5 }}>{erro}</p>
+        <div className="mt-4 flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
+          <span className="mt-px flex flex-shrink-0 text-danger"><AlertCircle size={16} /></span>
+          <p className="m-0 text-[13px] leading-[1.5] text-danger">{erro}</p>
         </div>
       )}
     </ConfirmacaoModal>
@@ -755,76 +747,76 @@ function ProducaoDetalhe({ prod, onBack }: { prod: ProducaoDetalheResponse; onBa
   const cancelada = prod.status === 'CANCELADA'
 
   return (
-    <div style={{ animation: 'fadeUp .35s ease both' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 16px 0 12px', borderRadius: 10, border: '1.5px solid #EFEDE8', background: '#fff', color: '#5C594F', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#FAF8F5')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+    <div className="animate-fade-up">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <button
+          onClick={onBack}
+          className="inline-flex h-10 items-center gap-2 rounded-input border-[1.5px] border-line bg-white py-0 pl-3 pr-4 font-[inherit] text-sm font-semibold text-body transition-colors duration-100 hover:bg-[#FAF8F5]"
         >
-          <span style={{ display: 'flex', transform: 'rotate(180deg)' }}><ChevronRight size={15} /></span> Voltar para Produção
+          <span className="flex rotate-180"><ChevronRight size={15} /></span> Voltar para Produção
         </button>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22, flexWrap: 'wrap' }}>
-        <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(249,115,22,0.12)', color: '#F97316' }}>
+      <div className="mb-[22px] flex flex-wrap items-center gap-[15px]">
+        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-orange/[0.12] text-orange">
           <Factory size={24} />
         </span>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Produção #{prod.numero} — {fmtData(prod.dataProducao)}</h1>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="m-0 text-[25px] font-bold tracking-[-0.02em] text-dark">Produção #{prod.numero} — {fmtData(prod.dataProducao)}</h1>
             {cancelada && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 11px', borderRadius: 999, background: '#FBEDE7', color: '#C0492B', fontSize: 12.5, fontWeight: 700 }}>
+              <span className="inline-flex h-[27px] items-center rounded-full bg-[#FBEDE7] px-[11px] text-[12.5px] font-bold text-danger">
                 Cancelada
               </span>
             )}
           </div>
-          <p style={{ margin: '5px 0 0', fontSize: 14, color: '#A29E96' }}>
+          <p className="mb-0 mt-[5px] text-sm text-muted">
             {cancelada ? 'Esta produção foi cancelada e seus efeitos no estoque foram revertidos.' : 'Baixa de insumos registrada no estoque.'}
           </p>
         </div>
       </div>
 
       {cancelada && prod.observacaoCancelamento && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18, padding: '13px 15px', borderRadius: 12, background: '#FBEDE9', border: '1px solid #F2D8CF' }}>
-          <span style={{ flexShrink: 0, color: '#C0492B', marginTop: 1 }}><AlertCircle size={15} /></span>
-          <p style={{ margin: 0, fontSize: 12.8, color: '#8A5A4C', lineHeight: 1.55 }}>
-            <strong style={{ fontWeight: 700 }}>Motivo do cancelamento:</strong> {prod.observacaoCancelamento}
+        <div className="mb-[18px] flex gap-2.5 rounded-xl border border-[#F2D8CF] bg-danger-bg px-[15px] py-[13px]">
+          <span className="mt-px flex-shrink-0 text-danger"><AlertCircle size={15} /></span>
+          <p className="m-0 text-[12.8px] leading-[1.55] text-[#8A5A4C]">
+            <strong className="font-bold">Motivo do cancelamento:</strong> {prod.observacaoCancelamento}
           </p>
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '18px 20px', marginBottom: 18, opacity: cancelada ? 0.65 : 1 }}>
-        <span style={{ flexShrink: 0, width: 48, height: 48, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <div className={clsx('mb-[18px] flex items-center gap-3.5 rounded-card border border-[#F0EEE9] bg-white px-5 py-[18px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]', cancelada && 'opacity-65')}>
+        <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-teal/10 text-teal">
           <Box size={22} />
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em', textDecoration: cancelada ? 'line-through' : 'none' }}>{prod.nomeProduto}</div>
-          <div style={{ fontSize: 13, color: '#A29E96', marginTop: 2 }}>Produzido em {fmtData(prod.dataProducao)}</div>
+        <div className="min-w-0 flex-1">
+          <div className={clsx('text-base font-bold tracking-[-0.01em] text-dark', cancelada && 'line-through')}>{prod.nomeProduto}</div>
+          <div className="mt-0.5 text-[13px] text-muted">Produzido em {fmtData(prod.dataProducao)}</div>
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color: cancelada ? '#A29E96' : '#2A9D8F', fontVariantNumeric: 'tabular-nums', lineHeight: 1, textDecoration: cancelada ? 'line-through' : 'none' }}>{prod.quantidade}</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#A29E96', marginTop: 3 }}>unidades produzidas</div>
+        <div className="flex-shrink-0 text-right">
+          <div className={clsx('text-2xl font-bold leading-none [font-variant-numeric:tabular-nums]', cancelada ? 'text-muted line-through' : 'text-teal')}>{prod.quantidade}</div>
+          <div className="mt-[3px] text-xs font-semibold text-muted">unidades produzidas</div>
         </div>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden', opacity: cancelada ? 0.65 : 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '14px 18px', borderBottom: '1px solid #EFEDE8' }}>
-          <span style={{ display: 'flex', color: '#2A9D8F' }}><Layers size={18} /></span>
-          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#5C594F', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Insumos consumidos</h2>
+      <div className={clsx('overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]', cancelada && 'opacity-65')}>
+        <div className="flex items-center gap-[9px] border-b border-line px-[18px] py-3.5">
+          <span className="flex text-teal"><Layers size={18} /></span>
+          <h2 className="m-0 text-sm font-bold uppercase tracking-[0.03em] text-body">Insumos consumidos</h2>
         </div>
         {prod.insumosConsumidos.length === 0 ? (
-          <div style={{ padding: '18px', textAlign: 'center', fontSize: 13, color: '#A29E96' }}>Nenhum insumo registrado</div>
+          <div className="p-[18px] text-center text-[13px] text-muted">Nenhum insumo registrado</div>
         ) : prod.insumosConsumidos.map((row, i) => (
-          <div key={row.insumoId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderTop: i === 0 ? 'none' : '1px solid #F4F2EE' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-              <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: '#F1F0EC', color: '#9A968E' }}>
+          <div key={row.insumoId} className={clsx('flex items-center justify-between gap-3 px-[18px] py-3.5', i !== 0 && 'border-t border-[#F4F2EE]')}>
+            <div className="flex min-w-0 items-center gap-[11px]">
+              <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-line-soft text-[#9A968E]">
                 <Box size={16} />
               </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', textDecoration: cancelada ? 'line-through' : 'none' }}>
+              <span className={clsx('text-sm font-semibold text-dark', cancelada && 'line-through')}>
                 {row.nomeInsumo}{row.marca ? ` (${row.marca})` : ''}
               </span>
             </div>
-            <span style={{ fontSize: 14.5, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textDecoration: cancelada ? 'line-through' : 'none' }}>
+            <span className={clsx('whitespace-nowrap text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]', cancelada && 'line-through')}>
               {row.quantidade} {row.unidadeMedida}
             </span>
           </div>
@@ -846,7 +838,6 @@ export default function RegistroProducaoPage() {
   const [hasNext, setHasNext] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [busca, setBusca] = useState('')
-  const [buscaFocus, setBuscaFocus] = useState(false)
   const [modal, setModal] = useState(false)
   const { toast, setToast } = useToast()
 
@@ -926,7 +917,7 @@ export default function RegistroProducaoPage() {
     return (
       <AppLayout active="producao">
         {loadingDetalhe || !detalhe ? (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: '#A29E96', fontSize: 15 }}>
+          <div className="py-12 text-center text-[15px] text-muted">
             {loadingDetalhe ? 'Carregando produção...' : ''}
           </div>
         ) : (
@@ -940,104 +931,107 @@ export default function RegistroProducaoPage() {
     <AppLayout active="producao">
 
       {toast && (
-        <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 200, maxWidth: 'min(90vw, 460px)', padding: '12px 20px', borderRadius: 10, background: '#2A9D8F', color: '#fff', fontSize: 14, fontWeight: 600, textAlign: 'center', boxShadow: '0 8px 24px -8px rgba(42,157,143,0.6)', animation: 'fadeUp .25s ease both' }}>
+        <div className="fixed left-1/2 top-5 z-[200] max-w-[min(90vw,460px)] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] rounded-input bg-teal px-5 py-3 text-center text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
           {toast}
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 22 }}>
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
         <div>
-          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Registro de Produção</h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#A29E96' }}>Registre o que você produziu para dar baixa nos insumos e atualizar o estoque dos seus produtos.</p>
+          <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Registro de Produção</h1>
+          <p className="mb-0 mt-1.5 text-[14.5px] text-muted">Registre o que você produziu para dar baixa nos insumos e atualizar o estoque dos seus produtos.</p>
         </div>
-        <button onClick={() => setModal(true)} style={{ height: 46, padding: '0 20px', borderRadius: 10, border: 'none', background: '#F97316', color: '#fff', fontSize: 14.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap', boxShadow: '0 8px 18px -8px rgba(249,115,22,0.7)' }}
-          onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.05)')}
-          onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
+        <button
+          onClick={() => setModal(true)}
+          className="flex h-[46px] items-center gap-[9px] whitespace-nowrap rounded-input border-none bg-orange px-5 font-[inherit] text-[14.5px] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(249,115,22,0.7)] transition-[filter] duration-150 hover:brightness-105"
         >
           <Plus size={16} /> Nova Produção
         </button>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 200, maxWidth: 380 }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
+      <div className="mb-[18px] flex flex-wrap items-center gap-3">
+        <div className="group relative min-w-[200px] max-w-[380px] flex-[1_1_240px]">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-[#A8A49C] group-focus-within:text-teal">
             <Search size={18} />
           </span>
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            onFocus={() => setBuscaFocus(true)}
-            onBlur={() => setBuscaFocus(false)}
             placeholder="Buscar por produto..."
-            style={{ width: '100%', height: 46, padding: '0 14px 0 42px', border: `1.5px solid ${buscaFocus ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10, fontSize: 14.5, color: '#3A372F', background: '#fff', outline: 'none', fontFamily: 'inherit', boxShadow: buscaFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none', transition: 'border-color .15s, box-shadow .15s' }}
+            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
           />
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ display: 'flex', color: '#A8A49C' }}><Factory size={17} /></span>
-        <h2 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: '#5C594F', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Histórico de produções</h2>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex text-[#A8A49C]"><Factory size={17} /></span>
+        <h2 className="m-0 text-[14.5px] font-bold uppercase tracking-[0.03em] text-body">Histórico de produções</h2>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: '#A29E96', fontSize: 15 }}>Carregando...</div>
+        <div className="py-12 text-center text-[15px] text-muted">Carregando...</div>
       ) : filtrado.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: '#A29E96', fontSize: 15 }}>
+        <div className="py-12 text-center text-[15px] text-muted">
           {busca ? 'Nenhuma produção encontrada para essa busca.' : 'Nenhuma produção registrada ainda.'}
         </div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <div className="prod-head">
+        <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <div className="hidden grid-cols-[82px_116px_1.3fr_96px_1.4fr_92px] gap-[18px] bg-[#FBFAF8] px-[22px] py-[13px] sm:grid">
             {['#', 'Data', 'Produto', 'Quantidade', 'Status', ''].map((h, k) => (
-              <div key={k} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C', textAlign: k === 5 ? 'right' : 'left' }}>{h}</div>
+              <div key={k} className={clsx('text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]', k === 5 && 'text-right')}>{h}</div>
             ))}
           </div>
 
           {filtrado.map((h) => (
             <React.Fragment key={h.id}>
-              <div className="prod-row" style={{ animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}
+              <div
+                className={clsx(
+                  'hidden animate-fade-up cursor-pointer grid-cols-[82px_116px_1.3fr_96px_1.4fr_92px] items-center gap-[18px] border-t border-line px-[22px] py-4 transition-colors duration-100 hover:bg-line sm:grid',
+                  h.status === 'CANCELADA' && 'opacity-65'
+                )}
                 onClick={() => navigate(`/producao/${h.id}`)}
               >
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{h.identificador}</div>
-                <div style={{ fontSize: 13, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>{fmtData(h.dataProducao)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-                  <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+                <div className="text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{h.identificador}</div>
+                <div className="text-[13px] text-body [font-variant-numeric:tabular-nums]">{fmtData(h.dataProducao)}</div>
+                <div className="flex min-w-0 items-center gap-[11px]">
+                  <span className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                     <Box size={20} />
                   </span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.nomeProduto}</span>
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{h.nomeProduto}</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{h.quantidade} unid.</div>
+                <div className="whitespace-nowrap text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">{h.quantidade} unid.</div>
                 <div>
                   {h.status === 'CANCELADA'
-                    ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 999, background: '#FBEDE7', color: '#C0492B', fontSize: 11, fontWeight: 700 }}>Cancelada</span>
-                    : <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 999, background: '#E8F5EE', color: '#1F8A5B', fontSize: 11, fontWeight: 700 }}>Ativa</span>
+                    ? <span className="inline-flex h-[22px] items-center rounded-full bg-[#FBEDE7] px-2 text-[11px] font-bold text-danger">Cancelada</span>
+                    : <span className="inline-flex h-[22px] items-center rounded-full bg-success-bg px-2 text-[11px] font-bold text-success">Ativa</span>
                   }
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                <div className="flex justify-end" onClick={e => e.stopPropagation()}>
                   <ActionMenu items={menuItems(h)} align="right" />
                 </div>
               </div>
 
-              <div className="prod-card" style={{ padding: '16px 18px', borderTop: '1px solid #EFEDE8', animation: 'fadeUp .35s ease both', opacity: h.status === 'CANCELADA' ? 0.65 : 1 }}
+              <div
+                className={clsx('block animate-fade-up cursor-pointer border-t border-line px-[18px] py-4 sm:hidden', h.status === 'CANCELADA' && 'opacity-65')}
                 onClick={() => navigate(`/producao/${h.id}`)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <span style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                       <Box size={20} />
                     </span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{h.identificador}</div>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>{h.nomeProduto}</span>
+                    <div className="min-w-0">
+                      <div className="text-[11.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{h.identificador}</div>
+                      <span className="text-sm font-semibold text-dark">{h.nomeProduto}</span>
                       {h.status === 'CANCELADA' && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 7px', borderRadius: 999, background: '#FBEDE7', color: '#C0492B', fontSize: 11, fontWeight: 700, marginLeft: 8 }}>Cancelada</span>
+                        <span className="ml-2 inline-flex h-5 items-center rounded-full bg-[#FBEDE7] px-[7px] text-[11px] font-bold text-danger">Cancelada</span>
                       )}
                     </div>
                   </div>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2A9D8F', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{h.quantidade} unid.</span>
+                  <span className="whitespace-nowrap text-[13.5px] font-bold text-teal [font-variant-numeric:tabular-nums]">{h.quantidade} unid.</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11 }}>
-                  <span style={{ fontSize: 12, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{fmtData(h.dataProducao)}</span>
+                <div className="mt-[11px] flex items-center justify-between">
+                  <span className="text-xs text-muted [font-variant-numeric:tabular-nums]">{fmtData(h.dataProducao)}</span>
                   <div onClick={e => e.stopPropagation()}>
                     <ActionMenu items={menuItems(h)} align="right" />
                   </div>
@@ -1047,13 +1041,14 @@ export default function RegistroProducaoPage() {
           ))}
 
           {hasNext && !busca && (
-            <div style={{ padding: '16px 18px', borderTop: '1px solid #EFEDE8', textAlign: 'center' }}>
+            <div className="border-t border-line px-[18px] py-4 text-center">
               <button
                 onClick={() => carregarLista(currentPage + 1, false)}
                 disabled={loadingMore}
-                style={{ height: 40, padding: '0 20px', borderRadius: 10, border: '1.5px solid #EFEDE8', background: '#fff', color: '#5C594F', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: loadingMore ? 'default' : 'pointer', transition: 'background .12s' }}
-                onMouseEnter={e => { if (!loadingMore) e.currentTarget.style.background = '#FAF8F5' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+                className={clsx(
+                  'h-10 rounded-input border-[1.5px] border-line bg-white px-5 font-[inherit] text-sm font-semibold text-body transition-colors duration-100',
+                  loadingMore ? 'cursor-default' : 'cursor-pointer hover:bg-[#FAF8F5]'
+                )}
               >
                 {loadingMore ? 'Carregando...' : 'Carregar mais'}
               </button>
