@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import clsx from "clsx";
 import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
@@ -106,7 +107,7 @@ function cancelKind(status: ApiStatus): "simples" | "estorno" | "multa" | "justi
 function Timeline({ current }: { current: ApiStatus }) {
   const ci = STEPS.indexOf(current);
   return (
-    <div className="timeline">
+    <div className="flex items-start max-[680px]:flex-col max-[680px]:items-stretch">
       {STEPS.map((s, i) => {
         const done = ci >= 0 && i < ci;
         const active = i === ci;
@@ -119,68 +120,44 @@ function Timeline({ current }: { current: ApiStatus }) {
         const connColor = ci >= 0 && i <= ci ? "rgba(42,157,143,0.5)" : "#EFEDE8";
 
         return (
-          <div className="tl-step" key={s}>
+          <div
+            className="relative flex flex-1 flex-col items-center text-center max-[680px]:flex-row max-[680px]:items-start max-[680px]:gap-3.5 max-[680px]:pb-2 max-[680px]:text-left"
+            key={s}
+          >
             {i > 0 && (
-              <span className="tl-connector" style={{ background: connColor }} />
+              <span
+                className="absolute left-[-50%] right-[50%] top-[17px] z-0 h-[2.5px] max-[680px]:left-[17px] max-[680px]:right-auto max-[680px]:top-[-50%] max-[680px]:h-auto max-[680px]:w-[2.5px] max-[680px]:bottom-1/2"
+                style={{ background: connColor }}
+              />
             )}
             <span
+              className="relative z-[1] grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-[13px] font-bold"
               style={{
-                position: "relative",
-                zIndex: 1,
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
                 background: circleBg,
                 color: circleColor,
                 border: active ? "2px solid #2A9D8F" : "2px solid transparent",
                 boxShadow: active ? "0 0 0 5px rgba(42,157,143,0.14)" : "none",
-                fontWeight: 700,
-                fontSize: 13,
-                flexShrink: 0,
               }}
             >
               {done ? (
                 <Check size={14} />
               ) : active ? (
-                <span
-                  style={{
-                    width: 9,
-                    height: 9,
-                    borderRadius: "50%",
-                    background: "#fff",
-                  }}
-                />
+                <span className="h-[9px] w-[9px] rounded-full bg-white" />
               ) : (
                 i + 1
               )}
             </span>
-            <span className="tl-label-wrap" style={{ marginTop: 10 }}>
+            <span className="mt-2.5 max-[680px]:pb-3.5 max-[680px]:pt-1.5">
               <span
-                style={{
-                  display: "block",
-                  fontSize: 12.5,
-                  fontWeight: active ? 700 : 500,
-                  color: active ? "#3A372F" : done ? "#6B6860" : "#B7B4AD",
-                  whiteSpace: "nowrap",
-                }}
+                className={clsx(
+                  "block whitespace-nowrap text-[12.5px]",
+                  active ? "font-bold text-dark" : done ? "font-medium text-[#6B6860]" : "font-medium text-faint"
+                )}
               >
                 {STATUS_LABEL[s]}
               </span>
               {active && (
-                <span
-                  style={{
-                    display: "inline-block",
-                    marginTop: 5,
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    color: "#2A9D8F",
-                    background: "rgba(42,157,143,0.12)",
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                  }}
-                >
+                <span className="mt-[5px] inline-block rounded-full bg-teal/[0.12] px-2 py-0.5 text-[10.5px] font-semibold text-teal">
                   Atual
                 </span>
               )}
@@ -207,9 +184,9 @@ function ModalSinal({
 }) {
   const [forma, setForma] = useState<MetodoPagamento>("PIX");
   const [formaObs, setFormaObs] = useState("");
-  const [focus, setFocus] = useState<string | null>(null);
 
   const obsCharCount = formaObs.length;
+  const obsInvalida = obsCharCount > 0 && obsCharCount < 50;
   const obsValida = forma !== "OUTRO" || obsCharCount >= 50;
   const podeConfirmar = obsValida && !saving;
 
@@ -243,71 +220,34 @@ function ModalSinal({
       }
     >
       {/* Valor esperado */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "14px 16px",
-          borderRadius: 12,
-          background: "rgba(42,157,143,0.07)",
-          border: "1px solid rgba(42,157,143,0.2)",
-          marginBottom: 20,
-        }}
-      >
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: "#5C594F" }}>
+      <div className="mb-5 flex items-center justify-between rounded-xl border border-teal/20 bg-teal/[0.07] px-4 py-3.5">
+        <span className="text-[13.5px] font-semibold text-body">
           Valor esperado
         </span>
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: "#2A9D8F",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
+        <span className="text-xl font-bold text-teal [font-variant-numeric:tabular-nums]">
           {BRL(orcamento.valorSinal || 0)}
           {orcamento.percentualSinal ? (
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#A29E96" }}>
-              {" "}
-              ({orcamento.percentualSinal}%)
-            </span>
+            <span className="text-[13px] font-semibold text-muted"> ({orcamento.percentualSinal}%)</span>
           ) : null}
         </span>
       </div>
 
       {/* Forma de pagamento — chips */}
-      <div style={{ marginBottom: 18 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#5C594F",
-            marginBottom: 9,
-          }}
-        >
+      <div className="mb-[18px]">
+        <div className="mb-[9px] text-[13px] font-semibold text-body">
           Forma de pagamento recebida
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {METODOS_PAGAMENTO.map((m) => {
             const on = forma === m.id;
             return (
               <button
                 key={m.id}
                 onClick={() => setForma(m.id)}
-                style={{
-                  height: 38,
-                  padding: "0 14px",
-                  borderRadius: 999,
-                  cursor: "pointer",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  fontFamily: "inherit",
-                  border: `1.5px solid ${on ? "#2A9D8F" : "#EFEDE8"}`,
-                  background: on ? "#2A9D8F" : "#fff",
-                  color: on ? "#fff" : "#5C594F",
-                  transition: "all .14s",
-                }}
+                className={clsx(
+                  "h-[38px] whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13.5px] font-semibold transition-all duration-150",
+                  on ? "border-teal bg-teal text-white" : "border-line bg-white text-body"
+                )}
               >
                 {m.label}
               </button>
@@ -316,66 +256,28 @@ function ModalSinal({
         </div>
 
         {forma === "OUTRO" && (
-          <div style={{ marginTop: 12, animation: "fadeUp .2s ease both" }}>
-            <span
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#5C594F",
-                marginBottom: 7,
-              }}
-            >
+          <div className="mt-3 animate-[fadeUp_.2s_ease_both]">
+            <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
               <span>
-                Descreva a forma de pagamento{" "}
-                <span style={{ color: "#F97316" }}>*</span>
+                Descreva a forma de pagamento <span className="text-orange">*</span>
               </span>
-              <span
-                style={{
-                  fontWeight: 400,
-                  color: obsCharCount >= 50 ? "#3E9D5A" : "#A29E96",
-                }}
-              >
+              <span className={clsx("font-normal", obsCharCount >= 50 ? "text-[#3E9D5A]" : "text-muted")}>
                 {obsCharCount}/50 mín.
               </span>
             </span>
             <textarea
               value={formaObs}
               onChange={(e) => setFormaObs(e.target.value)}
-              onFocus={() => setFocus("obs")}
-              onBlur={() => setFocus(null)}
               placeholder="Ex: cheque à vista, app de pagamento..."
               rows={2}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: `1.5px solid ${focus === "obs" ? "#2A9D8F" : obsCharCount > 0 && obsCharCount < 50 ? "#F2B8A6" : "#EFEDE8"}`,
-                borderRadius: 10,
-                fontSize: 13.5,
-                color: "#3A372F",
-                background: "#fff",
-                outline: "none",
-                fontFamily: "inherit",
-                resize: "none",
-                lineHeight: 1.5,
-                boxSizing: "border-box",
-              }}
+              className={clsx(
+                "w-full resize-none rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]",
+                obsInvalida ? "border-[#F2B8A6]" : "border-line"
+              )}
             />
-            {obsCharCount > 0 && obsCharCount < 50 && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  marginTop: 5,
-                  fontSize: 12.5,
-                  color: "#C0492B",
-                }}
-              >
-                <AlertCircle size={13} /> Mínimo de 50
-                caracteres. Faltam {50 - obsCharCount}.
+            {obsInvalida && (
+              <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
+                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obsCharCount}.
               </div>
             )}
           </div>
@@ -383,18 +285,9 @@ function ModalSinal({
       </div>
 
       {/* Aviso */}
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          padding: "12px 14px",
-          borderRadius: 12,
-          background: "rgba(42,157,143,0.06)",
-          border: "1px solid rgba(42,157,143,0.18)",
-        }}
-      >
-        <Receipt size={16} style={{ flexShrink: 0, color: "#2A9D8F", marginTop: 1 }} />
-        <p style={{ margin: 0, fontSize: 12.5, color: "#5C594F", lineHeight: 1.55 }}>
+      <div className="flex gap-2.5 rounded-xl border border-teal/[0.18] bg-teal/[0.06] px-3.5 py-3">
+        <Receipt size={16} className="mt-px flex-shrink-0 text-teal" />
+        <p className="m-0 text-[12.5px] leading-[1.55] text-body">
           Após confirmar, o sistema avançará o orçamento e gerará o recibo do
           sinal com a forma de pagamento registrada.
         </p>
@@ -448,8 +341,8 @@ function ModalCancelJustificativa({
   saving: boolean;
 }) {
   const [texto, setTexto] = useState("");
-  const [focus, setFocus] = useState(false);
   const len = texto.length;
+  const invalido = len > 0 && len < 50;
   const valido = len >= 50 && !saving;
 
   return (
@@ -467,61 +360,30 @@ function ModalCancelJustificativa({
       confirming={saving}
       confirmDisabled={!valido}
     >
-      <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "#5C594F", lineHeight: 1.55 }}>
+      <p className="mb-3.5 mt-0 text-[13.5px] leading-[1.55] text-body">
         Cancelar um pedido neste estágio é uma ação excepcional. Descreva o
         motivo com detalhes (mínimo 50 caracteres).
       </p>
-      <span
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#5C594F",
-          marginBottom: 7,
-        }}
-      >
+      <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
         <span>
-          Justificativa <span style={{ color: "#C0492B" }}>*</span>
+          Justificativa <span className="text-danger">*</span>
         </span>
-        <span style={{ fontWeight: 400, color: len >= 50 ? "#3E9D5A" : "#A29E96" }}>
+        <span className={clsx("font-normal", len >= 50 ? "text-[#3E9D5A]" : "text-muted")}>
           {len}/50 mín.
         </span>
       </span>
       <textarea
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
         placeholder="Ex: cliente solicitou cancelamento por motivo de força maior..."
         rows={4}
-        style={{
-          width: "100%",
-          padding: "10px 14px",
-          border: `1.5px solid ${focus ? "#C0492B" : len > 0 && len < 50 ? "#F2B8A6" : "#EFEDE8"}`,
-          borderRadius: 10,
-          fontSize: 13.5,
-          color: "#3A372F",
-          background: "#fff",
-          outline: "none",
-          fontFamily: "inherit",
-          resize: "vertical",
-          lineHeight: 1.5,
-          boxSizing: "border-box",
-        }}
+        className={clsx(
+          "w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-danger focus:ring-4 focus:ring-danger/[0.12]",
+          invalido ? "border-[#F2B8A6]" : "border-line"
+        )}
       />
-      {len > 0 && len < 50 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            marginTop: 6,
-            fontSize: 12.5,
-            color: "#C0492B",
-          }}
-        >
+      {invalido && (
+        <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
           <AlertCircle size={13} /> Faltam {50 - len} caracteres.
         </div>
       )}
@@ -545,7 +407,6 @@ function ModalCancelMulta({
   const [step, setStep] = useState(1);
   const [multaAtiva, setMultaAtiva] = useState(true);
   const [multaPerc, setMultaPerc] = useState("50");
-  const [focusField, setFocusField] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -560,87 +421,34 @@ function ModalCancelMulta({
   const multaAplicada = multaAtiva ? (total * percNum) / 100 : 0;
 
   const Dots = () => (
-    <div style={{ display: "flex", gap: 6, padding: "0 24px 16px" }}>
+    <div className="flex gap-1.5 px-6 pb-4">
       {[1, 2, 3].map((n) => (
         <span
           key={n}
-          style={{
-            flex: 1,
-            height: 4,
-            borderRadius: 2,
-            background: n <= step ? "#C0492B" : "#EFEDE8",
-          }}
+          className={clsx("h-1 flex-1 rounded-sm", n <= step ? "bg-danger" : "bg-line")}
         />
       ))}
     </div>
   );
 
   const Header = ({ title }: { title: string }) => (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "18px 24px",
-        borderBottom: "1px solid #EFEDE8",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <span
-          style={{
-            display: "grid",
-            placeItems: "center",
-            width: 38,
-            height: 38,
-            borderRadius: 11,
-            background: "#FCF3F0",
-            color: "#C0492B",
-            flexShrink: 0,
-          }}
-        >
+    <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-[18px]">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-[#FCF3F0] text-danger">
           <Ban size={16} />
         </span>
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: "#A29E96",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
+        <div className="min-w-0">
+          <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
             Cancelar · Passo {step} de 3
           </div>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#3A372F",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+          <div className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold text-dark">
             {title}
           </div>
         </div>
       </div>
       <button
         onClick={onClose}
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 9,
-          border: "none",
-          background: "#F1F0EC",
-          color: "#7C786F",
-          cursor: "pointer",
-          display: "grid",
-          placeItems: "center",
-          flexShrink: 0,
-        }}
+        className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
       >
         <X size={20} />
       </button>
@@ -650,88 +458,36 @@ function ModalCancelMulta({
   return (
     <div
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        background: "rgba(20,18,16,0.4)",
-        backdropFilter: "blur(1.5px)",
-        animation: "fadeIn .2s ease both",
-      }}
+      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-[rgba(20,18,16,0.4)] p-4 backdrop-blur-[1.5px]"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(540px, 100%)",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          background: "#fff",
-          borderRadius: 20,
-          boxShadow: "0 30px 70px -20px rgba(0,0,0,0.4)",
-          overflow: "hidden",
-          animation: "scaleIn .22s cubic-bezier(.34,1.3,.5,1) both",
-        }}
+        className="flex max-h-[90vh] w-[min(540px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
       >
         {/* ─── PASSO 1 — ITENS CONSUMIDOS ─── */}
         {step === 1 && (
           <>
             <Header title="Itens deste pedido" />
-            <div style={{ flex: 1, overflowY: "auto", padding: "18px 24px 8px" }}>
-              <p
-                style={{
-                  margin: "0 0 14px",
-                  fontSize: 13.5,
-                  color: "#5C594F",
-                  lineHeight: 1.55,
-                }}
-              >
+            <div className="flex-1 overflow-y-auto px-6 pb-2 pt-[18px]">
+              <p className="mb-3.5 mt-0 text-[13.5px] leading-[1.55] text-body">
                 Estes são os itens do pedido. O cancelamento dará baixa conforme
                 as regras de negócio do servidor.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 {orcamento.itens.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "20px",
-                      textAlign: "center",
-                      fontSize: 13,
-                      color: "#A29E96",
-                      border: "1.5px dashed #EFEDE8",
-                      borderRadius: 12,
-                    }}
-                  >
+                  <div className="rounded-xl border-[1.5px] border-dashed border-line p-5 text-center text-[13px] text-muted">
                     Nenhum item neste pedido.
                   </div>
                 ) : (
                   orcamento.itens.map((it, i) => (
                     <div
                       key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "11px 14px",
-                        borderRadius: 10,
-                        background: "#FCFBF9",
-                        border: "1px solid #EFEDE8",
-                      }}
+                      className="flex items-center gap-3 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-[11px]"
                     >
-                      <span
-                        style={{
-                          flex: 1,
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: "#3A372F",
-                        }}
-                      >
+                      <span className="flex-1 text-sm font-medium text-dark">
                         {it.nomeProduto}
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#6B6860" }}>
+                      <span className="text-[13px] font-semibold text-[#6B6860]">
                         ×{it.quantidade}
                       </span>
                     </div>
@@ -740,7 +496,7 @@ function ModalCancelMulta({
               </div>
             </div>
             <Dots />
-            <div style={{ padding: "0 24px 22px", display: "flex", gap: 12 }}>
+            <div className="flex gap-3 px-6 pb-[22px]">
               <Button variant="ghost" onClick={onClose}>
                 Voltar
               </Button>
@@ -755,36 +511,19 @@ function ModalCancelMulta({
         {step === 2 && (
           <>
             <Header title="Deseja cobrar multa pelo cancelamento?" />
-            <div style={{ flex: 1, overflowY: "auto", padding: "18px 24px 8px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  borderRadius: 10,
-                  border: "1px solid #EFEDE8",
-                  overflow: "hidden",
-                  width: "fit-content",
-                  marginBottom: 18,
-                }}
-              >
+            <div className="flex-1 overflow-y-auto px-6 pb-2 pt-[18px]">
+              <div className="mb-[18px] flex w-fit overflow-hidden rounded-input border border-line">
                 {(["Não", "Sim"] as const).map((lbl) => {
                   const val = lbl === "Sim";
+                  const on = multaAtiva === val;
                   return (
                     <button
                       key={lbl}
                       onClick={() => setMultaAtiva(val)}
-                      style={{
-                        width: 80,
-                        height: 44,
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        fontFamily: "inherit",
-                        background:
-                          multaAtiva === val ? (val ? "#F97316" : "#F1F0EC") : "#fff",
-                        color:
-                          multaAtiva === val ? (val ? "#fff" : "#5C594F") : "#A8A49C",
-                      }}
+                      className={clsx(
+                        "h-11 w-20 border-none font-[inherit] text-sm font-semibold",
+                        on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-[#A8A49C]"
+                      )}
                     >
                       {lbl}
                     </button>
@@ -793,70 +532,29 @@ function ModalCancelMulta({
               </div>
 
               {multaAtiva && (
-                <div style={{ animation: "fadeUp .25s ease both" }}>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#5C594F",
-                      marginBottom: 8,
-                    }}
-                  >
+                <div className="animate-[fadeUp_.25s_ease_both]">
+                  <span className="mb-2 block text-[13px] font-semibold text-body">
                     Percentual da multa (%)
                   </span>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <input
                       value={multaPerc}
                       onChange={(e) =>
                         setMultaPerc(e.target.value.replace(/[^\d.,]/g, ""))
                       }
-                      onFocus={() => setFocusField(true)}
-                      onBlur={() => setFocusField(false)}
                       inputMode="decimal"
                       placeholder="50"
-                      style={{
-                        flex: 1,
-                        minWidth: 120,
-                        height: 46,
-                        padding: "0 14px",
-                        border: `1.5px solid ${focusField ? "#F97316" : "#EFEDE8"}`,
-                        borderRadius: 10,
-                        fontSize: 15,
-                        fontWeight: 600,
-                        color: "#3A372F",
-                        background: "#fff",
-                        outline: "none",
-                        fontFamily: "inherit",
-                      }}
+                      className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
                     />
                   </div>
-                  <div style={{ marginTop: 10, fontSize: 12, color: "#A29E96" }}>
+                  <div className="mt-2.5 text-xs text-muted">
                     Sugestão padrão: 50% do valor total.
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: 16,
-                      padding: "14px 16px",
-                      borderRadius: 12,
-                      background: "rgba(249,115,22,0.08)",
-                      border: "1px solid rgba(249,115,22,0.25)",
-                    }}
-                  >
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
+                  <div className="mt-4 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+                    <span className="text-sm font-semibold text-dark">
                       Multa
                     </span>
-                    <span
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 700,
-                        color: "#F97316",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
+                    <span className="text-xl font-bold text-orange [font-variant-numeric:tabular-nums]">
                       {BRL(multaAplicada)}
                     </span>
                   </div>
@@ -864,7 +562,7 @@ function ModalCancelMulta({
               )}
             </div>
             <Dots />
-            <div style={{ padding: "0 24px 22px", display: "flex", gap: 12 }}>
+            <div className="flex gap-3 px-6 pb-[22px]">
               <Button variant="ghost" onClick={() => setStep(1)}>
                 ← Voltar
               </Button>
@@ -879,66 +577,28 @@ function ModalCancelMulta({
         {step === 3 && (
           <>
             <Header title="Resumo do cancelamento" />
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "18px 24px 8px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
-            >
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-2 pt-[18px]">
               {multaAtiva ? (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "13px 16px",
-                    borderRadius: 12,
-                    background: "rgba(249,115,22,0.08)",
-                    border: "1px solid rgba(249,115,22,0.25)",
-                  }}
-                >
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
-                    Multa{" "}
-                    <span style={{ fontWeight: 500, color: "#A29E96" }}>
-                      ({percNum}%)
-                    </span>
+                <div className="flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+                  <span className="text-sm font-semibold text-dark">
+                    Multa <span className="font-medium text-muted">({percNum}%)</span>
                   </span>
-                  <span
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: "#F97316",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
+                  <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
                     {BRL(multaAplicada)}
                   </span>
                 </div>
               ) : (
-                <div style={{ fontSize: 13.5, color: "#A29E96" }}>
+                <div className="text-[13.5px] text-muted">
                   Nenhuma multa será cobrada.
                 </div>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  background: "rgba(249,115,22,0.08)",
-                  border: "1px solid rgba(249,115,22,0.3)",
-                }}
-              >
-                <AlertCircle size={15} style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
-                <p style={{ margin: 0, fontSize: 12.8, color: "#8A5A33", lineHeight: 1.55 }}>
+              <div className="flex gap-2.5 rounded-xl border border-orange/30 bg-orange/[0.08] px-3.5 py-3">
+                <AlertCircle size={15} className="mt-px flex-shrink-0 text-orange" />
+                <p className="m-0 text-[12.8px] leading-[1.55] text-[#8A5A33]">
                   {multaAtiva ? (
                     <>
-                      Um <strong style={{ fontWeight: 700 }}>PDF de multa</strong> será
+                      Um <strong className="font-bold">PDF de multa</strong> será
                       gerado para enviar à cliente.
                     </>
                   ) : (
@@ -948,7 +608,7 @@ function ModalCancelMulta({
               </div>
             </div>
             <Dots />
-            <div style={{ padding: "0 24px 22px", display: "flex", gap: 12 }}>
+            <div className="flex gap-3 px-6 pb-[22px]">
               <Button variant="ghost" onClick={() => setStep(2)}>
                 ← Voltar
               </Button>
@@ -983,7 +643,6 @@ function ModalCancelEstorno({
 }) {
   const [step, setStep] = useState(1);
   const [estornar, setEstornar] = useState(true);
-  const [focusField, setFocusField] = useState(false);
   const [dataEstorno, setDataEstorno] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -1000,87 +659,34 @@ function ModalCancelEstorno({
   }, [onClose]);
 
   const Dots = () => (
-    <div style={{ display: "flex", gap: 6, padding: "0 24px 16px" }}>
+    <div className="flex gap-1.5 px-6 pb-4">
       {[1, 2].map((n) => (
         <span
           key={n}
-          style={{
-            flex: 1,
-            height: 4,
-            borderRadius: 2,
-            background: n <= step ? "#C0492B" : "#EFEDE8",
-          }}
+          className={clsx("h-1 flex-1 rounded-sm", n <= step ? "bg-danger" : "bg-line")}
         />
       ))}
     </div>
   );
 
   const Header = ({ title }: { title: string }) => (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "18px 24px",
-        borderBottom: "1px solid #EFEDE8",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <span
-          style={{
-            display: "grid",
-            placeItems: "center",
-            width: 38,
-            height: 38,
-            borderRadius: 11,
-            background: "#FCF3F0",
-            color: "#C0492B",
-            flexShrink: 0,
-          }}
-        >
+    <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-[18px]">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-[#FCF3F0] text-danger">
           <Ban size={16} />
         </span>
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: "#A29E96",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
+        <div className="min-w-0">
+          <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
             Cancelar · Passo {step} de 2
           </div>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#3A372F",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+          <div className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold text-dark">
             {title}
           </div>
         </div>
       </div>
       <button
         onClick={onClose}
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 9,
-          border: "none",
-          background: "#F1F0EC",
-          color: "#7C786F",
-          cursor: "pointer",
-          display: "grid",
-          placeItems: "center",
-          flexShrink: 0,
-        }}
+        className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
       >
         <X size={20} />
       </button>
@@ -1090,131 +696,49 @@ function ModalCancelEstorno({
   return (
     <div
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        background: "rgba(20,18,16,0.4)",
-        backdropFilter: "blur(1.5px)",
-        animation: "fadeIn .2s ease both",
-      }}
+      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-[rgba(20,18,16,0.4)] p-4 backdrop-blur-[1.5px]"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(500px, 100%)",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          background: "#fff",
-          borderRadius: 20,
-          boxShadow: "0 30px 70px -20px rgba(0,0,0,0.4)",
-          overflow: "hidden",
-          animation: "scaleIn .22s cubic-bezier(.34,1.3,.5,1) both",
-        }}
+        className="flex max-h-[90vh] w-[min(500px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
       >
         {/* ─── PASSO 1 — ESTORNO ─── */}
         {step === 1 && (
           <>
             <Header title={`Estornar sinal para ${nomeCliente}?`} />
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 8px" }}>
+            <div className="flex-1 overflow-y-auto px-6 pb-2 pt-5">
               {/* Valor do sinal */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "14px 16px",
-                  borderRadius: 12,
-                  background: "rgba(249,115,22,0.08)",
-                  border: "1px solid rgba(249,115,22,0.25)",
-                  marginBottom: 20,
-                }}
-              >
+              <div className="mb-5 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
                 <div>
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      color: "#A29E96",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      marginBottom: 3,
-                    }}
-                  >
+                  <div className="mb-[3px] text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
                     Sinal recebido
                   </div>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: "#F97316",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
+                  <div className="text-[22px] font-bold text-orange [font-variant-numeric:tabular-nums]">
                     {BRL(valorSinal)}
                   </div>
                 </div>
-                <span
-                  style={{
-                    display: "grid",
-                    placeItems: "center",
-                    width: 48,
-                    height: 48,
-                    borderRadius: 13,
-                    background: "rgba(249,115,22,0.12)",
-                    color: "#F97316",
-                  }}
-                >
+                <span className="grid h-12 w-12 place-items-center rounded-[13px] bg-orange/[0.12] text-orange">
                   <Wallet size={18} />
                 </span>
               </div>
 
               {/* Toggle Sim/Não */}
-              <div style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "#3A372F",
-                    marginBottom: 10,
-                  }}
-                >
+              <div className="mb-3.5">
+                <div className="mb-2.5 text-sm font-semibold text-dark">
                   Deseja estornar o sinal?
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    borderRadius: 10,
-                    border: "1px solid #EFEDE8",
-                    overflow: "hidden",
-                    width: "fit-content",
-                  }}
-                >
+                <div className="flex w-fit overflow-hidden rounded-input border border-line">
                   {(["Não", "Sim"] as const).map((lbl) => {
                     const val = lbl === "Sim";
+                    const on = estornar === val;
                     return (
                       <button
                         key={lbl}
                         onClick={() => setEstornar(val)}
-                        style={{
-                          width: 80,
-                          height: 44,
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: 14,
-                          fontWeight: 600,
-                          fontFamily: "inherit",
-                          background:
-                            estornar === val ? (val ? "#F97316" : "#F1F0EC") : "#fff",
-                          color:
-                            estornar === val ? (val ? "#fff" : "#5C594F") : "#A8A49C",
-                          transition: "all .14s",
-                        }}
+                        className={clsx(
+                          "h-11 w-20 border-none font-[inherit] text-sm font-semibold transition-all duration-150",
+                          on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-[#A8A49C]"
+                        )}
                       >
                         {lbl}
                       </button>
@@ -1225,55 +749,23 @@ function ModalCancelEstorno({
 
               {/* Data do estorno (só quando Sim) */}
               {estornar && (
-                <div style={{ animation: "fadeUp .2s ease both" }}>
-                  <label style={{ display: "block", marginBottom: 16 }}>
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "#5C594F",
-                        marginBottom: 7,
-                      }}
-                    >
-                      <Calendar size={16} style={{ color: "#F97316" }} /> Data do estorno
+                <div className="animate-[fadeUp_.2s_ease_both]">
+                  <label className="mb-4 block">
+                    <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                      <Calendar size={16} className="text-orange" /> Data do estorno
                     </span>
                     <input
                       type="date"
                       value={dataEstorno}
                       onChange={(e) => setDataEstorno(e.target.value)}
-                      onFocus={() => setFocusField(true)}
-                      onBlur={() => setFocusField(false)}
-                      style={{
-                        width: "100%",
-                        height: 46,
-                        padding: "0 14px",
-                        border: `1.5px solid ${focusField ? "#F97316" : "#EFEDE8"}`,
-                        borderRadius: 10,
-                        fontSize: 14.5,
-                        color: "#3A372F",
-                        background: "#fff",
-                        outline: "none",
-                        fontFamily: "inherit",
-                      }}
+                      className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
                     />
                   </label>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      padding: "12px 14px",
-                      borderRadius: 12,
-                      background: "rgba(249,115,22,0.07)",
-                      border: "1px solid rgba(249,115,22,0.25)",
-                    }}
-                  >
-                    <Receipt size={16} style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
-                    <p style={{ margin: 0, fontSize: 12.5, color: "#8A5A33", lineHeight: 1.55 }}>
-                      Um <strong style={{ fontWeight: 700 }}>recibo de estorno</strong>{" "}
+                  <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
+                    <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
+                    <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
+                      Um <strong className="font-bold">recibo de estorno</strong>{" "}
                       será gerado para enviar à cliente como comprovante da devolução.
                     </p>
                   </div>
@@ -1282,19 +774,9 @@ function ModalCancelEstorno({
 
               {/* Aviso sem estorno */}
               {!estornar && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    background: "#F7F5F1",
-                    border: "1px solid #EFEDE8",
-                    animation: "fadeUp .2s ease both",
-                  }}
-                >
-                  <Info size={15} style={{ flexShrink: 0, color: "#A29E96", marginTop: 1 }} />
-                  <p style={{ margin: 0, fontSize: 12.5, color: "#6B6860", lineHeight: 1.55 }}>
+                <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-[#F7F5F1] px-3.5 py-3">
+                  <Info size={15} className="mt-px flex-shrink-0 text-muted" />
+                  <p className="m-0 text-[12.5px] leading-[1.55] text-[#6B6860]">
                     O orçamento será cancelado sem devolução do sinal. Nenhum
                     documento será gerado.
                   </p>
@@ -1302,7 +784,7 @@ function ModalCancelEstorno({
               )}
             </div>
             <Dots />
-            <div style={{ padding: "0 24px 22px", display: "flex", gap: 12 }}>
+            <div className="flex gap-3 px-6 pb-[22px]">
               <Button variant="ghost" onClick={onClose}>
                 Voltar
               </Button>
@@ -1326,66 +808,23 @@ function ModalCancelEstorno({
         {step === 2 && estornar && (
           <>
             <Header title="Confirmar estorno do sinal" />
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "20px 24px 8px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
-            >
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-2 pt-5">
               <div
-                style={{
-                  borderRadius: 14,
-                  background: "linear-gradient(135deg, #F97316 0%, #F4853A 100%)",
-                  padding: "20px 22px",
-                  color: "#fff",
-                  position: "relative",
-                  minHeight: 110,
-                }}
+                className="relative min-h-[110px] rounded-2xl px-[22px] py-5 text-white"
+                style={{ background: "linear-gradient(135deg, #F97316 0%, #F4853A 100%)" }}
               >
-                <div
-                  style={{
-                    position: "absolute",
-                    width: 120,
-                    height: 120,
-                    borderRadius: "50%",
-                    background: "rgba(255,255,255,0.10)",
-                    top: -40,
-                    right: -30,
-                    pointerEvents: "none",
-                  }}
-                />
-                <div style={{ position: "relative" }}>
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      color: "rgba(255,255,255,0.8)",
-                      marginBottom: 6,
-                    }}
-                  >
+                <div className="pointer-events-none absolute -right-[30px] -top-10 h-[120px] w-[120px] rounded-full bg-white/10" />
+                <div className="relative">
+                  <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/80">
                     Recibo de Estorno
                   </div>
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 700,
-                      fontVariantNumeric: "tabular-nums",
-                      letterSpacing: "-0.01em",
-                      wordBreak: "break-word",
-                    }}
-                  >
+                  <div className="break-words text-[28px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
                     {BRL(valorSinal)}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              <div className="flex flex-col">
                 {[
                   ["Cliente", nomeCliente],
                   ["Valor do estorno", BRL(valorSinal)],
@@ -1394,39 +833,24 @@ function ModalCancelEstorno({
                 ].map(([label, value]) => (
                   <div
                     key={label}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 13.5,
-                      padding: "9px 0",
-                      borderBottom: "1px solid #EFEDE8",
-                    }}
+                    className="flex justify-between border-b border-line py-[9px] text-[13.5px]"
                   >
-                    <span style={{ color: "#A29E96", fontWeight: 500 }}>{label}</span>
-                    <span style={{ color: "#3A372F", fontWeight: 600 }}>{value}</span>
+                    <span className="font-medium text-muted">{label}</span>
+                    <span className="font-semibold text-dark">{value}</span>
                   </div>
                 ))}
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  background: "rgba(249,115,22,0.07)",
-                  border: "1px solid rgba(249,115,22,0.25)",
-                }}
-              >
-                <Receipt size={16} style={{ flexShrink: 0, color: "#F97316", marginTop: 1 }} />
-                <p style={{ margin: 0, fontSize: 12.5, color: "#8A5A33", lineHeight: 1.55 }}>
+              <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
+                <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
+                <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
                   O recibo de estorno ficará disponível para download na tela de
                   detalhe do orçamento cancelado.
                 </p>
               </div>
             </div>
             <Dots />
-            <div style={{ padding: "0 24px 22px", display: "flex", gap: 12 }}>
+            <div className="flex gap-3 px-6 pb-[22px]">
               <Button variant="ghost" onClick={() => setStep(1)}>
                 ← Voltar
               </Button>
@@ -1487,36 +911,16 @@ function DownloadsCard({
   }
 
   return (
-    <section
-      style={{
-        background: "#fff",
-        border: "1px solid #F0EEE9",
-        borderRadius: "var(--r-card)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-        padding: "22px 24px",
-        marginTop: 18,
-        animation: "fadeUp .6s ease both",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <span
-          style={{
-            display: "grid",
-            placeItems: "center",
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            background: "rgba(42,157,143,0.12)",
-            color: "#2A9D8F",
-          }}
-        >
+    <section className="mt-[18px] animate-[fadeUp_.6s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="mb-4 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/[0.12] text-teal">
           <Download size={17} />
         </span>
-        <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
+        <h2 className="m-0 text-[15.5px] font-bold text-dark">
           Documentos
         </h2>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <div className="flex flex-wrap gap-2.5">
         {links.map((l) => (
           <Button key={l.kind} variant="ghost" icon={l.icon} onClick={() => onDownload(l.kind)}>
             {l.label}
@@ -1638,7 +1042,7 @@ export default function DetalheOrcamentoPage() {
   if (loading) {
     return (
       <AppLayout active="orcamentos">
-        <div style={{ padding: "40px 20px", textAlign: "center", color: "#A29E96" }}>
+        <div className="px-5 py-10 text-center text-muted">
           Carregando orçamento...
         </div>
       </AppLayout>
@@ -1648,7 +1052,7 @@ export default function DetalheOrcamentoPage() {
   if (!orcamento) {
     return (
       <AppLayout active="orcamentos">
-        <div style={{ padding: "40px 20px", textAlign: "center", color: "#C0492B" }}>
+        <div className="px-5 py-10 text-center text-danger">
           Orçamento não encontrado
         </div>
       </AppLayout>
@@ -1678,65 +1082,23 @@ export default function DetalheOrcamentoPage() {
   return (
     <AppLayout active="orcamentos">
       {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 18,
-          flexWrap: "wrap",
-          marginBottom: 24,
-        }}
-      >
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-[18px]">
         <div>
           <button
             onClick={() => navigate("/orcamentos")}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: "#2A9D8F",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              marginBottom: 5,
-              fontFamily: "inherit",
-            }}
+            className="mb-[5px] inline-flex items-center gap-1.5 border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal"
           >
             <ArrowLeft size={13} /> Orçamentos
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 13, flexWrap: "wrap" }}>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 25,
-                fontWeight: 700,
-                letterSpacing: "-0.025em",
-                color: "#3A372F",
-              }}
-            >
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="m-0 text-[25px] font-bold tracking-[-0.025em] text-dark">
               #{String(orcamento.numero).padStart(4, "0")} — {orcamento.nomeCliente}
             </h1>
             <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                height: 30,
-                padding: "0 13px",
-                borderRadius: 999,
-                background: meta.bg,
-                color: meta.fg,
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              className="inline-flex h-[30px] items-center gap-[7px] rounded-full px-[13px] text-[13px] font-semibold"
+              style={{ background: meta.bg, color: meta.fg }}
             >
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: meta.dot }} />
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: meta.dot }} />
               {STATUS_LABEL[status]}
             </span>
           </div>
@@ -1752,52 +1114,18 @@ export default function DetalheOrcamentoPage() {
 
       {/* SEÇÃO 1 — TIMELINE */}
       {status !== "CANCELADO" && (
-        <section
-          style={{
-            background: "#fff",
-            border: "1px solid #F0EEE9",
-            borderRadius: "var(--r-card)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            padding: "26px 28px",
-            animation: "fadeUp .4s ease both",
-          }}
-        >
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#5C594F", marginBottom: 24 }}>
+        <section className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <div className="mb-6 text-[13px] font-semibold text-body">
             Andamento do pedido
           </div>
           <Timeline current={status} />
 
           {!finalizado && (
-            <div
-              style={{
-                marginTop: 30,
-                paddingTop: 22,
-                borderTop: "1px solid #EFEDE8",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 18,
-                flexWrap: "wrap",
-              }}
-            >
+            <div className="mt-[30px] flex flex-wrap items-center justify-between gap-[18px] border-t border-line pt-[22px]">
               {cancelavel ? (
                 <button
                   onClick={() => setModal("cancel")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    background: "transparent",
-                    border: "none",
-                    color: "rgba(192,73,43,0.85)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#C0492B")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(192,73,43,0.85)")}
+                  className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger"
                 >
                   <Ban size={15} /> Cancelar orçamento
                 </button>
@@ -1820,21 +1148,11 @@ export default function DetalheOrcamentoPage() {
           )}
 
           {erroAvanco && (
-            <div
-              style={{
-                marginTop: 18,
-                display: "flex",
-                gap: 8,
-                padding: "12px 14px",
-                borderRadius: 10,
-                background: "#FBEDE9",
-                border: "1px solid #F2D8CF",
-              }}
-            >
-              <span style={{ flexShrink: 0, color: "#C0492B", display: "flex", marginTop: 1 }}>
+            <div className="mt-[18px] flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
+              <span className="mt-px flex flex-shrink-0 text-danger">
                 <AlertCircle size={16} />
               </span>
-              <p style={{ margin: 0, fontSize: 13, color: "#C0492B", lineHeight: 1.5 }}>
+              <p className="m-0 text-[13px] leading-[1.5] text-danger">
                 {erroAvanco}
               </p>
             </div>
@@ -1844,37 +1162,15 @@ export default function DetalheOrcamentoPage() {
 
       {/* Banner cancelado */}
       {status === "CANCELADO" && (
-        <section
-          style={{
-            background: "#FCF0EC",
-            border: "1px solid rgba(192,73,43,0.3)",
-            borderRadius: "var(--r-card)",
-            padding: "20px 24px",
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            animation: "fadeUp .4s ease both",
-          }}
-        >
-          <span
-            style={{
-              display: "grid",
-              placeItems: "center",
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: "#fff",
-              color: "#C0492B",
-              flexShrink: 0,
-            }}
-          >
+        <section className="flex animate-fade-up items-center gap-3.5 rounded-card border border-danger/30 bg-[#FCF0EC] px-6 py-5">
+          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-white text-danger">
             <Ban size={16} />
           </span>
           <div>
-            <div style={{ fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
+            <div className="text-[15.5px] font-bold text-dark">
               Orçamento cancelado
             </div>
-            <div style={{ fontSize: 13, color: "#8A5A4E", marginTop: 2 }}>
+            <div className="mt-0.5 text-[13px] text-[#8A5A4E]">
               Este orçamento foi cancelado e não pode mais avançar de status.
             </div>
           </div>
@@ -1882,138 +1178,49 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {/* SEÇÃO 2 — RESUMO + PRÓXIMO PASSO */}
-      <div className="lower-grid" style={{ marginTop: 18 }}>
+      <div className="lower-grid mt-[18px]">
         {/* Resumo do orçamento */}
-        <section
-          style={{
-            background: "#fff",
-            border: "1px solid #F0EEE9",
-            borderRadius: "var(--r-card)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            padding: "22px 24px",
-            animation: "fadeUp .5s ease both",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span
-              style={{
-                display: "grid",
-                placeItems: "center",
-                width: 32,
-                height: 32,
-                borderRadius: 9,
-                background: "rgba(42,157,143,0.12)",
-                color: "#2A9D8F",
-              }}
-            >
+        <section className="animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <div className="mb-[18px] flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/[0.12] text-teal">
               <FileText size={20} />
             </span>
-            <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: "#3A372F" }}>
+            <h2 className="m-0 text-[15.5px] font-bold text-dark">
               Resumo do orçamento
             </h2>
           </div>
 
           {/* Cliente */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              paddingBottom: 16,
-              borderBottom: "1px solid #EFEDE8",
-            }}
-          >
-            <span
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                background: "rgba(42,157,143,0.14)",
-                color: "#2A9D8F",
-                fontWeight: 700,
-                fontSize: 16,
-                flexShrink: 0,
-              }}
-            >
+          <div className="flex items-center gap-3 border-b border-line pb-4">
+            <span className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-full bg-teal/[0.14] text-base font-bold text-teal">
               {orcamento.nomeCliente.charAt(0)}
             </span>
             <div>
-              <div style={{ fontSize: 14.5, fontWeight: 600, color: "#3A372F" }}>
+              <div className="text-[14.5px] font-semibold text-dark">
                 {orcamento.nomeCliente}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 12.5,
-                  color: "#A29E96",
-                  marginTop: 2,
-                }}
-              >
-                <Phone size={16} style={{ color: "#2A9D8F" }} /> {cliente?.whatsapp || "—"}
+              <div className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-muted">
+                <Phone size={16} className="text-teal" /> {cliente?.whatsapp || "—"}
               </div>
             </div>
           </div>
 
           {/* Itens */}
-          <div
-            style={{
-              padding: "16px 0",
-              borderBottom: "1px solid #EFEDE8",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
+          <div className="flex flex-col gap-3 border-b border-line py-4">
             {orcamento.itens.map((it, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <span
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                    display: "grid",
-                    placeItems: "center",
-                    background: "rgba(249,115,22,0.10)",
-                    color: "#F97316",
-                    flexShrink: 0,
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
+              <div key={i} className="flex items-start gap-3">
+                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
                   ×{it.quantidade}
                 </span>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#3A372F" }}>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-sm font-semibold text-dark">
                       {it.nomeProduto}
                     </div>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        height: 22,
-                        padding: "0 9px",
-                        borderRadius: 999,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        color: it.itemCatalogoId ? "#2A9D8F" : "#8A8780",
-                        background: it.itemCatalogoId
-                          ? "rgba(42,157,143,0.10)"
-                          : "#F1F0EC",
-                      }}
-                    >
+                    <span className={clsx(
+                      "inline-flex h-[22px] items-center gap-[5px] rounded-full px-[9px] text-[11.5px] font-semibold",
+                      it.itemCatalogoId ? "bg-teal/10 text-teal" : "bg-line-soft text-[#8A8780]"
+                    )}>
                       {it.itemCatalogoId ? (
                         <Layers size={11} />
                       ) : (
@@ -2025,21 +1232,7 @@ export default function DetalheOrcamentoPage() {
                     </span>
                   </div>
                   {it.customizacoes.length > 0 && (
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        height: 22,
-                        padding: "0 9px",
-                        marginTop: 6,
-                        borderRadius: 999,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        color: "#5C594F",
-                        background: "#F1F0EC",
-                      }}
-                    >
+                    <div className="mt-1.5 inline-flex h-[22px] items-center gap-[5px] rounded-full bg-line-soft px-[9px] text-[11.5px] font-semibold text-body">
                       <SlidersHorizontal size={11} />
                       Customizações ({it.customizacoes.length})
                     </div>
@@ -2048,32 +1241,14 @@ export default function DetalheOrcamentoPage() {
                     {it.customizacoes.map((c, k) => (
                       <span
                         key={k}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          marginTop: 4,
-                          marginRight: 5,
-                          fontSize: 11.5,
-                          color: "#A35A26",
-                          background: "rgba(249,115,22,0.08)",
-                          padding: "2px 8px",
-                          borderRadius: 999,
-                        }}
+                        className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/[0.08] px-2 py-0.5 text-[11.5px] text-[#A35A26]"
                       >
                         <Tag size={17} /> {c.nomeProduto}
                       </span>
                     ))}
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "#3A372F",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
+                <div className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
                   {BRL(it.subtotal)}
                 </div>
               </div>
@@ -2081,113 +1256,47 @@ export default function DetalheOrcamentoPage() {
           </div>
 
           {/* Total + sinal + validade */}
-          <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="flex flex-col gap-3 pt-4">
+            <div className="flex items-center justify-between">
               <div>
-                <div style={{ fontSize: 12, color: "#A29E96" }}>Total</div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: "#F97316",
-                    fontVariantNumeric: "tabular-nums",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
+                <div className="text-xs text-muted">Total</div>
+                <div className="text-[22px] font-bold tracking-[-0.01em] text-orange [font-variant-numeric:tabular-nums]">
                   {BRL(orcamento.total)}
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, color: "#A29E96" }}>Validade</div>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "#5C594F",
-                    marginTop: 2,
-                  }}
-                >
-                  <Calendar size={16} style={{ color: "#2A9D8F" }} /> {fmtDate(orcamento.dataValidade)}
+              <div className="text-right">
+                <div className="text-xs text-muted">Validade</div>
+                <div className="mt-0.5 inline-flex items-center gap-1.5 text-sm font-semibold text-body">
+                  <Calendar size={16} className="text-teal" /> {fmtDate(orcamento.dataValidade)}
                 </div>
               </div>
             </div>
 
             {orcamento.sinalAtivo && (
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 140,
-                    padding: "10px 13px",
-                    borderRadius: 10,
-                    background: sinalRecebido
-                      ? "rgba(42,157,143,0.07)"
-                      : "rgba(249,115,22,0.07)",
-                    border: `1px solid ${sinalRecebido ? "rgba(42,157,143,0.2)" : "rgba(249,115,22,0.2)"}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.03em",
-                      color: sinalRecebido ? "#2A9D8F" : "#B5701F",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+              <div className="flex flex-wrap gap-2.5">
+                <div className={clsx(
+                  "min-w-[140px] flex-1 rounded-[10px] border px-3.5 py-2.5",
+                  sinalRecebido ? "border-teal/20 bg-teal/[0.07]" : "border-orange/20 bg-orange/[0.07]"
+                )}>
+                  <div className={clsx(
+                    "flex items-center gap-1.5 whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em]",
+                    sinalRecebido ? "text-teal" : "text-[#B5701F]"
+                  )}>
                     {sinalRecebido ? <Check size={14} /> : <Clock size={12} />}
                     {sinalRecebido ? "Sinal recebido" : "Aguardando Sinal"}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: sinalRecebido ? "#2A9D8F" : "#B5701F",
-                      fontVariantNumeric: "tabular-nums",
-                      marginTop: 4,
-                    }}
-                  >
+                  <div className={clsx(
+                    "mt-1 text-base font-bold [font-variant-numeric:tabular-nums]",
+                    sinalRecebido ? "text-teal" : "text-[#B5701F]"
+                  )}>
                     {BRL(orcamento.valorSinal || 0)}
                   </div>
                 </div>
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 140,
-                    padding: "10px 13px",
-                    borderRadius: 10,
-                    background: "#FCFBF9",
-                    border: "1px solid #EFEDE8",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.03em",
-                      color: "#A8A49C",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                <div className="min-w-[140px] flex-1 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-2.5">
+                  <div className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em] text-[#A8A49C]">
                     Restante
                   </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: "#3A372F",
-                      fontVariantNumeric: "tabular-nums",
-                      marginTop: 4,
-                    }}
-                  >
+                  <div className="mt-1 text-base font-bold text-dark [font-variant-numeric:tabular-nums]">
                     {BRL(restante)}
                   </div>
                 </div>
@@ -2199,41 +1308,23 @@ export default function DetalheOrcamentoPage() {
         {/* Card próximo passo */}
         {!finalizado && nextHint && (
           <section
-            style={{
-              background:
-                "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)",
-              border: "1px solid rgba(42,157,143,0.18)",
-              borderRadius: "var(--r-card)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              padding: "22px 24px",
-              animation: "fadeUp .55s ease both",
-            }}
+            className="animate-[fadeUp_.55s_ease_both] rounded-card border border-teal/[0.18] px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+            style={{ background: "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)" }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12 }}>
-              <span
-                style={{
-                  display: "grid",
-                  placeItems: "center",
-                  width: 38,
-                  height: 38,
-                  borderRadius: 11,
-                  background: "#fff",
-                  color: "#2A9D8F",
-                  border: "1px solid rgba(42,157,143,0.2)",
-                }}
-              >
+            <div className="mb-3 flex items-center gap-[11px]">
+              <span className="grid h-[38px] w-[38px] place-items-center rounded-[11px] border border-teal/20 bg-white text-teal">
                 <Layers size={18} />
               </span>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#3A372F" }}>
+                <div className="text-[15px] font-bold text-dark">
                   Próximo passo
                 </div>
-                <div style={{ fontSize: 12.5, color: "#2A9D8F", fontWeight: 600, marginTop: 1 }}>
+                <div className="mt-px text-[12.5px] font-semibold text-teal">
                   {actionLabel}
                 </div>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "#5C594F" }}>
+            <p className="m-0 text-[13.5px] leading-[1.6] text-body">
               {nextHint}
             </p>
           </section>
