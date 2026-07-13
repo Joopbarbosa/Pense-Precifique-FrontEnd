@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import Spinner from '../../components/ui/Spinner'
 import { Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
@@ -31,30 +33,30 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
   prefix?: string; suffix?: string; icon?: React.ReactNode
   inputMode?: 'decimal' | 'numeric'; error?: string
 }) {
-  const [f, setF] = useState(false)
   const hasError = !!error
   return (
-    <div style={{
-      position: 'relative', display: 'flex', alignItems: 'stretch',
-      border: `1.5px solid ${hasError ? '#E05C3A' : f ? '#2A9D8F' : '#EFEDE8'}`, borderRadius: 10,
-      background: '#fff', overflow: 'hidden',
-      boxShadow: hasError ? '0 0 0 4px rgba(224,92,58,0.10)' : f ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-      transition: 'border-color .15s, box-shadow .15s', maxWidth: 300,
-    }}>
+    <div className={clsx(
+      'group relative flex max-w-[300px] items-stretch overflow-hidden rounded-input border-[1.5px] bg-white transition-[border-color,box-shadow] duration-150',
+      hasError
+        ? 'border-[#E05C3A] shadow-[0_0_0_4px_rgba(224,92,58,0.10)]'
+        : 'border-line focus-within:border-teal focus-within:shadow-[0_0_0_4px_rgba(42,157,143,0.12)]'
+    )}>
       {prefix && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 14px', fontSize: 14.5, fontWeight: 600, color: f ? '#1F7A6F' : '#6B6860', background: '#FAF8F5', borderRight: '1px solid #EFEDE8', whiteSpace: 'nowrap' }}>
-          {icon && <span style={{ display: 'flex', color: f ? '#2A9D8F' : '#A8A49C' }}>{icon}</span>}{prefix}
+        <span className="flex items-center gap-[7px] whitespace-nowrap border-r border-line bg-[#FAF8F5] px-3.5 text-[14.5px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
+          {icon && <span className="flex text-[#A8A49C] group-focus-within:text-teal">{icon}</span>}{prefix}
         </span>
       )}
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         inputMode={inputMode}
-        onFocus={() => setF(true)}
-        onBlur={() => setF(false)}
-        style={{ flex: 1, minWidth: 0, height: 52, padding: '0 14px', border: 'none', outline: 'none', fontSize: 17, fontWeight: 600, color: '#3A372F', background: 'transparent', fontFamily: 'inherit', fontVariantNumeric: 'tabular-nums' }}
+        className="h-[52px] min-w-0 flex-1 border-none bg-transparent px-3.5 font-[inherit] text-[17px] font-semibold text-dark outline-none [font-variant-numeric:tabular-nums]"
       />
-      {suffix && <span style={{ display: 'flex', alignItems: 'center', padding: '0 16px', fontSize: 15, fontWeight: 600, color: f ? '#1F7A6F' : '#6B6860', background: '#FAF8F5', borderLeft: '1px solid #EFEDE8' }}>{suffix}</span>}
+      {suffix && (
+        <span className="flex items-center border-l border-line bg-[#FAF8F5] px-4 text-[15px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
+          {suffix}
+        </span>
+      )}
     </div>
   )
 }
@@ -64,17 +66,11 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
 function Toast({ show }: { show: boolean }) {
   if (!show) return null
   return (
-    <div style={{
-      position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
-      display: 'flex', alignItems: 'center', gap: 11, padding: '13px 20px 13px 15px',
-      background: '#143D33', color: '#fff', borderRadius: 13,
-      boxShadow: '0 16px 40px -10px rgba(0,0,0,0.5)',
-      animation: 'toastIn .3s cubic-bezier(.34,1.3,.5,1) both', maxWidth: 'calc(100vw - 32px)',
-    }}>
-      <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: '50%', background: '#34A56F', color: '#fff' }}>
+    <div className="fixed bottom-7 left-1/2 z-[200] flex max-w-[calc(100vw-32px)] -translate-x-1/2 animate-toast-in items-center gap-[11px] rounded-[13px] bg-[#143D33] py-[13px] pl-[15px] pr-5 text-white shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5)]">
+      <span className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full bg-[#34A56F] text-white">
         <Check size={14} />
       </span>
-      <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>Configurações salvas com sucesso!</span>
+      <span className="whitespace-nowrap text-sm font-semibold">Configurações salvas com sucesso!</span>
     </div>
   )
 }
@@ -91,22 +87,21 @@ type SubAba = typeof SUBABAS[number]['id']
 
 function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
   return (
-    <div style={{ display: 'flex', gap: 4, marginBottom: 26, borderBottom: '1.5px solid #EFEDE8', overflowX: 'auto' }}>
+    <div className="mb-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line">
       {SUBABAS.map(a => {
         const on = aba === a.id
         return (
-          <button key={a.id} onClick={() => setAba(a.id)} style={{
-            position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
-            padding: '12px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 14.5, fontWeight: on ? 600 : 500,
-            color: on ? '#2A9D8F' : '#8A8780', whiteSpace: 'nowrap', transition: 'color .14s',
-          }}
-            onMouseEnter={e => { if (!on) e.currentTarget.style.color = '#5C594F' }}
-            onMouseLeave={e => { if (!on) e.currentTarget.style.color = '#8A8780' }}
+          <button
+            key={a.id}
+            onClick={() => setAba(a.id)}
+            className={clsx(
+              'relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-[14.5px] transition-colors duration-150',
+              on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+            )}
           >
-            <span style={{ display: 'flex', color: on ? '#2A9D8F' : '#B0ACA4' }}><a.icon size={a.size} /></span>
+            <span className={clsx('flex', on ? 'text-teal' : 'text-[#B0ACA4]')}><a.icon size={a.size} /></span>
             {a.label}
-            {on && <span style={{ position: 'absolute', left: 8, right: 8, bottom: -1.5, height: 2.5, borderRadius: 3, background: '#2A9D8F' }} />}
+            {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
           </button>
         )
       })}
@@ -123,25 +118,23 @@ function PerfilCard({ nome, email }: { nome?: string; email?: string }) {
     ['66%', '68%', 4, '#F97316'],
   ]
   return (
-    <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden', animation: 'fadeUp .4s ease both' }}>
-      <div style={{ height: 64, background: 'linear-gradient(120deg, rgba(42,157,143,0.16), rgba(249,115,22,0.12))', position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+    <div className="animate-[fadeUp_.4s_ease_both] overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="relative h-16 bg-[linear-gradient(120deg,rgba(42,157,143,0.16),rgba(249,115,22,0.12))]">
+        <div className="pointer-events-none absolute inset-0">
           {dots.map((d, k) => (
-            <span key={k} style={{ position: 'absolute', left: d[0], top: d[1], width: d[2], height: d[2], borderRadius: '50%', background: hexA(d[3], 0.6) }} />
+            <span key={k} className="absolute rounded-full" style={{ left: d[0], top: d[1], width: d[2], height: d[2], background: hexA(d[3], 0.6) }} />
           ))}
         </div>
       </div>
-      <div style={{ padding: '0 20px 20px', marginTop: -32, textAlign: 'center' }}>
-        <div style={{ width: 72, height: 72, margin: '0 auto', borderRadius: '50%', background: '#fff', border: '3px solid #fff', boxShadow: '0 4px 14px -4px rgba(0,0,0,0.2)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-          <span style={{ display: 'grid', placeItems: 'center', width: '100%', height: '100%', background: '#FAF8F5' }}>
-            <img src="/logo.png" width={42} height={42} alt="Logo" style={{ objectFit: 'contain' }} />
+      <div className="-mt-8 px-5 pb-5 text-center">
+        <div className="mx-auto grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[0_4px_14px_-4px_rgba(0,0,0,0.2)]">
+          <span className="grid h-full w-full place-items-center bg-[#FAF8F5]">
+            <img src="/logo.png" width={42} height={42} alt="Logo" className="object-contain" />
           </span>
         </div>
-        <h3 style={{ margin: '13px 0 0', fontSize: 17, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>{nome || '—'}</h3>
-        <p style={{ margin: '3px 0 0', fontSize: 13.5, color: '#A29E96' }}>{email || ''}</p>
-        <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 16, fontSize: 13.5, fontWeight: 600, color: '#2A9D8F', background: 'transparent', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', padding: 0 }}
-          onMouseEnter={e => e.currentTarget.style.gap = '9px'} onMouseLeave={e => e.currentTarget.style.gap = '6px'}
-        >
+        <h3 className="mt-[13px] text-[17px] font-bold tracking-[-0.01em] text-dark">{nome || '—'}</h3>
+        <p className="mt-[3px] text-[13.5px] text-muted">{email || ''}</p>
+        <button className="group mt-4 inline-flex items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 font-[inherit] text-[13.5px] font-semibold text-teal transition-[gap] duration-150 hover:gap-2.5">
           Editar perfil <ArrowRight size={17} />
         </button>
       </div>
@@ -208,52 +201,52 @@ function Precificacao({
   useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
-    <div className="cfg-grid">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px', animation: 'fadeUp .35s ease both' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 5 }}>
-            <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-6">
+        <div className="animate-[fadeUp_.35s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <div className="mb-[5px] flex items-center gap-[11px]">
+            <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
               <SlidersHorizontal size={15} />
             </span>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em' }}>Como você quer precificar?</h2>
+            <h2 className="m-0 text-lg font-bold tracking-[-0.01em] text-dark">Como você quer precificar?</h2>
           </div>
-          <p style={{ margin: '0 0 22px 49px', fontSize: 13.5, color: '#A29E96', lineHeight: 1.5 }}>
+          <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
             Estes parâmetros alimentam a calculadora de preço de todos os seus produtos.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+          <div className="flex flex-col gap-[22px]">
             <div>
-              <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-                Valor da sua hora de trabalho <span style={{ color: '#E05C3A' }}>*</span>
+              <label className="mb-2 block text-[13.5px] font-semibold text-body">
+                Valor da sua hora de trabalho <span className="text-[#E05C3A]">*</span>
               </label>
               <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Clock size={18} />} inputMode="decimal" error={fieldErrors.hora} />
               {fieldErrors.hora
-                ? <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#E05C3A', fontWeight: 500 }}>{fieldErrors.hora}</p>
-                : <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Quanto vale uma hora do seu tempo produzindo.</p>
+                ? <p className="mt-1.5 text-[12.5px] font-medium text-[#E05C3A]">{fieldErrors.hora}</p>
+                : <p className="mt-2 text-[12.5px] text-[#A8A49C]">Quanto vale uma hora do seu tempo produzindo.</p>
               }
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-                Margem de lucro padrão <span style={{ color: '#E05C3A' }}>*</span>
+              <label className="mb-2 block text-[13.5px] font-semibold text-body">
+                Margem de lucro padrão <span className="text-[#E05C3A]">*</span>
               </label>
               <AffixInput value={margem} onChange={v => { setMargem(v.replace(/[^\d]/g, '')); setFieldErrors(p => ({ ...p, margem: undefined })) }} suffix="%" inputMode="numeric" error={fieldErrors.margem} />
               {fieldErrors.margem
-                ? <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#E05C3A', fontWeight: 500 }}>{fieldErrors.margem}</p>
-                : <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#A8A49C' }}>Percentual aplicado sobre o custo para formar o preço sugerido.</p>
+                ? <p className="mt-1.5 text-[12.5px] font-medium text-[#E05C3A]">{fieldErrors.margem}</p>
+                : <p className="mt-2 text-[12.5px] text-[#A8A49C]">Percentual aplicado sobre o custo para formar o preço sugerido.</p>
               }
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 24, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', borderLeft: '3px solid #2A9D8F' }}>
-            <Info size={15} style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
-            <p style={{ margin: 0, fontSize: 13, color: '#3F5B54', lineHeight: 1.55 }}>
-              Alterar estes valores <strong style={{ fontWeight: 700 }}>não recalcula orçamentos já criados</strong>. Somente novos orçamentos usarão os parâmetros atualizados.
+          <div className="mt-6 flex gap-3 rounded-xl border border-teal/[0.18] border-l-[3px] border-l-teal bg-teal/[0.06] px-4 py-3.5">
+            <Info size={15} className="mt-px flex-shrink-0 text-teal" />
+            <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
+              Alterar estes valores <strong className="font-bold">não recalcula orçamentos já criados</strong>. Somente novos orçamentos usarão os parâmetros atualizados.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginTop: 24, paddingTop: 22, borderTop: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: dirty ? '#C8721F' : '#A8A49C', display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: dirty ? '#E8913B' : '#CFCBC3', boxShadow: dirty ? '0 0 0 4px rgba(232,145,59,0.18)' : 'none' }} />
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3.5 border-t border-line pt-[22px]">
+            <span className={clsx('flex items-center gap-[7px] text-[12.5px] font-medium', dirty ? 'text-warning' : 'text-[#A8A49C]')}>
+              <span className={clsx('h-2 w-2 rounded-full', dirty ? 'bg-[#E8913B] shadow-[0_0_0_4px_rgba(232,145,59,0.18)]' : 'bg-[#CFCBC3]')} />
               {dirty ? 'Você tem alterações não salvas' : 'Tudo salvo'}
             </span>
             <Button variant="primary" icon={<Check size={14} />} disabled={!dirty || saving || !isValid} onClick={salvar}>
@@ -273,9 +266,9 @@ function Precificacao({
 
 function CfgField({ label, opt, children }: { label: string; opt?: boolean; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-        {label}{opt && <span style={{ fontSize: 12, fontWeight: 500, color: '#B0ACA4', marginLeft: 6 }}>(opcional)</span>}
+    <label className="block">
+      <span className="mb-2 block text-[13.5px] font-semibold text-body">
+        {label}{opt && <span className="ml-1.5 text-xs font-medium text-faint">(opcional)</span>}
       </span>
       {children}
     </label>
@@ -288,7 +281,6 @@ function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', t
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
 }) {
   const [internalV, setInternalV] = useState(defaultValue)
-  const [f, setF] = useState(false)
   const isControlled = extValue !== undefined
   const v = isControlled ? extValue : internalV
 
@@ -299,26 +291,21 @@ function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', t
         if (isControlled) extOnChange?.(e.target.value)
         else setInternalV(e.target.value)
       }}
-      onFocus={() => setF(true)} onBlur={() => setF(false)}
-      style={{
-        width: '100%', height: 48, padding: '0 14px',
-        border: `1.5px solid ${f && !readOnly ? '#2A9D8F' : '#EFEDE8'}`,
-        borderRadius: 10, fontSize: 14.5,
-        color: readOnly ? '#7C786F' : '#3A372F',
-        background: readOnly ? '#FAF8F5' : '#fff',
-        outline: 'none', fontFamily: 'inherit',
-        boxShadow: f && !readOnly ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-        transition: 'border-color .15s, box-shadow .15s',
-      }}
+      className={clsx(
+        'h-12 w-full rounded-input border-[1.5px] border-line px-3.5 font-[inherit] text-[14.5px] outline-none transition-[border-color,box-shadow] duration-150',
+        readOnly
+          ? 'bg-[#FAF8F5] text-subtle'
+          : 'bg-white text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+      )}
     />
   )
 }
 
 function SectionHead({ icon, titulo }: { icon: React.ReactNode; titulo: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 18 }}>
-      <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>{icon}</span>
-      <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#3A372F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{titulo}</h2>
+    <div className="mb-[18px] flex items-center gap-[11px]">
+      <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">{icon}</span>
+      <h2 className="m-0 whitespace-nowrap text-lg font-bold tracking-[-0.01em] text-dark">{titulo}</h2>
     </div>
   )
 }
@@ -370,21 +357,21 @@ function PerfilEmpresa({
   useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
-    <div style={{ maxWidth: 640, animation: 'fadeUp .35s ease both' }}>
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px' }}>
+    <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
+      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<Building2 size={17} />} titulo="Perfil da empresa" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18, paddingBottom: 22, marginBottom: 22, borderBottom: '1px solid #EFEDE8', flexWrap: 'wrap' }}>
-          <span style={{ flexShrink: 0, width: 84, height: 84, borderRadius: '50%', background: '#FAF8F5', border: '1px solid #EFEDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-            <img src="/logo.png" width={50} height={50} alt="Logo" style={{ objectFit: 'contain' }} />
+        <div className="mb-[22px] flex flex-wrap items-center gap-[18px] border-b border-line pb-[22px]">
+          <span className="grid h-[84px] w-[84px] flex-shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-[#FAF8F5] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+            <img src="/logo.png" width={50} height={50} alt="Logo" className="object-contain" />
           </span>
           <div>
             <Button variant="ghost">Alterar logo</Button>
-            <p style={{ margin: '9px 0 0', fontSize: 12.5, color: '#A8A49C', lineHeight: 1.5 }}>PNG ou JPG, fundo transparente recomendado.</p>
+            <p className="mt-[9px] text-[12.5px] leading-[1.5] text-[#A8A49C]">PNG ou JPG, fundo transparente recomendado.</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div className="flex flex-col gap-[18px]">
           <CfgField label="Nome da empresa">
             <CfgInput value={nome} onChange={setNome} placeholder="Nome do seu ateliê ou negócio" />
           </CfgField>
@@ -399,20 +386,20 @@ function PerfilEmpresa({
           </CfgField>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 22, padding: '14px 16px', borderRadius: 12, background: 'rgba(42,157,143,0.06)', border: '1px solid rgba(42,157,143,0.18)', borderLeft: '3px solid #2A9D8F' }}>
-          <Info size={15} style={{ flexShrink: 0, color: '#2A9D8F', marginTop: 1 }} />
-          <p style={{ margin: 0, fontSize: 13, color: '#3F5B54', lineHeight: 1.55 }}>
+        <div className="mt-[22px] flex gap-3 rounded-xl border border-teal/[0.18] border-l-[3px] border-l-teal bg-teal/[0.06] px-4 py-3.5">
+          <Info size={15} className="mt-px flex-shrink-0 text-teal" />
+          <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
             Estas informações aparecem em todos os PDFs gerados pelo sistema (orçamentos, recibos e multas).
           </p>
         </div>
 
         {error && (
-          <p style={{ margin: '12px 0 0', fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+          <p className="mt-3 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
             {error}
           </p>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingTop: 22, borderTop: '1px solid #EFEDE8' }}>
+        <div className="mt-6 flex justify-end border-t border-line pt-[22px]">
           <Button variant="primary" icon={<Check size={14} />} disabled={saving} onClick={salvar}>
             {saving ? 'Salvando…' : 'Salvar alterações'}
           </Button>
@@ -428,44 +415,37 @@ function PerfilEmpresa({
 
 function ContaSeguranca() {
   return (
-    <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 22, animation: 'fadeUp .35s ease both' }}>
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '26px 28px' }}>
+    <div className="flex max-w-[640px] animate-[fadeUp_.35s_ease_both] flex-col gap-[22px]">
+      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<ShieldCheck size={17} />} titulo="Dados de acesso" />
 
         <CfgField label="E-mail atual">
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ flex: '1 1 240px', minWidth: 0 }}><CfgInput defaultValue="ana@atelier.com" readOnly /></div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="min-w-0 flex-[1_1_240px]"><CfgInput defaultValue="ana@atelier.com" readOnly /></div>
             <Button variant="ghost">Alterar e-mail</Button>
           </div>
         </CfgField>
 
-        <div style={{ marginTop: 22, paddingTop: 22, borderTop: '1px solid #EFEDE8' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#3A372F' }}>Alterar senha</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="mt-[22px] border-t border-line pt-[22px]">
+          <h3 className="m-0 mb-4 text-[15px] font-bold text-dark">Alterar senha</h3>
+          <div className="flex flex-col gap-4">
             <CfgField label="Senha atual"><CfgInput type="password" placeholder="••••••••" /></CfgField>
             <CfgField label="Nova senha"><CfgInput type="password" placeholder="Mínimo 8 caracteres" /></CfgField>
             <CfgField label="Confirmar nova senha"><CfgInput type="password" placeholder="Repita a nova senha" /></CfgField>
           </div>
           {/* TODO: conectar ao endpoint PUT /usuarios/me/senha (Épico 1) */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+          <div className="mt-5 flex justify-end">
             <Button variant="primary">Atualizar senha</Button>
           </div>
         </div>
       </div>
 
-      <div style={{ background: '#FEF8F6', border: '1.5px solid #F2D8CF', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '24px 28px' }}>
-        <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#B23A1E' }}>Excluir conta</h3>
-        <p style={{ margin: '7px 0 18px', fontSize: 13.5, color: '#8A5A4C', lineHeight: 1.55, maxWidth: 440 }}>
+      <div className="rounded-card border-[1.5px] border-[#F2D8CF] bg-[#FEF8F6] px-7 py-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+        <h3 className="m-0 text-[15.5px] font-bold text-danger-deep">Excluir conta</h3>
+        <p className="mb-[18px] mt-[7px] max-w-[440px] text-[13.5px] leading-[1.55] text-[#8A5A4C]">
           Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.
         </p>
-        <button style={{
-          height: 46, padding: '0 20px', borderRadius: 10, border: '1.5px solid #E3A799',
-          background: 'transparent', color: '#C0492B', fontSize: 14, fontWeight: 600,
-          fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .15s',
-        }}
-          onMouseEnter={e => e.currentTarget.style.background = '#FBEDE7'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
+        <button className="h-[46px] whitespace-nowrap rounded-input border-[1.5px] border-[#E3A799] bg-transparent px-5 font-[inherit] text-sm font-semibold text-danger transition-colors duration-150 hover:bg-[#FBEDE7]">
           Solicitar exclusão da conta
         </button>
       </div>
@@ -517,21 +497,21 @@ export default function ConfiguracoesPage() {
   return (
     <AppLayout active="config">
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
-        <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <div className="mb-[22px] flex items-center gap-[15px]">
+        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
           <Settings size={26} />
         </span>
         <div>
-          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Configurações</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 14.5, color: '#A29E96' }}>Defina as regras do seu negócio.</p>
+          <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Configurações</h1>
+          <p className="mt-1 text-[14.5px] text-muted">Defina as regras do seu negócio.</p>
         </div>
       </div>
 
       <SubNav aba={aba} setAba={setAba} />
 
       {loadingData ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando configurações…
         </div>
       ) : (
