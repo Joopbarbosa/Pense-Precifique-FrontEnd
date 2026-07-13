@@ -1178,7 +1178,7 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {/* SEÇÃO 2 — RESUMO + PRÓXIMO PASSO */}
-      <div className="lower-grid mt-[18px]">
+      <div className="mt-[18px] grid grid-cols-[1.05fr_1fr] gap-[18px] max-[980px]:grid-cols-1">
         {/* Resumo do orçamento */}
         <section className="animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="mb-[18px] flex items-center gap-2.5">

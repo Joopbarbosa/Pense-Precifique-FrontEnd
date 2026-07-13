@@ -2,18 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --teal: #2A9D8F;
-  --teal-deep: #1E7268;
-  --orange: #F97316;
-  --dark: #3A372F;
-  --line: #EFEDE8;
-  --r-btn: 10px;
-  --r-input: 10px;
-  --r-card: 16px;
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
-}
-
 * {
   box-sizing: border-box;
 }
@@ -67,16 +55,6 @@ body {
   40%       { transform: translateX(6px); }
   60%       { transform: translateX(-4px); }
   80%       { transform: translateX(4px); }
-}
-
-.lower-grid {
-  display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 18px;
-}
-
-@media (max-width: 980px) {
-  .lower-grid { grid-template-columns: 1fr; }
 }
 
 @keyframes slideInRight {

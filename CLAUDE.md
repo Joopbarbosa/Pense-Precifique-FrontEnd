@@ -3,15 +3,20 @@
 > **v0.2D0** — Lido automaticamente pelo Claude Code.
 > Caminho: `/home/joaobarbosa/Documentos/Projetos/Pense & Precifique/pense-precifique-frontend`
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Atualizado em: 2026-07-09 — bugs BUG-BUSCA-PRODUTO, BUG-02, BUG-03 e BUG-04 corrigidos (pocket de urgentes v0.2.1).
+> Atualizado em: 2026-07-12 — Frente 4 (migração global para Tailwind) concluída: todas as páginas migradas, `index.css` limpo (só resets globais, `@keyframes` e `body:has(.drawer-open)`), padrão de estilo documentado abaixo.
 
 ---
 
 ## Stack
 
 React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
-**Estilo:** CSS inline + classes utilitárias em `src/index.css` — sem Tailwind
-**Ícones:** sempre via Lucide React (`import { X } from 'lucide-react'`). Nunca criar SVG manual inline. Nunca recriar ícone fora do Lucide.
+**Estilo:** Tailwind CSS — classes utilitárias. Nunca CSS inline com valores hardcoded. Nunca classes CSS customizadas. Valores verdadeiramente dinâmicos (calculados em JS, vindos de prop ou da API) podem usar `style={{}}`.
+**Ícones:** sempre via Lucide React (`import { X } from 'lucide-react'`). Nunca criar SVG manual inline.
+**Design system:** tokens em `tailwind.config.ts`. Cores: `text-teal`, `bg-orange`, `text-dark`, `border-line`, `bg-app`, `text-muted`, `text-body`, `text-danger`, etc. Nunca usar valores hex hardcoded — sempre o token correspondente.
+**Componentes base:** `Button`, `Input`, `Badge`, `Card`, `ModalShell`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu` em `components/ui/` e `components/shared/`.
+**Hooks:** `usePaginatedList`, `useDebounceSearch`, `useAuth`, `useToast` em `src/hooks/`.
+**Constants:** `METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL` em `src/constants/`.
+**Regra overflow:** nunca `overflow-hidden` em container que tenha dropdown, modal ou ActionMenu filho.
 **localhost:** `http://localhost:3000` (Docker) / `http://localhost:5173` (dev direto)
 **Conta de teste:** `penseprecifique@admin.com` / `senha12345`
 
@@ -25,7 +30,7 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 | orange | `#F97316` |
 | dark | `#3A372F` |
 | line | `#EFEDE8` |
-| bg | `#FAFAF8` |
+| app (bg do sistema) | `#FAFAF8` |
 | azul (destaque de custo) | `#3A6FA0` |
 
 ---
