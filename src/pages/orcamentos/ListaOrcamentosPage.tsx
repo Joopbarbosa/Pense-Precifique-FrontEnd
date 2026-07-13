@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
 import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-react'
@@ -53,22 +54,25 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
   ]
 
   return (
-    <div className="q-row" onClick={onVerDetalhes}>
-      <span style={{ fontSize: 14, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>
+    <div
+      className="hidden cursor-pointer grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid"
+      onClick={onVerDetalhes}
+    >
+      <span className="text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">
         ORÇ-{String(orc.numero).padStart(4, '0')}
       </span>
 
-      <span style={{ fontSize: 14, color: '#5C594F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-body">
         {orc.nomeCliente}
       </span>
 
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F' }}>
+      <span className="text-sm font-semibold text-dark">
         {fmt(orc.total)}
       </span>
 
-      <span style={{ fontSize: 13.5, color: '#A29E96' }}>{fmtData(orc.createdAt)}</span>
+      <span className="text-[13.5px] text-muted">{fmtData(orc.createdAt)}</span>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="flex items-center gap-2">
         <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} />
         {isVencido(orc) && <VencidoBadge />}
       </div>
@@ -92,31 +96,27 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
   ]
 
   return (
-    <div className="q-card-mobile" style={{
-      padding: '16px 18px',
-      borderBottom: '1px solid #EFEDE8',
-      animation: `fadeUp .4s ease both`,
-      animationDelay: `${index * 0.05}s`,
-      cursor: 'pointer',
-    }}
+    <div
+      className="block cursor-pointer border-b border-line px-[18px] py-4 sm:hidden"
+      style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.05}s` }}
       onClick={onVerDetalhes}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#3A372F' }}>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-sm font-bold text-dark">
               ORÇ-{String(orc.numero).padStart(4, '0')}
             </span>
             {isVencido(orc) && <VencidoBadge />}
           </div>
-          <div style={{ fontSize: 14, color: '#5C594F', marginBottom: 8 }}>{orc.nomeCliente}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div className="mb-2 text-sm text-body">{orc.nomeCliente}</div>
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} size="sm" />
-            <span style={{ fontSize: 13, color: '#A29E96' }}>{fmtData(orc.createdAt)}</span>
+            <span className="text-[13px] text-muted">{fmtData(orc.createdAt)}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F' }}>{fmt(orc.total)}</span>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <span className="text-[15px] font-bold text-dark">{fmt(orc.total)}</span>
           <div onClick={e => e.stopPropagation()}>
             <ActionMenu items={menuItems} align="right" />
           </div>
@@ -130,7 +130,6 @@ export default function ListaOrcamentosPage() {
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState<StatusOrcamento | ''>('')
   const [query, setQuery] = useState('')
-  const [searchFocus, setSearchFocus] = useState(false)
   const [periodOpen, setPeriodOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -212,10 +211,10 @@ export default function ListaOrcamentosPage() {
     <AppLayout active="orcamentos">
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 22 }}>
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 style={{ margin: 0, fontSize: 29, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>Orçamentos</h1>
-          <p style={{ margin: '7px 0 0', fontSize: 14.5, color: '#A29E96' }}>Acompanhe e gerencie todos os seus orçamentos.</p>
+          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Orçamentos</h1>
+          <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Acompanhe e gerencie todos os seus orçamentos.</p>
         </div>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/orcamentos/novo')}>
           Novo Orçamento
@@ -223,13 +222,13 @@ export default function ListaOrcamentosPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '14px 18px', background: '#FCF0EC', border: '1px solid #F5C4B8', borderRadius: 10, color: '#C0492B', fontSize: 14, marginBottom: 18 }}>
+        <div className="mb-[18px] rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-[18px] py-3.5 text-sm text-danger">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0', color: '#A29E96', fontSize: 14 }}>
+        <div className="flex justify-center py-[60px] text-sm text-muted">
           Carregando…
         </div>
       ) : globalEmpty ? (
@@ -242,21 +241,18 @@ export default function ListaOrcamentosPage() {
       ) : (
         <>
           {/* FILTROS — chips de status */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="mb-[18px] flex flex-col gap-3.5">
+            <div className="flex flex-wrap gap-2">
               {FILTERS.map(f => {
                 const on = filtro === f.value
                 return (
-                  <button key={f.value} onClick={() => handleFiltroChange(f.value)} style={{
-                    height: 34, padding: '0 14px', borderRadius: 999,
-                    cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-                    border: `1.5px solid ${on ? '#2A9D8F' : '#EFEDE8'}`,
-                    background: on ? '#2A9D8F' : '#fff',
-                    color: on ? '#fff' : '#5C594F',
-                    transition: 'all .14s',
-                  }}
-                    onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#FAF8F5' }}
-                    onMouseLeave={e => { if (!on) e.currentTarget.style.background = '#fff' }}
+                  <button
+                    key={f.value}
+                    onClick={() => handleFiltroChange(f.value)}
+                    className={clsx(
+                      'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
+                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                    )}
                   >
                     {f.label}
                   </button>
@@ -265,69 +261,48 @@ export default function ListaOrcamentosPage() {
             </div>
 
             {/* Busca + Período */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div className="flex flex-wrap gap-3">
               {/* Campo de busca */}
-              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
+              <div className="relative min-w-[200px] flex-1">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
                   <Search size={18} />
                 </span>
                 <input
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder="Buscar por cliente ou número…"
-                  onFocus={() => setSearchFocus(true)}
-                  onBlur={() => setSearchFocus(false)}
-                  style={{
-                    width: '100%', height: 44, padding: '0 16px 0 42px',
-                    border: `1.5px solid ${searchFocus ? '#2A9D8F' : '#EFEDE8'}`,
-                    borderRadius: 10, fontSize: 14, color: '#3A372F',
-                    background: '#fff', outline: 'none', fontFamily: 'inherit',
-                    boxShadow: searchFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-                    transition: 'border-color .15s, box-shadow .15s',
-                  }}
+                  className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
                 />
               </div>
 
               {/* Dropdown de período */}
-              <div ref={periodRef} style={{ position: 'relative', flexShrink: 0 }}>
-                <button onClick={() => setPeriodOpen(o => !o)} style={{
-                  height: 44, padding: '0 16px',
-                  border: `1.5px solid ${periodActive || periodOpen ? '#2A9D8F' : '#EFEDE8'}`,
-                  borderRadius: 10,
-                  background: periodActive ? 'rgba(42,157,143,0.07)' : '#fff',
-                  color: periodActive ? '#2A9D8F' : '#5C594F',
-                  fontSize: 14, fontWeight: periodActive ? 600 : 500,
-                  fontFamily: 'inherit', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
-                }}>
-                  <Calendar size={16} style={{ color: '#2A9D8F' }} />
+              <div ref={periodRef} className="relative flex-shrink-0">
+                <button
+                  onClick={() => setPeriodOpen(o => !o)}
+                  className={clsx(
+                    'flex h-11 items-center gap-[9px] whitespace-nowrap rounded-input border-[1.5px] px-4 font-[inherit] text-sm cursor-pointer',
+                    periodActive || periodOpen ? 'border-teal' : 'border-line',
+                    periodActive ? 'bg-teal/[0.07] font-semibold text-teal' : 'bg-white font-medium text-body'
+                  )}
+                >
+                  <Calendar size={16} className="text-teal" />
                   {periodLabel}
-                  <span style={{ color: periodActive ? '#2A9D8F' : '#B7B4AD', fontSize: 12 }}>▾</span>
+                  <span className={clsx('text-xs', periodActive ? 'text-teal' : 'text-faint')}>▾</span>
                 </button>
 
                 {periodOpen && (
-                  <div style={{
-                    position: 'absolute', right: 0, top: 50, zIndex: 40,
-                    width: 300, background: '#fff',
-                    border: '1px solid #EFEDE8', borderRadius: 14,
-                    boxShadow: '0 14px 36px -10px rgba(0,0,0,0.2)',
-                    padding: 16, animation: 'pop .14s ease both',
-                  }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A29E96', marginBottom: 10 }}>
+                  <div className="absolute right-0 top-[50px] z-40 w-[300px] animate-pop rounded-[14px] border border-line bg-white p-4 shadow-[0_14px_36px_-10px_rgba(0,0,0,0.2)]">
+                    <div className="mb-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted">
                       Filtrar por data de criação
                     </div>
 
                     {/* Presets */}
-                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
+                    <div className="mb-3.5 flex flex-wrap gap-[7px]">
                       {([['7 dias', 7], ['30 dias', 30], ['90 dias', 90]] as [string, number][]).map(([lbl, d]) => (
-                        <button key={d} onClick={() => setPreset(d)} style={{
-                          height: 30, padding: '0 12px', borderRadius: 999,
-                          border: '1px solid #EFEDE8', background: '#FCFBF9',
-                          color: '#5C594F', fontSize: 12.5, fontWeight: 600,
-                          fontFamily: 'inherit', cursor: 'pointer',
-                        }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(42,157,143,0.08)'; e.currentTarget.style.color = '#2A9D8F' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#FCFBF9'; e.currentTarget.style.color = '#5C594F' }}
+                        <button
+                          key={d}
+                          onClick={() => setPreset(d)}
+                          className="h-[30px] cursor-pointer rounded-full border border-line bg-[#FCFBF9] px-3 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-100 hover:bg-teal/[0.08] hover:text-teal"
                         >
                           Últimos {lbl}
                         </button>
@@ -335,43 +310,38 @@ export default function ListaOrcamentosPage() {
                     </div>
 
                     {/* Inputs de data */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="flex flex-col gap-2.5">
                       {([['De', dateFrom, setDateFrom, dateTo, ''], ['Até', dateTo, setDateTo, '', dateFrom]] as [string, string, (v: string) => void, string, string][]).map(([lbl, val, setter, max, min]) => (
-                        <label key={lbl} style={{ display: 'block' }}>
-                          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#5C594F', marginBottom: 5 }}>{lbl}</span>
+                        <label key={lbl} className="block">
+                          <span className="mb-[5px] block text-[12.5px] font-semibold text-body">{lbl}</span>
                           <input
                             type="date"
                             value={val}
                             max={max || undefined}
                             min={min || undefined}
                             onChange={e => setter(e.target.value)}
-                            style={{
-                              width: '100%', height: 42, padding: '0 12px',
-                              border: '1.5px solid #EFEDE8', borderRadius: 10,
-                              fontSize: 13.5, color: '#3A372F', background: '#fff',
-                              outline: 'none', fontFamily: 'inherit',
-                            }}
+                            className="h-[42px] w-full rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-[13.5px] text-dark outline-none"
                           />
                         </label>
                       ))}
                     </div>
 
                     {/* Ações */}
-                    <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
-                      <button onClick={() => { setDateFrom(''); setDateTo('') }} disabled={!periodActive} style={{
-                        flex: 1, height: 40, borderRadius: 10,
-                        border: '1.5px solid #EFEDE8', background: '#fff',
-                        color: periodActive ? '#5C594F' : '#C0BCB4',
-                        fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit',
-                        cursor: periodActive ? 'pointer' : 'default',
-                      }}>
+                    <div className="mt-4 flex gap-[9px]">
+                      <button
+                        onClick={() => { setDateFrom(''); setDateTo('') }}
+                        disabled={!periodActive}
+                        className={clsx(
+                          'h-10 flex-1 rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[13.5px] font-semibold',
+                          periodActive ? 'cursor-pointer text-body' : 'cursor-default text-[#C0BCB4]'
+                        )}
+                      >
                         Limpar
                       </button>
-                      <button onClick={() => setPeriodOpen(false)} style={{
-                        flex: 1.2, height: 40, borderRadius: 10,
-                        border: 'none', background: '#2A9D8F', color: '#fff',
-                        fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                      }}>
+                      <button
+                        onClick={() => setPeriodOpen(false)}
+                        className="h-10 flex-[1.2] cursor-pointer rounded-input border-none bg-teal font-[inherit] text-[13.5px] font-semibold text-white"
+                      >
                         Aplicar
                       </button>
                     </div>
@@ -382,7 +352,7 @@ export default function ListaOrcamentosPage() {
           </div>
 
           {filtroEmpty ? (
-            <div style={{ padding: '48px 0', textAlign: 'center', color: '#A29E96', fontSize: 14 }}>
+            <div className="py-12 text-center text-sm text-muted">
               {searchActive
                 ? <>Nenhum orçamento encontrado para &ldquo;{query.trim()}&rdquo;.</>
                 : <>Nenhum orçamento encontrado em &ldquo;{STATUS_LABEL[filtro as StatusOrcamento]}&rdquo;.</>
@@ -391,10 +361,10 @@ export default function ListaOrcamentosPage() {
           ) : (
             <>
               {/* TABELA */}
-              <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <div className="q-head">
+              <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                <div className="hidden grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-[18px] py-[13px] sm:grid">
                   {['Número', 'Cliente', 'Total', 'Criação', 'Status', ''].map((h, k) => (
-                    <div key={k} style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#B7B4AD' }}>
+                    <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">
                       {h}
                     </div>
                   ))}
@@ -424,21 +394,18 @@ export default function ListaOrcamentosPage() {
               </div>
 
               {/* Contador + Carregar mais */}
-              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12.5, color: '#A29E96' }}>
+              <div className="mt-3.5 flex items-center justify-between">
+                <span className="text-[12.5px] text-muted">
                   {orcamentos.length} {orcamentos.length === 1 ? 'orçamento' : 'orçamentos'}
                 </span>
                 {hasMore && (
                   <button
                     onClick={handleCarregarMais}
                     disabled={loadingMore}
-                    style={{
-                      height: 36, padding: '0 18px', borderRadius: 8,
-                      border: '1.5px solid #EFEDE8', background: '#fff',
-                      color: '#5C594F', fontSize: 13.5, fontWeight: 600,
-                      fontFamily: 'inherit', cursor: loadingMore ? 'default' : 'pointer',
-                      opacity: loadingMore ? 0.6 : 1,
-                    }}
+                    className={clsx(
+                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-[18px] font-[inherit] text-[13.5px] font-semibold text-body',
+                      loadingMore ? 'cursor-default opacity-60' : 'cursor-pointer'
+                    )}
                   >
                     {loadingMore ? 'Carregando…' : 'Carregar mais'}
                   </button>
