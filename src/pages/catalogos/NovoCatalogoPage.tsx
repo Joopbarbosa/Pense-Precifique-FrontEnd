@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import SectionTitle from '../../components/shared/SectionTitle'
@@ -15,8 +16,8 @@ const num = (v: string) => {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>
+    <label className="block">
+      <span className="mb-[7px] block text-[13px] font-semibold text-body">
         {label}
       </span>
       {children}
@@ -24,16 +25,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-const SECTION_STYLE: React.CSSProperties = {
-  padding: '24px 26px',
-}
+const inputClass = (hasError?: boolean) => clsx(
+  'h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
+  hasError ? 'border-[#E05C3A] shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+)
 
 export default function NovoCatalogoPage() {
   const navigate = useNavigate()
 
   const [nome, setNome] = useState('')
   const [margem, setMargem] = useState('')
-  const [focus, setFocus] = useState<string | null>(null)
   const [loadingConfig, setLoadingConfig] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,15 +46,6 @@ export default function NovoCatalogoPage() {
       .catch(() => {})
       .finally(() => setLoadingConfig(false))
   }, [])
-
-  const inputBase = (active: boolean, hasError: boolean): React.CSSProperties => ({
-    width: '100%', height: 48, padding: '0 14px',
-    border: `1.5px solid ${hasError ? '#E05C3A' : active ? '#2A9D8F' : '#EFEDE8'}`,
-    borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-    background: '#fff', outline: 'none', fontFamily: 'inherit',
-    boxShadow: hasError ? '0 0 0 4px rgba(224,92,58,0.10)' : active ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-    transition: 'border-color .15s, box-shadow .15s',
-  })
 
   const handleSubmit = async () => {
     setError('')
@@ -90,8 +82,8 @@ export default function NovoCatalogoPage() {
   if (loadingConfig) {
     return (
       <AppLayout active="catalogos">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando…
         </div>
       </AppLayout>
@@ -102,72 +94,66 @@ export default function NovoCatalogoPage() {
     <AppLayout active="catalogos">
 
       {/* HEADER + breadcrumb */}
-      <div style={{ marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#A29E96', marginBottom: 8 }}>
+      <div className="mb-[22px]">
+        <div className="mb-2 flex items-center gap-[7px] text-[12.5px] text-muted">
           <span
-            style={{ cursor: 'pointer', fontWeight: 500 }}
+            className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
             onClick={() => navigate('/catalogos')}
-            onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
-            onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
           >
             Catálogos
           </span>
-          <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
-          <span style={{ color: '#5C594F', fontWeight: 600 }}>Novo Catálogo</span>
+          <ChevronRight size={15} className="text-[#CFCBC3]" />
+          <span className="font-semibold text-body">Novo Catálogo</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-          <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+        <div className="flex items-center gap-[15px]">
+          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-[13px] bg-teal/10 text-teal">
             <Files size={22} />
           </span>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: '-0.025em', color: '#3A372F' }}>
+          <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
             Novo Catálogo
           </h1>
         </div>
       </div>
 
       {/* CARD FORM */}
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', animation: 'fadeUp .4s ease both', maxWidth: 640 }}>
+      <div className="max-w-[640px] animate-fade-up rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
-        <div style={SECTION_STYLE}>
+        <div className="px-[26px] py-6">
           <SectionTitle title="Dados do catálogo" subtitle="Nome e margem de lucro aplicada aos itens deste catálogo." />
-          <div className="two-col">
+          <div className="grid grid-cols-2 gap-3.5 max-[600px]:grid-cols-1">
             <Field label="Nome do catálogo *">
               <input
                 placeholder="Catálogo Casamentos 2026"
                 value={nome}
                 onChange={e => setNome(e.target.value)}
-                onFocus={() => setFocus('nome')}
-                onBlur={() => setFocus(null)}
-                style={inputBase(focus === 'nome', !!fieldErrors.nome)}
+                className={inputClass(!!fieldErrors.nome)}
               />
-              {fieldErrors.nome && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.nome}</span>}
+              {fieldErrors.nome && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.nome}</span>}
             </Field>
             <Field label="Margem de lucro *">
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <input
                   placeholder="50"
                   inputMode="decimal"
                   value={margem}
                   onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
-                  onFocus={() => setFocus('margem')}
-                  onBlur={() => setFocus(null)}
-                  style={{ ...inputBase(focus === 'margem', !!fieldErrors.margem), paddingRight: 40 }}
+                  className={clsx(inputClass(!!fieldErrors.margem), 'pr-10')}
                 />
-                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>%</span>
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">%</span>
               </div>
-              {fieldErrors.margem && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.margem}</span>}
+              {fieldErrors.margem && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.margem}</span>}
             </Field>
           </div>
         </div>
 
         {/* BOTÕES */}
-        <div style={{ padding: '18px 26px', borderTop: '1px solid #EFEDE8', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3 border-t border-line px-[26px] py-[18px]">
           {error && (
-            <p style={{ margin: 0, fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
               {error}
             </p>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate('/catalogos')} disabled={loading}>Cancelar</Button>
             <Button variant="primary" icon={<Save size={16} />} disabled={loading} onClick={handleSubmit}>
               {loading ? 'Salvando…' : 'Salvar catálogo'}

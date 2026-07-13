@@ -69,16 +69,6 @@ body {
   80%       { transform: translateX(4px); }
 }
 
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-@media (max-width: 600px) {
-  .two-col { grid-template-columns: 1fr; }
-}
-
 .lower-grid {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
@@ -257,57 +247,6 @@ body:has(.drawer-open) {
   .a4-meta-grid {
     grid-template-columns: 1fr 1fr !important;
   }
-}
-
-/* Grid da tabela de catálogos */
-.cat-head, .cat-row {
-  display: grid;
-  grid-template-columns: 0.8fr 2.2fr 0.8fr 0.9fr 0.9fr 40px;
-  gap: 12px;
-  align-items: center;
-  padding: 13px 18px;
-}
-
-.cat-head {
-  border-bottom: 1px solid #EFEDE8;
-}
-
-.cat-row {
-  border-bottom: 1px solid #EFEDE8;
-  transition: background .12s;
-  cursor: pointer;
-}
-
-.cat-row:last-child { border-bottom: none; }
-.cat-row:hover { background: #FCFBF9; }
-.cat-card-mobile { display: none; }
-
-@media (max-width: 700px) {
-  .cat-head { display: none; }
-  .cat-row { display: none; }
-  .cat-card-mobile {
-    display: block;
-    padding: 16px 18px;
-    border-bottom: 1px solid #EFEDE8;
-    cursor: pointer;
-  }
-}
-
-.ficha-grid {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 24px;
-  align-items: start;
-}
-
-.calc-card {
-  position: sticky;
-  top: 24px;
-}
-
-@media (max-width: 1040px) {
-  .ficha-grid { grid-template-columns: 1fr; }
-  .calc-card { position: static; }
 }
 
 @keyframes rowIn {

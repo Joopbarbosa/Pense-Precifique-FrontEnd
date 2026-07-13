@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info } from 'lucide-react'
@@ -37,24 +38,20 @@ function Field({ label, required, children, hint }: {
   label: string; required?: boolean; children: React.ReactNode; hint?: string
 }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: '#5C594F', marginBottom: 8 }}>
-        {label}{required && <span style={{ color: '#F97316', marginLeft: 3 }}>*</span>}
+    <label className="block">
+      <span className="mb-2 block text-[13.5px] font-semibold text-body">
+        {label}{required && <span className="ml-[3px] text-orange">*</span>}
       </span>
       {children}
-      {hint && <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>{hint}</span>}
+      {hint && <span className="mt-1.5 block text-xs text-muted">{hint}</span>}
     </label>
   )
 }
 
-const inputBase = (active: boolean, hasError?: boolean): React.CSSProperties => ({
-  width: '100%', height: 46, padding: '0 14px',
-  border: `1.5px solid ${hasError ? '#E05C3A' : active ? '#2A9D8F' : '#EFEDE8'}`,
-  borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-  background: '#fff', outline: 'none', fontFamily: 'inherit',
-  boxShadow: hasError ? '0 0 0 4px rgba(224,92,58,0.10)' : active ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-  transition: 'border-color .15s, box-shadow .15s',
-})
+const inputClass = (hasError?: boolean) => clsx(
+  'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
+  hasError ? 'border-[#E05C3A] shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+)
 
 // ---------- ProdutoSearch (busca de produtos tipo PRODUTO ou CUSTOMIZACAO) ----------
 
@@ -64,7 +61,6 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
 }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [f, setF] = useState(false)
   const [resultados, setResultados] = useState<{ id: string; nome: string; precoCusto: number; ativo: boolean }[]>([])
   const ref = useRef<HTMLDivElement>(null)
 
@@ -93,31 +89,27 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
   }, [q, tipo, jaAdicionados])
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: f ? '#2A9D8F' : '#A29E96', display: 'flex' }}>
+    <div ref={ref} className="group relative">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted group-focus-within:text-teal">
         <Search size={16} />
       </span>
       <input
         value={q}
         onChange={e => { setQ(e.target.value); setOpen(true) }}
-        onFocus={() => { setF(true); setOpen(true) }}
-        onBlur={() => setF(false)}
+        onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        style={{ ...inputBase(f), paddingLeft: 40 }}
+        className={clsx(inputClass(), 'pl-10')}
       />
       {open && resultados.length > 0 && (
-        <div style={{ position: 'absolute', top: 50, left: 0, right: 0, zIndex: 30, background: '#fff', border: '1px solid #EFEDE8', borderRadius: 12, boxShadow: '0 14px 34px -10px rgba(0,0,0,0.2)', padding: 6, maxHeight: 280, overflowY: 'auto' }}>
+        <div className="absolute inset-x-0 top-[50px] z-30 max-h-[280px] overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {resultados.map(p => (
-            <button key={p.id} onClick={() => { onSelect(p); setQ(''); setOpen(false); setResultados([]) }} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 11, width: '100%', textAlign: 'left',
-              padding: '10px 11px', borderRadius: 9, border: 'none', background: 'transparent',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = '#F7F5F1'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            <button
+              key={p.id}
+              onClick={() => { onSelect(p); setQ(''); setOpen(false); setResultados([]) }}
+              className="flex w-full items-center justify-between gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-[#F7F5F1]"
             >
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nome}</span>
-              <span style={{ fontSize: 12, color: '#A29E96', flexShrink: 0 }}>{moeda(p.precoCusto)} custo</span>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
+              <span className="flex-shrink-0 text-xs text-muted">{moeda(p.precoCusto)} custo</span>
             </button>
           ))}
         </div>
@@ -336,8 +328,8 @@ export default function NovoItemCatalogoPage() {
   if (loadingContexto) {
     return (
       <AppLayout active="catalogos">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando…
         </div>
       </AppLayout>
@@ -345,49 +337,49 @@ export default function NovoItemCatalogoPage() {
   }
 
   const podeSalvar = !!produto && !!catalogoId && !quantidadeErro && !produtoErro
+  const diffOverride = override && precoSugerido != null ? num(precoVenda) - precoSugerido : null
 
   return (
     <AppLayout active="catalogos">
 
       {/* BREADCRUMB */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#A29E96', marginBottom: 12 }}>
-        <span style={{ cursor: 'pointer', fontWeight: 500 }}
+      <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
+        <span
+          className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
           onClick={() => navigate(catalogoId ? `/catalogos/${catalogoId}` : '/catalogos')}
-          onMouseEnter={e => e.currentTarget.style.color = '#2A9D8F'}
-          onMouseLeave={e => e.currentTarget.style.color = '#A29E96'}
         >{catalogoInfo ? catalogoInfo.nome : 'Catálogos'}</span>
-        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600 }}>{isEdicao ? 'Editar Item' : 'Novo Item'}</span>
+        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <span className="font-semibold text-body">{isEdicao ? 'Editar Item' : 'Novo Item'}</span>
       </div>
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 22 }}>
-        <span style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <div className="mb-[22px] flex items-center gap-[15px]">
+        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
           <Files size={26} />
         </span>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>
+        <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em] text-dark">
           {isEdicao ? 'Editar Item de Catálogo' : 'Novo Item de Catálogo'}
         </h1>
       </div>
 
-      <div className="ficha-grid">
+      <div className="grid grid-cols-[1fr_360px] items-start gap-6 max-[1040px]:grid-cols-1">
 
         {/* COLUNA ESQUERDA — formulário */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div className="flex flex-col gap-[18px]">
 
           {/* Catálogo */}
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '22px 24px' }}>
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             {catalogoInfo ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Files size={18} style={{ color: '#2A9D8F' }} />
-                <span style={{ fontSize: 14, color: '#5C594F' }}>
-                  Adicionando item ao catálogo <strong style={{ color: '#3A372F', fontWeight: 700 }}>{catalogoInfo.nome}</strong>
+              <div className="flex items-center gap-2.5">
+                <Files size={18} className="text-teal" />
+                <span className="text-sm text-body">
+                  Adicionando item ao catálogo <strong className="font-bold text-dark">{catalogoInfo.nome}</strong>
                 </span>
               </div>
             ) : catalogos.length === 0 ? (
-              <div style={{ fontSize: 14, color: '#5C594F' }}>
+              <div className="text-sm text-body">
                 Você ainda não tem nenhum catálogo.{' '}
-                <span style={{ color: '#2A9D8F', fontWeight: 600, cursor: 'pointer' }} onClick={() => navigate('/catalogos/novo')}>Criar catálogo</span>
+                <span className="cursor-pointer font-semibold text-teal" onClick={() => navigate('/catalogos/novo')}>Criar catálogo</span>
               </div>
             ) : (
               <Field label="Catálogo" required>
@@ -398,7 +390,7 @@ export default function NovoItemCatalogoPage() {
                     setCatalogoId(c?.id ?? null)
                     setCatalogoInfo(null)
                   }}
-                  style={{ ...inputBase(false), cursor: 'pointer' }}
+                  className={clsx(inputClass(), 'cursor-pointer')}
                 >
                   <option value="" disabled>Selecione um catálogo</option>
                   {catalogos.map(c => (
@@ -410,30 +402,34 @@ export default function NovoItemCatalogoPage() {
           </div>
 
           {/* Produto */}
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '22px 24px' }}>
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <Field label="Produto" required>
               {produto ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 14px', borderRadius: 10, border: '1.5px solid #EFEDE8', background: '#FBFAF8' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{produto.nome}</div>
-                    <div style={{ fontSize: 12, color: '#A29E96' }}>{moeda(produto.precoCusto)} de custo</div>
+                <div className="flex items-center justify-between gap-2.5 rounded-input border-[1.5px] border-line bg-[#FBFAF8] px-3.5 py-[11px]">
+                  <div className="min-w-0">
+                    <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{produto.nome}</div>
+                    <div className="text-xs text-muted">{moeda(produto.precoCusto)} de custo</div>
                   </div>
-                  <button onClick={() => { setProduto(null); produtoBloqueadoRef.current = null; setProdutoErro(null) }} aria-label="Trocar produto" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: 'none', background: 'transparent', color: '#BDB9B1', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                  <button
+                    onClick={() => { setProduto(null); produtoBloqueadoRef.current = null; setProdutoErro(null) }}
+                    aria-label="Trocar produto"
+                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg border-none bg-transparent text-[#BDB9B1]"
+                  >
                     <X size={15} />
                   </button>
                 </div>
               ) : (
                 <ProdutoSearch tipo="PRODUTO" placeholder="Buscar produto..." jaAdicionados={SEM_EXCLUSOES} onSelect={p => { setProduto(p); produtoBloqueadoRef.current = null; setProdutoErro(null) }} />
               )}
-              {produtoErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 8 }}>{produtoErro}</span>}
+              {produtoErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{produtoErro}</span>}
             </Field>
           </div>
 
           {/* Quantidade do pacote */}
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '22px 24px' }}>
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <Field label="Quantidade do pacote" required hint="Quantas unidades do produto compõem este item do catálogo.">
-              <div style={{ position: 'relative', maxWidth: 160 }}>
-                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#A29E96', display: 'flex' }}>
+              <div className="relative max-w-[160px]">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
                   <Box size={16} />
                 </span>
                 <input
@@ -441,47 +437,48 @@ export default function NovoItemCatalogoPage() {
                   onChange={e => setQuantidade(e.target.value.replace(/[^\d]/g, ''))}
                   inputMode="numeric"
                   placeholder="1"
-                  style={{ ...inputBase(false, !!quantidadeErro), paddingLeft: 40 }}
+                  className={clsx(inputClass(!!quantidadeErro), 'pl-10')}
                 />
               </div>
-              {quantidadeErro && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{quantidadeErro}</span>}
+              {quantidadeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{quantidadeErro}</span>}
             </Field>
           </div>
 
           {/* Customizações anexadas */}
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '20px 24px 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4 }}>
-                <SlidersHorizontal size={16} style={{ color: '#F97316' }} />
-                <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#3A372F' }}>Customizações anexadas</h3>
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#A29E96' }}>(opcional)</span>
+          <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="px-6 pb-4 pt-5">
+              <div className="mb-1 flex items-center gap-[9px]">
+                <SlidersHorizontal size={16} className="text-orange" />
+                <h3 className="m-0 text-[15.5px] font-bold text-dark">Customizações anexadas</h3>
+                <span className="text-xs font-medium text-muted">(opcional)</span>
               </div>
-              <p style={{ margin: '0 0 14px', fontSize: 12.5, color: '#A29E96' }}>Extras opcionais que somam ao custo e ao preço sugerido deste item.</p>
+              <p className="mb-3.5 mt-0 text-[12.5px] text-muted">Extras opcionais que somam ao custo e ao preço sugerido deste item.</p>
               <ProdutoSearch tipo="CUSTOMIZACAO" placeholder="Buscar customização..." jaAdicionados={jaAdicionadosCustom} onSelect={addCustomizacao} />
             </div>
             {customizacoes.length > 0 && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 40px', gap: 12, padding: '10px 24px', background: '#FBFAF8', borderTop: '1px solid #EFEDE8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>
+                <div className="grid grid-cols-[1fr_110px_40px] gap-3 border-t border-line bg-[#FBFAF8] px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
                   <span>Customização</span><span>Quantidade</span><span />
                 </div>
                 {customizacoes.map(c => (
-                  <div key={c.produtoId} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 40px', gap: 12, alignItems: 'center', padding: '12px 24px', borderTop: '1px solid #EFEDE8' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nome}</div>
-                      <div style={{ fontSize: 12, color: '#A29E96' }}>{moeda(c.precoCusto)}/un</div>
+                  <div key={c.produtoId} className="grid grid-cols-[1fr_110px_40px] items-center gap-3 border-t border-line px-6 py-3">
+                    <div className="min-w-0">
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{c.nome}</div>
+                      <div className="text-xs text-muted">{moeda(c.precoCusto)}/un</div>
                     </div>
                     <input
                       value={c.quantidade}
                       onChange={e => setCustomizacaoQtd(c.produtoId, e.target.value)}
                       inputMode="decimal"
-                      style={{ ...inputBase(false), height: 38, fontSize: 13.5 }}
+                      className={clsx(inputClass(), 'h-[38px] text-[13.5px]')}
                     />
-                    <button onClick={() => removeCustomizacao(c.produtoId)} aria-label="Remover customização" style={{ width: 32, height: 32, borderRadius: 9, border: 'none', background: 'transparent', color: '#BDB9B1', cursor: 'pointer', display: 'grid', placeItems: 'center', justifySelf: 'end' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#FBEDE9'; e.currentTarget.style.color = '#C0492B' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BDB9B1' }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                    <button
+                      onClick={() => removeCustomizacao(c.produtoId)}
+                      aria-label="Remover customização"
+                      className="grid h-8 w-8 place-items-center justify-self-end rounded-lg border-none bg-transparent text-[#BDB9B1] transition-colors duration-100 hover:bg-danger-bg hover:text-danger"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -490,15 +487,15 @@ export default function NovoItemCatalogoPage() {
 
           {/* AÇÕES */}
           {erro && (
-            <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5 }}>
+            <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
               {erro}
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 11, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap justify-end gap-[11px]">
             <Button variant="ghost" onClick={cancelar} disabled={salvando}>Cancelar</Button>
             <Button variant="primary" onClick={salvar} disabled={salvando || !podeSalvar}>
               {salvando
-                ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />{isEdicao ? 'Salvando…' : 'Adicionando…'}</span>
+                ? <span className="flex items-center gap-2"><span className="block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />{isEdicao ? 'Salvando…' : 'Adicionando…'}</span>
                 : (isEdicao ? 'Salvar alterações' : 'Adicionar item ao catálogo')
               }
             </Button>
@@ -506,39 +503,35 @@ export default function NovoItemCatalogoPage() {
         </div>
 
         {/* COLUNA DIREITA — preço */}
-        <div className="calc-card">
-          <div style={{ background: '#fff', border: '1.5px solid rgba(42,157,143,0.3)', borderRadius: 'var(--r-card)', boxShadow: '0 8px 26px -12px rgba(42,157,143,0.4)', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '16px 20px', background: 'linear-gradient(135deg, rgba(42,157,143,0.12), rgba(42,157,143,0.04))', borderBottom: '1px solid rgba(42,157,143,0.18)' }}>
-              <span style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 11, background: '#fff', color: '#2A9D8F', boxShadow: '0 3px 10px -3px rgba(42,157,143,0.4)' }}>
+        <div className="sticky top-6 max-[1040px]:static">
+          <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
+            <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
+              <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
                 <Calculator size={20} />
               </span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#1F7A6F', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Preço do item</div>
-                <div style={{ fontSize: 11.5, color: '#2A9D8F', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+              <div className="min-w-0">
+                <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Preço do item</div>
+                <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
                   {sincronizando ? 'Calculando…' : 'Calculado pela API'}
                 </div>
               </div>
             </div>
 
-            <div style={{ padding: '10px 20px 20px' }}>
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(42,157,143,0.14), rgba(42,157,143,0.05))', border: '1.5px solid rgba(42,157,143,0.28)' }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: '#1F7A6F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Preço sugerido</div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: '#2A9D8F', letterSpacing: '-0.02em', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+            <div className="px-5 pb-5 pt-2.5">
+              <div className="rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-[18px] py-4">
+                <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">Preço sugerido</div>
+                <div className="mt-0.5 text-[28px] font-bold tracking-[-0.02em] text-teal [font-variant-numeric:tabular-nums]">
                   {precoSugerido != null ? moeda(precoSugerido) : '—'}
                 </div>
               </div>
 
-              <div style={{ marginTop: 16 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }}>Preço de venda</span>
-                <div style={{ position: 'relative' }}>
-                  <span style={{
-                    position: 'absolute', left: 0, top: 0, bottom: 0, width: 46, display: 'grid', placeItems: 'center',
-                    fontSize: 15, fontWeight: 700, color: override ? '#F97316' : '#6B6860',
-                    background: override ? 'rgba(249,115,22,0.08)' : '#FAF8F5',
-                    borderRadius: '10px 0 0 10px',
-                    borderRight: `1px solid ${override ? 'rgba(249,115,22,0.3)' : '#EFEDE8'}`,
-                    pointerEvents: 'none',
-                  }}>R$</span>
+              <div className="mt-4">
+                <span className="mb-[7px] block text-[13px] font-semibold text-body">Preço de venda</span>
+                <div className="relative">
+                  <span className={clsx(
+                    'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
+                    override ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-[#FAF8F5] text-[#6B6860]'
+                  )}>R$</span>
                   <input
                     value={precoVenda}
                     onChange={e => {
@@ -547,28 +540,23 @@ export default function NovoItemCatalogoPage() {
                     }}
                     inputMode="decimal"
                     disabled={!produto}
-                    style={{
-                      width: '100%', height: 50, padding: '0 14px 0 58px',
-                      border: `1.5px solid ${override ? '#F97316' : '#EFEDE8'}`, borderRadius: 10,
-                      fontSize: 19, fontWeight: 700, color: override ? '#F97316' : '#3A372F',
-                      background: produto ? '#fff' : '#FAF8F5', outline: 'none', fontFamily: 'inherit',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
+                    className={clsx(
+                      'h-[50px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-[19px] font-bold outline-none [font-variant-numeric:tabular-nums]',
+                      override ? 'border-orange text-orange' : 'border-line text-dark',
+                      produto ? 'bg-white' : 'bg-[#FAF8F5]'
+                    )}
                   />
                 </div>
               </div>
 
-              {override && precoSugerido != null && (() => {
-                const diff = num(precoVenda) - precoSugerido
-                return (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '11px 13px', borderRadius: 11, background: '#FFF8F0', border: '1px solid #F6E4CE' }}>
-                    <Info size={15} style={{ flexShrink: 0, color: '#C8721F', marginTop: 1 }} />
-                    <p style={{ margin: 0, fontSize: 12.3, color: '#7A5A33', lineHeight: 1.5 }}>
-                      Você ajustou o preço manualmente (<strong style={{ fontWeight: 700 }}>{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
-                    </p>
-                  </div>
-                )
-              })()}
+              {diffOverride != null && (
+                <div className="mt-3 flex gap-2 rounded-[11px] border border-[#F6E4CE] bg-[#FFF8F0] px-[13px] py-[11px]">
+                  <Info size={15} className="mt-px flex-shrink-0 text-warning" />
+                  <p className="m-0 text-[12.3px] leading-[1.5] text-[#7A5A33]">
+                    Você ajustou o preço manualmente (<strong className="font-bold">{diffOverride > 0 ? '+' : '−'}{moeda(Math.abs(diffOverride))}</strong> {diffOverride > 0 ? 'acima' : 'abaixo'} do sugerido).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
@@ -26,46 +27,46 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
   ]
 
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', borderTop: '1px solid #EFEDE8', cursor: 'pointer', transition: 'background .12s' }}
-      onMouseEnter={e => (e.currentTarget.style.background = '#EFEDE8')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    <div
+      onClick={onClick}
+      className="flex cursor-pointer items-start gap-3.5 border-t border-line px-5 py-4 transition-colors duration-100 hover:bg-line"
     >
-      <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
         <Box size={20} />
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F' }}>{item.produtoNome}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-[14.5px] font-semibold text-dark">{item.produtoNome}</span>
           {item.override && (() => {
             const diff = item.precoVenda - item.precoSugerido
             return (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#C8721F', background: '#FFF1E8', padding: '2px 9px', borderRadius: 999 }}>
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2.5 py-0.5 text-[11px] font-bold text-warning">
                 <Info size={12} />
                 {diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))} {diff > 0 ? 'acima' : 'abaixo'} do sugerido
               </span>
             )
           })()}
           {item.bloqueadoParaVenda && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#C0492B', background: '#FBEDE9', padding: '2px 9px', borderRadius: 999 }}>
+            <span className="rounded-full bg-danger-bg px-2.5 py-0.5 text-[11px] font-bold text-danger">
               Bloqueado para venda
             </span>
           )}
         </div>
-        <div style={{ fontSize: 12.5, color: '#A29E96', marginTop: 3 }}>
+        <div className="mt-[3px] text-[12.5px] text-muted">
           {item.quantidadePacote} un/pacote
         </div>
         {item.customizacoesAnexadas.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {item.customizacoesAnexadas.map(c => (
-              <span key={c.produtoId} style={{ fontSize: 11.5, fontWeight: 500, color: '#7C786F', background: '#F1F0EC', padding: '3px 9px', borderRadius: 999 }}>
+              <span key={c.produtoId} className="rounded-full bg-line-soft px-2.5 py-[3px] text-[11.5px] font-medium text-subtle">
                 + {c.produtoNome} × {c.quantidade}
               </span>
             ))}
           </div>
         )}
       </div>
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }} onClick={e => e.stopPropagation()}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#3A372F', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+      <div className="flex flex-shrink-0 items-center gap-2.5" onClick={e => e.stopPropagation()}>
+        <span className="whitespace-nowrap text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">
           {moeda(item.precoVenda)}
         </span>
         <ActionMenu items={menuItems} align="right" />
@@ -126,8 +127,8 @@ export default function DetalheCatalogoPage() {
   if (loading || (!catalogo && !erroCarregar)) {
     return (
       <AppLayout active="catalogos">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '60px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-[60px] text-sm text-muted">
+          <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando catálogo…
         </div>
       </AppLayout>
@@ -137,7 +138,7 @@ export default function DetalheCatalogoPage() {
   if (erroCarregar || !catalogo) {
     return (
       <AppLayout active="catalogos">
-        <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
           <span>{erroCarregar}</span>
           <Button variant="ghost" onClick={carregar}>Tentar novamente</Button>
         </div>
@@ -148,71 +149,71 @@ export default function DetalheCatalogoPage() {
   return (
     <AppLayout active="catalogos">
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#A29E96', marginBottom: 12 }}>
-        <span style={{ cursor: 'pointer', fontWeight: 500 }}
+      <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
+        <span
+          className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
           onClick={() => navigate('/catalogos')}
-          onMouseEnter={e => (e.currentTarget.style.color = '#2A9D8F')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#A29E96')}
         >Catálogos</span>
-        <ChevronRight size={15} style={{ color: '#CFCBC3' }} />
-        <span style={{ color: '#5C594F', fontWeight: 600, whiteSpace: 'nowrap' }}>{catalogo.nome}</span>
+        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <span className="whitespace-nowrap font-semibold text-body">{catalogo.nome}</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 15, minWidth: 0, flex: '1 1 auto' }}>
-          <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(42,157,143,0.10)', color: '#2A9D8F' }}>
+      <div className="mb-5 flex items-start justify-between gap-[18px]">
+        <div className="flex min-w-0 flex-1 items-center gap-[15px]">
+          <span className="grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
             <Files size={26} />
           </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#A29E96', fontVariantNumeric: 'tabular-nums' }}>{catalogo.identificador}</span>
-              <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{catalogo.nome}</h1>
-              <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, height: 27, padding: '0 11px', borderRadius: 999, background: catalogo.ativo ? '#E8F5EE' : '#F1F0EC', color: catalogo.ativo ? '#1F8A5B' : '#7C786F', fontSize: 12.5, fontWeight: 600 }}>
-                {catalogo.ativo && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A56F' }} />}
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex-shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{catalogo.identificador}</span>
+              <h1 className="m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{catalogo.nome}</h1>
+              <span className={clsx(
+                'inline-flex h-[27px] flex-shrink-0 items-center gap-1.5 rounded-full px-[11px] text-[12.5px] font-semibold',
+                catalogo.ativo ? 'bg-success-bg text-success' : 'bg-line-soft text-subtle'
+              )}>
+                {catalogo.ativo && <span className="h-1.5 w-1.5 rounded-full bg-[#34A56F]" />}
                 {catalogo.ativo ? 'Ativo' : 'Inativo'}
               </span>
             </div>
-            <div style={{ fontSize: 14, color: '#A29E96', marginTop: 4 }}>
-              Margem de <strong style={{ color: '#5C594F', fontWeight: 600 }}>{catalogo.margem}%</strong>
+            <div className="mt-1 text-sm text-muted">
+              Margem de <strong className="font-semibold text-body">{catalogo.margem}%</strong>
             </div>
           </div>
         </div>
       </div>
 
       {erroAcao && (
-        <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5 }}>
+        <div className="mb-4 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
           {erroAcao}
         </div>
       )}
 
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', animation: 'fadeUp .4s ease both' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1, background: '#EFEDE8' }}>
+      <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
           {[
             { k: 'Margem de lucro', v: `${catalogo.margem}%`, accent: true },
             { k: 'Itens no catálogo', v: `${catalogo.quantidadeItens}`, big: true },
           ].map((c, i) => (
-            <div key={i} style={{ background: '#fff', padding: '18px 20px' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#A8A49C' }}>{c.k}</div>
-              <div style={{
-                marginTop: 7, fontVariantNumeric: 'tabular-nums',
-                fontSize: c.big ? 28 : c.accent ? 18 : 16,
-                fontWeight: c.big || c.accent ? 700 : 600,
-                letterSpacing: c.big ? '-0.02em' : '0',
-                color: c.accent ? '#2A9D8F' : '#3A372F',
-              }}>{c.v}</div>
+            <div key={i} className="bg-white px-5 py-[18px]">
+              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{c.k}</div>
+              <div className={clsx(
+                'mt-[7px] [font-variant-numeric:tabular-nums]',
+                c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',
+                c.accent ? 'text-teal' : 'text-dark'
+              )}>{c.v}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 26, marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#3A372F' }}>Itens do catálogo</h2>
+      <div className="mb-3 mt-[26px] flex flex-wrap items-center justify-between gap-3">
+        <h2 className="m-0 text-[17px] font-bold text-dark">Itens do catálogo</h2>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)}>
           Adicionar item
         </Button>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+      <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         {itens.length === 0 ? (
           <EmptyState
             icon={<Box size={20} />}

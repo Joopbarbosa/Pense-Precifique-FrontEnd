@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
@@ -26,16 +27,10 @@ const num = (v: string) => {
   return isNaN(n) ? 0 : n
 }
 
-const inputBase = (active: boolean, hasError?: boolean): React.CSSProperties => ({
-  width: '100%', height: 46, padding: '0 14px',
-  border: `1.5px solid ${hasError ? '#E05C3A' : active ? '#2A9D8F' : '#EFEDE8'}`,
-  borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-  background: '#fff', outline: 'none', fontFamily: 'inherit',
-  boxShadow: hasError ? '0 0 0 4px rgba(224,92,58,0.10)' : active ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-  transition: 'border-color .15s, box-shadow .15s',
-})
-
-const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#5C594F', marginBottom: 7 }
+const inputClass = (hasError?: boolean) => clsx(
+  'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
+  hasError ? 'border-[#E05C3A] shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+)
 
 function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
   catalogo: CatalogoResponse
@@ -44,7 +39,6 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
 }) {
   const [nome, setNome] = useState(catalogo.nome)
   const [margem, setMargem] = useState(catalogo.margem.toString())
-  const [focus, setFocus] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -94,36 +88,32 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="flex flex-col gap-4">
         <label>
-          <span style={fieldLabel}>Nome do catálogo *</span>
+          <span className="mb-[7px] block text-[13px] font-semibold text-body">Nome do catálogo *</span>
           <input
             value={nome}
             onChange={e => setNome(e.target.value)}
-            onFocus={() => setFocus('nome')}
-            onBlur={() => setFocus(null)}
-            style={inputBase(focus === 'nome', !!fieldErrors.nome)}
+            className={inputClass(!!fieldErrors.nome)}
           />
-          {fieldErrors.nome && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.nome}</span>}
+          {fieldErrors.nome && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.nome}</span>}
         </label>
         <label>
-          <span style={fieldLabel}>Margem de lucro *</span>
-          <div style={{ position: 'relative' }}>
+          <span className="mb-[7px] block text-[13px] font-semibold text-body">Margem de lucro *</span>
+          <div className="relative">
             <input
               value={margem}
               onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
-              onFocus={() => setFocus('margem')}
-              onBlur={() => setFocus(null)}
               inputMode="decimal"
-              style={{ ...inputBase(focus === 'margem', !!fieldErrors.margem), paddingRight: 40 }}
+              className={clsx(inputClass(!!fieldErrors.margem), 'pr-10')}
             />
-            <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: '#A8A49C', pointerEvents: 'none' }}>%</span>
+            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">%</span>
           </div>
-          {fieldErrors.margem && <span style={{ display: 'block', fontSize: 12.5, color: '#B23A1E', marginTop: 6 }}>{fieldErrors.margem}</span>}
-          <span style={{ display: 'block', fontSize: 12, color: '#A29E96', marginTop: 6 }}>Itens sem preço ajustado manualmente recalculam automaticamente.</span>
+          {fieldErrors.margem && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.margem}</span>}
+          <span className="mt-1.5 block text-xs text-muted">Itens sem preço ajustado manualmente recalculam automaticamente.</span>
         </label>
         {erro && (
-          <p style={{ margin: 0, fontSize: 13.5, color: '#C0392B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px' }}>
+          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
             {erro}
           </p>
         )}
@@ -134,24 +124,20 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
 
 function CatalogoStatusBadge({ ativo, small = false }: { ativo: boolean; small?: boolean }) {
   if (!ativo) return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      height: small ? 24 : 28, padding: '0 10px', borderRadius: 999,
-      background: '#F1F0EC', color: '#7C786F',
-      fontSize: small ? 11.5 : 12.5, fontWeight: 600, whiteSpace: 'nowrap',
-    }}>
+    <span className={clsx(
+      'inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-line-soft px-2.5 font-semibold text-subtle',
+      small ? 'h-6 text-[11.5px]' : 'h-7 text-[12.5px]'
+    )}>
       Inativo
     </span>
   )
 
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      height: small ? 24 : 28, padding: '0 10px', borderRadius: 999,
-      background: 'rgba(42,157,143,0.10)', color: '#2A9D8F',
-      fontSize: small ? 11.5 : 12.5, fontWeight: 600, whiteSpace: 'nowrap',
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2A9D8F' }} />
+    <span className={clsx(
+      'inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-teal/10 px-2.5 font-semibold text-teal',
+      small ? 'h-6 text-[11.5px]' : 'h-7 text-[12.5px]'
+    )}>
+      <span className="h-1.5 w-1.5 rounded-full bg-teal" />
       Ativo
     </span>
   )
@@ -185,27 +171,29 @@ function CatalogoRow({ catalogo, index, onVer, onEditar, onDuplicar, onDesativar
   const menuItems = montarMenuItems(catalogo, { onEditar, onDuplicar, onDesativar, onReativar })
 
   return (
-    <div className="cat-row" onClick={onVer} style={{
-      opacity: !catalogo.ativo ? 0.72 : 1,
-      animation: 'fadeUp .4s ease both',
-      animationDelay: `${index * 0.04}s`,
-    }}
+    <div
+      className={clsx(
+        'hidden cursor-pointer grid-cols-[0.8fr_2.2fr_0.8fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-[#FCFBF9] sm:grid',
+        !catalogo.ativo && 'opacity-[0.72]'
+      )}
+      onClick={onVer}
+      style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.04}s` }}
       onAnimationEnd={e => { e.currentTarget.style.animation = 'none' }}
     >
-      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
+      <div className="text-[13.5px] font-semibold text-body [font-variant-numeric:tabular-nums]">
         {catalogo.identificador}
       </div>
-      <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">
         {catalogo.nome}
       </div>
-      <div style={{ fontSize: 14, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
+      <div className="text-sm text-body [font-variant-numeric:tabular-nums]">
         {catalogo.margem}%
       </div>
-      <div style={{ fontSize: 14, color: '#5C594F', fontVariantNumeric: 'tabular-nums' }}>
+      <div className="text-sm text-body [font-variant-numeric:tabular-nums]">
         {catalogo.quantidadeItens} {catalogo.quantidadeItens === 1 ? 'item' : 'itens'}
       </div>
       <div><CatalogoStatusBadge ativo={catalogo.ativo} /></div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div className="flex justify-end">
         <ActionMenu items={menuItems} align="right" />
       </div>
     </div>
@@ -218,26 +206,26 @@ function CatalogoCard({ catalogo, index, onVer, onEditar, onDuplicar, onDesativa
   const menuItems = montarMenuItems(catalogo, { onEditar, onDuplicar, onDesativar, onReativar })
 
   return (
-    <div className="cat-card-mobile" onClick={onVer} style={{
-      opacity: !catalogo.ativo ? 0.72 : 1,
-      animation: 'fadeUp .4s ease both',
-      animationDelay: `${index * 0.04}s`,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#A29E96' }}>{catalogo.identificador}</div>
-          <div style={{ fontSize: 14.5, fontWeight: 600, color: '#3A372F', marginTop: 2 }}>{catalogo.nome}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+    <div
+      className={clsx('block cursor-pointer border-b border-line px-[18px] py-4 sm:hidden', !catalogo.ativo && 'opacity-[0.72]')}
+      onClick={onVer}
+      style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.04}s` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold text-muted">{catalogo.identificador}</div>
+          <div className="mt-0.5 text-[14.5px] font-semibold text-dark">{catalogo.nome}</div>
+          <div className="mt-2.5 flex flex-wrap gap-2">
             <CatalogoStatusBadge ativo={catalogo.ativo} small />
-            <span style={{ fontSize: 12.5, color: '#5C594F' }}>
+            <span className="text-[12.5px] text-body">
               {catalogo.margem}% de margem
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, flexShrink: 0 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, color: '#A29E96', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Itens</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#3A372F', fontVariantNumeric: 'tabular-nums' }}>{catalogo.quantidadeItens}</div>
+        <div className="flex flex-shrink-0 items-start gap-1">
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-[0.04em] text-muted">Itens</div>
+            <div className="text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{catalogo.quantidadeItens}</div>
           </div>
           <ActionMenu items={menuItems} align="right" />
         </div>
@@ -257,7 +245,6 @@ export default function ListaCatalogosPage() {
   const [processando, setProcessando] = useState(false)
 
   const [busca, setBusca] = useState('')
-  const [buscaFocus, setBuscaFocus] = useState(false)
   const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacao | null>(null)
   const [direcao, setDirecao] = useState<'ASC' | 'DESC'>('ASC')
 
@@ -339,10 +326,10 @@ export default function ListaCatalogosPage() {
     <AppLayout active="catalogos">
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', marginBottom: 22 }}>
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
         <div>
-          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em', color: '#3A372F' }}>Meus Catálogos</h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#A29E96' }}>Organize seus produtos em catálogos com margem própria.</p>
+          <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Meus Catálogos</h1>
+          <p className="mb-0 mt-1.5 text-[14.5px] text-muted">Organize seus produtos em catálogos com margem própria.</p>
         </div>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/catalogos/novo')}>
           Novo Catálogo
@@ -350,41 +337,32 @@ export default function ListaCatalogosPage() {
       </div>
 
       {erroAcao && (
-        <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5 }}>
+        <div className="mb-4 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
           {erroAcao}
         </div>
       )}
 
       {/* BUSCA */}
-      <div style={{ position: 'relative', maxWidth: 420, marginBottom: 18 }}>
-        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: buscaFocus ? '#2A9D8F' : '#A8A49C', display: 'flex' }}>
+      <div className="group relative mb-[18px] max-w-[420px]">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-[#A8A49C] group-focus-within:text-teal">
           <Search size={18} />
         </span>
         <input
           value={busca}
           onChange={e => setBusca(e.target.value)}
-          onFocus={() => setBuscaFocus(true)}
-          onBlur={() => setBuscaFocus(false)}
           placeholder="Buscar por nome..."
-          style={{
-            width: '100%', height: 46, padding: '0 14px 0 42px',
-            border: `1.5px solid ${buscaFocus ? '#2A9D8F' : '#EFEDE8'}`,
-            borderRadius: 10, fontSize: 14.5, color: '#3A372F',
-            background: '#fff', outline: 'none', fontFamily: 'inherit',
-            boxShadow: buscaFocus ? '0 0 0 4px rgba(42,157,143,0.12)' : 'none',
-            transition: 'border-color .15s, box-shadow .15s',
-          }}
+          className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
         />
       </div>
 
       {/* CONTEÚDO */}
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#A29E96', fontSize: 14, padding: '40px 0' }}>
-          <span style={{ width: 20, height: 20, border: '2px solid #EFEDE8', borderTopColor: '#2A9D8F', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'block' }} />
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
+          <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando catálogos…
         </div>
       ) : erro ? (
-        <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FBF0EE', border: '1px solid #F2D4CF', color: '#B23A1E', fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
           <span>{erro}</span>
           <Button variant="ghost" onClick={carregar}>Tentar novamente</Button>
         </div>
@@ -397,25 +375,23 @@ export default function ListaCatalogosPage() {
         />
       ) : (
         <>
-          <div style={{ background: '#fff', border: '1px solid #F0EEE9', borderRadius: 'var(--r-card)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-            <div className="cat-head">
+          <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="hidden grid-cols-[0.8fr_2.2fr_0.8fr_0.9fr_0.9fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
               {COLUNAS.map((col, k) => {
                 const ativa = col.campo != null && ordenarPor === col.campo
                 return (
                   <div
                     key={k}
                     onClick={col.campo ? () => handleSort(col.campo!) : undefined}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
-                      color: ativa ? '#2A9D8F' : '#A8A49C',
-                      cursor: col.campo ? 'pointer' : 'default',
-                      userSelect: 'none',
-                    }}
+                    className={clsx(
+                      'flex select-none items-center gap-1 text-[11.5px] font-semibold uppercase tracking-[0.04em]',
+                      col.campo ? 'cursor-pointer' : 'cursor-default',
+                      ativa ? 'text-teal' : 'text-[#A8A49C]'
+                    )}
                   >
                     {col.label}
                     {ativa && (
-                      <ArrowDown size={11} style={{ transform: direcao === 'ASC' ? 'rotate(180deg)' : 'none' }} />
+                      <ArrowDown size={11} className={direcao === 'ASC' ? 'rotate-180' : ''} />
                     )}
                   </div>
                 )
@@ -444,7 +420,7 @@ export default function ListaCatalogosPage() {
             ))}
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 12.5, color: '#A29E96', textAlign: 'right' }}>
+          <div className="mt-3.5 text-right text-[12.5px] text-muted">
             {catalogos.length} {catalogos.length === 1 ? 'catálogo' : 'catálogos'}
           </div>
         </>
