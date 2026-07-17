@@ -1,9 +1,9 @@
 # Pense & Precifique — Front-End
 
-> **v0.2D0** — Lido automaticamente pelo Claude Code.
+> **V0.5** — Lido automaticamente pelo Claude Code.
 > Caminho: `/home/joaobarbosa/Documentos/Projetos/Pense & Precifique/pense-precifique-frontend`
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Atualizado em: 2026-07-12 — Frente 4 (migração global para Tailwind) concluída: todas as páginas migradas, `index.css` limpo (só resets globais, `@keyframes` e `body.drawer-open`), padrão de estilo documentado abaixo.
+> Atualizado em: 2026-07-17 — Pocket de fechamento V0.5: infra de testes E2E (Playwright) introduzida, aba Conta de Configurações conectada a `PUT /usuarios/me/senha` (#111), busca de Insumos migrada para server-side (#110), `BUG-BUSCA-ORCAMENTO` resolvido no backend (#93) e identificador de orçamento corrigido para `ORC-N` (sem cedilha).
 
 ---
 
@@ -25,6 +25,8 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 ## Padrões de UI
 
 - Toast: sempre via hook `useToast` — proibido estado boolean local
+- **Busca em listagens é sempre server-side**, via `?busca=` para a API, com debounce (~300ms) e reset de paginação para a página 0 a cada nova busca — nunca filtrar client-side sobre os itens já carregados na página. Padrão consolidado em Produtos, Insumos (#110/V0.5) e Orçamentos (#93/V0.5). Filtro client-side é bug, não atalho aceitável — ver histórico de `BUG-BUSCA-PRODUTO`/`BUG-BUSCA-ORCAMENTO` em Bugs conhecidos.
+- **Aba Conta (Configurações — alteração de senha):** validação client-side mínima antes de chamar a API (tamanho da nova senha ≥ 8, nova senha === confirmação); erro vindo da API (ex. senha atual incorreta) é lido de `err.response?.data?.message`. Ver `usuarioService.ts` e `ConfiguracoesPage.tsx`.
 
 ---
 
@@ -48,11 +50,12 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 - Drawer lateral: `left: max(0px, calc(100vw - 440px))`
 - Default export em todos os componentes de página
 - Dados da empresa: sempre via `GET /empresa` — nunca hardcoded
+- **Antes de criar um service novo, conferir `src/services/`** — todo módulo tem o seu (`authService`, `catalogoService`, `clienteService`, `dashboardService`, `empresaService`, `insumoService`, `itemCatalogoService`, `loteCompraService`, `orcamentoService`, `producaoService`, `produtoService`, `usuarioService`). `usuarioService.ts` existe desde o Épico 1 (dados do usuário) e ganhou `alterarSenha` na V0.5 (#111) — não recriar.
 - `npm run build` antes de qualquer commit
 - **"Compila limpo" nunca é validação suficiente** — toda tela precisa de verificação visual real (Playwright, se disponível no ambiente, ou navegador manual) antes de reportar como concluída. Recorrente no bloco Catálogo: C-003/004/005 foram inicialmente "validados" só por curl, sem checagem visual, até isso ser explicitamente exigido no corpo do prompt a partir do C-005.
 - Toda correção de bug ou tarefa de tech debt termina com commit + push antes de considerar o chat encerrado — mesmo sem fechamento de épico. Branch sempre `main`: `git push origin main`. Nunca deixar mudança sem commit entre chats.
-- **Se a tarefa tem código no ClickUp (ex. `BUG-04`, task `86e28j4jy`), a mensagem de commit referencia o código e o nome da tarefa** — não só uma descrição livre. Padrão: `fix(escopo): descrição — ClickUp BUG-04 / 86e28j4jy`.
-- **Todo prompt segue a estrutura fixa de `PADRAO_PROMPTS.md`** (ambiente, comando de commit pronto, conta de teste, checklist de validação) — decidido em 2026-07-09.
+- **Rastreamento migrou de ClickUp para OpenProject.** Padrão real confirmado em `git log --oneline -15`: `tipo(escopo): descrição — OpenProject #N` (ex. `fix(insumos): corrige busca de insumos para usar API server-side — OpenProject #110`) — número como **sufixo**, sempre com a palavra "OpenProject" antes do `#N`. Vários números na mesma tarefa: `— OpenProject #94,#95,#96,#97`. Commits antigos com `ClickUp <código> / <task-id>` são histórico, não o padrão atual. **Diferente do backend**, que usa o número como prefixo sem a palavra "OpenProject" (`#N tipo: descrição`) — cada repo segue o próprio `git log`.
+- **Todo prompt segue a estrutura fixa de `PADRAO_PROMPTS.md`** (ambiente, comando de commit pronto, conta de teste, checklist de validação) — decidido em 2026-07-09. Arquivo confirmado em `/home/joaobarbosa/Documentos/Projetos/Pense Software/Skills/PADRAO_PROMPTS.md` (fora deste projeto, pasta irmã "Pense Software").
 
 ---
 
@@ -92,18 +95,18 @@ Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 | Criar Orçamento | CriarOrcamentoPage | ✅ (ganhou toggle Tudo/Catálogo, RN-054, V0.2D0) |
 | Preview PDF | PreviewPdfPage | ✅ |
 | Detalhe Orçamento | DetalheOrcamentoPage | ✅ (badge de origem com nome do catálogo + nível "Customizações (N)" separado das pills individuais, desde v0.2.1 — ver Aprendizados críticos) |
-| Lista Orçamentos | ListaOrcamentosPage | ✅ (identificador `ORÇ-N`, formato oficial confirmado 2026-07-07) |
+| Lista Orçamentos | ListaOrcamentosPage | ✅ (identificador `ORC-N`, **sem cedilha** — corrigido no backend em #93/V0.5; formato antigo `ORÇ-N` estava desatualizado. Busca por cliente ponta a ponta funcional desde #93.) |
 | Preview Multa | PreviewMultaPage | ✅ |
 | Recibo Sinal | ReciboSinalPage | ✅ |
 | Recibo Pagamento | ReciboPagamentoPage | ✅ |
-| Lista Insumos | ListaInsumosPage | ✅ (identificador INS-N desde V0.2D0) |
+| Lista Insumos | ListaInsumosPage | ✅ (identificador INS-N desde V0.2D0; busca migrada para server-side via `?busca=` em #110/V0.5 — era client-side sobre itens da página, bug corrigido) |
 | Form Insumo | FormInsumoPage | ✅ |
 | Detalhe Insumo | DetalheInsumoPage | ✅ (produtos relacionados clicáveis, PRO-N, desde V0.2D0) |
 | Lista Produtos | ListaProdutosPage | ✅ (identificador PRO-N desde V0.2D0) |
 | Cadastrar/Editar Produto | CadastrarProdutoPage | ✅ (única página, cobre os dois — ajustada no bloco Catálogo: sem foto, sem preço/margem exceto CUSTOMIZACAO, rendimento obrigatório, botão "Criar produto catálogo") |
 | Detalhe Produto | DetalheProdutoPage | ✅ (rendimento, custo, histórico com catálogo/preço vendido, PRO-N, desde V0.2D0) |
 | Registro Produção | RegistroProducaoPage | ✅ (XOR quantidade/lotes, modal de estoque negativo via API real, desde V0.2D0) |
-| Configurações | ConfiguracoesPage | ✅ |
+| Configurações | ConfiguracoesPage | ✅ (aba Conta conectada a `PUT /usuarios/me/senha` desde #111/V0.5 — validação client-side mínima antes da chamada, ver Padrões de UI) |
 | **Novo Catálogo** | **NovoCatalogoPage** | ✅ (V0.2D0) |
 | **Lista de Catálogos** | **ListaCatalogosPage** | ✅ (V0.2D0 — ActionMenu Editar/Duplicar/Ativar-Desativar vive aqui, não no Detalhe) |
 | **Detalhe do Catálogo** | **DetalheCatalogoPage** | ✅ (V0.2D0 — só visualização + lista de itens, sem ActionMenu) |
@@ -118,9 +121,11 @@ Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 | C10 | Upload de logo do perfil não funciona nas Configurações |
 | 006.1 | Campo de quantidade em ficha técnica exibe "025" ao digitar "0,25" em insumo não-fracionável (exibição cosmética; validação de envio funciona) — adiado, sem data |
 
-**Bug de backend que afetava a UI — corrigido:** `GET /produtos?busca=` ignorava o parâmetro de busca (`BUG-BUSCA-PRODUTO`). Corrigido no backend em 2026-07-09, commit `222b939`. Validado via curl e Playwright na tela de Orçamento (modo "Tudo"). Não é mais uma hipótese a descartar antes de investigar o frontend.
+**Bugs de backend que afetavam a UI — ambos corrigidos:**
+- `GET /produtos?busca=` ignorava o parâmetro de busca (`BUG-BUSCA-PRODUTO`). Corrigido no backend em 2026-07-09, commit `222b939`. Validado via curl e Playwright na tela de Orçamento (modo "Tudo").
+- `GET /orcamentos` não tinha parâmetro `busca` em nenhuma camada (`BUG-BUSCA-ORCAMENTO`, descoberto no P006/V0.4). **Resolvido em #93 (V0.5):** backend implementou `?busca=` filtrando por `cliente.nome` (case-insensitive, combinável com `?status=`); o frontend já enviava o parâmetro desde o P006, então a busca funciona ponta a ponta desde #93 sem mudança no frontend.
 
-**Bug de backend ainda aberto — bloqueia busca de Orçamentos:** `GET /orcamentos` nunca teve parâmetro `busca` implementado (`BUG-BUSCA-ORCAMENTO`, descoberto no P006/V0.4). Diferente do `BUG-BUSCA-PRODUTO` (onde o parâmetro existia mas era ignorado na query), aqui o parâmetro não existe em nenhuma camada: `OrcamentoController.listar()` só aceita `status` e `pageable`; `OrcamentoService.listar()` não recebe busca; `OrcamentoRepository` só tem `findByUsuarioIdAndDeletedAtIsNull` e a variante com `status`, nenhuma com filtro textual. O frontend (`ListaOrcamentosPage.tsx`, `orcamentoService.listar()`) já envia `busca` corretamente desde o P006 — a UI de busca por cliente/número simplesmente não filtra nada até o backend implementar. Confirmado via curl: `busca=zzzznaoexiste` retorna os mesmos 16 resultados que sem busca. Precisa de fix no `pense-precifique-backend` (controller + service + repository, provavelmente busca em `nomeCliente` e `numero`) antes de fechar `[Orcamentos/Lista] - corrigir busca client-side para busca via API` (ClickUp `86e29zrcv`) de fato ponta a ponta.
+Nenhum dos dois é mais uma hipótese a descartar antes de investigar o frontend — se uma busca em listagem parecer quebrada agora, o bug está no frontend.
 
 ---
 
@@ -146,11 +151,42 @@ Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 
 ---
 
-## Padrão de commits
+## Testes E2E (infra nova — V0.5)
+
+`playwright.config.ts` na raiz + `e2e/` com specs por feature e um `e2e/helpers/` compartilhado:
 
 ```
-feat(escopo): nova funcionalidade
-fix(escopo): correção de bug
-refactor(escopo): refatoração
-chore(escopo): configuração/infra
+e2e/
+├── helpers/
+│   ├── auth.ts     # login/setup — sempre reutilizar, nunca recriar inline
+│   ├── api.ts       # helpers de chamada direta à API (setup/cleanup de dados de teste)
+│   └── list.ts       # helpers de listagem paginada/busca
+├── insumo-desativar-confirmacao.spec.ts     # cenário 146
+├── cliente-drawer-scroll.spec.ts             # cenário 147
+├── sidebar-overlay.spec.ts                    # cenário 148
+├── configuracoes-toast.spec.ts                # cenário 149
+├── insumo-busca-server-side.spec.ts          # cenários 150-151 (#110)
+└── configuracoes-alterar-senha.spec.ts       # cenários 152-154 (#111)
 ```
+
+Numeração mais alta confirmada nos specs atuais: **154** — não referenciar "cenários 155+" sem antes conferir se novos specs foram criados (`grep -rn "Cenário" e2e/*.spec.ts`).
+
+**Novos testes E2E sempre reutilizam os helpers de `e2e/helpers/`** — nunca recriar login/setup inline em um spec novo.
+
+Rodar: `npx playwright test e2e/<arquivo>.spec.ts --reporter=list` (containers precisam estar de pé — `docker compose up -d`).
+
+---
+
+## Padrão de commits
+
+Rastreamento de tarefas migrou de ClickUp para OpenProject. Formato real confirmado em `git log --oneline -15` — número da issue como **sufixo**, sempre com a palavra "OpenProject":
+
+```
+feat(escopo): nova funcionalidade — OpenProject #N
+fix(escopo): correção de bug — OpenProject #N
+refactor(escopo): refatoração — OpenProject #N
+chore(escopo): configuração/infra — OpenProject #N
+test: descrição — OpenProject #N,#M   (múltiplas issues na mesma tarefa)
+```
+
+**Nota:** o backend (`pense-precifique-backend/CLAUDE.md`) documenta um padrão diferente (`#N tipo(escopo): descrição`, número como prefixo, sem a palavra "OpenProject") — cada repo segue o próprio `git log`, não o do outro.
