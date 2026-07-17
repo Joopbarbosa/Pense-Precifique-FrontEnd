@@ -161,15 +161,15 @@ e2e/
 │   ├── auth.ts     # login/setup — sempre reutilizar, nunca recriar inline
 │   ├── api.ts       # helpers de chamada direta à API (setup/cleanup de dados de teste)
 │   └── list.ts       # helpers de listagem paginada/busca
-├── insumo-desativar-confirmacao.spec.ts     # cenário 146
-├── cliente-drawer-scroll.spec.ts             # cenário 147
-├── sidebar-overlay.spec.ts                    # cenário 148
-├── configuracoes-toast.spec.ts                # cenário 149
-├── insumo-busca-server-side.spec.ts          # cenários 150-151 (#110)
-└── configuracoes-alterar-senha.spec.ts       # cenários 152-154 (#111)
+├── insumo-desativar-confirmacao.spec.ts     # cenário 159
+├── cliente-drawer-scroll.spec.ts             # cenário 160
+├── sidebar-overlay.spec.ts                    # cenário 161
+├── configuracoes-toast.spec.ts                # cenário 162
+├── insumo-busca-server-side.spec.ts          # cenários 163-164 (#110)
+└── configuracoes-alterar-senha.spec.ts       # cenários 165-167 (#111)
 ```
 
-Numeração mais alta confirmada nos specs atuais: **154** — não referenciar "cenários 155+" sem antes conferir se novos specs foram criados (`grep -rn "Cenário" e2e/*.spec.ts`).
+Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `docs/SCENARIOS(2).md`). Numeração mais alta confirmada nos specs atuais: **167** — não referenciar "cenários 168+" sem antes conferir se novos specs foram criados (`grep -rn "Cenário" e2e/*.spec.ts`).
 
 **Novos testes E2E sempre reutilizam os helpers de `e2e/helpers/`** — nunca recriar login/setup inline em um spec novo.
 

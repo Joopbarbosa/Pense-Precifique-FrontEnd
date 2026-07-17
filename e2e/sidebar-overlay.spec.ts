@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 
+// Cenários renumerados na retomada V0.5 (colisão com v0.3) — ver SCENARIOS.md
 /**
- * Cenário 148 — Overlay da sidebar com opacidade correta (#96)
+ * Cenário 161 — Overlay da sidebar com opacidade correta (#96)
  *
  * Dado que a artesã abre a sidebar em mobile (viewport 390px)
  * Então existe apenas 1 overlay no DOM com rgba(0,0,0,0.35)
  * Quando ela clica no overlay
  * Então a sidebar fecha
  */
-test.describe('Cenário 148 — Overlay da sidebar com opacidade correta (#96)', () => {
+test.describe('Cenário 161 — Overlay da sidebar com opacidade correta (#96)', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   test.beforeEach(async ({ page }) => {

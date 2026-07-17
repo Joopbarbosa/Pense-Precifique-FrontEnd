@@ -3,8 +3,9 @@ import { login, API_URL } from './helpers/auth'
 import { apiLogin, criarInsumo } from './helpers/api'
 import { carregarAte } from './helpers/list'
 
+// Cenários renumerados na retomada V0.5 (colisão com v0.3) — ver SCENARIOS.md
 /**
- * Cenário 146 — Desativar insumo exige confirmação (#94)
+ * Cenário 159 — Desativar insumo exige confirmação (#94)
  *
  * Dado que a artesã clica em "Desativar" no menu ⋮ de um insumo
  * Então o sistema exibe o modal de confirmação
@@ -12,7 +13,7 @@ import { carregarAte } from './helpers/list'
  * Quando ela confirma
  * Então a API é chamada e o insumo é desativado
  */
-test.describe('Cenário 146 — Desativar insumo exige confirmação (#94)', () => {
+test.describe('Cenário 159 — Desativar insumo exige confirmação (#94)', () => {
   let insumoId: string
   let insumoNome: string
 

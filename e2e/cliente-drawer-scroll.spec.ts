@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 
+// Cenários renumerados na retomada V0.5 (colisão com v0.3) — ver SCENARIOS.md
 /**
- * Cenário 147 — Scroll trava ao abrir drawer de clientes (#95)
+ * Cenário 160 — Scroll trava ao abrir drawer de clientes (#95)
  *
  * Dado que a artesã abre o drawer de clientes
  * Então o scroll da página fica travado (body.overflow = hidden)
  * Quando ela fecha o drawer
  * Então o scroll volta ao normal (overflow = visible)
  */
-test.describe('Cenário 147 — Scroll trava ao abrir drawer de clientes (#95)', () => {
+test.describe('Cenário 160 — Scroll trava ao abrir drawer de clientes (#95)', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
     await page.goto('/clientes')

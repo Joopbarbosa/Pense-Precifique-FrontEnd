@@ -1,36 +1,37 @@
 import { test, expect } from '@playwright/test'
 import { login, loginComoEmail, API_URL } from './helpers/auth'
 
+// Cenários renumerados na retomada V0.5 (colisão com v0.3) — ver SCENARIOS.md
 /**
- * Cenários 152-154 — Alteração de senha na aba Conta (#111)
+ * Cenários 165-167 — Alteração de senha na aba Conta (#111)
  *
- * 152:
+ * 165:
  *   Dado que a artesã está na aba Conta em Configurações
  *   Quando ela informa senhas divergentes e tenta salvar
  *   Então nenhuma requisição é disparada
  *   E o toast exibe erro client-side
  *
- * 153:
+ * 166:
  *   Dado que a artesã está na aba Conta em Configurações
  *   Quando ela informa senha atual incorreta e tenta salvar
  *   Então PUT /usuarios/me/senha é disparado
  *   E o toast exibe "Senha atual incorreta" (vindo da API)
  *
- * 154:
+ * 167:
  *   Dado que a artesã está na aba Conta em Configurações
  *   Quando ela informa os 3 campos corretamente
  *   Então PUT /usuarios/me/senha retorna 200
  *   E o toast exibe mensagem de sucesso
  *   E os 3 campos são limpos
  */
-test.describe('Cenários 152-153 — validações client-side e erro da API (conta principal, sem risco)', () => {
+test.describe('Cenários 165-166 — validações client-side e erro da API (conta principal, sem risco)', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
     await page.goto('/configuracoes')
     await page.getByRole('button', { name: 'Conta' }).click()
   })
 
-  test('152 — senhas divergentes não chamam a API e mostram erro client-side', async ({ page }) => {
+  test('165 — senhas divergentes não chamam a API e mostram erro client-side', async ({ page }) => {
     let senhaRequestFired = false
     page.on('request', req => {
       if (req.url().includes('/usuarios/me/senha')) senhaRequestFired = true
@@ -45,7 +46,7 @@ test.describe('Cenários 152-153 — validações client-side e erro da API (con
     expect(senhaRequestFired).toBe(false)
   })
 
-  test('153 — senha atual incorreta dispara a API e mostra o erro retornado', async ({ page }) => {
+  test('166 — senha atual incorreta dispara a API e mostra o erro retornado', async ({ page }) => {
     let requestUrl = ''
     page.on('request', req => {
       if (req.url().includes('/usuarios/me/senha')) requestUrl = req.url()
@@ -61,7 +62,7 @@ test.describe('Cenários 152-153 — validações client-side e erro da API (con
   })
 })
 
-test.describe('Cenário 154 — fluxo de sucesso (conta descartável)', () => {
+test.describe('Cenário 167 — fluxo de sucesso (conta descartável)', () => {
   let email: string
   const senhaInicial = 'SenhaInicial123'
   const senhaNova = 'SenhaNova456'
@@ -85,7 +86,7 @@ test.describe('Cenário 154 — fluxo de sucesso (conta descartável)', () => {
     // homologação; nenhuma limpeza é possível aqui até existir esse endpoint.
   })
 
-  test('154 — 3 campos corretos: PUT retorna 200, toast de sucesso e campos limpos', async ({ page }) => {
+  test('167 — 3 campos corretos: PUT retorna 200, toast de sucesso e campos limpos', async ({ page }) => {
     await loginComoEmail(page, email, senhaInicial)
 
     await page.goto('/configuracoes')

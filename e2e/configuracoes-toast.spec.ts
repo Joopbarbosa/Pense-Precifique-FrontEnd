@@ -2,15 +2,16 @@ import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, getConfiguracao, putConfiguracao } from './helpers/api'
 
+// Cenários renumerados na retomada V0.5 (colisão com v0.3) — ver SCENARIOS.md
 /**
- * Cenário 149 — Toast dinâmico em Configurações (#97)
+ * Cenário 162 — Toast dinâmico em Configurações (#97)
  *
  * Dado que a artesã salva Precificação com sucesso
  * Então o toast exibe mensagem de sucesso por ~3000ms e desaparece
  * Quando salvar Perfil falha (mock 500)
  * Então o toast exibe a mensagem de erro correspondente
  */
-test.describe('Cenário 149 — Toast dinâmico em Configurações (#97)', () => {
+test.describe('Cenário 162 — Toast dinâmico em Configurações (#97)', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
     await page.goto('/configuracoes')

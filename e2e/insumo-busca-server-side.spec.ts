@@ -2,21 +2,22 @@ import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, criarInsumo, contarInsumos, inativarInsumo } from './helpers/api'
 
+// Cenários renumerados na retomada V0.5 (colisão com v0.3) — ver SCENARIOS.md
 /**
- * Cenários 150 e 151 — Busca de insumos server-side (#110)
+ * Cenários 163 e 164 — Busca de insumos server-side (#110)
  *
- * 150:
+ * 163:
  *   Dado que a artesã tem mais de 20 insumos cadastrados
  *   Quando ela busca por um termo presente apenas além da 1ª página
  *   Então o resultado aparece (prova que a busca é server-side)
  *   E a requisição GET /insumos contém o parâmetro busca= na query string
  *
- * 151:
+ * 164:
  *   Dado que a artesã buscou um termo e vê resultados filtrados
  *   Quando ela limpa o campo de busca
  *   Então a lista volta ao estado normal com "Carregar mais" disponível
  */
-test.describe('Cenários 150-151 — Busca de insumos server-side (#110)', () => {
+test.describe('Cenários 163-164 — Busca de insumos server-side (#110)', () => {
   let criadosIds: string[] = []
   let targetNome: string
 
@@ -24,19 +25,19 @@ test.describe('Cenários 150-151 — Busca de insumos server-side (#110)', () =>
     criadosIds = []
     const token = await apiLogin(request)
 
-    // garante mais de 20 insumos cadastrados (Dado do cenário 150), criando fillers
+    // garante mais de 20 insumos cadastrados (Dado do cenário 163), criando fillers
     // se o ambiente ainda não tiver o suficiente para uma 2ª página.
     const totalAtual = await contarInsumos(request, token)
     const fillersNecessarios = Math.max(0, 21 - totalAtual)
     for (let i = 0; i < fillersNecessarios; i++) {
-      const filler = await criarInsumo(request, token, `QA150-Filler-${Date.now()}-${i}`)
+      const filler = await criarInsumo(request, token, `QA163-Filler-${Date.now()}-${i}`)
       criadosIds.push(filler.id)
     }
 
     // nome com prefixo "zzz" ordena por último (confirmado empiricamente: sort=nome
     // desta base usa colação que põe minúsculo "z" depois de tudo mais), garantindo
     // que o item fique além da 1ª página (size=20) independente do dataset existente.
-    targetNome = `zzz-QA150-BuscaE2E-${Date.now()}`
+    targetNome = `zzz-QA163-BuscaE2E-${Date.now()}`
     const target = await criarInsumo(request, token, targetNome)
     criadosIds.push(target.id)
 
@@ -58,7 +59,7 @@ test.describe('Cenários 150-151 — Busca de insumos server-side (#110)', () =>
     }
   })
 
-  test('150 — busca por termo além da 1ª página retorna resultado via API', async ({ page }) => {
+  test('163 — busca por termo além da 1ª página retorna resultado via API', async ({ page }) => {
     await login(page)
     await page.goto('/insumos')
     await page.waitForTimeout(500)
@@ -76,7 +77,7 @@ test.describe('Cenários 150-151 — Busca de insumos server-side (#110)', () =>
     expect(requestsComBusca.some(u => u.includes('busca='))).toBe(true)
   })
 
-  test('151 — limpar a busca restaura a lista paginada normal', async ({ page }) => {
+  test('164 — limpar a busca restaura a lista paginada normal', async ({ page }) => {
     await login(page)
     await page.goto('/insumos')
     await page.waitForTimeout(500)
