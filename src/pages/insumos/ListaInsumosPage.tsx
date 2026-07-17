@@ -7,6 +7,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import Spinner from '../../components/ui/Spinner'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, X, Search, Trash2,
   ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight,
@@ -16,6 +17,7 @@ import type { InsumoResponse } from '../../types/insumo'
 import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
+import { useToast } from '../../hooks/useToast'
 
 interface ItemCarrinho {
   insumo: InsumoResponse
@@ -479,6 +481,9 @@ export default function ListaInsumosPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [modalCompra, setModalCompra] = useState(false)
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
+  const [confirmDesativar, setConfirmDesativar] = useState<InsumoResponse | null>(null)
+  const [desativando, setDesativando] = useState(false)
+  const { toast, setToast } = useToast()
 
   const carregar = useCallback((resetar: boolean) => {
     if (resetar) {
@@ -526,12 +531,19 @@ export default function ListaInsumosPage() {
       .finally(() => setLoadingMore(false))
   }
 
-  const desativar = async (id: string) => {
+  const handleDesativar = async () => {
+    if (!confirmDesativar) return
+    setDesativando(true)
     try {
-      await insumoService.inativar(id)
-      setInsumos(prev => prev.filter(x => x.id !== id))
+      await insumoService.inativar(confirmDesativar.id)
+      setInsumos(prev => prev.filter(x => x.id !== confirmDesativar.id))
+      setToast('Insumo desativado.')
     } catch (err) {
       console.error(err)
+      setToast('Erro ao desativar. Tente novamente.')
+    } finally {
+      setDesativando(false)
+      setConfirmDesativar(null)
     }
   }
 
@@ -576,6 +588,13 @@ export default function ListaInsumosPage() {
 
   return (
     <AppLayout active="insumos">
+
+      {/* TOAST */}
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
 
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
@@ -673,13 +692,13 @@ export default function ListaInsumosPage() {
                   insumo={o} index={i}
                   onVer={() => navigate(`/insumos/${o.id}`)}
                   onEditar={() => navigate(`/insumos/${o.id}/editar`)}
-                  onDesativar={() => desativar(o.id)}
+                  onDesativar={() => setConfirmDesativar(o)}
                 />
                 <InsumoCard
                   insumo={o} index={i}
                   onVer={() => navigate(`/insumos/${o.id}`)}
                   onEditar={() => navigate(`/insumos/${o.id}/editar`)}
-                  onDesativar={() => desativar(o.id)}
+                  onDesativar={() => setConfirmDesativar(o)}
                 />
               </React.Fragment>
             ))}
@@ -717,6 +736,21 @@ export default function ListaInsumosPage() {
       {impactoLote && (
         <ImpactoLoteModal impacto={impactoLote} onClose={handleImpactoClose} />
       )}
+
+      {/* MODAL: confirmar desativação */}
+      <ConfirmacaoModal
+        open={!!confirmDesativar}
+        onClose={() => setConfirmDesativar(null)}
+        onConfirm={handleDesativar}
+        variant="danger"
+        title={`Desativar "${confirmDesativar?.nome}"?`}
+        icon={<Power size={16} />}
+        width={420}
+        confirmLabel="Desativar insumo"
+        confirmingLabel="Desativando…"
+        confirming={desativando}
+        description="O insumo ficará inativo e não poderá ser usado em novas fichas técnicas. Esta ação não pode ser desfeita por aqui."
+      />
 
     </AppLayout>
   )
