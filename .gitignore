@@ -17,6 +17,12 @@ jspm_packages/
 dist/
 dist-ssr/
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # env files
 .env
 .env.local
