@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import { Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
+import { usuarioService } from '../../services/usuarioService'
 import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
 import { useToast } from '../../hooks/useToast'
 
@@ -395,6 +396,35 @@ function PerfilEmpresa({
 /* ── ContaSeguranca ──────────────────────────────────────────── */
 
 function ContaSeguranca() {
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('')
+  const [atualizando, setAtualizando] = useState(false)
+  const { toast, setToast } = useToast()
+
+  const atualizarSenha = async () => {
+    if (novaSenha.length < 8) {
+      setToast('A nova senha deve ter no mínimo 8 caracteres.')
+      return
+    }
+    if (novaSenha !== confirmarNovaSenha) {
+      setToast('As senhas não coincidem.')
+      return
+    }
+    setAtualizando(true)
+    try {
+      await usuarioService.alterarSenha({ senhaAtual, novaSenha, confirmarNovaSenha })
+      setToast('Senha atualizada com sucesso!')
+      setSenhaAtual('')
+      setNovaSenha('')
+      setConfirmarNovaSenha('')
+    } catch (err: any) {
+      setToast(err.response?.data?.message || 'Erro ao atualizar senha. Tente novamente.')
+    } finally {
+      setAtualizando(false)
+    }
+  }
+
   return (
     <div className="flex max-w-[640px] animate-[fadeUp_.35s_ease_both] flex-col gap-[22px]">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -410,16 +440,23 @@ function ContaSeguranca() {
         <div className="mt-[22px] border-t border-line pt-[22px]">
           <h3 className="m-0 mb-4 text-[15px] font-bold text-dark">Alterar senha</h3>
           <div className="flex flex-col gap-4">
-            <CfgField label="Senha atual"><CfgInput type="password" placeholder="••••••••" /></CfgField>
-            <CfgField label="Nova senha"><CfgInput type="password" placeholder="Mínimo 8 caracteres" /></CfgField>
-            <CfgField label="Confirmar nova senha"><CfgInput type="password" placeholder="Repita a nova senha" /></CfgField>
+            <CfgField label="Senha atual"><CfgInput type="password" value={senhaAtual} onChange={setSenhaAtual} placeholder="••••••••" /></CfgField>
+            <CfgField label="Nova senha"><CfgInput type="password" value={novaSenha} onChange={setNovaSenha} placeholder="Mínimo 8 caracteres" /></CfgField>
+            <CfgField label="Confirmar nova senha"><CfgInput type="password" value={confirmarNovaSenha} onChange={setConfirmarNovaSenha} placeholder="Repita a nova senha" /></CfgField>
           </div>
-          {/* TODO: conectar ao endpoint PUT /usuarios/me/senha (Épico 1) */}
           <div className="mt-5 flex justify-end">
-            <Button variant="primary">Atualizar senha</Button>
+            <Button variant="primary" disabled={atualizando} onClick={atualizarSenha}>
+              {atualizando ? 'Atualizando…' : 'Atualizar senha'}
+            </Button>
           </div>
         </div>
       </div>
+
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
 
       <div className="rounded-card border-[1.5px] border-[#F2D8CF] bg-[#FEF8F6] px-7 py-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <h3 className="m-0 text-[15.5px] font-bold text-danger-deep">Excluir conta</h3>
