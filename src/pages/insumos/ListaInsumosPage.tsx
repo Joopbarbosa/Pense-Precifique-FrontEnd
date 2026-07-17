@@ -485,43 +485,34 @@ export default function ListaInsumosPage() {
   const [desativando, setDesativando] = useState(false)
   const { toast, setToast } = useToast()
 
-  const carregar = useCallback((resetar: boolean) => {
-    if (resetar) {
-      setLoading(true)
-      setInsumos([])
-      setPage(0)
-      insumoService.listar(0)
-        .then(data => {
-          setInsumos(data.content)
-          setHasNext(!data.last)
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false))
-    }
-  }, [])
-
-  useEffect(() => {
-    carregar(true)
-  }, [carregar])
-
-  const handleQueryChange = (novaQuery: string) => {
-    setQuery(novaQuery)
-    setInsumos([])
-    setPage(0)
+  const carregar = useCallback((buscaAtual?: string) => {
     setLoading(true)
-    insumoService.listar(0)
+    setPage(0)
+    insumoService.listar(0, 20, buscaAtual)
       .then(data => {
         setInsumos(data.content)
         setHasNext(!data.last)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const buscaAtual = query.trim() || undefined
+    const t = setTimeout(() => {
+      carregar(buscaAtual)
+    }, buscaAtual ? 300 : 0)
+    return () => clearTimeout(t)
+  }, [query, carregar])
+
+  const handleQueryChange = (novaQuery: string) => {
+    setQuery(novaQuery)
   }
 
   const carregarMais = () => {
     const nextPage = page + 1
     setLoadingMore(true)
-    insumoService.listar(nextPage)
+    insumoService.listar(nextPage, 20, query.trim() || undefined)
       .then(data => {
         setInsumos(prev => [...prev, ...data.content])
         setHasNext(!data.last)
@@ -554,7 +545,7 @@ export default function ListaInsumosPage() {
 
   const handleImpactoClose = () => {
     setImpactoLote(null)
-    carregar(true)
+    carregar(query.trim() || undefined)
   }
 
   let lista = insumos
@@ -563,10 +554,6 @@ export default function ListaInsumosPage() {
   if (filtro === 'Estoque baixo')     lista = lista.filter(isLow)
   if (filtro === 'Estoque negativo')  lista = lista.filter(isNegative)
   if (filtro === 'Estoque positivo')  lista = lista.filter(isPositive)
-  if (query.trim()) lista = lista.filter(o =>
-    o.nome.toLowerCase().includes(query.toLowerCase()) ||
-    (o.marca?.toLowerCase().includes(query.toLowerCase()) ?? false)
-  )
 
   const lowCount = insumos.filter(isLow).length
   const negativeCount = insumos.filter(isNegative).length

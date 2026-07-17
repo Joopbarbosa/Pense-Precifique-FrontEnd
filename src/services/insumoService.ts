@@ -3,8 +3,10 @@ import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, Movimenta
 import type { PageResponse } from '../types/shared'
 
 export const insumoService = {
-  listar: async (page: number, size = 20): Promise<PageResponse<InsumoResponse>> => {
-    const response = await api.get('/insumos', { params: { page, size, sort: 'nome' } })
+  listar: async (page: number, size = 20, busca?: string): Promise<PageResponse<InsumoResponse>> => {
+    const params: Record<string, unknown> = { page, size, sort: 'nome' }
+    if (busca) params.busca = busca
+    const response = await api.get('/insumos', { params })
     return response.data
   },
 
