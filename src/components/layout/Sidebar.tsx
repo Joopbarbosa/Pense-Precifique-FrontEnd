@@ -36,10 +36,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      <div
-        className={clsx('fixed inset-0 z-[49] bg-black/35', open ? 'block md:hidden' : 'hidden')}
-        onClick={onClose}
-      />
       <nav
         className={clsx(
           'fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-shrink-0 flex-col bg-app shadow-[4px_0_24px_rgba(0,0,0,0.10)] transition-transform duration-[220ms] ease-out',
