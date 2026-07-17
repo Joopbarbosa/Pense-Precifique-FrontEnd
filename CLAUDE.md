@@ -3,7 +3,7 @@
 > **v0.2D0** — Lido automaticamente pelo Claude Code.
 > Caminho: `/home/joaobarbosa/Documentos/Projetos/Pense & Precifique/pense-precifique-frontend`
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Atualizado em: 2026-07-12 — Frente 4 (migração global para Tailwind) concluída: todas as páginas migradas, `index.css` limpo (só resets globais, `@keyframes` e `body:has(.drawer-open)`), padrão de estilo documentado abaixo.
+> Atualizado em: 2026-07-12 — Frente 4 (migração global para Tailwind) concluída: todas as páginas migradas, `index.css` limpo (só resets globais, `@keyframes` e `body.drawer-open`), padrão de estilo documentado abaixo.
 
 ---
 
@@ -19,6 +19,12 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 **Regra overflow:** nunca `overflow-hidden` em container que tenha dropdown, modal ou ActionMenu filho.
 **localhost:** `http://localhost:3000` (Docker) / `http://localhost:5173` (dev direto)
 **Conta de teste:** `penseprecifique@admin.com` / `senha12345`
+
+---
+
+## Padrões de UI
+
+- Toast: sempre via hook `useToast` — proibido estado boolean local
 
 ---
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -6,6 +6,7 @@ import Spinner from '../../components/ui/Spinner'
 import { Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
+import { useToast } from '../../hooks/useToast'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -57,20 +58,6 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
           {suffix}
         </span>
       )}
-    </div>
-  )
-}
-
-/* ── Toast ───────────────────────────────────────────────────── */
-
-function Toast({ show }: { show: boolean }) {
-  if (!show) return null
-  return (
-    <div className="fixed bottom-7 left-1/2 z-[200] flex max-w-[calc(100vw-32px)] -translate-x-1/2 animate-toast-in items-center gap-[11px] rounded-[13px] bg-[#143D33] py-[13px] pl-[15px] pr-5 text-white shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5)]">
-      <span className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full bg-[#34A56F] text-white">
-        <Check size={14} />
-      </span>
-      <span className="whitespace-nowrap text-sm font-semibold">Configurações salvas com sucesso!</span>
     </div>
   )
 }
@@ -161,11 +148,10 @@ function Precificacao({
 }) {
   const [hora, setHora] = useState(formatHora(initialValorHora))
   const [margem, setMargem] = useState(formatMargem(initialMargemPadrao))
-  const [toast, setToast] = useState(false)
+  const { toast, setToast } = useToast()
   const [saved, setSaved] = useState({ hora: formatHora(initialValorHora), margem: formatMargem(initialMargemPadrao) })
   const [fieldErrors, setFieldErrors] = useState<{ hora?: string; margem?: string }>({})
   const dirty = hora !== saved.hora || margem !== saved.margem
-  const timer = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     const h = formatHora(initialValorHora)
@@ -191,14 +177,14 @@ function Precificacao({
       return
     }
     setFieldErrors({})
-    await onSave(parseDecimal(hora), parseDecimal(margem))
-    setSaved({ hora, margem })
-    setToast(true)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setToast(false), 3200)
+    try {
+      await onSave(parseDecimal(hora), parseDecimal(margem))
+      setSaved({ hora, margem })
+      setToast('Configurações salvas com sucesso!')
+    } catch (err: any) {
+      setToast(err.response?.data?.message || 'Erro ao salvar. Tente novamente.')
+    }
   }
-
-  useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
@@ -257,7 +243,11 @@ function Precificacao({
       </div>
 
       <PerfilCard nome={empresaNome} email={empresaEmail} />
-      <Toast show={toast} />
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
@@ -331,9 +321,7 @@ function PerfilEmpresa({
   const [email, setEmail] = useState(initialEmail)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
   const [endereco, setEndereco] = useState(initialEndereco)
-  const [toast, setToast] = useState(false)
-  const [error, setError] = useState('')
-  const timer = useRef<ReturnType<typeof setTimeout>>()
+  const { toast, setToast } = useToast()
 
   useEffect(() => {
     setNome(initialNome)
@@ -343,18 +331,13 @@ function PerfilEmpresa({
   }, [initialNome, initialEmail, initialWhatsapp, initialEndereco])
 
   const salvar = async () => {
-    setError('')
     try {
       await onSave(nome, email, whatsapp, endereco)
-      setToast(true)
-      clearTimeout(timer.current)
-      timer.current = setTimeout(() => setToast(false), 3200)
+      setToast('Configurações salvas com sucesso!')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao salvar. Tente novamente.')
+      setToast(err.response?.data?.message || 'Erro ao salvar. Tente novamente.')
     }
   }
-
-  useEffect(() => () => clearTimeout(timer.current), [])
 
   return (
     <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
@@ -393,12 +376,6 @@ function PerfilEmpresa({
           </p>
         </div>
 
-        {error && (
-          <p className="mt-3 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
-            {error}
-          </p>
-        )}
-
         <div className="mt-6 flex justify-end border-t border-line pt-[22px]">
           <Button variant="primary" icon={<Check size={14} />} disabled={saving} onClick={salvar}>
             {saving ? 'Salvando…' : 'Salvar alterações'}
@@ -406,7 +383,11 @@ function PerfilEmpresa({
         </div>
       </div>
 
-      <Toast show={toast} />
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
