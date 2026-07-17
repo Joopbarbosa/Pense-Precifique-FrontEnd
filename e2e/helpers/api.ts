@@ -28,6 +28,20 @@ export async function criarInsumo(request: APIRequestContext, token: string, nom
   return res.json()
 }
 
+export async function contarInsumos(request: APIRequestContext, token: string): Promise<number> {
+  const res = await request.get(`${API_URL}/insumos?page=0&size=1&sort=nome`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const body = await res.json()
+  return body.totalElements as number
+}
+
+export async function inativarInsumo(request: APIRequestContext, token: string, id: string) {
+  await request
+    .delete(`${API_URL}/insumos/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+    .catch(() => {})
+}
+
 export async function getConfiguracao(request: APIRequestContext, token: string) {
   const res = await request.get(`${API_URL}/configuracoes/precificacao`, {
     headers: { Authorization: `Bearer ${token}` },
