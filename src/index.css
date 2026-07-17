@@ -62,7 +62,7 @@ body {
   to   { transform: translateX(0); }
 }
 
-body:has(.drawer-open) {
+body.drawer-open {
   overflow: hidden;
 }
 
