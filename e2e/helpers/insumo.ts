@@ -54,3 +54,37 @@ export async function definirPermitirNegativo(
   }
   return res.json()
 }
+
+/**
+ * Repõe estoqueAtual até um alvo — usado no Cenário 165 (P-QA-002) para resolver um insumo
+ * bloqueante entre trava e retomada. `PUT /insumos/{id}` inclui `estoqueAtual` no DTO mas
+ * IGNORA silenciosamente esse campo na atualização (confirmado empiricamente: enviar
+ * estoqueAtual=50 não muda o valor persistido) — estoque só se move por endpoint de movimentação.
+ * `POST /lotes-compra` é o caminho real de entrada de estoque (mesmo usado por loteCompraService
+ * no frontend), então aqui calculamos o delta necessário e registramos um lote de compra.
+ */
+export async function reporEstoque(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  novoEstoqueAtual: number
+) {
+  const atual = await request.get(`${API_URL}/insumos/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const insumo = await atual.json()
+  const delta = novoEstoqueAtual - insumo.estoqueAtual
+  if (delta <= 0) return insumo // já está no alvo ou acima — nada a repor
+
+  const res = await request.post(`${API_URL}/lotes-compra`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { itens: [{ insumoId: id, quantidadeComprada: delta, precoTotalPago: 1 }] },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao repor estoque via lote de compra: ${res.status()} ${await res.text()}`)
+  }
+  const atualizado = await request.get(`${API_URL}/insumos/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return atualizado.json()
+}

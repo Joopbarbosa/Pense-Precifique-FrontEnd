@@ -1,4 +1,4 @@
-import { APIRequestContext } from '@playwright/test'
+import { APIRequestContext, Page, expect } from '@playwright/test'
 import { API_URL } from './auth'
 
 interface FichaItem {
@@ -93,5 +93,106 @@ export async function teardownProducoes(request: APIRequestContext, token: strin
         data: { justificativa: 'Cancelamento automático — limpeza de massa de teste QA-115' },
       })
       .catch(() => {})
+  }
+}
+
+// ---------------------------------------------------------------------------
+// P-QA-002 (#116-#119) — editar / iniciar / travar / retomar
+// ---------------------------------------------------------------------------
+
+function amanha(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+export async function criarProducaoViaApi(
+  request: APIRequestContext,
+  token: string,
+  produtos: { produtoId: string; quantidade: number }[],
+  dataTerminoPrevista = amanha()
+) {
+  const res = await request.post(`${API_URL}/producoes`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { dataTerminoPrevista, produtos },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produção via API: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
+/** Resposta crua (sem checar ok()) — quem chama decide se espera EM_ANDAMENTO, TRAVADA ou DivisaoResponse. */
+export async function iniciarProducaoViaApi(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  dividir?: boolean
+) {
+  return request.post(`${API_URL}/producoes/${id}/iniciar`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: dividir === undefined ? {} : { dividir },
+  })
+}
+
+/** Composto de setup: cria produção + inicia via API. Assume que não há insumo bloqueante (senão cai em TRAVADA). */
+export async function criarProducaoEmAndamento(
+  request: APIRequestContext,
+  token: string,
+  produtos: { produtoId: string; quantidade: number }[],
+  dataTerminoPrevista = amanha()
+) {
+  const producao = await criarProducaoViaApi(request, token, produtos, dataTerminoPrevista)
+  const res = await iniciarProducaoViaApi(request, token, producao.id)
+  if (!res.ok()) {
+    throw new Error(`Falha ao iniciar produção via API: ${res.status()} ${await res.text()}`)
+  }
+  const iniciada = await res.json()
+  if (iniciada.estado !== 'EM_ANDAMENTO') {
+    throw new Error(`criarProducaoEmAndamento esperava EM_ANDAMENTO, obteve ${iniciada.estado} — setup incompatível (insumo bloqueante?)`)
+  }
+  return iniciada
+}
+
+/** Trava manual via API (setup rápido para cenários que não testam o ato de travar em si). */
+export async function travarProducaoViaApi(request: APIRequestContext, token: string, id: string, justificativa: string) {
+  const res = await request.post(`${API_URL}/producoes/${id}/travar`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { justificativa },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao travar produção via API: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
+// --- wrappers de UI (assumem que a página já está em /producao/{id} com os modais disponíveis) ---
+
+export async function iniciarProducao(page: Page, opcoes?: { escolha?: 'dividir' | 'travar' }) {
+  await page.getByRole('button', { name: 'Iniciar', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirmar início' }).click()
+  if (opcoes?.escolha === 'dividir') {
+    // .click() já espera o elemento ficar acionável — não usar isVisible() aqui, que checa o
+    // estado no instante da chamada (sem polling) e corre risco de rodar antes do modal trocar
+    // de etapa (round-trip do POST /iniciar), pulando o clique silenciosamente.
+    await page.getByRole('button', { name: 'Dividir produção' }).click({ timeout: 8000 })
+  } else if (opcoes?.escolha === 'travar') {
+    await page.getByRole('button', { name: 'Fechar' }).click({ timeout: 8000 })
+  }
+}
+
+export async function travarProducao(page: Page, justificativa: string) {
+  await page.getByRole('button', { name: 'Travar', exact: true }).click()
+  await page.getByPlaceholder('Descreva o motivo da trava...').fill(justificativa)
+  await page.getByRole('button', { name: 'Confirmar trava' }).click()
+}
+
+export async function retomarProducao(page: Page, opcoes?: { dividirMesmoAssim?: boolean }) {
+  await page.getByRole('button', { name: 'Retomar', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirmar retomada' }).click()
+  if (opcoes?.dividirMesmoAssim) {
+    const dividirBtn = page.getByRole('button', { name: 'Dividir mesmo assim' })
+    await expect(dividirBtn).toBeVisible({ timeout: 5000 })
+    await dividirBtn.click()
   }
 }
