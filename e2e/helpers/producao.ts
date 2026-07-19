@@ -324,6 +324,67 @@ export async function moverParaStatus(
  *    Mirar perto do canto superior-esquerdo do container (colBox.x+40, colBox.y+40) evita o
  *    problema de forma confiável.
  */
+// ---------------------------------------------------------------------------
+// P-QA-005 (#126, #122) — validação de estoque no orçamento e agrupamento de produções
+// ---------------------------------------------------------------------------
+
+/** Produto tipo PRODUTO com estoqueAtual definido diretamente (ProdutoRequest aceita o campo — ProdutoRequest.java:37). */
+export async function criarProdutoComEstoque(
+  request: APIRequestContext,
+  token: string,
+  nome: string,
+  estoqueAtual: number
+) {
+  const res = await request.post(`${API_URL}/produtos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      nome,
+      tipo: 'PRODUTO',
+      tempoProducao: 10,
+      estoqueAtual,
+      fichaTecnica: [],
+    },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produto com estoque de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
+export async function agruparProducoesViaApi(
+  request: APIRequestContext,
+  token: string,
+  data: {
+    producaoIds: string[]
+    estadoDestino: 'AGUARDANDO_INICIO' | 'EM_ANDAMENTO' | 'TRAVADA'
+    dataInicio?: string
+    dataTerminoPrevista?: string
+    justificativa: string
+    consumoRealPorProducao?: Record<string, { insumoId?: string; produtoBaseId?: string; quantidadeConsumida: number }[]>
+  }
+) {
+  return request.post(`${API_URL}/producoes/agrupar`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data,
+  })
+}
+
+/** Linha desktop (`ProducaoRow`, sm:grid) da lista de produção, escopada pelo identificador exato (PRD-N). */
+export function linhaProducaoDesktop(page: Page, identificador: string) {
+  return page.locator('div.sm\\:grid.cursor-pointer').filter({ has: page.getByText(identificador, { exact: true }) })
+}
+
+export async function ativarModoAgrupamento(page: Page) {
+  await page.getByRole('button', { name: 'Agrupar', exact: true }).click()
+}
+
+/** Assume modo de agrupamento já ativo. Clica no checkbox de seleção de cada PRD por identificador. */
+export async function selecionarParaAgrupar(page: Page, identificadores: string[]) {
+  for (const identificador of identificadores) {
+    await linhaProducaoDesktop(page, identificador).locator('button').click()
+  }
+}
+
 export async function arrastarCard(page: Page, identificador: string, colunaDestinoLabel: string) {
   const card = page.getByText(identificador, { exact: true })
   await expect(card).toBeVisible({ timeout: 5000 })
