@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest } from '../types/producao'
+import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse } from '../types/producao'
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
@@ -23,7 +23,7 @@ export const producaoService = {
     return response.data
   },
 
-  iniciar: async (id: string, body?: { dividir?: boolean }): Promise<ProducaoDetalhe> => {
+  iniciar: async (id: string, body?: { dividir?: boolean }): Promise<ProducaoDetalhe | DivisaoResponse> => {
     const response = await api.post(`/producoes/${id}/iniciar`, body ?? {})
     return response.data
   },
@@ -33,7 +33,7 @@ export const producaoService = {
     return response.data
   },
 
-  retomar: async (id: string, body?: { dividir?: boolean }): Promise<ProducaoDetalhe> => {
+  retomar: async (id: string, body?: { dividir?: boolean }): Promise<ProducaoDetalhe | DivisaoResponse> => {
     const response = await api.post(`/producoes/${id}/retomar`, body ?? {})
     return response.data
   },

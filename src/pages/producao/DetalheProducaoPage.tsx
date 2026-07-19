@@ -11,6 +11,12 @@ import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
 import type { ProducaoDetalhe, EstadoProducao } from '../../types/producao'
+import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
+import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
+import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
+import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
+
+type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar'
 
 const ESTADO_LABEL_SIMPLES: Record<string, string> = {
   AGUARDANDO_INICIO: 'Aguardando início',
@@ -53,6 +59,7 @@ export default function DetalheProducaoPage() {
   const [producao, setProducao] = useState<ProducaoDetalhe | null>(null)
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState(false)
+  const [modal, setModal] = useState<TipoModal | null>(null)
 
   const carregar = useCallback(() => {
     if (!id) return
@@ -66,6 +73,12 @@ export default function DetalheProducaoPage() {
   useEffect(() => { carregar() }, [carregar])
 
   const onStub = () => setToast('Em breve')
+  const fecharModal = () => setModal(null)
+  const handleSuccess = (mensagem: string) => {
+    setToast(mensagem)
+    setModal(null)
+    carregar()
+  }
 
   if (loading) {
     return (
@@ -89,17 +102,17 @@ export default function DetalheProducaoPage() {
 
   const botoesPorEstado: Record<EstadoProducao, { label: string; icon: React.ReactNode; variant: 'primary' | 'secondary' | 'ghost' | 'danger'; onClick: () => void }[]> = {
     AGUARDANDO_INICIO: [
-      { label: 'Iniciar', icon: <Play size={16} />, variant: 'primary', onClick: onStub },
+      { label: 'Iniciar', icon: <Play size={16} />, variant: 'primary', onClick: () => setModal('iniciar') },
       { label: 'Editar', icon: <Pencil size={16} />, variant: 'secondary', onClick: () => navigate(`/producao/${producao.id}/editar`) },
       { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: onStub },
     ],
     EM_ANDAMENTO: [
-      { label: 'Finalizar', icon: <CheckCircle2 size={16} />, variant: 'primary', onClick: onStub },
-      { label: 'Travar', icon: <PauseCircle size={16} />, variant: 'secondary', onClick: onStub },
+      { label: 'Finalizar', icon: <CheckCircle2 size={16} />, variant: 'primary', onClick: () => setModal('finalizar') },
+      { label: 'Travar', icon: <PauseCircle size={16} />, variant: 'secondary', onClick: () => setModal('travar') },
       { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: onStub },
     ],
     TRAVADA: [
-      { label: 'Retomar', icon: <RotateCcw size={16} />, variant: 'primary', onClick: onStub },
+      { label: 'Retomar', icon: <RotateCcw size={16} />, variant: 'primary', onClick: () => setModal('retomar') },
       { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: onStub },
     ],
     FINALIZADA: [],
@@ -303,6 +316,19 @@ export default function DetalheProducaoPage() {
         <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
           {toast}
         </div>
+      )}
+
+      {modal === 'iniciar' && (
+        <IniciarProducaoModal producaoId={producao.id} producao={producao} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal === 'travar' && (
+        <TravarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal === 'retomar' && (
+        <RetormarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal === 'finalizar' && (
+        <FinalizarProducaoModal producaoId={producao.id} producao={producao} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
     </AppLayout>
   )

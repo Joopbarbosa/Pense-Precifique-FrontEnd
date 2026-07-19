@@ -65,3 +65,13 @@ export interface CriarProducaoRequest {
   observacoes?: string
   produtos: { produtoId: string; quantidade: number }[]
 }
+
+export interface DivisaoResponse {
+  producaoOriginal: ProducaoDetalhe
+  producaoA: ProducaoDetalhe
+  producaoB: ProducaoDetalhe
+}
+
+export function isDivisaoResponse(x: ProducaoDetalhe | DivisaoResponse): x is DivisaoResponse {
+  return 'producaoOriginal' in x
+}

@@ -9,6 +9,12 @@ import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
 import type { ProducaoResumo, EstadoProducao } from '../../types/producao'
+import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
+import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
+import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
+import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
+
+type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar'
 
 const FILTERS: { label: string; value: EstadoProducao | '' }[] = [
   { label: 'Todos', value: '' },
@@ -43,24 +49,25 @@ function AlertaIcones({ producao }: { producao: ProducaoResumo }) {
 function menuItemsParaEstado(
   producao: ProducaoResumo,
   navigate: (path: string) => void,
-  onStub: () => void
+  onStub: () => void,
+  abrirModal: (tipo: TipoModal, producaoId: string) => void
 ): ActionMenuItem[] {
   switch (producao.estado) {
     case 'AGUARDANDO_INICIO':
       return [
-        { label: 'Iniciar', icon: <Play size={15} />, onClick: onStub },
+        { label: 'Iniciar', icon: <Play size={15} />, onClick: () => abrirModal('iniciar', producao.id) },
         { label: 'Editar', icon: <Pencil size={15} />, onClick: () => navigate(`/producao/${producao.id}/editar`) },
         { label: 'Cancelar', icon: <Ban size={15} />, onClick: onStub, danger: true, dividerBefore: true },
       ]
     case 'EM_ANDAMENTO':
       return [
-        { label: 'Travar', icon: <PauseCircle size={15} />, onClick: onStub },
-        { label: 'Finalizar', icon: <CheckCircle2 size={15} />, onClick: onStub },
+        { label: 'Travar', icon: <PauseCircle size={15} />, onClick: () => abrirModal('travar', producao.id) },
+        { label: 'Finalizar', icon: <CheckCircle2 size={15} />, onClick: () => abrirModal('finalizar', producao.id) },
         { label: 'Cancelar', icon: <Ban size={15} />, onClick: onStub, danger: true, dividerBefore: true },
       ]
     case 'TRAVADA':
       return [
-        { label: 'Retomar', icon: <RotateCcw size={15} />, onClick: onStub },
+        { label: 'Retomar', icon: <RotateCcw size={15} />, onClick: () => abrirModal('retomar', producao.id) },
         { label: 'Cancelar', icon: <Ban size={15} />, onClick: onStub, danger: true, dividerBefore: true },
       ]
     default:
@@ -68,14 +75,15 @@ function menuItemsParaEstado(
   }
 }
 
-function ProducaoRow({ producao, onVerDetalhes, onStub }: {
+function ProducaoRow({ producao, onVerDetalhes, onStub, abrirModal }: {
   producao: ProducaoResumo
   onVerDetalhes: () => void
   onStub: () => void
+  abrirModal: (tipo: TipoModal, producaoId: string) => void
 }) {
   const navigate = useNavigate()
   const badge = getBadgeEstado(producao.estado)
-  const menuItems = menuItemsParaEstado(producao, navigate, onStub)
+  const menuItems = menuItemsParaEstado(producao, navigate, onStub, abrirModal)
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
 
   return (
@@ -113,15 +121,16 @@ function ProducaoRow({ producao, onVerDetalhes, onStub }: {
   )
 }
 
-function ProducaoCard({ producao, index, onVerDetalhes, onStub }: {
+function ProducaoCard({ producao, index, onVerDetalhes, onStub, abrirModal }: {
   producao: ProducaoResumo
   index: number
   onVerDetalhes: () => void
   onStub: () => void
+  abrirModal: (tipo: TipoModal, producaoId: string) => void
 }) {
   const navigate = useNavigate()
   const badge = getBadgeEstado(producao.estado)
-  const menuItems = menuItemsParaEstado(producao, navigate, onStub)
+  const menuItems = menuItemsParaEstado(producao, navigate, onStub, abrirModal)
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
 
   return (
@@ -171,6 +180,7 @@ export default function ListaProducaoPage() {
   const [hasMore, setHasMore] = useState(false)
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [modal, setModal] = useState<{ tipo: TipoModal; producaoId: string } | null>(null)
 
   const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string) => {
     try {
@@ -210,6 +220,13 @@ export default function ListaProducaoPage() {
   }
 
   const onStub = () => setToast('Em breve')
+  const abrirModal = (tipo: TipoModal, producaoId: string) => setModal({ tipo, producaoId })
+  const fecharModal = () => setModal(null)
+  const handleSuccess = (mensagem: string) => {
+    setToast(mensagem)
+    setModal(null)
+    carregar(0, filtro, query)
+  }
 
   const searchActive = query.trim().length > 0
   const globalEmpty = !loading && producoes.length === 0 && filtro === '' && !searchActive
@@ -298,8 +315,8 @@ export default function ListaProducaoPage() {
 
                 {producoes.map((p, i) => (
                   <React.Fragment key={p.id}>
-                    <ProducaoRow producao={p} onVerDetalhes={() => navigate(`/producao/${p.id}`)} onStub={onStub} />
-                    <ProducaoCard producao={p} index={i} onVerDetalhes={() => navigate(`/producao/${p.id}`)} onStub={onStub} />
+                    <ProducaoRow producao={p} onVerDetalhes={() => navigate(`/producao/${p.id}`)} onStub={onStub} abrirModal={abrirModal} />
+                    <ProducaoCard producao={p} index={i} onVerDetalhes={() => navigate(`/producao/${p.id}`)} onStub={onStub} abrirModal={abrirModal} />
                   </React.Fragment>
                 ))}
               </div>
@@ -330,6 +347,19 @@ export default function ListaProducaoPage() {
         <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
           {toast}
         </div>
+      )}
+
+      {modal?.tipo === 'iniciar' && (
+        <IniciarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal?.tipo === 'travar' && (
+        <TravarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal?.tipo === 'retomar' && (
+        <RetormarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal?.tipo === 'finalizar' && (
+        <FinalizarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
     </AppLayout>
   )
