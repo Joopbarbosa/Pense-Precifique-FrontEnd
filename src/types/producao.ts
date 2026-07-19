@@ -48,8 +48,12 @@ export interface ProducaoDetalhe extends ProducaoResumo {
   tipoOrigem: string | null
   insumosConsumidos: {
     insumoId: string | null
-    produtoBaseId: string | null
+    nomeInsumo: string | null
+    marca: string | null
+    unidadeMedida: string | null
     quantidade: number
+    estoqueAntes: number | null
+    estoqueInsuficiente: boolean
   }[]
   historicoStatus: HistoricoStatus[]
   producoesFilhas: { id: string; identificador: string; estado: EstadoProducao }[]
