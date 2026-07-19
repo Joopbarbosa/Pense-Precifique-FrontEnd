@@ -22,7 +22,10 @@ import ListaCatalogosPage from '../pages/catalogos/ListaCatalogosPage'
 import NovoCatalogoPage from '../pages/catalogos/NovoCatalogoPage'
 import NovoItemCatalogoPage from '../pages/catalogos/NovoItemCatalogoPage'
 import DetalheCatalogoPage from '../pages/catalogos/DetalheCatalogoPage'
-import RegistroProducaoPage from '../pages/producao/RegistroProducaoPage'
+import ListaProducaoPage from '../pages/producao/ListaProducaoPage'
+import NovaProducaoPage from '../pages/producao/NovaProducaoPage'
+import EditarProducaoPage from '../pages/producao/EditarProducaoPage'
+import DetalheProducaoPage from '../pages/producao/DetalheProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 
 export const router = createBrowserRouter([
@@ -63,8 +66,10 @@ export const router = createBrowserRouter([
       { path: '/catalogos/itens/novo', element: <NovoItemCatalogoPage /> },
       { path: '/catalogos/:id',        element: <DetalheCatalogoPage /> },
 
-      { path: '/producao',             element: <RegistroProducaoPage /> },
-      { path: '/producao/:id',         element: <RegistroProducaoPage /> },
+      { path: '/producao',             element: <ListaProducaoPage /> },
+      { path: '/producao/nova',        element: <NovaProducaoPage /> },
+      { path: '/producao/:id/editar',  element: <EditarProducaoPage /> },
+      { path: '/producao/:id',         element: <DetalheProducaoPage /> },
 
       { path: '/configuracoes',        element: <ConfiguracoesPage /> },
     ],
