@@ -233,3 +233,126 @@ export async function criarProducaoEmAndamentoComConsumo(
       .map(ic => ({ insumoId: ic.insumoId, produtoBaseId: ic.produtoBaseId ?? null, quantidadeOriginal: ic.quantidade })),
   }
 }
+
+// ---------------------------------------------------------------------------
+// P-QA-004 (#122-#125) — lista / kanban / detalhe
+// ---------------------------------------------------------------------------
+
+export async function retomarProducaoViaApi(request: APIRequestContext, token: string, id: string, dividir?: boolean) {
+  return request.post(`${API_URL}/producoes/${id}/retomar`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: dividir === undefined ? {} : { dividir },
+  })
+}
+
+/** Cria N produções via Promise.all, todas com o mesmo produto — usado nos cenários 177/178 (paginação). */
+/**
+ * Achado de homologação (não ligado a um cenário específico, descoberto durante a massa de
+ * dados de 177/178): POST /producoes com `Promise.all` (concorrente) falha com 500 —
+ * `duplicate key value violates unique constraint "uq_producao_usuario_numero"`
+ * (`ConstraintViolationException`, Postgres). O número sequencial do identificador PRD-N não é
+ * atribuído atomicamente (parece ler o próximo número e só then inserir, sem lock/sequence do
+ * banco), então requisições concorrentes colidem no mesmo número. Criar em sequência (não em
+ * paralelo) evita o problema — é uma limitação real do backend, não um requisito dos cenários
+ * 177/178 (que testam paginação, não criação concorrente), por isso a massa de dados usa este
+ * caminho sequencial em vez de Promise.all.
+ */
+export async function criarProducoesEmLote(
+  request: APIRequestContext,
+  token: string,
+  produtoId: string,
+  n: number,
+  dataTerminoPrevista = amanha()
+) {
+  const criadas = []
+  for (let i = 0; i < n; i++) {
+    criadas.push(await criarProducaoViaApi(request, token, [{ produtoId, quantidade: 1 }], dataTerminoPrevista))
+  }
+  return criadas
+}
+
+/**
+ * Encadeia as chamadas de API necessárias para levar uma produção recém-criada
+ * (AGUARDANDO_INICIO) até o status alvo. Cobre os caminhos "naturais" usados nos cenários
+ * 180/185/188 — não cobre NAO_REALIZADA (só alcançável via divisão, ver Cenário 161/187) nem
+ * CANCELADA com consumo parcial (ver criarProducaoEmAndamentoComConsumo + cancelar direto).
+ */
+export async function moverParaStatus(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  statusDestino: 'AGUARDANDO_INICIO' | 'EM_ANDAMENTO' | 'TRAVADA' | 'FINALIZADA' | 'CANCELADA'
+) {
+  if (statusDestino === 'AGUARDANDO_INICIO') return buscarProducao(request, token, id)
+
+  const iniciada = await iniciarProducaoViaApi(request, token, id)
+  if (!iniciada.ok()) throw new Error(`moverParaStatus: falha ao iniciar: ${iniciada.status()} ${await iniciada.text()}`)
+  if (statusDestino === 'EM_ANDAMENTO') return iniciada.json()
+
+  const travada = await travarProducaoViaApi(request, token, id, 'Trava manual — setup de teste para atingir o status alvo (moverParaStatus).')
+  if (statusDestino === 'TRAVADA') return travada
+
+  if (statusDestino === 'FINALIZADA') {
+    throw new Error('moverParaStatus: FINALIZADA exige retomar antes de finalizar — chame retomarProducaoViaApi e finalizarProducaoViaApi separadamente após TRAVADA.')
+  }
+  if (statusDestino === 'CANCELADA') {
+    const res = await request.post(`${API_URL}/producoes/${id}/cancelar`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { justificativa: 'Cancelamento — setup de teste para atingir o status alvo (moverParaStatus).', consumoReal: [] },
+    })
+    if (!res.ok()) throw new Error(`moverParaStatus: falha ao cancelar: ${res.status()} ${await res.text()}`)
+    return res.json()
+  }
+  throw new Error(`moverParaStatus: destino não suportado: ${statusDestino}`)
+}
+
+/**
+ * Simula um drag-and-drop de card no KanbanBoard (@dnd-kit/core, PointerSensor com
+ * activationConstraint distance:6, sem KeyboardSensor configurado). `page.dragAndDrop()` nativo
+ * e a simulação via teclado NÃO funcionam aqui (ver relatório da P-QA-004) — a única abordagem
+ * que efetivamente aciona o dnd-kit é uma sequência manual de mouse down/move/up com um pequeno
+ * "jiggle" inicial (supera o activationConstraint) e vários passos intermediários (dnd-kit
+ * recalcula colisão a cada pointermove).
+ *
+ * Duas armadilhas de geometria descobertas empiricamente (ver relatório da P-QA-004):
+ * 1. O alvo real do drop é o container droppable (`div.overflow-y-auto`, `ref={setNodeRef}` em
+ *    `KanbanColumnView`), IRMÃO do header (`div.rounded-t-card`) — não o próprio header.
+ * 2. Mirar no CENTRO exato do container droppable da última coluna (a mais à direita) faz o
+ *    dnd-kit perder a detecção de colisão bem no passo final (`aria-live` reporta "is no longer
+ *    over a droppable area" mesmo com o card geometricamente sobre a coluna) — reproduzido de
+ *    forma consistente em qualquer largura de viewport testada, então não é recorte de tela.
+ *    Mirar perto do canto superior-esquerdo do container (colBox.x+40, colBox.y+40) evita o
+ *    problema de forma confiável.
+ */
+export async function arrastarCard(page: Page, identificador: string, colunaDestinoLabel: string) {
+  const card = page.getByText(identificador, { exact: true })
+  await expect(card).toBeVisible({ timeout: 5000 })
+  const cardBox = await card.boundingBox()
+  if (!cardBox) throw new Error(`arrastarCard: bounding box não encontrado para card ${identificador}`)
+
+  const droppable = page.locator('div.rounded-t-card', { hasText: colunaDestinoLabel }).first().locator('xpath=following-sibling::div[1]')
+  await expect(droppable).toBeVisible({ timeout: 5000 })
+  const colBox = await droppable.boundingBox()
+  if (!colBox) throw new Error(`arrastarCard: bounding box não encontrado para coluna ${colunaDestinoLabel}`)
+
+  const startX = cardBox.x + cardBox.width / 2
+  const startY = cardBox.y + cardBox.height / 2
+  const endX = colBox.x + 40
+  const endY = colBox.y + 40
+
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.waitForTimeout(150)
+  await page.mouse.move(startX + 10, startY + 10) // jiggle — supera activationConstraint distance:6
+  await page.waitForTimeout(150)
+
+  const steps = 40
+  for (let i = 1; i <= steps; i++) {
+    const x = startX + ((endX - startX) * i) / steps
+    const y = startY + ((endY - startY) * i) / steps
+    await page.mouse.move(x, y)
+    await page.waitForTimeout(50)
+  }
+  await page.waitForTimeout(400)
+  await page.mouse.up()
+}
