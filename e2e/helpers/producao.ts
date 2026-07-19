@@ -196,3 +196,40 @@ export async function retomarProducao(page: Page, opcoes?: { dividirMesmoAssim?:
     await dividirBtn.click()
   }
 }
+
+// ---------------------------------------------------------------------------
+// P-QA-003 (#120-#121) — finalizar / cancelar com consumo real
+// ---------------------------------------------------------------------------
+
+export async function finalizarProducaoViaApi(request: APIRequestContext, token: string, id: string) {
+  const res = await request.post(`${API_URL}/producoes/${id}/finalizar`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao finalizar produção via API: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
+export async function finalizarProducao(page: Page) {
+  await page.getByRole('button', { name: 'Finalizar', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirmar finalização' }).click()
+}
+
+/**
+ * Composto de setup: cria produção + inicia via API (deduz estoque), devolve o id e o
+ * insumosConsumidos original (quantidade baixada por insumo/produtoBase) — usado nos cenários
+ * 172-176 (P-QA-003) para comparar consumo declarado vs. original.
+ */
+export async function criarProducaoEmAndamentoComConsumo(
+  request: APIRequestContext,
+  token: string,
+  produtos: { produtoId: string; quantidade: number }[]
+) {
+  const iniciada = await criarProducaoEmAndamento(request, token, produtos)
+  return {
+    producaoId: iniciada.id as string,
+    insumosConsumidos: (iniciada.insumosConsumidos as { insumoId: string | null; produtoBaseId?: string | null; quantidade: number }[])
+      .map(ic => ({ insumoId: ic.insumoId, produtoBaseId: ic.produtoBaseId ?? null, quantidadeOriginal: ic.quantidade })),
+  }
+}
