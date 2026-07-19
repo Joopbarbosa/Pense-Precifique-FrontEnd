@@ -55,6 +55,7 @@ export interface ProducaoDetalhe extends ProducaoResumo {
     quantidade: number
     estoqueAntes: number | null
     estoqueInsuficiente: boolean
+    fracionavel: boolean | null
   }[]
   historicoStatus: HistoricoStatus[]
   producoesFilhas: { id: string; identificador: string; estado: EstadoProducao }[]

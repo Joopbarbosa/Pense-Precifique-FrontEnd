@@ -7,13 +7,12 @@ export function chaveConsumo(item: ProducaoDetalhe['insumosConsumidos'][number])
 
 interface Props {
   insumosConsumidos: ProducaoDetalhe['insumosConsumidos']
-  fracionaveis: Record<string, boolean>
   valores: Record<string, number>
   onChange: (chave: string, valor: number) => void
   titulo?: string
 }
 
-export default function ConsumoRealSection({ insumosConsumidos, fracionaveis, valores, onChange, titulo }: Props) {
+export default function ConsumoRealSection({ insumosConsumidos, valores, onChange, titulo }: Props) {
   if (insumosConsumidos.length === 0) return null
 
   return (
@@ -25,7 +24,7 @@ export default function ConsumoRealSection({ insumosConsumidos, fracionaveis, va
       )}
       {insumosConsumidos.map((item, i) => {
         const chave = chaveConsumo(item)
-        const fracionavel = fracionaveis[chave] ?? true
+        const fracionavel = item.fracionavel ?? true
         const valor = valores[chave] ?? item.quantidade
         return (
           <div key={chave || i} className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3">

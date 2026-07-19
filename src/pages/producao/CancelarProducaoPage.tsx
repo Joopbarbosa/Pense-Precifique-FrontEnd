@@ -5,7 +5,6 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner } from '../../components/ui'
 import { Ban, StickyNote } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
-import { useFracionaveisInsumos } from '../../hooks/useFracionaveisInsumos'
 import ConsumoRealSection, { chaveConsumo } from '../../components/producao/ConsumoRealSection'
 import type { ProducaoDetalhe, ConsumoRealItem } from '../../types/producao'
 
@@ -35,9 +34,6 @@ export default function CancelarProducaoPage() {
       navigate(`/producao/${producao.id}`, { replace: true })
     }
   }, [carregando, producao, navigate])
-
-  const insumoIds = (producao?.insumosConsumidos ?? []).map(chaveConsumo).filter(Boolean)
-  const { fracionaveis } = useFracionaveisInsumos(insumoIds)
 
   const len = justificativa.length
   const valido = len >= MIN_CHARS
@@ -113,7 +109,6 @@ export default function CancelarProducaoPage() {
             </p>
             <ConsumoRealSection
               insumosConsumidos={producao.insumosConsumidos}
-              fracionaveis={fracionaveis}
               valores={valores}
               onChange={(chave, valor) => setValores(v => ({ ...v, [chave]: valor }))}
             />

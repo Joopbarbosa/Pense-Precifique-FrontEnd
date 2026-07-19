@@ -6,7 +6,6 @@ import { Spinner } from '../ui'
 import { Layers, Calendar, StickyNote } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
-import { useFracionaveisInsumos } from '../../hooks/useFracionaveisInsumos'
 import ConsumoRealSection, { chaveConsumo } from './ConsumoRealSection'
 import type { ProducaoResumo, ProducaoDetalhe, EstadoProducao, ConsumoRealItem } from '../../types/producao'
 
@@ -49,9 +48,6 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
       .finally(() => setCarregandoDetalhes(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const insumoIds = Object.values(detalhes).flatMap(d => d.insumosConsumidos.map(chaveConsumo)).filter(Boolean)
-  const { fracionaveis } = useFracionaveisInsumos(insumoIds)
 
   const len = justificativa.length
   const valido = len >= MIN_CHARS
@@ -191,7 +187,6 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
                     key={p.id}
                     titulo={p.identificador}
                     insumosConsumidos={detalhe.insumosConsumidos}
-                    fracionaveis={fracionaveis}
                     valores={Object.fromEntries(
                       detalhe.insumosConsumidos.map(item => {
                         const chaveLocal = chaveConsumo(item)
