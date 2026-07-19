@@ -48,6 +48,7 @@ export interface ProducaoDetalhe extends ProducaoResumo {
   tipoOrigem: string | null
   insumosConsumidos: {
     insumoId: string | null
+    produtoBaseId?: string | null
     nomeInsumo: string | null
     marca: string | null
     unidadeMedida: string | null
@@ -70,6 +71,31 @@ export interface DivisaoResponse {
   producaoOriginal: ProducaoDetalhe
   producaoA: ProducaoDetalhe
   producaoB: ProducaoDetalhe
+}
+
+export interface ConsumoRealItem {
+  insumoId?: string
+  produtoBaseId?: string
+  quantidadeConsumida: number
+}
+
+export interface CancelarProducaoRequest {
+  justificativa: string
+  consumoReal?: ConsumoRealItem[]
+}
+
+export interface AgruparProducoesRequest {
+  producaoIds: string[]
+  estadoDestino: string
+  dataInicio?: string
+  dataTerminoPrevista?: string
+  justificativa: string
+  consumoRealPorProducao?: Record<string, ConsumoRealItem[]>
+}
+
+export interface AgruparResponse {
+  producaoNova: ProducaoDetalhe
+  producoesOriginais: ProducaoDetalhe[]
 }
 
 export function isDivisaoResponse(x: ProducaoDetalhe | DivisaoResponse): x is DivisaoResponse {

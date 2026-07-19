@@ -26,6 +26,7 @@ import ListaProducaoPage from '../pages/producao/ListaProducaoPage'
 import NovaProducaoPage from '../pages/producao/NovaProducaoPage'
 import EditarProducaoPage from '../pages/producao/EditarProducaoPage'
 import DetalheProducaoPage from '../pages/producao/DetalheProducaoPage'
+import CancelarProducaoPage from '../pages/producao/CancelarProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 
 export const router = createBrowserRouter([
@@ -68,8 +69,9 @@ export const router = createBrowserRouter([
 
       { path: '/producao',             element: <ListaProducaoPage /> },
       { path: '/producao/nova',        element: <NovaProducaoPage /> },
-      { path: '/producao/:id/editar',  element: <EditarProducaoPage /> },
-      { path: '/producao/:id',         element: <DetalheProducaoPage /> },
+      { path: '/producao/:id/editar',    element: <EditarProducaoPage /> },
+      { path: '/producao/:id/cancelar',  element: <CancelarProducaoPage /> },
+      { path: '/producao/:id',           element: <DetalheProducaoPage /> },
 
       { path: '/configuracoes',        element: <ConfiguracoesPage /> },
     ],

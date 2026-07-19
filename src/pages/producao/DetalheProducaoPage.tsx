@@ -15,8 +15,9 @@ import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
+import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 
-type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar'
+type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 
 const ESTADO_LABEL_SIMPLES: Record<string, string> = {
   AGUARDANDO_INICIO: 'Aguardando início',
@@ -72,12 +73,20 @@ export default function DetalheProducaoPage() {
 
   useEffect(() => { carregar() }, [carregar])
 
-  const onStub = () => setToast('Em breve')
   const fecharModal = () => setModal(null)
   const handleSuccess = (mensagem: string) => {
     setToast(mensagem)
     setModal(null)
     carregar()
+  }
+
+  const handleCancelar = () => {
+    if (!producao) return
+    if (producao.estado === 'AGUARDANDO_INICIO') {
+      setModal('cancelar')
+    } else {
+      navigate(`/producao/${producao.id}/cancelar`)
+    }
   }
 
   if (loading) {
@@ -104,16 +113,16 @@ export default function DetalheProducaoPage() {
     AGUARDANDO_INICIO: [
       { label: 'Iniciar', icon: <Play size={16} />, variant: 'primary', onClick: () => setModal('iniciar') },
       { label: 'Editar', icon: <Pencil size={16} />, variant: 'secondary', onClick: () => navigate(`/producao/${producao.id}/editar`) },
-      { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: onStub },
+      { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: handleCancelar },
     ],
     EM_ANDAMENTO: [
       { label: 'Finalizar', icon: <CheckCircle2 size={16} />, variant: 'primary', onClick: () => setModal('finalizar') },
       { label: 'Travar', icon: <PauseCircle size={16} />, variant: 'secondary', onClick: () => setModal('travar') },
-      { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: onStub },
+      { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: handleCancelar },
     ],
     TRAVADA: [
       { label: 'Retomar', icon: <RotateCcw size={16} />, variant: 'primary', onClick: () => setModal('retomar') },
-      { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: onStub },
+      { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: handleCancelar },
     ],
     FINALIZADA: [],
     CANCELADA: [],
@@ -329,6 +338,9 @@ export default function DetalheProducaoPage() {
       )}
       {modal === 'finalizar' && (
         <FinalizarProducaoModal producaoId={producao.id} producao={producao} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal === 'cancelar' && (
+        <CancelarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
     </AppLayout>
   )

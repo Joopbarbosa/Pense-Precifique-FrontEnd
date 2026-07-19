@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse } from '../types/producao'
+import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse } from '../types/producao'
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
@@ -43,19 +43,12 @@ export const producaoService = {
     return response.data
   },
 
-  cancelar: async (id: string, data: { justificativa: string; consumoReal?: { insumoId?: string; produtoBaseId?: string; quantidadeConsumida: number }[] }): Promise<ProducaoDetalhe> => {
+  cancelar: async (id: string, data: CancelarProducaoRequest): Promise<ProducaoDetalhe> => {
     const response = await api.post(`/producoes/${id}/cancelar`, data)
     return response.data
   },
 
-  agrupar: async (data: {
-    producaoIds: string[]
-    estadoDestino: string
-    dataInicio?: string
-    dataTerminoPrevista?: string
-    justificativa: string
-    consumoRealPorProducao?: Record<string, { insumoId?: string; produtoBaseId?: string; quantidadeConsumida: number }[]>
-  }): Promise<ProducaoDetalhe> => {
+  agrupar: async (data: AgruparProducoesRequest): Promise<AgruparResponse> => {
     const response = await api.post('/producoes/agrupar', data)
     return response.data
   },

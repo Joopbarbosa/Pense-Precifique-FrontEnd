@@ -1,0 +1,78 @@
+import { useState } from 'react'
+import clsx from 'clsx'
+import ModalShell from '../ui/ModalShell'
+import Button from '../ui/Button'
+import { Ban, AlertCircle } from 'lucide-react'
+import { producaoService } from '../../services/producaoService'
+
+interface Props {
+  producaoId: string
+  onClose: () => void
+  onSuccess: (mensagem: string) => void
+}
+
+const MIN_CHARS = 30
+
+export default function CancelarProducaoModal({ producaoId, onClose, onSuccess }: Props) {
+  const [justificativa, setJustificativa] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  const len = justificativa.length
+  const valido = len >= MIN_CHARS
+
+  const handleConfirmar = async () => {
+    if (!valido) return
+    setSalvando(true)
+    setErro(null)
+    try {
+      await producaoService.cancelar(producaoId, { justificativa })
+      onSuccess('Produção cancelada')
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao cancelar produção.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Cancelar produção"
+      icon={<Ban size={18} />}
+      iconBg="#FCF0EC"
+      iconColor="#C0492B"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+          <Button variant="danger" disabled={!valido || salvando} onClick={handleConfirmar}>
+            {salvando ? 'Cancelando...' : 'Confirmar cancelamento'}
+          </Button>
+        </>
+      }
+    >
+      <p className="m-0 mb-4 text-[13.5px] leading-[1.55] text-body">Esta ação não pode ser desfeita.</p>
+      <label className="block">
+        <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
+          <span>Justificativa <span className="text-orange">*</span></span>
+          <span className={clsx('font-normal', valido ? 'text-[#3E9D5A]' : 'text-muted')}>
+            {len}/{MIN_CHARS} mín.
+          </span>
+        </span>
+        <textarea
+          value={justificativa}
+          onChange={e => setJustificativa(e.target.value)}
+          rows={4}
+          placeholder="Descreva o motivo do cancelamento..."
+          className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+        />
+      </label>
+      {erro && (
+        <div className="mt-2 flex items-center gap-[5px] text-[13px] text-danger">
+          <AlertCircle size={13} /> {erro}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
