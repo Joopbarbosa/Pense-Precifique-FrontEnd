@@ -112,7 +112,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   }, [])
 
   const qtdNum = parseFloat((qtd || '0').replace(/\./g, '').replace(',', '.')) || 0
-  const podeRegistrar = qtdNum > 0 && obs.trim().length >= 50 && !salvando
+  const podeRegistrar = qtdNum > 0 && obs.trim().length >= 30 && !salvando
 
   const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
 
@@ -207,8 +207,8 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
           <label>
             <span className="mb-[7px] block text-[13px] font-semibold text-body">
               Observação <span className="text-orange">*</span>
-              <span className={clsx('ml-2 font-normal', obs.length >= 50 ? 'text-[#3E9D5A]' : 'text-muted')}>
-                {obs.length}/50 caracteres mín.
+              <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-[#3E9D5A]' : 'text-muted')}>
+                {obs.length}/30 caracteres mín.
               </span>
             </span>
             <textarea
@@ -218,14 +218,14 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
               rows={3}
               className={clsx(
                 'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-                obs.length > 0 && obs.length < 50
+                obs.length > 0 && obs.length < 30
                   ? 'border-[#F2B8A6]'
                   : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
               )}
             />
-            {obs.length > 0 && obs.length < 50 && (
+            {obs.length > 0 && obs.length < 30 && (
               <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
+                <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
               </div>
             )}
           </label>
