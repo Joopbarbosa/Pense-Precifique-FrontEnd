@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, ModalShell } from '../../components/ui'
 import {
-  Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle,
+  Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
   Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus,
 } from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
@@ -14,7 +14,7 @@ import { catalogoService } from '../../services/catalogoService'
 import { empresaService } from '../../services/empresaService'
 import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
-import type { OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse } from '../../types/orcamento'
+import type { OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse, AvisoEstoque } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
 import { METODOS_PAGAMENTO } from '../../constants'
 
@@ -1055,6 +1055,7 @@ export default function CriarOrcamentoPage() {
   const [catalogoFiltro, setCatalogoFiltro] = useState('')
   const [margemPadrao, setMargemPadrao] = useState(0)
   const [produtoAvulsoModal, setProdutoAvulsoModal] = useState<ProdutoResponse | null>(null)
+  const [avisoEstoque, setAvisoEstoque] = useState<{ orcamentoId: string; avisos: AvisoEstoque[] } | null>(null)
   const prodRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1169,7 +1170,11 @@ export default function CriarOrcamentoPage() {
     setLoading(true)
     try {
       const result = await orcamentoService.criar(payload)
-      navigate(`/orcamentos/${result.id}`)
+      if (result.avisosEstoque && result.avisosEstoque.length > 0) {
+        setAvisoEstoque({ orcamentoId: result.id, avisos: result.avisosEstoque })
+      } else {
+        navigate(`/orcamentos/${result.id}`)
+      }
     } catch (err) {
       console.error('Erro ao criar orçamento:', err)
       alert('Erro ao criar orçamento')
@@ -1179,6 +1184,35 @@ export default function CriarOrcamentoPage() {
   }
 
   const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
+
+  if (avisoEstoque) {
+    return (
+      <AppLayout active="orcamentos">
+        <div className="mx-auto max-w-[640px] rounded-card border border-orange/30 bg-orange/[0.06] p-8 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <span className="mb-3.5 inline-grid h-14 w-14 place-items-center rounded-full bg-orange/[0.14] text-[#A35A26]">
+            <AlertTriangle size={22} />
+          </span>
+          <div className="text-[16px] font-bold text-dark">Orçamento criado com aviso de estoque</div>
+          <p className="mb-0 mt-1.5 text-[13.5px] text-muted">
+            Alguns produtos deste orçamento podem não ter estoque suficiente no momento da produção:
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            {avisoEstoque.avisos.map((a, i) => (
+              <div key={i} className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-white px-3.5 py-3 text-[13.5px] text-[#A35A26]">
+                <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{a.mensagem}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5">
+            <Button variant="primary" onClick={() => navigate(`/orcamentos/${avisoEstoque.orcamentoId}`)}>
+              Ver orçamento
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout active="orcamentos">

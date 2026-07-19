@@ -78,6 +78,14 @@ export interface OrcamentoResponse {
   updatedAt: string;
 }
 
+export interface AvisoEstoque {
+  produtoId: string;
+  nomeProduto: string;
+  estoqueAtual: number;
+  quantidadeNecessaria: number;
+  mensagem: string;
+}
+
 export interface OrcamentoDetalheResponse {
   id: string;
   numero: number;
@@ -107,6 +115,7 @@ export interface OrcamentoDetalheResponse {
   itens: OrcamentoItemResponse[];
   createdAt: string;
   updatedAt: string;
+  avisosEstoque?: AvisoEstoque[];
 }
 
 export interface AvancaStatusRequest {

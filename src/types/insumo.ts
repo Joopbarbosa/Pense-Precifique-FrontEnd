@@ -38,8 +38,8 @@ export interface InsumoResponse {
 
 export interface BaixaManualInsumoRequest {
   quantidade: number
-  motivo: 'BAIXA_MANUAL'
-  observacao: string  // mín. 50 chars
+  motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO'
+  observacao: string  // mín. 30 chars
 }
 
 export interface MovimentacaoInsumoResponse {

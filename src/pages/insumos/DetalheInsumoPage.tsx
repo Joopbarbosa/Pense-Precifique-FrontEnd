@@ -5,7 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
-import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
+import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO } from '../../constants'
 
@@ -76,14 +76,15 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
   onSuccess: () => void
 }) {
   const [qtd, setQtd] = useState('')
-  const [motivo, setMotivo] = useState('Perda')
+  const [motivo, setMotivo] = useState<BaixaManualInsumoRequest['motivo']>('PERDA')
+  const [motivoLabel, setMotivoLabel] = useState('Perda')
   const [obs, setObs] = useState('')
   const [selOpen, setSelOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const selRef = useRef<HTMLDivElement>(null)
 
-  const podeRegistrar = qtd.trim() !== '' && parseFloat(qtd.replace(',', '.')) > 0 && obs.trim().length >= 50
+  const podeRegistrar = qtd.trim() !== '' && parseFloat(qtd.replace(',', '.')) > 0 && obs.trim().length >= 30
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -99,7 +100,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     try {
       await insumoService.baixaManual(insumoId, {
         quantidade: parseFloat(qtd.replace(',', '.')),
-        motivo: 'BAIXA_MANUAL',
+        motivo,
         observacao: obs.trim(),
       })
       onSuccess()
@@ -145,21 +146,21 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
                     selOpen && 'border-teal ring-4 ring-teal/[0.12]'
                   )}
                 >
-                  {motivo}<span className="flex text-muted"><ChevronDown size={16} /></span>
+                  {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
                 </button>
                 {selOpen && (
                   <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
                     {MOTIVOS_BAIXA_INSUMO.map(m => (
                       <button
-                        key={m}
+                        key={m.api}
                         type="button"
-                        onClick={() => { setMotivo(m); setSelOpen(false) }}
+                        onClick={() => { setMotivo(m.api as BaixaManualInsumoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
                         className={clsx(
                           'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          m === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
+                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
                         )}
                       >
-                        {m}
+                        {m.label}
                       </button>
                     ))}
                   </div>
@@ -170,8 +171,8 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
           <label>
             <span className="mb-[7px] block text-[13px] font-semibold text-body">
               Observação <span className="text-orange">*</span>
-              <span className={clsx('ml-2 font-normal', obs.length >= 50 ? 'text-[#3E9D5A]' : 'text-muted')}>
-                {obs.length}/50 caracteres mín.
+              <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-[#3E9D5A]' : 'text-muted')}>
+                {obs.length}/30 caracteres mín.
               </span>
             </span>
             <textarea
@@ -181,14 +182,14 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
               rows={3}
               className={clsx(
                 'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-                obs.length > 0 && obs.length < 50
+                obs.length > 0 && obs.length < 30
                   ? 'border-[#F2B8A6]'
                   : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
               )}
             />
-            {obs.length > 0 && obs.length < 50 && (
+            {obs.length > 0 && obs.length < 30 && (
               <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obs.length}.
+                <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
               </div>
             )}
           </label>
