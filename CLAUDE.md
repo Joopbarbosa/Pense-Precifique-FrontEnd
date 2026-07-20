@@ -1,9 +1,11 @@
 # Pense & Precifique — Front-End
 
-> **V0.5** — Lido automaticamente pelo Claude Code.
+> **V0.6** — Lido automaticamente pelo Claude Code.
 > Caminho: `/home/joaobarbosa/Documentos/Projetos/Pense & Precifique/pense-precifique-frontend`
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Atualizado em: 2026-07-17 — Pocket de fechamento V0.5: infra de testes E2E (Playwright) introduzida, aba Conta de Configurações conectada a `PUT /usuarios/me/senha` (#111), busca de Insumos migrada para server-side (#110), `BUG-BUSCA-ORCAMENTO` resolvido no backend (#93) e identificador de orçamento corrigido para `ORC-N` (sem cedilha).
+> Atualizado em: 2026-07-20 — Retomada de fechamento V0.6: ciclo de vida completo de Produção (Kanban, cancelar Fluxo A/B, agrupar, dividir), varredura de resíduos do fluxo antigo (nenhum encontrado — `RegistroProducaoPage` já não existe, substituída pelas telas abaixo; CLAUDE.md antigo ainda a citava, corrigido aqui), numeração de cenários E2E V0.6 (150–195) documentada com o offset para o doc oficial (168–213), bug de z-index no modal de Agrupar registrado.
+>
+> **Nota:** este épico foi desenvolvido inteiro na branch `feat/producao-criar-editar` (12 commits), ainda não mergeada em `main` no momento desta retomada — `main` local/remoto não tem nenhum dos componentes de Produção V0.6 (`KanbanBoard`, `ConsumoRealSection`, etc.). Decisão registrada em 2026-07-20: continuar trabalhando na branch, sem merge/push automático.
 
 ---
 
@@ -105,12 +107,29 @@ Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 | Lista Produtos | ListaProdutosPage | ✅ (identificador PRO-N desde V0.2D0) |
 | Cadastrar/Editar Produto | CadastrarProdutoPage | ✅ (única página, cobre os dois — ajustada no bloco Catálogo: sem foto, sem preço/margem exceto CUSTOMIZACAO, rendimento obrigatório, botão "Criar produto catálogo") |
 | Detalhe Produto | DetalheProdutoPage | ✅ (rendimento, custo, histórico com catálogo/preço vendido, PRO-N, desde V0.2D0) |
-| Registro Produção | RegistroProducaoPage | ✅ (XOR quantidade/lotes, modal de estoque negativo via API real, desde V0.2D0) |
+| Lista/Kanban Produção | ListaProducaoPage | ✅ (V0.6 — toggle lista/Kanban, busca por produto, seleção múltipla para agrupar) |
+| Nova Produção | NovaProducaoPage | ✅ (V0.6 — N produtos por produção, substituiu `RegistroProducaoPage` do v0/V0.2D0, que não existe mais) |
+| Editar Produção | EditarProducaoPage | ✅ (V0.6 — só `AGUARDANDO_INICIO`) |
+| Detalhe Produção | DetalheProducaoPage | ✅ (V0.6 — histórico de status, produções filhas, alertas de insumo) |
+| Cancelar Produção (Fluxo B) | CancelarProducaoPage | ✅ (V0.6 — `EM_ANDAMENTO`/`TRAVADA`, com `ConsumoRealSection`) |
 | Configurações | ConfiguracoesPage | ✅ (aba Conta conectada a `PUT /usuarios/me/senha` desde #111/V0.5 — validação client-side mínima antes da chamada, ver Padrões de UI) |
 | **Novo Catálogo** | **NovoCatalogoPage** | ✅ (V0.2D0) |
 | **Lista de Catálogos** | **ListaCatalogosPage** | ✅ (V0.2D0 — ActionMenu Editar/Duplicar/Ativar-Desativar vive aqui, não no Detalhe) |
 | **Detalhe do Catálogo** | **DetalheCatalogoPage** | ✅ (V0.2D0 — só visualização + lista de itens, sem ActionMenu) |
 | **Novo Item de Catálogo** | **NovoItemCatalogoPage** | ✅ (V0.2D0 — também usada para adicionar Produto avulso quando vem do modo "Tudo" do orçamento, RN-054) |
+
+---
+
+## Módulo de Produção (V0.6)
+
+Ciclo de vida completo (6 estados, ver backend `CLAUDE.md`) com lista + Kanban, cancelamento em dois fluxos, agrupamento e divisão. `producaoService.ts` cobre todos os endpoints (`listar`, `buscarPorId`, `criar`, `editar`, `iniciar`, `travar`, `retomar`, `finalizar`, `cancelar`, `agrupar`) — sem resíduo do endpoint antigo `/producoes/lote`.
+
+- **`<KanbanBoard>`** (`components/kanban/KanbanBoard.tsx`) é genérico, usado só por Produção hoje. Sensor de arraste é **só `PointerSensor`** (`activationConstraint: { distance: 6 }`) — sem `KeyboardSensor`, então arrastar card não é acessível por teclado (débito, ver OP). Em teste E2E, `page.dragTo()`/`click`+`force` não disparam os eventos de `dnd-kit` de forma confiável — usar sempre a sequência manual de mouse do helper `arrastarCard` (`e2e/helpers/producao.ts`), não recriar inline.
+- **`ConsumoRealSection`** (`components/producao/ConsumoRealSection.tsx`) é compartilhado entre `CancelarProducaoPage` (Fluxo B) e `AgruparProducoesModal` — mesma UI de declarar consumo real por item. Os inputs não têm `data-testid` (débito, seletores em teste usam label/placeholder).
+- **`CancelarProducaoModal` (Fluxo A, `AGUARDANDO_INICIO`) vs. `CancelarProducaoPage` (Fluxo B, `EM_ANDAMENTO`/`TRAVADA`)** não duplicam a montagem do payload — são fluxos genuinamente diferentes por design: o Modal só envia `{ justificativa }` (produção nunca baixou insumo), a Page monta `consumoReal` via `ConsumoRealSection`. A única repetição é o padrão trivial de validação `MIN_CHARS = 30`/`len`/`valido`, comum a todo formulário de justificativa do sistema — não é o mesmo débito.
+- **`reporEstoque` em E2E é sempre via `POST /lotes-compra`** (`e2e/helpers/insumo.ts`) — é o caminho real de entrada de estoque usado pelo `loteCompraService`; `PUT /insumos/{id}` ignora `estoqueAtual` no backend, então repor estoque com `PUT` silenciosamente não faz nada.
+- **Criação de produções em massa em teste E2E é sempre sequencial** (`for...of` com `await`), nunca `Promise.all` — o backend gera `numero` via `MAX+1` sem lock (`uq_producao_usuario_numero`); criação concorrente real do mesmo usuário pode colidir na constraint (ver backend `CLAUDE.md`, Race condition conhecida).
+- **Bug de UI conhecido — botão "Agrupar" fisicamente inacessível a clique de mouse:** `ModalShell` renderiza o rodapé do modal em `z-[110]`, mas a barra fixa de seleção "N selecionada(s) / Agrupar selecionadas" de `ListaProducaoPage.tsx:624` fica em `z-[150]` e **continua renderizada por baixo do `AgruparProducoesModal`** (só é desligada em `encerrarSelecao()`, chamada depois do sucesso, nunca ao abrir o modal). O botão "Agrupar" do modal fica coberto pela barra externa — um clique real de mouse nesse ponto da tela atinge a barra, não o modal; `force: true` não contorna (o hit-testing físico do navegador ainda aponta pro elemento de cima). Testes E2E usam `dispatchEvent('click')` no botão do modal para validar a lógica de negócio (não é uma correção do bug — ver comentário completo em `e2e/producao/agrupar-producoes.spec.ts:1-74`). **Bug real, bloqueia o fluxo de agrupamento para a usuária final** — não corrigido nesta varredura, ver OP.
 
 ---
 
@@ -166,10 +185,25 @@ e2e/
 ├── sidebar-overlay.spec.ts                    # cenário 161
 ├── configuracoes-toast.spec.ts                # cenário 162
 ├── insumo-busca-server-side.spec.ts          # cenários 163-164 (#110)
-└── configuracoes-alterar-senha.spec.ts       # cenários 165-167 (#111)
+├── configuracoes-alterar-senha.spec.ts       # cenários 165-167 (#111)
+├── producao/                                  # cenários 150-195 (V0.6, ver nota de numeração abaixo)
+│   ├── criar-producao.spec.ts                 # cenários 150-157 (Fluxo A)
+│   ├── editar-producao.spec.ts                # cenários 158-159 (Fluxo A.1)
+│   ├── iniciar-travar-retomar.spec.ts        # cenários 160-167 (Fluxo B)
+│   ├── finalizar-producao.spec.ts             # cenários 168-169 (Fluxo C)
+│   ├── cancelar-producao.spec.ts              # cenários 170-176 (Fluxo D)
+│   ├── lista-producao.spec.ts                 # cenários 177-180 (Fluxo E)
+│   ├── kanban-producao.spec.ts                # cenários 181-184 (Fluxo F)
+│   ├── detalhe-producao.spec.ts               # cenários 185-188 (Fluxo G)
+│   ├── agrupar-producoes.spec.ts              # cenários 191-195 (Fluxo I)
+│   └── smoke-tech-debt.spec.ts                # smoke #127/#148, sem número de cenário
+└── orcamento/
+    └── validacao-estoque.spec.ts              # cenários 189-190 (Fluxo H — aviso de estoque no orçamento, #126)
 ```
 
-Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `docs/SCENARIOS(2).md`). Numeração mais alta confirmada nos specs atuais: **167** — não referenciar "cenários 168+" sem antes conferir se novos specs foram criados (`grep -rn "Cenário" e2e/*.spec.ts`).
+Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `docs/SCENARIOS(2).md`). Numeração mais alta confirmada nos specs de fora de Produção: **167**.
+
+**Numeração V0.6 (Produção) — offset conhecido:** os specs em `e2e/producao/` usam **150–195** (numeração do momento em que foram escritos). O doc oficial de cenários (`docs/version/V0.6/SCENARIOS_EP-PRODUCAO_V0.6D0.md`) foi renumerado depois para **168–213** (offset **+18**) — confirmado por grep direto no doc (`Cenário 168 — Criar produção...`, `Cenário 213 — Datas da nova produção agrupada...`). Os specs **não foram renumerados** para acompanhar (débito, ver OP). **Ao criar um spec novo para Produção, seguir a numeração do doc oficial (168–213), não a dos specs existentes (150–195)** — e não presumir que o offset é constante em cenários intermediários sem conferir os dois lados.
 
 **Novos testes E2E sempre reutilizam os helpers de `e2e/helpers/`** — nunca recriar login/setup inline em um spec novo.
 
