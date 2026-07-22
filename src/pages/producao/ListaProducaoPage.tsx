@@ -25,8 +25,8 @@ type ViewMode = 'lista' | 'kanban'
 
 const KANBAN_COLUMNS_PRODUCAO: KanbanColumn[] = [
   { id: 'AGUARDANDO_INICIO', label: 'Aguardando início',           headerStyle: { background: '#fffbeb', borderColor: '#fde68a' } },
-  { id: 'EM_ANDAMENTO',      label: 'Em andamento',                headerStyle: { background: '#eff6ff', borderColor: '#bfdbfe' } },
   { id: 'TRAVADA',           label: 'Travada',                     headerStyle: { background: '#fef2f2', borderColor: '#fecaca' } },
+  { id: 'EM_ANDAMENTO',      label: 'Em andamento',                headerStyle: { background: '#eff6ff', borderColor: '#bfdbfe' } },
   { id: 'FINALIZADA',        label: 'Finalizada',                  headerStyle: { background: '#f0fdf4', borderColor: '#bbf7d0' } },
   { id: 'CANCELADA',         label: 'Cancelada / Não realizada',   headerStyle: { background: '#f8fafc', borderColor: '#e2e8f0' } },
 ]
@@ -424,8 +424,8 @@ export default function ListaProducaoPage() {
   const filtroEmpty = !loading && producoes.length === 0 && (filtro !== '' || searchActive)
 
   return (
-    <AppLayout active="producao">
-      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
+    <AppLayout active="producao" fullHeight={viewMode === 'kanban'}>
+      <div className="mb-[22px] flex flex-shrink-0 flex-wrap items-start justify-between gap-5">
         <div>
           <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Produções</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Acompanhe e gerencie o andamento das produções.</p>
@@ -579,8 +579,8 @@ export default function ListaProducaoPage() {
       ))}
 
       {viewMode === 'kanban' && (
-        <>
-          <div className="mb-[18px] max-w-[420px]">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-[18px] max-w-[420px] flex-shrink-0">
             <div className="relative">
               <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
                 <Search size={18} />
@@ -595,7 +595,7 @@ export default function ListaProducaoPage() {
           </div>
 
           {kanbanError && (
-            <div className="mb-[18px] rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-[18px] py-3.5 text-sm text-danger">
+            <div className="mb-[18px] flex-shrink-0 rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-[18px] py-3.5 text-sm text-danger">
               {kanbanError}
             </div>
           )}
@@ -605,17 +605,19 @@ export default function ListaProducaoPage() {
               Carregando…
             </div>
           ) : (
-            <KanbanBoard
-              columns={KANBAN_COLUMNS_PRODUCAO}
-              items={kanbanProducoes}
-              getItemColumn={p => getColumnId(p.estado)}
-              renderCard={(p, isDragging) => (
-                <ProducaoKanbanCard producao={p} isDragging={isDragging} onClick={() => navigate(`/producao/${p.id}`)} />
-              )}
-              onDrop={handleKanbanDrop}
-            />
+            <div className="min-h-0 flex-1">
+              <KanbanBoard
+                columns={KANBAN_COLUMNS_PRODUCAO}
+                items={kanbanProducoes}
+                getItemColumn={p => getColumnId(p.estado)}
+                renderCard={(p, isDragging) => (
+                  <ProducaoKanbanCard producao={p} isDragging={isDragging} onClick={() => navigate(`/producao/${p.id}`)} />
+                )}
+                onDrop={handleKanbanDrop}
+              />
+            </div>
           )}
-        </>
+        </div>
       )}
 
       {modoAgrupamento && (
