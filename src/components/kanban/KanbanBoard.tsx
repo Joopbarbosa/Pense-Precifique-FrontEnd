@@ -49,8 +49,7 @@ function KanbanColumnView<T extends { id: string }>({ column, items, renderCard 
       </div>
       <div
         ref={setNodeRef}
-        className={clsx('flex flex-1 flex-col gap-2.5 overflow-y-auto p-2.5 transition-colors duration-100', isOver && 'bg-teal/[0.05]')}
-        style={{ minHeight: 140, maxHeight: 'calc(100vh - 340px)' }}
+        className={clsx('flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-2.5 transition-colors duration-100', isOver && 'bg-teal/[0.05]')}
       >
         {items.map(item => (
           <KanbanCard key={item.id} item={item} renderCard={renderCard} />
@@ -90,9 +89,9 @@ export default function KanbanBoard<T extends { id: string }>({ columns, items, 
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex h-full flex-col">
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex items-start gap-4 overflow-x-auto pb-4">
+        <div className="flex h-full items-stretch gap-4 overflow-x-auto pb-4">
           {columns.map(column => (
             <KanbanColumnView
               key={column.id}
