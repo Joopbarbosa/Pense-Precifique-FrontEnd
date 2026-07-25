@@ -29,13 +29,20 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  *   CancelarProducaoPage.tsx:39, CancelarProducaoRequest.java `@Size(min=30)`), usada tanto para
  *   AGUARDANDO_INICIO quanto para EM_ANDAMENTO/TRAVADA com ou sem divergência.
  * - Componente de cancelamento por estado: `CancelarProducaoModal.tsx` (modal simples, só
- *   justificativa) para AGUARDANDO_INICIO; `CancelarProducaoPage.tsx` (página cheia, com
- *   `ConsumoRealSection`) para EM_ANDAMENTO/TRAVADA — roteado por `DetalheProducaoPage.tsx`
- *   (`handleCancelar`, linhas 83-90).
+ *   justificativa) para AGUARDANDO_INICIO; `CancelarProducaoConsumoModal.tsx` (modal com
+ *   `ConsumoRealSection`, mesmo `ModalShell`) para EM_ANDAMENTO/TRAVADA — roteado por
+ *   `DetalheProducaoPage.tsx` (`handleCancelar`). Botão de confirmação em ambos: "Confirmar
+ *   cancelamento" (ATUALIZADO em OpenProject #160 — antes `CancelarProducaoPage.tsx` era uma
+ *   página cheia própria, com botão "Cancelar produção" e navegação para
+ *   `/producao/:id/cancelar`; o cancelamento com consumo real agora abre por cima da tela atual,
+ *   sem navegar, e não navega para `/producao` ao confirmar — fecha o modal e recarrega a mesma
+ *   tela).
  * - `ConsumoRealSection.tsx` não tem nenhum `data-testid`. O input de consumo real é
- *   `<input type="number" min={0} max={item.quantidade} .../>` (linha 35-47) — sem rótulo
- *   associado (nenhum `<label>`/`aria-label`), então é localizado por proximidade ao nome do
- *   insumo no DOM, não por role/label.
+ *   `<input type="number" min={0} max={item.quantidade} .../>` — sem rótulo associado (nenhum
+ *   `<label>`/`aria-label`), então é localizado por proximidade ao nome do insumo no DOM, não por
+ *   role/label. O `max` do input é só uma dica visual do HTML — o `onChange` não clampa mais o
+ *   valor (ATUALIZADO em OpenProject #157: clamp silencioso trocado por deixar o valor inválido
+ *   seguir para o backend, que rejeita com 400 e mostra a mensagem inline).
  */
 
 function linhaConsumo(page: import('@playwright/test').Page, nomeInsumo: string) {
@@ -140,13 +147,13 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
     await login(page)
     await page.goto(`/producao/${producaoId}`)
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`/producao/${producaoId}/cancelar$`))
+    await expect(page.getByText('Cancelar produção')).toBeVisible()
 
     // Input já vem pré-preenchido com o valor original (default = item.quantidade) — não altera.
     await page.getByPlaceholder('Descreva o motivo do cancelamento...').fill('Cancelamento com consumo declarado igual ao original baixado.')
-    await page.getByRole('button', { name: 'Cancelar produção' }).click()
+    await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
 
-    await expect(page).toHaveURL(/\/producao$/, { timeout: 10_000 })
+    await expect(page.getByText('Cancelar produção')).toHaveCount(0, { timeout: 10_000 })
 
     console.log('PAYLOAD consumoReal (172 — consumo igual):', payloads[0])
     expect(payloads.length).toBe(1)
@@ -185,13 +192,13 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
     await login(page)
     await page.goto(`/producao/${producaoId}`)
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`/producao/${producaoId}/cancelar$`))
+    await expect(page.getByText('Cancelar produção')).toBeVisible()
 
     await linhaConsumo(page, nomeInsumo).locator('input[type="number"]').fill('30')
     await page.getByPlaceholder('Descreva o motivo do cancelamento...').fill('Cancelamento com consumo real parcial, divergente do original.')
-    await page.getByRole('button', { name: 'Cancelar produção' }).click()
+    await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
 
-    await expect(page).toHaveURL(/\/producao$/, { timeout: 10_000 })
+    await expect(page.getByText('Cancelar produção')).toHaveCount(0, { timeout: 10_000 })
 
     console.log('PAYLOAD consumoReal (173 — consumo parcial 30):', payloads[0])
     expect(payloads.length).toBe(1)
@@ -224,13 +231,13 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
     await login(page)
     await page.goto(`/producao/${producaoId}`)
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`/producao/${producaoId}/cancelar$`))
+    await expect(page.getByText('Cancelar produção')).toBeVisible()
 
     await linhaConsumo(page, nomeInsumo).locator('input[type="number"]').fill('0')
     await page.getByPlaceholder('Descreva o motivo do cancelamento...').fill('Cancelamento sem nenhum consumo real do insumo baixado.')
-    await page.getByRole('button', { name: 'Cancelar produção' }).click()
+    await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
 
-    await expect(page).toHaveURL(/\/producao$/, { timeout: 10_000 })
+    await expect(page.getByText('Cancelar produção')).toHaveCount(0, { timeout: 10_000 })
 
     console.log('PAYLOAD consumoReal (174 — consumo zero):', payloads[0])
     expect(payloads.length).toBe(1)
@@ -257,14 +264,14 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
     await login(page)
     await page.goto(`/producao/${producaoId}`)
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`/producao/${producaoId}/cancelar$`))
+    await expect(page.getByText('Cancelar produção')).toBeVisible()
 
     // Declara consumo divergente (30 de 50) mas deixa a justificativa vazia.
     await linhaConsumo(page, nomeInsumo).locator('input[type="number"]').fill('30')
 
     // Não existe campo de justificativa "de divergência" separado (ver nota no topo do arquivo) —
     // é o mesmo campo geral, então o bloqueio aqui vem da mesma regra dos Cenários 171/164/156.
-    await expect(page.getByRole('button', { name: 'Cancelar produção' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Confirmar cancelamento' })).toBeDisabled()
   })
 
   test('176 — declarar consumo maior que o original bloqueia com mensagem de valor inválido', async ({ page, request }) => {
@@ -283,19 +290,19 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
     await login(page)
     await page.goto(`/producao/${producaoId}`)
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`/producao/${producaoId}/cancelar$`))
+    await expect(page.getByText('Cancelar produção')).toBeVisible()
 
     const input = linhaConsumo(page, nomeInsumo).locator('input[type="number"]')
     await input.fill('60') // > 50 (original baixado)
+    await expect(input).toHaveValue('60') // OpenProject #157: não clampa mais para o máximo em silêncio
 
-    // Achado de homologação: o onChange de ConsumoRealSection.tsx:41-45 faz clamp silencioso
-    // (`Math.min(Math.max(raw, 0), item.quantidade)`) a cada tecla — o valor digitado "60" nunca
-    // fica no DOM; ele é imediatamente reescrito para "50" (o máximo permitido), sem nenhuma
-    // mensagem de erro. O backend rejeitaria quantidadeConsumida > original com BusinessException
-    // (ProducaoService.java:260-263, "não pode ser maior que a quantidade baixada originalmente"),
-    // mas esse caminho é estruturalmente inalcançável pela UI, já que o clamp acontece antes do
-    // envio. Asserção abaixo replica o Gherkin literalmente (mensagem de valor inválido) e deve
-    // falhar por esse motivo.
-    await expect(page.getByText(/valor inválido|não pode ser maior/i)).toBeVisible({ timeout: 3000 })
+    await page.getByPlaceholder('Descreva o motivo do cancelamento...').fill('Cancelamento com consumo real acima do baixado originalmente.')
+    await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
+
+    // Backend rejeita com 400 (ProducaoService, RN-072) e a mensagem aparece inline no modal —
+    // a produção permanece EM_ANDAMENTO, sem cancelar.
+    await expect(page.getByText(/não pode ser maior/i)).toBeVisible({ timeout: 5000 })
+    const producaoApi = await buscarProducao(request, token, producaoId)
+    expect(producaoApi.estado).toBe('EM_ANDAMENTO')
   })
 })
