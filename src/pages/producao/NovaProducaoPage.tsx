@@ -162,7 +162,7 @@ function AlertasInsumos({ alertas }: { alertas: AlertaInsumo[] }) {
 export default function NovaProducaoPage() {
   const navigate = useNavigate()
   const { toast, setToast } = useToast()
-  const [dataInicio, setDataInicio] = useState('')
+  const [dataInicio, setDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [produtos, setProdutos] = useState<ProdutoSelecionado[]>([])
@@ -181,6 +181,10 @@ export default function NovaProducaoPage() {
   }
 
   const handleSubmit = async () => {
+    if (!dataInicio) {
+      setToast('Informe a data de início.')
+      return
+    }
     if (!dataTerminoPrevista) {
       setToast('Informe a data de término prevista.')
       return
@@ -193,7 +197,7 @@ export default function NovaProducaoPage() {
     setLoading(true)
     try {
       const result = await producaoService.criar({
-        dataInicio: dataInicio || undefined,
+        dataInicio,
         dataTerminoPrevista,
         observacoes: observacoes || undefined,
         produtos: produtos.map(p => ({ produtoId: p.produtoId, quantidade: p.quantidade })),
@@ -244,7 +248,7 @@ export default function NovaProducaoPage() {
           <div className="flex flex-wrap gap-4 px-5 py-5">
             <label className="block flex-1">
               <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-                <Calendar size={16} className="text-teal" /> Data de início (opcional)
+                <Calendar size={16} className="text-teal" /> Data de início <span className="text-orange">*</span>
               </span>
               <input
                 type="date"
