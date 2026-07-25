@@ -40,8 +40,7 @@ export default function ConsumoRealSection({ insumosConsumidos, valores, onChang
               value={valor}
               onChange={e => {
                 const raw = parseFloat(e.target.value)
-                const clamped = isNaN(raw) ? 0 : Math.min(Math.max(raw, 0), item.quantidade)
-                onChange(chave, clamped)
+                onChange(chave, isNaN(raw) ? 0 : Math.max(raw, 0))
               }}
               className="h-11 w-[100px] flex-shrink-0 rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
             />
