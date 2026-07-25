@@ -56,6 +56,11 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const temBloqueio = producao.alertasInsumos.some(a => a.situacao === 'BLOQUEIO_FUTURO')
   const temAviso = producao.alertasInsumos.some(a => a.situacao === 'AVISO')
+  // CANCELADA e NAO_REALIZADA caem na mesma coluna do Kanban (getColumnId) — badge por card
+  // é o que diferencia as duas dentro da coluna compartilhada, com ou sem filtro ativo.
+  const precisaDistinguirEstado = producao.estado === 'CANCELADA' || producao.estado === 'NAO_REALIZADA'
+  const badge = precisaDistinguirEstado ? getBadgeEstado(producao.estado, producao.historicoStatus) : null
+
   return (
     <div
       onClick={onClick}
@@ -69,7 +74,17 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
         {(temBloqueio || temAviso) && <AlertTriangle size={14} className={temBloqueio ? 'text-danger' : 'text-[#C8721F]'} />}
       </div>
       <div className="line-clamp-2 text-[12.5px] leading-[1.4] text-body">{nomesProdutos}</div>
-      <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</span>
+        {badge && (
+          <span
+            className="inline-flex h-5 items-center whitespace-nowrap rounded-full px-2 text-[10.5px] font-semibold"
+            style={{ background: badge.bg, color: badge.fg }}
+          >
+            {badge.label}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -349,7 +364,7 @@ export default function ListaProducaoPage() {
   const carregarKanban = useCallback(async () => {
     setKanbanLoading(true)
     try {
-      const res = await producaoService.listar({ busca: query.trim() || undefined, page: 0, size: 100 })
+      const res = await producaoService.listar({ busca: query.trim() || undefined, estado: filtro || undefined, page: 0, size: 100 })
       setKanbanProducoes(res.content)
       setKanbanError(null)
     } catch {
@@ -357,14 +372,14 @@ export default function ListaProducaoPage() {
     } finally {
       setKanbanLoading(false)
     }
-  }, [query])
+  }, [query, filtro])
 
   useEffect(() => {
     if (viewMode !== 'kanban') return
     const delay = query.trim() ? 300 : 0
     const t = setTimeout(() => { carregarKanban() }, delay)
     return () => clearTimeout(t)
-  }, [viewMode, query, carregarKanban])
+  }, [viewMode, query, filtro, carregarKanban])
 
   const handleFiltroChange = (value: EstadoProducao | '') => {
     setFiltro(value)
@@ -649,8 +664,26 @@ export default function ListaProducaoPage() {
 
       {viewMode === 'kanban' && (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-[18px] max-w-[420px] flex-shrink-0">
-            <div className="relative">
+          <div className="mb-[18px] flex flex-shrink-0 flex-col gap-3.5">
+            <div className="flex flex-wrap gap-2">
+              {FILTERS.map(f => {
+                const on = filtro === f.value
+                return (
+                  <button
+                    key={f.value}
+                    onClick={() => handleFiltroChange(f.value)}
+                    className={clsx(
+                      'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
+                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="relative max-w-[420px]">
               <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
                 <Search size={18} />
               </span>
