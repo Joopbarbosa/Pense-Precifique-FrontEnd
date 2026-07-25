@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
-import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid } from 'lucide-react'
+import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
@@ -112,6 +112,31 @@ function fmtData(iso: string | null): string {
   return `${d}/${m}/${y}`
 }
 
+type SortField = 'dataInicio' | 'estado' | 'produto' | 'quantidade'
+
+function SortableHeader({ label, field, activeField, dir, onSort }: {
+  label: string
+  field: SortField
+  activeField: SortField | null
+  dir: 'asc' | 'desc'
+  onSort: (field: SortField) => void
+}) {
+  const ativo = activeField === field
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className={clsx(
+        'flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[11.5px] font-semibold uppercase tracking-[0.04em] transition-colors duration-100',
+        ativo ? 'text-body' : 'text-faint hover:text-body'
+      )}
+    >
+      {label}
+      {ativo && (dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+    </button>
+  )
+}
+
 function AlertaIcones({ producao }: { producao: ProducaoResumo }) {
   if (producao.alertasInsumos.length === 0) return null
   const temBloqueio = producao.alertasInsumos.some(a => a.situacao === 'BLOQUEIO_FUTURO')
@@ -169,10 +194,11 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
   const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)
+  const quantidadeTotal = producao.produtos.reduce((soma, p) => soma + p.quantidade, 0)
 
   return (
     <div
-      className="hidden cursor-pointer grid-cols-[90px_1.6fr_1.1fr_1.1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid"
+      className="hidden cursor-pointer grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid"
       onClick={onVerDetalhes}
     >
       <span className="text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">
@@ -181,6 +207,10 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
 
       <span className="line-clamp-2 overflow-hidden text-sm text-body">
         {nomesProdutos}
+      </span>
+
+      <span className="text-[13px] text-muted [font-variant-numeric:tabular-nums]">
+        {quantidadeTotal}
       </span>
 
       <span className="text-[13px] text-muted">
@@ -267,6 +297,8 @@ export default function ListaProducaoPage() {
   const { toast, setToast } = useToast()
   const [filtro, setFiltro] = useState<EstadoProducao | ''>('')
   const [query, setQuery] = useState('')
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const [producoes, setProducoes] = useState<ProducaoResumo[]>([])
   const [loading, setLoading] = useState(true)
@@ -287,9 +319,9 @@ export default function ListaProducaoPage() {
   const [kanbanError, setKanbanError] = useState<string | null>(null)
   const [divisaoResult, setDivisaoResult] = useState<DivisaoResponse | null>(null)
 
-  const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string) => {
+  const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string, sort: string | undefined) => {
     try {
-      const res = await producaoService.listar({ busca: q.trim() || undefined, estado: estadoFiltro || undefined, page: pg, size: 20 })
+      const res = await producaoService.listar({ busca: q.trim() || undefined, estado: estadoFiltro || undefined, sort, page: pg, size: 20 })
       if (pg === 0) {
         setProducoes(res.content)
       } else {
@@ -303,14 +335,16 @@ export default function ListaProducaoPage() {
     }
   }, [])
 
+  const sortParam = sortField ? `${sortField},${sortDir}` : undefined
+
   useEffect(() => {
     setLoading(true)
     const delay = query.trim() ? 300 : 0
     const t = setTimeout(() => {
-      carregar(0, filtro, query).finally(() => setLoading(false))
+      carregar(0, filtro, query, sortParam).finally(() => setLoading(false))
     }, delay)
     return () => clearTimeout(t)
-  }, [filtro, query, carregar])
+  }, [filtro, query, sortParam, carregar])
 
   const carregarKanban = useCallback(async () => {
     setKanbanLoading(true)
@@ -338,9 +372,20 @@ export default function ListaProducaoPage() {
     setPage(0)
   }
 
+  const handleSortClick = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+    setProducoes([])
+    setPage(0)
+  }
+
   const handleCarregarMais = async () => {
     setLoadingMore(true)
-    await carregar(page + 1, filtro, query)
+    await carregar(page + 1, filtro, query, sortParam)
     setLoadingMore(false)
   }
 
@@ -350,7 +395,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModal(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar(0, filtro, query)
+    else carregar(0, filtro, query, sortParam)
   }
 
   const handleFecharDivisao = () => {
@@ -404,7 +449,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalCancelarConsumoId(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar(0, filtro, query)
+    else carregar(0, filtro, query, sortParam)
   }
 
   const encerrarSelecao = () => {
@@ -436,7 +481,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalAgrupar(false)
     encerrarSelecao()
-    carregar(0, filtro, query)
+    carregar(0, filtro, query, sortParam)
   }
 
   const producoesSelecionadas = producoes.filter(p => selecionadas.has(p.id))
@@ -545,12 +590,14 @@ export default function ListaProducaoPage() {
           ) : (
             <>
               <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-                <div className="hidden grid-cols-[90px_1.6fr_1.1fr_1.1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-[13px] sm:grid">
-                  {['Produção', 'Produtos', 'Datas', 'Estado', '', ''].map((h, k) => (
-                    <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">
-                      {h}
-                    </div>
-                  ))}
+                <div className="hidden grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-[13px] sm:grid">
+                  <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Produção</div>
+                  <SortableHeader label="Produtos" field="produto" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Qtd." field="quantidade" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Datas" field="dataInicio" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Estado" field="estado" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <div />
+                  <div />
                 </div>
 
                 {producoes.map((p, i) => (
