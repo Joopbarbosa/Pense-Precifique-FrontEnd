@@ -25,9 +25,21 @@ const ESTADOS_DESTINO: { value: EstadoProducao; label: string }[] = [
 
 const consumoAtivo = (estado: EstadoProducao) => estado === 'EM_ANDAMENTO' || estado === 'TRAVADA'
 
+/** Réplica de RN-074 (backend, `Comparator.comparing(..., nullsFirst)`): a mais recente entre as
+ * `dataInicio` selecionadas — null nunca vence numa comparação de "mais recente". */
+function dataInicioMaisRecente(producoes: ProducaoResumo[]): string {
+  let maisRecente: string | null = null
+  for (const p of producoes) {
+    if (p.dataInicio != null && (maisRecente == null || p.dataInicio > maisRecente)) {
+      maisRecente = p.dataInicio
+    }
+  }
+  return maisRecente ? maisRecente.split('T')[0] : ''
+}
+
 export default function AgruparProducoesModal({ producoes, onClose, onSuccess }: Props) {
   const [estadoDestino, setEstadoDestino] = useState<EstadoProducao>('AGUARDANDO_INICIO')
-  const [dataInicio, setDataInicio] = useState('')
+  const [dataInicio, setDataInicio] = useState(() => dataInicioMaisRecente(producoes))
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
   const [justificativa, setJustificativa] = useState('')
   const [detalhes, setDetalhes] = useState<Record<string, ProducaoDetalhe>>({})
