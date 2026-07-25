@@ -1185,35 +1185,6 @@ export default function CriarOrcamentoPage() {
 
   const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
 
-  if (avisoEstoque) {
-    return (
-      <AppLayout active="orcamentos">
-        <div className="mx-auto max-w-[640px] rounded-card border border-orange/30 bg-orange/[0.06] p-8 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <span className="mb-3.5 inline-grid h-14 w-14 place-items-center rounded-full bg-orange/[0.14] text-[#A35A26]">
-            <AlertTriangle size={22} />
-          </span>
-          <div className="text-[16px] font-bold text-dark">Orçamento criado com aviso de estoque</div>
-          <p className="mb-0 mt-1.5 text-[13.5px] text-muted">
-            Alguns produtos deste orçamento podem não ter estoque suficiente no momento da produção:
-          </p>
-          <div className="mt-4 flex flex-col gap-2">
-            {avisoEstoque.avisos.map((a, i) => (
-              <div key={i} className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-white px-3.5 py-3 text-[13.5px] text-[#A35A26]">
-                <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                <span>{a.mensagem}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5">
-            <Button variant="primary" onClick={() => navigate(`/orcamentos/${avisoEstoque.orcamentoId}`)}>
-              Ver orçamento
-            </Button>
-          </div>
-        </div>
-      </AppLayout>
-    )
-  }
-
   return (
     <AppLayout active="orcamentos">
 
@@ -1354,6 +1325,36 @@ export default function CriarOrcamentoPage() {
           onClose={() => setProdutoAvulsoModal(null)}
           onConfirm={handleConfirmAvulso}
         />
+      )}
+
+      {/* Modal aviso de estoque insuficiente (pós-criação do orçamento) */}
+      {avisoEstoque && (
+        <ModalShell
+          open
+          onClose={() => navigate(`/orcamentos/${avisoEstoque.orcamentoId}`)}
+          title="Orçamento criado com aviso de estoque"
+          icon={<AlertTriangle size={20} />}
+          iconBg="rgba(249,115,22,0.14)"
+          iconColor="#A35A26"
+          width={560}
+          footer={
+            <Button variant="primary" onClick={() => navigate(`/orcamentos/${avisoEstoque.orcamentoId}`)}>
+              Ver orçamento
+            </Button>
+          }
+        >
+          <p className="m-0 mb-3.5 text-[13.5px] text-muted">
+            Alguns produtos deste orçamento podem não ter estoque suficiente no momento da produção:
+          </p>
+          <div className="flex flex-col gap-2">
+            {avisoEstoque.avisos.map((a, i) => (
+              <div key={i} className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 text-[13.5px] text-[#A35A26]">
+                <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{a.mensagem}</span>
+              </div>
+            ))}
+          </div>
+        </ModalShell>
       )}
 
     </AppLayout>
