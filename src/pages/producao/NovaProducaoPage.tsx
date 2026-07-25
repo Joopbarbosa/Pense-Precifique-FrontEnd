@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button } from '../../components/ui'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
@@ -169,15 +170,81 @@ export default function NovaProducaoPage() {
   const [loading, setLoading] = useState(false)
   const [alertas, setAlertas] = useState<AlertaInsumo[] | null>(null)
   const [producaoIdCriada, setProducaoIdCriada] = useState<string | null>(null)
+  const [alertasAtuais, setAlertasAtuais] = useState<AlertaInsumo[]>([])
+  const [avisoPendente, setAvisoPendente] = useState<{ candidato: ProdutoSelecionado[]; alertas: AlertaInsumo[] } | null>(null)
+  const [verificandoAlertas, setVerificandoAlertas] = useState(false)
 
-  const handleSelectProduto = (produto: ProdutoResponse) => {
-    setProdutos(arr => {
-      const existente = arr.find(p => p.produtoId === produto.id)
-      if (existente) {
-        return arr.map(p => p.produtoId === produto.id ? { ...p, quantidade: p.quantidade + 1 } : p)
+  const handleSelectProduto = async (produto: ProdutoResponse) => {
+    const existente = produtos.find(p => p.produtoId === produto.id)
+    const candidato = existente
+      ? produtos.map(p => p.produtoId === produto.id ? { ...p, quantidade: p.quantidade + 1 } : p)
+      : [...produtos, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade: 1 }]
+
+    setVerificandoAlertas(true)
+    try {
+      const alertasSimulados = await producaoService.simularAlertas(
+        candidato.map(p => ({ produtoId: p.produtoId, quantidade: p.quantidade }))
+      )
+
+      const bloqueios = alertasSimulados.filter(a => a.situacao === 'BLOQUEIO_FUTURO')
+      if (bloqueios.length > 0) {
+        setToast(`Não é possível adicionar: insumo ${bloqueios.map(b => b.nomeInsumo).join(', ')} insuficiente`)
+        return
       }
-      return [...arr, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade: 1 }]
-    })
+
+      const avisos = alertasSimulados.filter(a => a.situacao === 'AVISO')
+      if (avisos.length > 0) {
+        setAvisoPendente({ candidato, alertas: avisos })
+        return
+      }
+
+      setProdutos(candidato)
+      setAlertasAtuais(avisos)
+    } catch (err: any) {
+      setToast(err.response?.data?.message || 'Erro ao verificar disponibilidade de insumos.')
+    } finally {
+      setVerificandoAlertas(false)
+    }
+  }
+
+  const confirmarAvisoPendente = () => {
+    if (!avisoPendente) return
+    setProdutos(avisoPendente.candidato)
+    setAlertasAtuais(avisoPendente.alertas)
+    setAvisoPendente(null)
+  }
+
+  const handleRemoverProduto = async (produtoId: string) => {
+    const novaLista = produtos.filter(p => p.produtoId !== produtoId)
+    setProdutos(novaLista)
+
+    if (novaLista.length === 0) {
+      if (alertasAtuais.length === 1) {
+        setToast(`Alerta de ${alertasAtuais[0].nomeInsumo} resolvido`)
+      } else if (alertasAtuais.length > 1) {
+        setToast(`Alertas de ${alertasAtuais.map(a => a.nomeInsumo).join(', ')} resolvidos`)
+      }
+      setAlertasAtuais([])
+      return
+    }
+
+    try {
+      const alertasSimulados = await producaoService.simularAlertas(
+        novaLista.map(p => ({ produtoId: p.produtoId, quantidade: p.quantidade }))
+      )
+      const relevantes = alertasSimulados.filter(a => a.situacao !== 'SUFICIENTE')
+      const resolvidos = alertasAtuais.filter(a => !relevantes.some(r => r.nomeInsumo === a.nomeInsumo))
+
+      if (resolvidos.length === 1) {
+        setToast(`Alerta de ${resolvidos[0].nomeInsumo} resolvido`)
+      } else if (resolvidos.length > 1) {
+        setToast(`Alertas de ${resolvidos.map(r => r.nomeInsumo).join(', ')} resolvidos`)
+      }
+
+      setAlertasAtuais(relevantes)
+    } catch (err: any) {
+      setToast(err.response?.data?.message || 'Erro ao verificar disponibilidade de insumos.')
+    }
   }
 
   const handleSubmit = async () => {
@@ -276,6 +343,9 @@ export default function NovaProducaoPage() {
           <div className="px-5 pt-4">
             <ProdutoSearch onSelect={handleSelectProduto} />
           </div>
+          {verificandoAlertas && (
+            <div className="px-5 pt-3 text-[12.5px] text-muted">Verificando disponibilidade de insumos...</div>
+          )}
           {produtos.length === 0 ? (
             <div className="mx-5 mb-5 mt-4 rounded-[14px] border-[1.5px] border-dashed border-line bg-[#FCFBF9] px-6 py-8 text-center">
               <div className="text-[14.5px] font-semibold text-dark">Nenhum produto adicionado</div>
@@ -288,10 +358,15 @@ export default function NovaProducaoPage() {
                   key={p.produtoId}
                   item={p}
                   onQuantidade={(id, qtd) => setProdutos(arr => arr.map(x => x.produtoId === id ? { ...x, quantidade: qtd } : x))}
-                  onRemove={id => setProdutos(arr => arr.filter(x => x.produtoId !== id))}
+                  onRemove={handleRemoverProduto}
                 />
               ))}
               <div className="h-2" />
+            </div>
+          )}
+          {alertasAtuais.length > 0 && (
+            <div className="px-5 pb-5 pt-1">
+              <AlertasInsumos alertas={alertasAtuais} />
             </div>
           )}
         </QuoteCard>
@@ -326,6 +401,20 @@ export default function NovaProducaoPage() {
           {toast}
         </div>
       )}
+
+      <ConfirmacaoModal
+        open={!!avisoPendente}
+        onClose={() => setAvisoPendente(null)}
+        onConfirm={confirmarAvisoPendente}
+        title="Estoque insuficiente"
+        description="Este produto vai deixar o estoque de algum insumo negativo. Deseja adicionar mesmo assim?"
+        icon={<AlertTriangle size={18} />}
+        variant="danger"
+        confirmLabel="Adicionar mesmo assim"
+        cancelLabel="Cancelar"
+      >
+        {avisoPendente && <AlertasInsumos alertas={avisoPendente.alertas} />}
+      </ConfirmacaoModal>
     </AppLayout>
   )
 }
