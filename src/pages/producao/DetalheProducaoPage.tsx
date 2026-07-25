@@ -16,6 +16,7 @@ import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
+import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
 
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 
@@ -61,6 +62,7 @@ export default function DetalheProducaoPage() {
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState(false)
   const [modal, setModal] = useState<TipoModal | null>(null)
+  const [modalCancelarConsumo, setModalCancelarConsumo] = useState(false)
 
   const carregar = useCallback(() => {
     if (!id) return
@@ -85,8 +87,13 @@ export default function DetalheProducaoPage() {
     if (producao.estado === 'AGUARDANDO_INICIO') {
       setModal('cancelar')
     } else {
-      navigate(`/producao/${producao.id}/cancelar`)
+      setModalCancelarConsumo(true)
     }
+  }
+
+  const handleSuccessCancelarConsumo = (mensagem: string) => {
+    setModalCancelarConsumo(false)
+    handleSuccess(mensagem)
   }
 
   if (loading) {
@@ -341,6 +348,13 @@ export default function DetalheProducaoPage() {
       )}
       {modal === 'cancelar' && (
         <CancelarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modalCancelarConsumo && (
+        <CancelarProducaoConsumoModal
+          producaoId={producao.id}
+          onClose={() => setModalCancelarConsumo(false)}
+          onSuccess={handleSuccessCancelarConsumo}
+        />
       )}
     </AppLayout>
   )

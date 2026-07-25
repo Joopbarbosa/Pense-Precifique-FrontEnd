@@ -32,14 +32,14 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  *   "filtro de colunas visíveis"; NAO_REALIZADA nunca aparece como coluna própria, em hipótese
  *   alguma.
  * - Soltar o card dispara `handleDragEnd` (KanbanBoard.tsx:80-90) → `onDrop` prop = função
- *   `handleKanbanDrop` (ListaProducaoPage.tsx:358-389), que consulta a tabela estática
- *   `TRANSICOES_KANBAN` (linhas 38-52) por `[colunaOrigem][colunaDestino]`. Três tipos de
+ *   `handleKanbanDrop` (ListaProducaoPage.tsx), que consulta a tabela estática
+ *   `TRANSICOES_KANBAN` por `[colunaOrigem][colunaDestino]`. Três tipos de
  *   transição: `modal` (abre modal existente, ex. iniciar/travar/finalizar), `navegar`
- *   (NAVEGA para outra página — usado em EM_ANDAMENTO→CANCELADA e TRAVADA→CANCELADA, chamando
- *   `navigate('/producao/{id}/cancelar')`, NÃO abre nenhum modal), `direto` (chama a API
- *   imediatamente, só usado em TRAVADA→EM_ANDAMENTO via retomar). Não existe nenhuma forma de
- *   "modal de cancelamento abrindo sobre o Kanban" — o cancelamento de EM_ANDAMENTO/TRAVADA
- *   sempre navega para fora da tela de Kanban.
+ *   (ATUALIZADO em OpenProject #160 — antes navegava para `/producao/{id}/cancelar`; agora abre
+ *   `CancelarProducaoConsumoModal` por cima do próprio Kanban, sem sair da tela, igual ao tipo
+ *   `modal`. O nome do tipo `'navegar'` ficou desatualizado — mantido só para não renomear a
+ *   tabela `TRANSICOES_KANBAN` sem necessidade), `direto` (chama a API imediatamente, só usado em
+ *   TRAVADA→EM_ANDAMENTO via retomar).
  * - NÃO há movimento otimista: `getItemColumn` deriva sempre do `producao.estado` real vindo da
  *   última resposta de `GET /producoes` — o card só migra de coluna depois de `carregarKanban()`
  *   recarregar os dados após a API confirmar a transição (ex. `handleSuccess`, linha 346-351).
@@ -163,15 +163,20 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
 
     await arrastarCard(page, identificador, 'Cancelada')
 
-    // Achado de homologação: EM_ANDAMENTO→CANCELADA é do tipo `navegar`
-    // (ListaProducaoPage.tsx:46, handleKanbanDrop:366-369) — não abre nenhum modal sobre o
-    // Kanban, navega para a página cheia /producao/{id}/cancelar (confirmado: a asserção abaixo
-    // acerta a URL de destino real). Não há movimento otimista nem "cancelar o modal para
-    // reverter" possível — a artesã já foi tirada do Kanban antes de decidir qualquer coisa.
-    // O Gherkin espera permanecer em /producao (Kanban) com um modal sobreposto; isso nunca
-    // acontece, então a asserção fiel ao Gherkin (permanecer em /producao) deve falhar aqui.
-    await expect(page).toHaveURL(new RegExp(`/producao/${producao.id}/cancelar$`), { timeout: 5000 })
+    // OpenProject #160: EM_ANDAMENTO→CANCELADA agora abre `CancelarProducaoConsumoModal` por
+    // cima do próprio Kanban (sem navegar para /producao/{id}/cancelar) — mesmo padrão já usado
+    // para AGUARDANDO_INICIO→CANCELADA (tipo `modal`/CancelarProducaoModal). Fechar sem confirmar
+    // não altera o estado real (nenhuma chamada a POST /cancelar foi feita), então o card
+    // continua em EM_ANDAMENTO após o Kanban recarregar.
+    await expect(page.getByText('Cancelar produção')).toBeVisible({ timeout: 5000 })
     await expect(page).toHaveURL(/^http:\/\/localhost:3000\/producao$/)
+    await expect(page.getByText(nomeInsumo)).toBeVisible()
+
+    await page.getByRole('dialog').getByText('Fechar', { exact: true }).click()
+    await expect(page.getByText('Cancelar produção')).toHaveCount(0)
+
+    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=../..')
+    await expect(colunaEmAndamento.getByText(identificador, { exact: true })).toBeVisible()
   })
 
   test('184a — arrastar qualquer card para NÃO_REALIZADA é bloqueado', async ({ page, request }) => {

@@ -15,6 +15,7 @@ import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
+import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
 import AgruparProducoesModal from '../../components/producao/AgruparProducoesModal'
 import ModalDivisao from '../../components/producao/ModalDivisao'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
@@ -278,6 +279,7 @@ export default function ListaProducaoPage() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
   const [modalAgrupar, setModalAgrupar] = useState(false)
   const [barraSelecaoOculta, setBarraSelecaoOculta] = useState(false)
+  const [modalCancelarConsumoId, setModalCancelarConsumoId] = useState<string | null>(null)
 
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
   const [kanbanProducoes, setKanbanProducoes] = useState<ProducaoResumo[]>([])
@@ -365,7 +367,7 @@ export default function ListaProducaoPage() {
       return true
     }
     if (transicao.tipo === 'navegar') {
-      navigate(`/producao/${itemId}/cancelar`)
+      setModalCancelarConsumoId(itemId)
       return true
     }
 
@@ -393,8 +395,16 @@ export default function ListaProducaoPage() {
     if (producao.estado === 'AGUARDANDO_INICIO') {
       abrirModal('cancelar', producao.id)
     } else {
-      navigate(`/producao/${producao.id}/cancelar`)
+      setModalCancelarConsumoId(producao.id)
     }
+  }
+
+  const fecharModalCancelarConsumo = () => setModalCancelarConsumoId(null)
+  const handleSuccessCancelarConsumo = (mensagem: string) => {
+    setToast(mensagem)
+    setModalCancelarConsumoId(null)
+    if (viewMode === 'kanban') carregarKanban()
+    else carregar(0, filtro, query)
   }
 
   const encerrarSelecao = () => {
@@ -669,6 +679,13 @@ export default function ListaProducaoPage() {
       )}
       {modal?.tipo === 'cancelar' && (
         <CancelarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modalCancelarConsumoId && (
+        <CancelarProducaoConsumoModal
+          producaoId={modalCancelarConsumoId}
+          onClose={fecharModalCancelarConsumo}
+          onSuccess={handleSuccessCancelarConsumo}
+        />
       )}
       {modalAgrupar && (
         <AgruparProducoesModal
