@@ -20,6 +20,14 @@ export interface ProducaoProdutoItem {
   quantidade: number
 }
 
+export interface HistoricoStatus {
+  statusAnterior: EstadoProducao | null
+  statusNovo: EstadoProducao
+  dataTransicao: string
+  justificativa: string | null
+  origem: 'SISTEMA' | 'USUARIO'
+}
+
 export interface ProducaoResumo {
   id: string
   numero: number
@@ -30,14 +38,7 @@ export interface ProducaoResumo {
   observacoes: string | null
   produtos: ProducaoProdutoItem[]
   alertasInsumos: AlertaInsumo[]
-}
-
-export interface HistoricoStatus {
-  statusAnterior: EstadoProducao | null
-  statusNovo: EstadoProducao
-  dataTransicao: string
-  justificativa: string | null
-  origem: 'SISTEMA' | 'USUARIO'
+  historicoStatus: HistoricoStatus[]
 }
 
 export interface ProducaoDetalhe extends ProducaoResumo {
@@ -57,7 +58,6 @@ export interface ProducaoDetalhe extends ProducaoResumo {
     estoqueInsuficiente: boolean
     fracionavel: boolean | null
   }[]
-  historicoStatus: HistoricoStatus[]
   producoesFilhas: { id: string; identificador: string; estado: EstadoProducao }[]
 }
 

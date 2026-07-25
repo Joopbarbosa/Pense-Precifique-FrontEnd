@@ -165,7 +165,7 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
   onToggleSelecao: () => void
 }) {
   const navigate = useNavigate()
-  const badge = getBadgeEstado(producao.estado)
+  const badge = getBadgeEstado(producao.estado, producao.historicoStatus)
   const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)
@@ -218,7 +218,7 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
   onToggleSelecao: () => void
 }) {
   const navigate = useNavigate()
-  const badge = getBadgeEstado(producao.estado)
+  const badge = getBadgeEstado(producao.estado, producao.historicoStatus)
   const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)

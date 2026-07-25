@@ -125,7 +125,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
           <div className="mb-[7px] text-[13px] font-semibold text-body">Produções selecionadas</div>
           <div className="flex flex-col gap-2">
             {producoes.map(p => {
-              const badge = getBadgeEstado(p.estado)
+              const badge = getBadgeEstado(p.estado, p.historicoStatus)
               return (
                 <div key={p.id} className="flex items-center justify-between rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-2.5">
                   <span className="text-sm font-semibold text-dark">{p.identificador}</span>
