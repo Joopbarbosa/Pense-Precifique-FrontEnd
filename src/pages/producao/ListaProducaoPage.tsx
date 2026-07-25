@@ -277,6 +277,7 @@ export default function ListaProducaoPage() {
   const [modoAgrupamento, setModoAgrupamento] = useState(false)
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
   const [modalAgrupar, setModalAgrupar] = useState(false)
+  const [barraSelecaoOculta, setBarraSelecaoOculta] = useState(false)
 
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
   const [kanbanProducoes, setKanbanProducoes] = useState<ProducaoResumo[]>([])
@@ -399,6 +400,17 @@ export default function ListaProducaoPage() {
   const encerrarSelecao = () => {
     setModoAgrupamento(false)
     setSelecionadas(new Set())
+    setBarraSelecaoOculta(false)
+  }
+
+  const abrirModalAgrupar = () => {
+    setBarraSelecaoOculta(true)
+    setModalAgrupar(true)
+  }
+
+  const fecharModalAgrupar = () => {
+    setModalAgrupar(false)
+    setBarraSelecaoOculta(false)
   }
 
   const toggleSelecao = (id: string) => {
@@ -620,7 +632,7 @@ export default function ListaProducaoPage() {
         </div>
       )}
 
-      {modoAgrupamento && (
+      {modoAgrupamento && !barraSelecaoOculta && (
         <>
           <div className="h-20" />
           <div className="fixed inset-x-0 bottom-0 z-[150] flex flex-wrap items-center justify-between gap-3 border-t border-line bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
@@ -629,7 +641,7 @@ export default function ListaProducaoPage() {
           </span>
           <div className="flex gap-2.5">
             <Button variant="ghost" onClick={encerrarSelecao}>Cancelar seleção</Button>
-            <Button variant="primary" disabled={selecionadas.size < 2} onClick={() => setModalAgrupar(true)}>
+            <Button variant="primary" disabled={selecionadas.size < 2} onClick={abrirModalAgrupar}>
               Agrupar selecionadas
             </Button>
           </div>
@@ -661,7 +673,7 @@ export default function ListaProducaoPage() {
       {modalAgrupar && (
         <AgruparProducoesModal
           producoes={producoesSelecionadas}
-          onClose={() => setModalAgrupar(false)}
+          onClose={fecharModalAgrupar}
           onSuccess={handleSuccessAgrupar}
         />
       )}
