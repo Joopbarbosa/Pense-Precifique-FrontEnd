@@ -166,8 +166,8 @@ export default function NovoItemCatalogoPage() {
       )
     } else {
       tarefas.push(
-        catalogoService.listar()
-          .then(setCatalogos)
+        catalogoService.listar({ size: 100 })
+          .then(data => setCatalogos(data.content))
           .catch(() => setErro('Não foi possível carregar a lista de catálogos.'))
       )
     }

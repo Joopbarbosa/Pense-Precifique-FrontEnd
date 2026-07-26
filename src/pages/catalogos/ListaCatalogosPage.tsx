@@ -253,10 +253,10 @@ export default function ListaCatalogosPage() {
     setErro(null)
     catalogoService.listar({
       busca: busca.trim() || undefined,
-      ordenarPor: ordenarPor ?? undefined,
-      direcao,
+      sort: ordenarPor ? `${ordenarPor},${direcao.toLowerCase()}` : undefined,
+      size: 100,
     })
-      .then(setCatalogos)
+      .then(data => setCatalogos(data.content))
       .catch(() => setErro('Não foi possível carregar os catálogos. Tente novamente.'))
       .finally(() => setLoading(false))
   }, [busca, ordenarPor, direcao])

@@ -1067,7 +1067,7 @@ export default function CriarOrcamentoPage() {
   }, [])
 
   useEffect(() => {
-    catalogoService.listar().then(setCatalogos).catch(() => setCatalogos([]))
+    catalogoService.listar({ size: 100 }).then(data => setCatalogos(data.content)).catch(() => setCatalogos([]))
     empresaService.getConfiguracao().then(cfg => setMargemPadrao(cfg.margemPadrao ?? 0)).catch(() => {})
   }, [])
 
