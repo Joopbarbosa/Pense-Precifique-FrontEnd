@@ -173,13 +173,14 @@ export default function NovaProducaoPage() {
   const [alertasAtuais, setAlertasAtuais] = useState<AlertaInsumo[]>([])
   const [avisoPendente, setAvisoPendente] = useState<{ candidato: ProdutoSelecionado[]; alertas: AlertaInsumo[] } | null>(null)
   const [verificandoAlertas, setVerificandoAlertas] = useState(false)
+  const ultimoConfirmadoRef = useRef<ProdutoSelecionado[]>([])
+  const debounceQuantidadeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleSelectProduto = async (produto: ProdutoResponse) => {
-    const existente = produtos.find(p => p.produtoId === produto.id)
-    const candidato = existente
-      ? produtos.map(p => p.produtoId === produto.id ? { ...p, quantidade: p.quantidade + 1 } : p)
-      : [...produtos, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade: 1 }]
+  useEffect(() => () => {
+    if (debounceQuantidadeRef.current) clearTimeout(debounceQuantidadeRef.current)
+  }, [])
 
+  const avaliarAlertas = async (candidato: ProdutoSelecionado[]) => {
     setVerificandoAlertas(true)
     try {
       const alertasSimulados = await producaoService.simularAlertas(
@@ -188,7 +189,8 @@ export default function NovaProducaoPage() {
 
       const bloqueios = alertasSimulados.filter(a => a.situacao === 'BLOQUEIO_FUTURO')
       if (bloqueios.length > 0) {
-        setToast(`Não é possível adicionar: insumo ${bloqueios.map(b => b.nomeInsumo).join(', ')} insuficiente`)
+        setToast(`Insumo insuficiente: ${bloqueios.map(b => b.nomeInsumo).join(', ')}`)
+        setProdutos(ultimoConfirmadoRef.current)
         return
       }
 
@@ -199,17 +201,37 @@ export default function NovaProducaoPage() {
       }
 
       setProdutos(candidato)
+      ultimoConfirmadoRef.current = candidato
       setAlertasAtuais(avisos)
     } catch (err: any) {
       setToast(err.response?.data?.message || 'Erro ao verificar disponibilidade de insumos.')
+      setProdutos(ultimoConfirmadoRef.current)
     } finally {
       setVerificandoAlertas(false)
     }
   }
 
+  const handleSelectProduto = async (produto: ProdutoResponse) => {
+    const existente = produtos.find(p => p.produtoId === produto.id)
+    const candidato = existente
+      ? produtos.map(p => p.produtoId === produto.id ? { ...p, quantidade: p.quantidade + 1 } : p)
+      : [...produtos, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade: 1 }]
+
+    await avaliarAlertas(candidato)
+  }
+
+  const handleQuantidade = (produtoId: string, quantidade: number) => {
+    const candidato = produtos.map(p => p.produtoId === produtoId ? { ...p, quantidade } : p)
+    setProdutos(candidato)
+
+    if (debounceQuantidadeRef.current) clearTimeout(debounceQuantidadeRef.current)
+    debounceQuantidadeRef.current = setTimeout(() => avaliarAlertas(candidato), 350)
+  }
+
   const confirmarAvisoPendente = () => {
     if (!avisoPendente) return
     setProdutos(avisoPendente.candidato)
+    ultimoConfirmadoRef.current = avisoPendente.candidato
     setAlertasAtuais(avisoPendente.alertas)
     setAvisoPendente(null)
   }
@@ -217,6 +239,7 @@ export default function NovaProducaoPage() {
   const handleRemoverProduto = async (produtoId: string) => {
     const novaLista = produtos.filter(p => p.produtoId !== produtoId)
     setProdutos(novaLista)
+    ultimoConfirmadoRef.current = novaLista
 
     if (novaLista.length === 0) {
       if (alertasAtuais.length === 1) {
@@ -357,7 +380,7 @@ export default function NovaProducaoPage() {
                 <ProdutoRow
                   key={p.produtoId}
                   item={p}
-                  onQuantidade={(id, qtd) => setProdutos(arr => arr.map(x => x.produtoId === id ? { ...x, quantidade: qtd } : x))}
+                  onQuantidade={handleQuantidade}
                   onRemove={handleRemoverProduto}
                 />
               ))}
@@ -404,7 +427,7 @@ export default function NovaProducaoPage() {
 
       <ConfirmacaoModal
         open={!!avisoPendente}
-        onClose={() => setAvisoPendente(null)}
+        onClose={() => { setProdutos(ultimoConfirmadoRef.current); setAvisoPendente(null) }}
         onConfirm={confirmarAvisoPendente}
         title="Estoque insuficiente"
         description="Este produto vai deixar o estoque de algum insumo negativo. Deseja adicionar mesmo assim?"
