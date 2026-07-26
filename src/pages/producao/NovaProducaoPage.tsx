@@ -109,19 +109,48 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
   onQuantidade: (produtoId: string, quantidade: number) => void
   onRemove: (produtoId: string) => void
 }) {
+  const [valor, setValor] = useState(String(item.quantidade))
+
+  useEffect(() => { setValor(String(item.quantidade)) }, [item.quantidade])
+
+  const aplicar = (quantidade: number) => {
+    const segura = Math.max(1, quantidade)
+    setValor(String(segura))
+    onQuantidade(item.produtoId, segura)
+  }
+
   return (
     <div className="flex items-center gap-4 border-t border-line px-5 py-4">
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
       </div>
-      <input
-        type="number"
-        min={1}
-        value={item.quantidade}
-        onChange={e => onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))}
-        className="h-11 w-[84px] rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-      />
+      <div className="flex h-11 flex-shrink-0 items-stretch overflow-hidden rounded-input border-[1.5px] border-line bg-white focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/[0.12]">
+        <button
+          type="button"
+          onClick={() => aplicar((parseInt(valor) || 1) - 1)}
+          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-body transition-colors duration-100 hover:bg-[#FAF8F5]"
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min={1}
+          value={valor}
+          onChange={e => {
+            setValor(e.target.value)
+            onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))
+          }}
+          className="h-full w-[44px] flex-shrink-0 border-x-[1.5px] border-line bg-white text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          onClick={() => aplicar((parseInt(valor) || 1) + 1)}
+          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-teal transition-colors duration-100 hover:bg-[#FAF8F5]"
+        >
+          +
+        </button>
+      </div>
       <button
         onClick={() => onRemove(item.produtoId)}
         className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
