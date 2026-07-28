@@ -23,6 +23,11 @@ const INSUMO_URL = `${API_URL}/insumos`
  * Mesma regra dos prompts anteriores: cenários que falham documentam o delta Gherkin-vs-real com
  * file:line, não são adaptados ao comportamento observado.
  *
+ * Re-homologação P-TESTE-001 (V0.6.1): bug de z-index corrigido por #165 (ver bloco abaixo,
+ * `confirmarAgrupamento` agora usa clique real) — afeta todos os testes deste arquivo, já que
+ * todos passam por essa função. Teste 195 renomeado para 213 (numeração oficial), assertiva de
+ * pré-preenchimento de data corrigida (#164).
+ *
  * Achados de leitura de código (registrados aqui conforme pedido no prompt):
  * - Payload real de `POST /producoes/agrupar` (`types/producao.ts:88-95`,
  *   `AgruparProducoesModal.tsx:79-86`): `{ producaoIds: string[], estadoDestino, dataInicio?,
@@ -45,32 +50,21 @@ const INSUMO_URL = `${API_URL}/insumos`
  *   estruturalmente inalcançável pela UI porque a seleção já bloqueia antes do POST.
  * - `AgruparProducoesModal` não tem nenhum `data-testid` — seletores por `getByLabel`/`getByRole`.
  *
- * BUG DE UI ENCONTRADO NA HOMOLOGAÇÃO (bloqueia os Cenários 191/192/194/195/195b via mouse real):
- * O botão "Agrupar" do rodapé de `AgruparProducoesModal` fica fisicamente inacessível a clique
+ * BUG DE UI CORRIGIDO NA RE-HOMOLOGAÇÃO (P-TESTE-001, V0.6.1) — texto original preservado abaixo
+ * como histórico, já que o achado foi real e documentado com precisão na primeira rodada:
+ * O botão "Agrupar" do rodapé de `AgruparProducoesModal` ficava fisicamente inacessível a clique
  * de mouse. `ModalShell` renderiza o overlay em `z-[100]` e o conteúdo do modal em `z-[110]`
  * (`components/ui/ModalShell.tsx:43,50`), mas a barra fixa de seleção "N selecionada(s) /
- * Cancelar seleção / Agrupar selecionadas" de `ListaProducaoPage.tsx:624` (`z-[150]`) continua
- * renderizada por baixo do modal (`modoAgrupamento` só é desligado em `encerrarSelecao()`, chamada
- * só depois do sucesso — `handleSuccessAgrupar`, linha 413-418 — nunca ao abrir o modal). Como
- * `z-[150] > z-[110]`, a barra fixa fica VISUALMENTE POR CIMA do rodapé do modal nessa região da
- * tela, e como o modal tem largura considerável de conteúdo (lista de produções + campos +
- * consumo real quando aplicável), o botão "Agrupar" do modal cai exatamente atrás do botão
- * "Agrupar selecionadas" da barra externa — print em
- * `test-results/producao-agrupar-producoes-4d5a6.../test-failed-1.png` (Cenário 191, antes do
- * fix) mostra os dois botões laranja sobrepostos no mesmo ponto da tela. Um clique de mouse real
- * nesse ponto atinge a barra externa, não o modal — a artesã NUNCA consegue confirmar o
- * agrupamento pela UI enquanto a barra de seleção estiver visível atrás do modal. Confirmado
- * empiricamente que `click({ force: true })` NÃO contorna o problema: `force` só pula as
- * checagens prévias do Playwright (visível/estável/habilitado/recebe eventos), mas o clique
- * físico ainda é despachado nas coordenadas de tela do botão — e como o elemento REAL naquele
- * ponto é a barra externa (`z-[150]`), é ela quem recebe o clique, não o modal (confirmado: o
- * modal permanece aberto, sem nenhuma mudança de estado, após `force: true`). Os testes abaixo
- * usam `dispatchEvent('click')` no botão "Agrupar" do modal, documentado explicitamente na função
- * `confirmarAgrupamento` — dispara o evento diretamente no elemento via JS, sem passar pelo
- * hit-testing de coordenadas do navegador, só para conseguir validar a lógica de negócio por trás
- * do botão. Isso NÃO reflete um clique de mouse real e NÃO deveria ser necessário; é a evidência
- * do bug, não uma correção dele. Cenário 193 (que só verifica o checkbox desabilitado, sem abrir
- * o modal até o fim) não é afetado.
+ * Cancelar seleção / Agrupar selecionadas" de `ListaProducaoPage.tsx` (`z-[150]`) continuava
+ * renderizada por baixo do modal, sobrepondo visualmente o botão "Agrupar" do modal — um clique de
+ * mouse real nesse ponto atingia a barra externa, não o modal. `click({ force: true })` não
+ * contornava (o clique físico ainda é roteado pelas coordenadas de tela; quem está por cima recebe
+ * o evento, força ou não). **Corrigido por #165** (commit `5007ad8`): `ListaProducaoPage.tsx`
+ * ganhou o estado `barraSelecaoOculta`, setado em `abrirModalAgrupar()` (antes de abrir o modal) e
+ * a barra passou a renderizar condicionada a `modoAgrupamento && !barraSelecaoOculta` — a barra
+ * some assim que o modal abre, sem esperar o sucesso do agrupamento. Confirmado empiricamente
+ * nesta re-homologação: um `.click()` real no botão "Agrupar" do modal agora funciona sem
+ * `force`/`dispatchEvent`. `confirmarAgrupamento` abaixo foi simplificada para um clique real.
  */
 
 async function abrirModalAgrupar(page: Page) {
@@ -81,16 +75,9 @@ async function preencherJustificativa(page: Page, texto: string) {
   await page.getByLabel(/Justificativa/).fill(texto)
 }
 
-/**
- * `dispatchEvent('click')` contorna o bug de z-index documentado no topo do arquivo (barra de
- * seleção `z-[150]` sobrepõe o rodapé do modal `z-[110]`) — um `.click()`/`.click({force:true})`
- * comum expira ou é engolido pela barra externa, porque o clique físico é roteado pelas
- * coordenadas de tela (hit-testing do navegador), não pelo elemento da locator. `dispatchEvent`
- * dispara o evento `click` diretamente no nó do DOM, sem depender de qual elemento está
- * fisicamente por cima naquele ponto da tela.
- */
+/** Clique real — o bug de z-index (barra de seleção sobrepondo o modal) foi corrigido em #165. */
 async function confirmarAgrupamento(page: Page) {
-  await page.getByRole('button', { name: 'Agrupar', exact: true }).dispatchEvent('click')
+  await page.getByRole('button', { name: 'Agrupar', exact: true }).click({ timeout: 8000 })
 }
 
 function amanha(): string {
@@ -316,12 +303,65 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     expect(nova.estado).toBe('TRAVADA')
   })
 
-  test('195 — datas da nova produção agrupada herdam a mais recente e são editáveis', async ({ page, request }) => {
+  test('RN-052 (achado, Bloco 2/P-TESTE-001) — agrupar com destino EM_ANDAMENTO e aviso pendente falha silenciosamente na UI', async ({ page, request }) => {
+    // Achado de homologação: diferente de IniciarProducaoModal/RetormarProducaoModal (que ganharam
+    // tratamento de ConfirmacaoEstoqueNegativoResponse em #136), AgruparProducoesModal.tsx NUNCA
+    // foi atualizado — `handleAgrupar` (linha ~91-99) sempre lê `result.producaoNova.identificador`
+    // direto, sem checar `isConfirmacaoEstoqueNegativoResponse`. O backend já implementa RN-052
+    // aqui (CONTRATO_API.md — POST /producoes/agrupar com estadoDestino=EM_ANDAMENTO e aviso
+    // pendente retorna 200 com ConfirmacaoEstoqueNegativoResponse, sem producaoNova). O acesso a
+    // `.producaoNova.identificador` sobre esse objeto lança TypeError, capturado pelo catch
+    // genérico do componente como "Erro ao agrupar produções." — sem detalhe do aviso real, sem
+    // nenhum modal de confirmação, sem forma de a artesã prosseguir confirmando o estoque negativo
+    // por este fluxo. Reportado no relatório final para abertura de tarefa de Frontend.
     const token = await apiLogin(request)
-    const nomeInsumo = `QA195-Insumo-${Date.now()}`
+    const nomeInsumo = `QA-RN052-Agrupar-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 0, true) // permite negativo → aviso, não bloqueio
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RN052-Agrupar-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const prd1 = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(prd1.id)
+    const prd2 = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(prd2.id)
+
+    await login(page)
+    await page.goto('/producao')
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
+    await page.waitForTimeout(600)
+
+    await ativarModoAgrupamento(page)
+    await selecionarParaAgrupar(page, [prd1.identificador, prd2.identificador])
+    await abrirModalAgrupar(page)
+
+    await page.getByLabel(/Estado destino/).selectOption('EM_ANDAMENTO')
+    await preencherJustificativa(page, 'Agrupamento de teste automatizado — achado RN-052, aviso pendente não tratado na UI.')
+    await confirmarAgrupamento(page)
+
+    // Comportamento real observado: erro genérico, sem modal de confirmação de estoque negativo.
+    await expect(page.getByText('Erro ao agrupar produções.')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Estoque insuficiente')).toHaveCount(0) // modal de confirmação nunca aparece
+
+    // Nada foi gravado — nenhuma das originais transicionou (backend confirma "antes de qualquer
+    // gravação" no CONTRATO_API.md).
+    const prd1Depois = await buscarProducao(request, token, prd1.id)
+    const prd2Depois = await buscarProducao(request, token, prd2.id)
+    expect(prd1Depois.estado).toBe('AGUARDANDO_INICIO')
+    expect(prd2Depois.estado).toBe('AGUARDANDO_INICIO')
+  })
+
+  test('213 (era 195) — datas da nova produção agrupada herdam a mais recente e são editáveis', async ({ page, request }) => {
+    // Re-homologação (P-TESTE-001): corrigido por #164 (commit 988ff3b) — AgruparProducoesModal.tsx:42
+    // agora inicializa `dataInicio` via `useState(() => dataInicioMaisRecente(producoes))`, réplica
+    // no frontend do `Comparator` do backend (RN-074). Assertiva `.soft` (documentava o campo nascendo
+    // vazio) trocada por assertiva normal — o campo já vem pré-preenchido de fato.
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA213-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
     criadosInsumoIds.push(insumo.id)
-    const nomeProduto = `QA195-Produto-${Date.now()}`
+    const nomeProduto = `QA213-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
 
@@ -350,17 +390,11 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
 
     const inputDataInicio = page.getByLabel(/Data de início/)
 
-    // Achado de homologação: o campo NÃO vem pré-preenchido com a data mais recente — nasce vazio
-    // (`AgruparProducoesModal.tsx:30`, `useState('')`), só com um texto de apoio "Herda da
-    // produção mais recente se vazio" (linha 157/170). A herança acontece no backend
-    // (`ProducaoService.java:603-608`, `dataInicio = request.getDataInicio() != null ? ... :
-    // maisRecente.getDataInicio()`) só quando o campo é enviado vazio — nunca é refletida
-    // visualmente no form antes de confirmar. Asserção `soft` abaixo replica o Gherkin
-    // literalmente (valor pré-preenchido) e deve falhar por esse motivo, sem interromper o teste
-    // — as partes restantes do cenário (herança real e edição) são verificadas de qualquer forma.
-    await expect.soft(inputDataInicio).toHaveValue(dataAmanha)
+    // Corrigido por #164: o campo já vem pré-preenchido com a data mais recente entre as
+    // produções selecionadas (dataAmanha), sem precisar deixar vazio para o backend herdar.
+    await expect(inputDataInicio).toHaveValue(dataAmanha)
 
-    await preencherJustificativa(page, 'Agrupamento de teste automatizado — cenário 195, verificação de herança de datas.')
+    await preencherJustificativa(page, 'Agrupamento de teste automatizado — cenário 213, verificação de herança de datas.')
     await confirmarAgrupamento(page)
 
     await expect(page.getByText(/Produções agrupadas em PRD-\d+/)).toBeVisible({ timeout: 10_000 })
@@ -368,7 +402,8 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     criadasProducaoIds.push(novaId)
 
     const nova = await buscarProducao(request, token, novaId)
-    // Campo deixado vazio no form → backend herdou a data mais recente entre as originais (amanhã).
+    // Campo veio pré-preenchido com a data mais recente e foi enviado assim (sem editar) — a
+    // produção nova herdou o mesmo valor.
     expect(nova.dataInicio.slice(0, 10)).toBe(dataAmanha)
   })
 

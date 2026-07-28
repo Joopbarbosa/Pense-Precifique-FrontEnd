@@ -14,7 +14,7 @@ import {
   travarProducao,
   retomarProducao,
 } from '../helpers/producao'
-import { criarInsumoComEstoque, reporEstoque } from '../helpers/insumo'
+import { criarInsumoComEstoque, reporEstoque, definirPermitirNegativo } from '../helpers/insumo'
 
 const INSUMO_URL = 'http://localhost:8080/insumos'
 
@@ -209,12 +209,20 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     await expect(page.getByRole('button', { name: 'Confirmar trava' })).toBeDisabled()
   })
 
-  test('165 — retomar com estoque resolvido muda para EM_ANDAMENTO', async ({ page, request }) => {
+  test('183 (era 165) — retomar com estoque resolvido muda para EM_ANDAMENTO e realiza a única baixa', async ({ page, request }) => {
+    // Re-homologação (P-TESTE-001): a versão anterior deste teste assumia (Gherkin original) que a
+    // baixa de insumo já tinha ocorrido no `iniciar()` bloqueado, e que `retomar()` não baixaria de
+    // novo — asserção de igualdade documentada como delta esperado. Investigação de código mostra
+    // que essa era a premissa errada, não um bug: `iniciar()` bloqueado NUNCA baixa nada (mesma
+    // garantia do Cenário 180 — "nenhuma movimentação de estoque é registrada" ao travar tudo); é
+    // sempre o `retomar()` bem-sucedido quem realiza a ÚNICA baixa de fato (ProducaoService.java,
+    // `verificarEBaixarSeLiberado`, chamado tanto por `iniciar()` quanto por `retomar()`). Corrigido
+    // para refletir e validar esse comportamento real.
     const token = await apiLogin(request)
-    const nomeInsumo = `QA165-Insumo-${Date.now()}`
+    const nomeInsumo = `QA183-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 0, false) // bloqueante
     criadosInsumoIds.push(insumo.id)
-    const nomeProduto = `QA165-Produto-${Date.now()}`
+    const nomeProduto = `QA183-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
 
@@ -222,7 +230,7 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     criadasProducaoIds.push(producao.id)
     const resIniciar = await iniciarProducaoViaApi(request, token, producao.id)
     const iniciada = await resIniciar.json()
-    expect(iniciada.estado).toBe('TRAVADA') // auto-trava por bloqueio, sem baixar nada (achado #1/#5 do P-QA-002)
+    expect(iniciada.estado).toBe('TRAVADA') // auto-trava por bloqueio, sem baixar nada
 
     await reporEstoque(request, token, insumo.id, 50)
     const insumoAntesRetomar = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
@@ -241,13 +249,96 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
       headers: { Authorization: `Bearer ${token}` },
     })).json()
 
-    // Achado de homologação: a premissa do Gherkin é que a baixa já ocorreu no início original e
-    // retomar não deveria baixar de novo. Na prática, `iniciar()` bloqueado nunca baixa nada — o
-    // check de insumos bloqueantes roda ANTES de qualquer baixarComponente (ProducaoService.java:
-    // 347-358) — então é o `retomar()` bem-sucedido quem faz a ÚNICA baixa, agora
-    // (ProducaoService.java:399-415). O estoque pós-retomar será MENOR que o pós-reposição, não
-    // igual. Asserção abaixo replica o Gherkin literalmente e deve falhar por esse motivo.
-    expect(insumoDepoisRetomar.estoqueAtual).toBe(insumoAntesRetomar.estoqueAtual)
+    const deltaEsperado = 1 * (1 / 1) // ficha: 1 unidade do insumo, rendimento 1, quantidade 1
+    expect(insumoAntesRetomar.estoqueAtual - insumoDepoisRetomar.estoqueAtual).toBe(deltaEsperado)
+  })
+
+  test('RN-052 (novo, #136) — iniciar com aviso de estoque negativo não executa até confirmar', async ({ page, request }) => {
+    // Bloco 1 (P-TESTE-001): RN-052 religada em iniciar()/retomar()/dividir()/agrupar() — cobre os
+    // 2 dos 4 casos que ainda não tinham teste dedicado (estoque suficiente e bloqueio RN-059 já
+    // cobertos pelos testes 160-162 acima). Insumo aqui permite negativo (aviso, não bloqueio).
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RN052-Iniciar-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 0, true) // permite negativo → aviso
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RN052-Iniciar-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    // criarInsumoComEstoque(..., 0, ...) força quantidadeCompradaInicial mínima de 0.01 (helper não
+    // aceita 0 de fato — Math.max(estoqueInicial, 0.01)) — lê o estoque real em vez de assumir 0.
+    const insumoAntes = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+
+    const producao = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(producao.id)
+
+    await login(page)
+    await page.goto(`/producao/${producao.id}`)
+    await page.getByRole('button', { name: 'Iniciar', exact: true }).click()
+    await page.getByRole('button', { name: 'Confirmar início' }).click()
+
+    await expect(page.getByText('Estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(new RegExp(`${nomeInsumo}.*necessário 1.*disponível ${insumoAntes.estoqueAtual}`))).toBeVisible()
+
+    // Aviso pendente, não confirmado: nada foi executado — produção continua AGUARDANDO_INICIO.
+    const aindaAguardando = await buscarProducao(request, token, producao.id)
+    expect(aindaAguardando.estado).toBe('AGUARDANDO_INICIO')
+
+    await page.getByRole('button', { name: 'Confirmar mesmo assim' }).click()
+    await expect(page.getByText('Em andamento').first()).toBeVisible({ timeout: 10_000 })
+
+    const depois = await buscarProducao(request, token, producao.id)
+    expect(depois.estado).toBe('EM_ANDAMENTO')
+    const insumoDepois = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+    expect(insumoDepois.estoqueAtual).toBe(insumoAntes.estoqueAtual - 1) // negativo confirmado de fato
+  })
+
+  test('RN-052 (novo, #136) — retomar com aviso de estoque negativo não executa até confirmar', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RN052-Retomar-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 0, false) // bloqueante — trava no iniciar
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RN052-Retomar-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const insumoAntes = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+
+    const producao = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(producao.id)
+    const resIniciar = await iniciarProducaoViaApi(request, token, producao.id)
+    expect((await resIniciar.json()).estado).toBe('TRAVADA')
+
+    // Insumo passa a permitir negativo, mas continua sem estoque suficiente — retomar() deve
+    // encontrar um aviso pendente (RN-052), não mais um bloqueio (RN-059).
+    await definirPermitirNegativo(request, token, insumo.id, true)
+
+    await login(page)
+    await page.goto(`/producao/${producao.id}`)
+    await page.getByRole('button', { name: 'Retomar', exact: true }).click()
+    await page.getByRole('button', { name: 'Confirmar retomada' }).click()
+
+    await expect(page.getByText('Estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(new RegExp(`${nomeInsumo}.*necessário 1.*disponível ${insumoAntes.estoqueAtual}`))).toBeVisible()
+
+    const aindaTravada = await buscarProducao(request, token, producao.id)
+    expect(aindaTravada.estado).toBe('TRAVADA')
+
+    await page.getByRole('button', { name: 'Confirmar mesmo assim' }).click()
+    await expect(page.getByText('Em andamento').first()).toBeVisible({ timeout: 10_000 })
+
+    const depois = await buscarProducao(request, token, producao.id)
+    expect(depois.estado).toBe('EM_ANDAMENTO')
+    const insumoDepois = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+    expect(insumoDepois.estoqueAtual).toBe(insumoAntes.estoqueAtual - 1)
   })
 
   test('166 — retomar com estoque ainda insuficiente mantém TRAVADA e oferece dividir', async ({ page, request }) => {

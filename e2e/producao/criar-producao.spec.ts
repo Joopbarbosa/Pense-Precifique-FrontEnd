@@ -12,12 +12,18 @@ import {
 import { criarInsumoComEstoque } from '../helpers/insumo'
 
 /**
- * Homologação P-QA-001 / OpenProject #115 — Criar Produção (Fluxo A), cenários 150-157.
+ * Homologação P-QA-001 / OpenProject #115 — Criar Produção (Fluxo A), cenários 150-157 (numeração
+ * antiga dos specs — ver débito de offset +18 documentado em CLAUDE.md/SCENARIOS.md).
  *
  * Vários cenários abaixo documentam divergência entre o Gherkin de aceite e o comportamento
- * real de `NovoProducaoPage.tsx` / `ProducaoService.java` — achados de homologação, não bugs
+ * real de `NovaProducaoPage.tsx` / `ProducaoService.java` — achados de homologação, não bugs
  * no teste. Cada `test.fail()`/comentário aponta o arquivo:linha responsável. Ver relatório
  * final da tarefa para o resumo consolidado.
+ *
+ * Re-homologação P-TESTE-001 (V0.6.1): testes 151 e 157 renomeados para a numeração oficial atual
+ * do SCENARIOS.md (169 e 175) — corrigidos por #153 (RN-NOVA-7) e #150 respectivamente, os dois
+ * agora refletem comportamento real e correto (deixaram de documentar delta). Os demais testes
+ * deste arquivo (150, 152-156) não foram tocados nesta rodada — mantêm a numeração antiga.
  */
 
 function hojeISO(diasOffset = 0) {
@@ -106,39 +112,58 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     expect(producaoApi.historicoStatus[0].origem).toBe('SISTEMA')
   })
 
-  test('151 — alertas de insumo (✅/⚠️/❌) exibidos antes de confirmar', async ({ page, request }) => {
+  test('169 (era 151) — RN-NOVA-7 (#153): alertas de insumo simulados ao vivo a cada produto adicionado, antes de confirmar', async ({ page, request }) => {
+    // Re-homologação (P-TESTE-001): #153 trocou o mecanismo por completo. Antes, AlertasInsumos só
+    // era renderizado DEPOIS do POST /producoes (achado original desta suíte). Agora
+    // NovaProducaoPage.tsx chama POST /producoes/simular-alertas a cada adição/alteração de
+    // quantidade (avaliarAlertas, NovaProducaoPage.tsx:212-241) e reage por situação:
+    // BLOQUEIO_FUTURO → toast de erro, produto NÃO é adicionado (linhas 219-224); AVISO → modal de
+    // confirmação antes de adicionar (avisoPendente, linhas 226-230, 457-469); SUFICIENTE → some
+    // sem alerta algum. O Gherkin original ("Papel Couché 250g" exibe "✅ Suficiente") continua sem
+    // correspondência literal — AlertasInsumos sempre filtra fora SUFICIENTE (linha 165) — mas o
+    // comportamento real por trás do RN-NOVA-7 (alertas vivos, bloqueio duro, aviso com
+    // confirmação) agora existe de fato e é o que este teste verifica.
     const token = await apiLogin(request)
-    const nomePapel = `QA151-PapelCouche250g-${Date.now()}`
-    const nomeCola = `QA151-ColaBranca1L-${Date.now()}`
-    const nomeFita = `QA151-FitaCetim-${Date.now()}`
+    const nomePapel = `QA169-PapelCouche250g-${Date.now()}`
+    const nomeCola = `QA169-ColaBranca1L-${Date.now()}`
+    const nomeFita = `QA169-FitaCetim-${Date.now()}`
     const papel = await criarInsumoComEstoque(request, token, nomePapel, 100, false)
-    const cola = await criarInsumoComEstoque(request, token, nomeCola, 1, true)
-    const fita = await criarInsumoComEstoque(request, token, nomeFita, 1, false)
+    const cola = await criarInsumoComEstoque(request, token, nomeCola, 1, true) // permite negativo → aviso
+    const fita = await criarInsumoComEstoque(request, token, nomeFita, 1, false) // não permite → bloqueio
     criadosInsumoIds.push(papel.id, cola.id, fita.id)
 
-    const nomeProduto = `QA151-KitConviteCasamento-${Date.now()}`
-    const produto = await criarProdutoComFicha(request, token, nomeProduto, [
-      { insumoId: papel.id, quantidade: 1 },
-      { insumoId: cola.id, quantidade: 1 },
-      { insumoId: fita.id, quantidade: 1 },
-    ], 1)
-    criadosProdutoIds.push(produto.id)
+    // 3 produtos separados (1 insumo cada) — simularAlertas roda sobre a lista inteira a cada
+    // chamada, então isolar por produto deixa claro qual alerta corresponde a qual adição.
+    const nomeProdutoOk = `QA169-Suficiente-${Date.now()}`
+    const produtoOk = await criarProdutoComFicha(request, token, nomeProdutoOk, [{ insumoId: papel.id, quantidade: 1 }], 1)
+    const nomeProdutoAviso = `QA169-Aviso-${Date.now()}`
+    const produtoAviso = await criarProdutoComFicha(request, token, nomeProdutoAviso, [{ insumoId: cola.id, quantidade: 5 }], 1)
+    const nomeProdutoBloqueio = `QA169-Bloqueio-${Date.now()}`
+    const produtoBloqueio = await criarProdutoComFicha(request, token, nomeProdutoBloqueio, [{ insumoId: fita.id, quantidade: 5 }], 1)
+    criadosProdutoIds.push(produtoOk.id, produtoAviso.id, produtoBloqueio.id)
 
     await login(page)
     await page.goto('/producao/nova')
     await page.getByLabel(/Data de término prevista/).fill(hojeISO(2))
-    await buscarEAdicionarProduto(page, nomeProduto)
-    await definirQuantidade(page, nomeProduto, 5) // necessária por insumo = 5 > estoque de cola/fita
 
-    // Achado de homologação: NovoProducaoPage.tsx não tem etapa de preview de alertas antes de
-    // confirmar. AlertasInsumos (linhas 134-160) só é renderizado DEPOIS do POST /producoes já
-    // ter criado o registro (linhas 216-231), e filtra fora qualquer situação SUFICIENTE
-    // (linha 135: `alertas.filter(a => a.situacao !== 'SUFICIENTE')`), então "✅ Suficiente"
-    // nunca aparece. As asserções abaixo replicam o Gherkin literalmente e devem falhar aqui,
-    // antes mesmo do clique em "Criar Produção".
-    await expect(page.getByText(new RegExp(`${nomePapel}.*Suficiente`))).toBeVisible({ timeout: 3000 })
-    await expect(page.getByText(new RegExp(`${nomeCola}.*Insuficiente.*permite negativo`))).toBeVisible({ timeout: 3000 })
-    await expect(page.getByText(new RegExp(`${nomeFita}.*Insuficiente.*bloqueará`))).toBeVisible({ timeout: 3000 })
+    // Suficiente: adiciona direto, sem nenhum alerta visível.
+    await buscarEAdicionarProduto(page, nomeProdutoOk)
+    await expect(linhaProduto(page, nomeProdutoOk)).toBeVisible()
+    await expect(page.getByText('Estoque insuficiente')).toHaveCount(0)
+
+    // Bloqueio (RN-059, não permite negativo): adição é recusada, produto não entra na lista.
+    await buscarEAdicionarProduto(page, nomeProdutoBloqueio)
+    await expect(page.getByText(new RegExp(`Insumo insuficiente.*${nomeFita}`))).toBeVisible({ timeout: 5000 })
+    await expect(linhaProduto(page, nomeProdutoBloqueio)).toHaveCount(0)
+
+    // Aviso (permite negativo): modal de confirmação antes de adicionar de fato.
+    await buscarEAdicionarProduto(page, nomeProdutoAviso)
+    await expect(page.getByText('Estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(new RegExp(`${nomeCola}.*necessário 5.*disponível 1`))).toBeVisible()
+    await expect(linhaProduto(page, nomeProdutoAviso)).toHaveCount(0) // ainda não confirmado
+    await page.getByRole('button', { name: 'Adicionar mesmo assim' }).click()
+    await expect(linhaProduto(page, nomeProdutoAviso)).toBeVisible()
+
     await expect(page.getByRole('button', { name: 'Criar Produção' })).toBeEnabled()
   })
 
@@ -248,14 +273,18 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     await expect(page).toHaveURL(/\/producao\/nova$/)
   })
 
-  test('157 — data de início vem preenchida com hoje por padrão e permanece editável', async ({ page }) => {
+  test('175 (era 157) — data de início vem preenchida com hoje por padrão e permanece editável', async ({ page }) => {
+    // Re-homologação (P-TESTE-001): corrigido por #150 — NovaProducaoPage.tsx:195 agora inicializa
+    // `dataInicio` via `useState(() => new Date().toISOString().slice(0, 10))`. Assertiva antes
+    // documentava o delta (useState('') vazio); agora reflete o comportamento real e correto.
     await login(page)
     await page.goto('/producao/nova')
 
     const campoDataInicio = page.getByLabel(/Data de início/)
-    // Achado de homologação: NovoProducaoPage.tsx:165 inicializa `dataInicio` com string vazia
-    // (`useState('')`), não com a data de hoje. Esta asserção falha por design da app atual.
     await expect(campoDataInicio).toHaveValue(hojeISO(0))
     await expect(campoDataInicio).toBeEditable()
+
+    await campoDataInicio.fill(hojeISO(3))
+    await expect(campoDataInicio).toHaveValue(hojeISO(3))
   })
 })

@@ -14,7 +14,8 @@ import {
 } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const API_URL = 'http://localhost:8080'
+const INSUMO_URL = `${API_URL}/insumos`
 
 /**
  * Homologação P-QA-004 / OpenProject #123-#124 — Kanban de Produção (Fluxo F), cenários
@@ -51,6 +52,10 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  *   card nunca saiu da coluna original). Simulação via teclado é estruturalmente impossível:
  *   `useSensors(useSensor(PointerSensor, ...))` (KanbanBoard.tsx:69) não registra nenhum
  *   `KeyboardSensor`, então `Space`/`ArrowRight` não acionam nada no dnd-kit.
+ *
+ * Re-homologação P-TESTE-001 (V0.6.1): testes 182 e 184 renomeados para a numeração oficial atual
+ * (200 e 202). 182→200 reescrito por completo (mecanismo real mudou de "coluna visível" para
+ * "filtro de estado com badge distinto" — #159); 184→202 só renomeado, comportamento já correto.
  */
 
 test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)', () => {
@@ -95,19 +100,73 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await expect(page.getByText('Não realizada', { exact: true })).toHaveCount(0)
   })
 
-  test('182 — ativar NÃO_REALIZADA no filtro de colunas visíveis exibe a coluna', async ({ page }) => {
+  test('200 (era 182) — filtro de estado no Kanban isola NÃO_REALIZADA na coluna compartilhada, com badge distinto', async ({ page, request }) => {
+    // Re-homologação (P-TESTE-001): #159 mudou a solução de raiz — não existe (e continua não
+    // existindo) um "filtro de colunas visíveis"/checkbox de coluna como o Gherkin original
+    // descreve; NAO_REALIZADA continua permanentemente fundida com CANCELADA na mesma coluna
+    // física "Cancelada / Não realizada" (getColumnId, ListaProducaoPage.tsx:36). O que #159
+    // entregou foi diferente: o Kanban passou a reaproveitar os mesmos pills de filtro por estado
+    // da Listagem (FILTERS, incluindo "Não realizada") e cada card na coluna compartilhada agora
+    // mostra um badge (CANCELADA vs NÃO_REALIZADA) que antes não existia — commit 11984b8.
+    // Resolve a necessidade funcional (distinguir/isolar NÃO_REALIZADA) por um caminho diferente
+    // do descrito no Gherkin original (sem criar uma coluna própria). Documentado aqui como
+    // decisão de produto observada, não como bug — mas vale confirmação explícita do usuário se
+    // isso encerra ou não o Cenário 200 como está escrito no SCENARIOS.md (ver relatório final).
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA200-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA200-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    // Gera uma NAO_REALIZADA de verdade via divisão (única forma alcançável — RN-065/066) — precisa
+    // de 2 produtos na mesma produção, um liberado e um bloqueante, senão não há o que dividir
+    // (mesmo setup do teste 161 em iniciar-travar-retomar.spec.ts).
+    const nomeInsumoOk = `QA200-InsumoOk-${Date.now()}`
+    const insumoOk = await criarInsumoComEstoque(request, token, nomeInsumoOk, 100, false)
+    const nomeInsumoBloq = `QA200-InsumoBloq-${Date.now()}`
+    const insumoBloq = await criarInsumoComEstoque(request, token, nomeInsumoBloq, 0, false)
+    criadosInsumoIds.push(insumoOk.id, insumoBloq.id)
+    const nomeProdutoOk = `QA200-ProdutoOk-${Date.now()}`
+    const produtoOk = await criarProdutoComFicha(request, token, nomeProdutoOk, [{ insumoId: insumoOk.id, quantidade: 1 }], 1)
+    const nomeProdutoBloq = `QA200-ProdutoBloq-${Date.now()}`
+    const produtoBloq = await criarProdutoComFicha(request, token, nomeProdutoBloq, [{ insumoId: insumoBloq.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produtoOk.id, produtoBloq.id)
+    const producaoOriginal = await criarProducaoViaApi(request, token, [
+      { produtoId: produtoOk.id, quantidade: 1 },
+      { produtoId: produtoBloq.id, quantidade: 1 },
+    ])
+    criadasProducaoIds.push(producaoOriginal.id)
+    const resIniciar = await iniciarProducaoViaApi(request, token, producaoOriginal.id, true) // dividir=true
+    const divisao = await resIniciar.json()
+    expect(divisao.producaoOriginal.estado).toBe('NAO_REALIZADA')
+    criadasProducaoIds.push(divisao.producaoA.id, divisao.producaoB.id)
+    const identificadorNaoRealizada = divisao.producaoOriginal.identificador as string
+
+    // E uma CANCELADA comum, para provar que o filtro realmente separa as duas dentro da mesma coluna.
+    const producaoCancelavel = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    await request.post(`${API_URL}/producoes/${producaoCancelavel.id}/cancelar`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { justificativa: 'Cancelamento de teste automatizado — cenário 200, isolar NÃO_REALIZADA no filtro.' },
+    })
+    criadasProducaoIds.push(producaoCancelavel.id)
+    const identificadorCancelada = producaoCancelavel.identificador as string
+
     await login(page)
     await page.goto('/producao')
     await page.getByRole('button', { name: 'Kanban' }).click()
     await page.waitForTimeout(800)
 
-    // Achado de homologação: não existe nenhum "filtro de colunas visíveis" no Kanban — a única
-    // entrada de filtro é a busca por produto (placeholder "Buscar por produto…",
-    // ListaProducaoPage.tsx:588-593). NAO_REALIZADA está permanentemente fundida na coluna
-    // "Cancelada / Não realizada" (getColumnId, linha 34) e nunca aparece separada, com ou sem
-    // qualquer ação da artesã. A asserção abaixo procura o controle descrito no Gherkin, que não
-    // existe, e deve falhar por timeout.
-    await page.getByRole('checkbox', { name: /Não realizada/i }).click({ timeout: 5000 })
+    const colunaCompartilhada = page.locator('div.rounded-t-card', { hasText: 'Cancelada' }).locator('xpath=../..')
+    await expect(colunaCompartilhada.getByText(identificadorNaoRealizada, { exact: true })).toBeVisible({ timeout: 5000 })
+    await expect(colunaCompartilhada.getByText(identificadorCancelada, { exact: true })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Não realizada', exact: true }).click()
+    await page.waitForTimeout(600)
+
+    await expect(colunaCompartilhada.getByText(identificadorNaoRealizada, { exact: true })).toBeVisible({ timeout: 5000 })
+    await expect(colunaCompartilhada.getByText(identificadorCancelada, { exact: true })).toHaveCount(0)
   })
 
   test('183 — arrastar card FINALIZADA para outra coluna é bloqueado e o card retorna', async ({ page, request }) => {
@@ -142,7 +201,9 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await expect(colunaFinalizada.getByText(identificador, { exact: true })).toBeVisible()
   })
 
-  test('184 — arrastar EM_ANDAMENTO para CANCELADA abre modal de cancelamento e reverte se cancelado', async ({ page, request }) => {
+  test('202 (era 184) — arrastar EM_ANDAMENTO para CANCELADA abre modal de cancelamento e reverte se cancelado', async ({ page, request }) => {
+    // Re-homologação (P-TESTE-001): já refletia o comportamento real (#160) antes desta rodada —
+    // renomeado para a numeração oficial (SCENARIOS.md Cenário 202), sem mudança de asserções.
     const token = await apiLogin(request)
     const nomeInsumo = `QA184-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)

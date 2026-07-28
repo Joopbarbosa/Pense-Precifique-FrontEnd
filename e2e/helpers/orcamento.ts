@@ -19,6 +19,19 @@ export async function buscarOrcamento(request: APIRequestContext, token: string,
   return res.json()
 }
 
+/** Resposta crua (sem checar ok()) — quem chama decide se espera OrcamentoDetalheResponse ou ConfirmacaoEstoqueNegativoResponse (RN-052, #136). */
+export async function avancarStatusViaApi(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  body?: Record<string, unknown>
+) {
+  return request.post(`${API_URL}/orcamentos/${id}/avancar-status`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: body ?? {},
+  })
+}
+
 /** Seleciona o cliente pelo autocomplete de `ClienteSelect` (CriarOrcamentoPage.tsx:58-150). */
 export async function selecionarCliente(page: Page, nomeCliente: string) {
   await page.getByPlaceholder('Selecionar cliente...').fill(nomeCliente)

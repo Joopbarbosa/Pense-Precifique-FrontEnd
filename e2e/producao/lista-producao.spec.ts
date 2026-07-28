@@ -29,6 +29,10 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  * - Cada linha renderiza duas vezes no DOM (ProducaoRow para desktop `sm:grid`, ProducaoCard
  *   para mobile `sm:hidden`) — para contar linhas sem duplicar, os specs abaixo contam
  *   `div.sm\:grid` (só a variante desktop, visível no viewport padrão do Playwright).
+ *
+ * Re-homologação P-TESTE-001 (V0.6.1): teste 179 renomeado para 197 (numeração oficial atual) e
+ * reescrito — cabeçalhos de coluna agora são clicáveis de verdade (#158), consolidando também a
+ * cobertura de RN-NOVA-6 (ordenação interativa, Bloco 2) nesta mesma spec.
  */
 
 function linhasDesktop(page: import('@playwright/test').Page) {
@@ -117,17 +121,36 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     await expect(page.getByRole('button', { name: /Carregar mais/ })).toHaveCount(0)
   })
 
-  test('179 — ordenação por cabeçalho "Data de início" (crescente/decrescente)', async ({ page, request }) => {
+  test('197 (era 179) — RN-NOVA-6 (#158 + item avulso numero): ordenação interativa por cabeçalho de coluna', async ({ page, request }) => {
+    // Re-homologação (P-TESTE-001): #158 adicionou cabeçalhos clicáveis reais (SortableHeader,
+    // ListaProducaoPage.tsx:133-153) — o achado original (cabeçalho "Datas" estático, sem onClick)
+    // não existe mais. Cobre os 4 campos hoje ligados na UI (dataInicio, estado, produto,
+    // quantidade — SortField, linha 131) via interceptação do `sort` real enviado a GET
+    // /producoes, e o default (sem interação = sem parâmetro `sort` = numero DESC no backend).
+    //
+    // GAP encontrado (não corrigido aqui — fora de escopo de QA, é trabalho de Frontend): o backend
+    // já aceita `numero` na allowlist de sort de GET /producoes (item avulso P-BE-NUMERO-SORT,
+    // backend CONTRATO_API.md, adicionado no mesmo pocket) mas o frontend NÃO expõe a coluna
+    // "Produção" (identificador PRD-N) como 5º cabeçalho ordenável — `type SortField` (linha 131)
+    // só lista 'dataInicio' | 'estado' | 'produto' | 'quantidade', sem 'numero'. Reportado no
+    // relatório final da tarefa para abertura de tarefa de Frontend.
     const token = await apiLogin(request)
-    const nomeInsumo = `QA179-Insumo-${Date.now()}`
+    const nomeInsumo = `QA197-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, true)
     criadosInsumoIds.push(insumo.id)
-    const nomeProduto = `QA179-Produto-${Date.now()}`
+    const nomeProduto = `QA197-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
 
     const criadas = await criarProducoesEmLote(request, token, produto.id, 3)
     criadasProducaoIds.push(...criadas.map(c => c.id))
+
+    const sortsCapturados: (string | null)[] = []
+    page.on('request', req => {
+      if (req.url().includes('/producoes?') && req.method() === 'GET') {
+        sortsCapturados.push(new URL(req.url()).searchParams.get('sort'))
+      }
+    })
 
     await login(page)
     await page.goto('/producao')
@@ -135,10 +158,28 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     await page.waitForTimeout(600)
     await expect(linhasDesktop(page)).toHaveCount(3)
 
-    // Achado de homologação: o cabeçalho real da coluna é "Datas" (ListaProducaoPage.tsx:527),
-    // estático, sem onClick — não existe um cabeçalho "Data de início" clicável para ordenar.
-    // A asserção abaixo replica o Gherkin literalmente e deve falhar por elemento inexistente.
-    await page.getByText('Data de início', { exact: true }).click({ timeout: 5000 })
+    // Default sem interação: nenhum parâmetro `sort` enviado (backend aplica numero DESC).
+    expect(sortsCapturados[sortsCapturados.length - 1]).toBeNull()
+
+    const casos: { label: string; campo: string }[] = [
+      { label: 'Datas', campo: 'dataInicio' },
+      { label: 'Estado', campo: 'estado' },
+      { label: 'Produtos', campo: 'produto' },
+      { label: 'Qtd.', campo: 'quantidade' },
+    ]
+
+    for (const { label, campo } of casos) {
+      sortsCapturados.length = 0
+      await page.getByRole('button', { name: label, exact: true }).click()
+      await expect.poll(() => sortsCapturados[sortsCapturados.length - 1]).toBe(`${campo},asc`)
+
+      sortsCapturados.length = 0
+      await page.getByRole('button', { name: label, exact: true }).click() // clique duplo (2º clique no mesmo campo) inverte
+      await expect.poll(() => sortsCapturados[sortsCapturados.length - 1]).toBe(`${campo},desc`)
+    }
+
+    // GAP RN-NOVA-6: não existe cabeçalho "Produção"/numero clicável na UI — backend já suporta.
+    await expect(page.getByRole('button', { name: 'Produção', exact: true })).toHaveCount(0)
   })
 
   test('180 — menu ⋮ mostra opções específicas por status (AGUARDANDO_INICIO / EM_ANDAMENTO / FINALIZADA)', async ({ page, request }) => {
