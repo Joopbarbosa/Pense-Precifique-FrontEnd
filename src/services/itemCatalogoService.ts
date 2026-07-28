@@ -1,9 +1,15 @@
 import api from './api'
-import type { ItemCatalogoRequest, ItemCatalogoResponse } from '../types/itemCatalogo'
+import type { ItemCatalogoRequest, ItemCatalogoResponse, PreviewPrecoRequest, PreviewPrecoResponse } from '../types/itemCatalogo'
 
 export const itemCatalogoService = {
   listar: async (catalogoId: string): Promise<ItemCatalogoResponse[]> => {
     const response = await api.get(`/catalogos/${catalogoId}/itens`)
+    return response.data
+  },
+
+  /** Somente simulação — não persiste nada (RN-NOVA-8). */
+  previewPreco: async (catalogoId: string, data: PreviewPrecoRequest): Promise<PreviewPrecoResponse> => {
+    const response = await api.post(`/catalogos/${catalogoId}/itens/preview-preco`, data)
     return response.data
   },
 

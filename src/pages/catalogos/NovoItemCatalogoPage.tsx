@@ -8,7 +8,8 @@ import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
-import type { ItemCatalogoRequest } from '../../types/itemCatalogo'
+import type { ItemCatalogoRequest, PreviewPrecoRequest } from '../../types/itemCatalogo'
+import { useToast } from '../../hooks/useToast'
 
 const num = (s: string) =>
   parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
@@ -140,17 +141,18 @@ export default function NovoItemCatalogoPage() {
 
   const [precoVenda, setPrecoVenda] = useState('')
   const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
-  const [override, setOverride] = useState(false)
   // true só quando o preço exibido reflete um ajuste manual real (edição do usuário
-  // ou item carregado já com override) — evita reenviar precoVenda "por inércia"
-  // em toda sincronização e derrubar um override falso ao anexar customização/mudar quantidade.
+  // ou item carregado já com override) — evita sobrescrever o preço "por inércia" a cada
+  // preview e também é a única fonte de verdade de "override" agora que o preview não
+  // persiste nada e não devolve esse flag (ele é sempre derivado, ver `overrideAtivo` abaixo).
   const [precoEditadoManualmente, setPrecoEditadoManualmente] = useState(false)
   const [itemId, setItemId] = useState<string | null>(null)
 
   const [produtoErro, setProdutoErro] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-  const [sincronizando, setSincronizando] = useState(false)
+  const [calculandoPreview, setCalculandoPreview] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const { toast, setToast } = useToast()
 
   const produtoBloqueadoRef = useRef<string | null>(null)
 
@@ -192,10 +194,7 @@ export default function NovoItemCatalogoPage() {
             setQuantidade(item.quantidadePacote.toString())
             setItemId(item.id)
             setPrecoSugerido(item.precoSugerido)
-            setOverride(item.override)
             setPrecoEditadoManualmente(item.override)
-            // Preenche o preço atual mesmo sem override: evita que a sincronização
-            // automática envie precoVenda vazio e derrube o override existente.
             setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
             if (item.customizacoesAnexadas.length > 0) {
@@ -234,23 +233,28 @@ export default function NovoItemCatalogoPage() {
     }
   }, [produto, quantidade, precoVenda, precoEditadoManualmente, customizacoes])
 
-  const sincronizar = useCallback(async () => {
-    if (!catalogoId) return
-    const request = buildRequest()
-    if (!request) return
+  // RN-NOVA-8 — só simula (POST /itens/preview-preco), nunca cria/edita o ItemCatalogo real.
+  // Único ponto que persiste é `salvar()`, mais abaixo.
+  const atualizarPreview = useCallback(async () => {
+    if (!catalogoId || !produto) return
+    const qtd = parseInt(quantidade, 10)
+    if (!Number.isFinite(qtd) || qtd < 1) return
+
+    const request: PreviewPrecoRequest = {
+      produtoId: produto.id,
+      quantidadePacote: qtd,
+      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.produtoId, quantidade: num(c.quantidade) || 0 })),
+    }
     if (produtoBloqueadoRef.current === request.produtoId) return
 
-    setSincronizando(true)
+    setCalculandoPreview(true)
     try {
-      const resp = itemId
-        ? await itemCatalogoService.editar(catalogoId, itemId, request)
-        : await itemCatalogoService.adicionar(catalogoId, request)
-      setItemId(resp.id)
+      const resp = await itemCatalogoService.previewPreco(catalogoId, request)
       setPrecoSugerido(resp.precoSugerido)
-      setOverride(resp.override)
-      setPrecoEditadoManualmente(resp.override)
-      if (Math.abs(num(precoVenda) - resp.precoVenda) > 0.001) {
-        setPrecoVenda(resp.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+      // Sem override ativo, o preço de venda acompanha o sugerido ao vivo; com override,
+      // o valor digitado pela usuária é preservado (preview não devolve precoVenda/override).
+      if (!precoEditadoManualmente) {
+        setPrecoVenda(resp.precoSugerido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
       }
       setProdutoErro(null)
       setErro(null)
@@ -259,21 +263,22 @@ export default function NovoItemCatalogoPage() {
       if (msg && /custo calculado/i.test(msg)) {
         produtoBloqueadoRef.current = request.produtoId
         setProdutoErro(msg)
+        setToast(msg)
       } else if (msg) {
         setErro(msg)
       } else {
         setErro('Não foi possível calcular o preço sugerido. Tente novamente.')
       }
     } finally {
-      setSincronizando(false)
+      setCalculandoPreview(false)
     }
-  }, [catalogoId, itemId, buildRequest, precoVenda])
+  }, [catalogoId, produto, quantidade, customizacoes, precoEditadoManualmente, setToast])
 
   useEffect(() => {
     if (loadingContexto) return
-    const t = setTimeout(() => { sincronizar() }, 500)
+    const t = setTimeout(() => { atualizarPreview() }, 500)
     return () => clearTimeout(t)
-  }, [loadingContexto, sincronizar])
+  }, [loadingContexto, atualizarPreview])
 
   const jaAdicionadosCustom = customizacoes.map(c => c.produtoId)
 
@@ -287,10 +292,8 @@ export default function NovoItemCatalogoPage() {
     setCustomizacoes(cs => cs.map(c => c.produtoId === produtoId ? { ...c, quantidade: v.replace(/[^\d,]/g, '') } : c))
   }
 
-  const cancelar = async () => {
-    if (!isEdicao && itemId && catalogoId) {
-      try { await itemCatalogoService.remover(catalogoId, itemId) } catch { /* best-effort */ }
-    }
+  // RN-NOVA-8 — preview nunca persiste nada, então não há mais o que desfazer aqui.
+  const cancelar = () => {
     navigate(catalogoId ? `/catalogos/${catalogoId}` : '/catalogos')
   }
 
@@ -337,7 +340,9 @@ export default function NovoItemCatalogoPage() {
   }
 
   const podeSalvar = !!produto && !!catalogoId && !quantidadeErro && !produtoErro
-  const diffOverride = override && precoSugerido != null ? num(precoVenda) - precoSugerido : null
+  // Derivado localmente — o preview não devolve um flag de override (ver `atualizarPreview`).
+  const overrideAtivo = precoEditadoManualmente && precoSugerido != null && Math.abs(num(precoVenda) - precoSugerido) > 0.001
+  const diffOverride = overrideAtivo && precoSugerido != null ? num(precoVenda) - precoSugerido : null
 
   return (
     <AppLayout active="catalogos">
@@ -512,7 +517,7 @@ export default function NovoItemCatalogoPage() {
               <div className="min-w-0">
                 <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Preço do item</div>
                 <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
-                  {sincronizando ? 'Calculando…' : 'Calculado pela API'}
+                  {calculandoPreview ? 'Calculando…' : 'Calculado pela API'}
                 </div>
               </div>
             </div>
@@ -530,7 +535,7 @@ export default function NovoItemCatalogoPage() {
                 <div className="relative">
                   <span className={clsx(
                     'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-                    override ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-[#FAF8F5] text-[#6B6860]'
+                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-[#FAF8F5] text-[#6B6860]'
                   )}>R$</span>
                   <input
                     value={precoVenda}
@@ -542,7 +547,7 @@ export default function NovoItemCatalogoPage() {
                     disabled={!produto}
                     className={clsx(
                       'h-[50px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-[19px] font-bold outline-none [font-variant-numeric:tabular-nums]',
-                      override ? 'border-orange text-orange' : 'border-line text-dark',
+                      overrideAtivo ? 'border-orange text-orange' : 'border-line text-dark',
                       produto ? 'bg-white' : 'bg-[#FAF8F5]'
                     )}
                   />
@@ -562,6 +567,12 @@ export default function NovoItemCatalogoPage() {
         </div>
 
       </div>
+
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
 
     </AppLayout>
   )

@@ -27,3 +27,17 @@ export interface ItemCatalogoResponse {
   bloqueadoParaVenda: boolean
   customizacoesAnexadas: CustomizacaoAnexadaResponse[]
 }
+
+export interface PreviewPrecoRequest {
+  produtoId: string
+  quantidadePacote: number
+  customizacoesAnexadas: CustomizacaoAnexadaRequest[]
+}
+
+export interface PreviewPrecoResponse {
+  custoUnitario: number
+  quantidadePacote: number
+  custoCustomizacoes: number
+  margem: number
+  precoSugerido: number
+}

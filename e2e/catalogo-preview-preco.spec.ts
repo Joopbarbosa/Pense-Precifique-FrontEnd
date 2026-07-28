@@ -10,17 +10,14 @@ const INSUMO_URL = `${API_URL}/insumos`
 /**
  * Bloco 2/P-TESTE-001 (V0.6.1) — RN-NOVA-8: preview de preço de Item de Catálogo.
  * Endpoint dedicado `POST /catalogos/{catalogoId}/itens/preview-preco` (backend, RN-042/RN-044)
- * recalcula ao vivo sem persistir nada — testado diretamente via API abaixo.
+ * recalcula ao vivo sem persistir nada.
  *
- * Achado de homologação (importante): `NovoItemCatalogoPage.tsx` NÃO chama esse endpoint — usa os
- * endpoints reais de criação/edição (`POST`/`PUT /catalogos/{catalogoId}/itens[/{itemId}]`) como
- * mecanismo de "preview ao vivo": a cada mudança debounced de 500ms (produto/quantidade/
- * customização), um ItemCatalogo é de fato criado/atualizado no banco — só é apagado (best-effort,
- * sem tratamento de erro) se o usuário clicar em "Cancelar". A premissa "o preview nunca persiste
- * nada" está incorreta para o estado atual da tela — o último teste abaixo documenta isso via UI,
- * mostrando um ItemCatalogo real aparecendo em GET /catalogos/{id}/itens antes de qualquer clique
- * em "Salvar". Reportado no relatório final como achado de design a decidir com o usuário (rascunho
- * pode ficar órfão se o "Cancelar" falhar — ex. fechar a aba, erro de rede).
+ * P-FE-CORRIGE-007 (V0.6.1) — `NovoItemCatalogoPage.tsx` passou a chamar o endpoint de preview a
+ * cada debounce de 500ms (produto/quantidade/customização) em vez dos endpoints reais de
+ * criação/edição; `POST`/`PUT /catalogos/{catalogoId}/itens[/{itemId}]` só são chamados no clique
+ * explícito em "Salvar"/"Adicionar item ao catálogo". A remoção best-effort no "Cancelar" foi
+ * removida (não há mais nada pra desfazer). Os testes 3+ verificam isso via API/rede diretamente,
+ * não só pelo estado visual da tela.
  */
 
 test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
@@ -54,6 +51,13 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     return res.json()
   }
 
+  async function itensDoCatalogo(request: import('@playwright/test').APIRequestContext, token: string, catalogoId: string) {
+    const res = await request.get(`${API_URL}/catalogos/${catalogoId}/itens`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return res.json()
+  }
+
   test('preview recalcula ao vivo pela fórmula RN-042 e não persiste nada (API)', async ({ request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA8-Insumo-${Date.now()}`
@@ -82,9 +86,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     expect(body.custoUnitario).toBe(custoUnitarioReal)
     expect(body.precoSugerido).toBeCloseTo(custoUnitarioReal * 3 * 1.5, 2) // RN-042: custo × qtdPacote × (1 + margem/100)
 
-    const itensDepois = await (await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })).json()
+    const itensDepois = await itensDoCatalogo(request, token, catalogo.id)
     expect(itensDepois).toEqual([]) // preview via API real não persiste nada
   })
 
@@ -116,7 +118,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     }
   })
 
-  test('achado: a tela real cria/atualiza um ItemCatalogo de verdade a cada alteração, antes de "Salvar"', async ({ page, request }) => {
+  test('tela real: nenhum ItemCatalogo é criado/atualizado antes do clique em "Salvar", mesmo após várias alterações', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA8c-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 10, true)
@@ -127,19 +129,178 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8c-Catalogo-${Date.now()}`, 50)
     criadosCatalogoIds.push(catalogo.id)
 
+    // Captura toda chamada de rede que crie/edite/remova um ItemCatalogo de verdade — distingue de
+    // /itens/preview-preco, que é esperado disparar várias vezes.
+    const chamadasReais: string[] = []
+    page.on('request', req => {
+      const url = req.url()
+      const method = req.method()
+      if (url.includes('/itens/preview-preco')) return
+      if (/\/catalogos\/[^/]+\/itens(\/[^/?]+)?(\?|$)/.test(url) && ['POST', 'PUT', 'DELETE'].includes(method)) {
+        chamadasReais.push(`${method} ${url}`)
+      }
+    })
+
     await login(page)
     await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)
     await page.getByPlaceholder('Buscar produto...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
-    await page.getByPlaceholder('1').fill('2')
-    await page.waitForTimeout(1200) // debounce de 500ms (sincronizar) + round-trip
 
-    const itensAntesDeSalvar = await (await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {
+    // Várias alterações, cada uma esperando passar do debounce de 500ms, pra dar chance de
+    // qualquer chamada indevida disparar.
+    await page.getByPlaceholder('1').fill('2')
+    await page.waitForTimeout(900)
+    await page.getByPlaceholder('1').fill('5')
+    await page.waitForTimeout(900)
+    await page.getByPlaceholder('1').fill('3')
+    await page.waitForTimeout(900)
+
+    expect(chamadasReais).toEqual([])
+
+    // Confirmação direta via API — não só pela ausência de chamada de rede observada no browser.
+    const itensAntesDeSalvar = await itensDoCatalogo(request, token, catalogo.id)
+    expect(itensAntesDeSalvar).toEqual([])
+
+    // "Cancelar" também não deve disparar nenhuma chamada real.
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/catalogos/${catalogo.id}$`))
+    expect(chamadasReais).toEqual([])
+
+    const itensDepoisDeCancelar = await itensDoCatalogo(request, token, catalogo.id)
+    expect(itensDepoisDeCancelar).toEqual([])
+  })
+
+  test('preço sugerido atualiza ao vivo (mesmo debounce visual de antes) sem persistir nada', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA8d-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 10, true)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RNNOVA8d-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8d-Catalogo-${Date.now()}`, 50)
+    criadosCatalogoIds.push(catalogo.id)
+
+    await login(page)
+    await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)
+    await page.getByPlaceholder('Buscar produto...').fill(nomeProduto)
+    await page.getByText(nomeProduto, { exact: true }).click()
+
+    // Regex ancorada (sem sufixo) pra pegar só o valor de "Preço sugerido" — a mesma tela também
+    // mostra "R$ X,XX de custo" (produto selecionado) e "R$ X,XX/un" (customizações).
+    const precoSugeridoLocator = page.getByText(/^R\$\s[\d.,]+$/)
+
+    await page.getByPlaceholder('1').fill('1')
+    await page.waitForTimeout(900)
+    const precoCom1 = await precoSugeridoLocator.textContent()
+
+    await page.getByPlaceholder('1').fill('10')
+    await page.waitForTimeout(900)
+    const precoCom10 = await precoSugeridoLocator.textContent()
+
+    expect(precoCom10).not.toBe(precoCom1)
+
+    const itens = await itensDoCatalogo(request, token, catalogo.id)
+    expect(itens).toEqual([])
+  })
+
+  test('produto sem custo calculado (RN-044): erro aparece durante o preview ao vivo, antes de tentar salvar', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const configuracaoOriginal = await getConfiguracao(request, token)
+    try {
+      await putConfiguracao(request, token, { valorHora: 0, margemPadrao: configuracaoOriginal.margemPadrao })
+
+      const nomeProduto = `QA-RNNOVA8e-Produto-${Date.now()}`
+      const produto = await criarProdutoSemFicha(request, token, nomeProduto)
+      criadosProdutoIds.push(produto.id)
+      const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8e-Catalogo-${Date.now()}`, 50)
+      criadosCatalogoIds.push(catalogo.id)
+
+      await login(page)
+      await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)
+      await page.getByPlaceholder('Buscar produto...').fill(nomeProduto)
+      await page.getByText(nomeProduto, { exact: true }).click()
+
+      // Erro visível (inline sob o campo Produto + toast) sem clicar em Salvar.
+      await expect(page.getByText(/não possui custo calculado/i).first()).toBeVisible({ timeout: 5000 })
+      await expect(page.getByRole('button', { name: 'Adicionar item ao catálogo', exact: true })).toBeDisabled()
+
+      const itens = await itensDoCatalogo(request, token, catalogo.id)
+      expect(itens).toEqual([])
+    } finally {
+      await putConfiguracao(request, token, { valorHora: configuracaoOriginal.valorHora, margemPadrao: configuracaoOriginal.margemPadrao })
+    }
+  })
+
+  test('"Salvar" cria de fato o ItemCatalogo real, com os dados finais da tela', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA8f-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 10, true)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RNNOVA8f-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8f-Catalogo-${Date.now()}`, 50)
+    criadosCatalogoIds.push(catalogo.id)
+
+    await login(page)
+    await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)
+    await page.getByPlaceholder('Buscar produto...').fill(nomeProduto)
+    await page.getByText(nomeProduto, { exact: true }).click()
+    await page.getByPlaceholder('1').fill('4')
+    await page.waitForTimeout(900) // deixa o preview rodar antes de salvar, como a usuária real faria
+
+    const itensAntes = await itensDoCatalogo(request, token, catalogo.id)
+    expect(itensAntes).toEqual([])
+
+    await page.getByRole('button', { name: 'Adicionar item ao catálogo', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/catalogos/${catalogo.id}$`), { timeout: 10_000 })
+
+    const itensDepois = await itensDoCatalogo(request, token, catalogo.id)
+    expect(itensDepois).toHaveLength(1)
+    expect(itensDepois[0]).toMatchObject({ produtoId: produto.id, quantidadePacote: 4 })
+  })
+
+  test('edição de item existente: preview ao vivo funciona sem alterar o registro real antes de "Salvar"', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA8g-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 10, true)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RNNOVA8g-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8g-Catalogo-${Date.now()}`, 50)
+    criadosCatalogoIds.push(catalogo.id)
+
+    // Item real pré-existente, criado direto via API (não é o que este teste investiga).
+    const resItem = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { produtoId: produto.id, quantidadePacote: 2, customizacoesAnexadas: [] },
+    })
+    if (!resItem.ok()) throw new Error(`Falha ao criar item de teste: ${resItem.status()} ${await resItem.text()}`)
+    const item = await resItem.json()
+
+    await login(page)
+    await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}&itemId=${item.id}`)
+    await expect(page.getByText(nomeProduto)).toBeVisible()
+
+    // Muda a quantidade e espera o preview rodar — o registro real não deve mudar ainda.
+    await page.getByPlaceholder('1').fill('9')
+    await page.waitForTimeout(900)
+
+    const itemAntesDeSalvar = await (await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
-    // Achado: já existe um ItemCatalogo real persistido, mesmo sem clicar em "Salvar" ainda.
-    expect(itensAntesDeSalvar.length).toBe(1)
-    expect(itensAntesDeSalvar[0].quantidadePacote).toBe(2)
-    criadosCatalogoIds.push(catalogo.id) // garante desativação mesmo se o item ficar órfão
+    expect(itemAntesDeSalvar[0].quantidadePacote).toBe(2) // continua o valor original — preview não gravou
+
+    await page.getByRole('button', { name: 'Salvar alterações', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/catalogos/${catalogo.id}$`), { timeout: 10_000 })
+
+    const itemDepoisDeSalvar = await (await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+    expect(itemDepoisDeSalvar).toHaveLength(1) // não duplicou um item novo, editou o mesmo
+    expect(itemDepoisDeSalvar[0].id).toBe(item.id)
+    expect(itemDepoisDeSalvar[0].quantidadePacote).toBe(9)
   })
 })
