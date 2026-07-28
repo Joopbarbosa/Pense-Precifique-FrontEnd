@@ -70,6 +70,7 @@ export interface OrcamentoItemResponse {
 export interface OrcamentoResponse {
   id: string;
   numero: number;
+  identificador: string;
   nomeCliente: string;
   status: StatusOrcamento;
   total: number;

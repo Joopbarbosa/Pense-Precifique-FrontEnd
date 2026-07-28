@@ -59,7 +59,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
       onClick={onVerDetalhes}
     >
       <span className="text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">
-        ORÇ-{String(orc.numero).padStart(4, '0')}
+        {orc.identificador}
       </span>
 
       <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-body">
@@ -105,7 +105,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="text-sm font-bold text-dark">
-              ORÇ-{String(orc.numero).padStart(4, '0')}
+              {orc.identificador}
             </span>
             {isVencido(orc) && <VencidoBadge />}
           </div>
