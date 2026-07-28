@@ -7,7 +7,9 @@ import { Layers, Calendar, StickyNote } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import ConsumoRealSection, { chaveConsumo } from './ConsumoRealSection'
-import type { ProducaoResumo, ProducaoDetalhe, EstadoProducao, ConsumoRealItem } from '../../types/producao'
+import ConfirmarEstoqueNegativoModal from './ConfirmarEstoqueNegativoModal'
+import { isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
+import type { ProducaoResumo, ProducaoDetalhe, EstadoProducao, ConsumoRealItem, AgruparProducoesRequest, AvisoEstoqueNegativo } from '../../types/producao'
 
 interface Props {
   producoes: ProducaoResumo[]
@@ -47,6 +49,8 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
   const [valores, setValores] = useState<Record<string, number>>({})
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [avisoPendente, setAvisoPendente] = useState<AvisoEstoqueNegativo[] | null>(null)
+  const [confirmandoAviso, setConfirmandoAviso] = useState(false)
 
   const producoesComConsumo = producoes.filter(p => consumoAtivo(p.estado))
 
@@ -64,44 +68,83 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
   const len = justificativa.length
   const valido = len >= MIN_CHARS
 
+  const montarRequest = (confirmarEstoqueNegativoInsumoIds?: string[]): AgruparProducoesRequest => {
+    const consumoRealPorProducao: Record<string, ConsumoRealItem[]> = {}
+    for (const p of producoesComConsumo) {
+      const detalhe = detalhes[p.id]
+      if (!detalhe) continue
+      consumoRealPorProducao[p.id] = detalhe.insumosConsumidos
+        .filter(item => {
+          const chave = `${p.id}:${chaveConsumo(item)}`
+          const valor = valores[chave] ?? item.quantidade
+          return valor !== item.quantidade
+        })
+        .map(item => {
+          const chave = `${p.id}:${chaveConsumo(item)}`
+          const valor = valores[chave] ?? item.quantidade
+          return item.produtoBaseId
+            ? { produtoBaseId: item.produtoBaseId, quantidadeConsumida: valor }
+            : { insumoId: item.insumoId!, quantidadeConsumida: valor }
+        })
+    }
+
+    return {
+      producaoIds: producoes.map(p => p.id),
+      estadoDestino,
+      dataInicio: dataInicio || undefined,
+      dataTerminoPrevista: dataTerminoPrevista || undefined,
+      justificativa,
+      consumoRealPorProducao: producoesComConsumo.length > 0 ? consumoRealPorProducao : undefined,
+      confirmarEstoqueNegativoInsumoIds,
+    }
+  }
+
   const handleAgrupar = async () => {
     if (!valido) return
     setSalvando(true)
     setErro(null)
     try {
-      const consumoRealPorProducao: Record<string, ConsumoRealItem[]> = {}
-      for (const p of producoesComConsumo) {
-        const detalhe = detalhes[p.id]
-        if (!detalhe) continue
-        consumoRealPorProducao[p.id] = detalhe.insumosConsumidos
-          .filter(item => {
-            const chave = `${p.id}:${chaveConsumo(item)}`
-            const valor = valores[chave] ?? item.quantidade
-            return valor !== item.quantidade
-          })
-          .map(item => {
-            const chave = `${p.id}:${chaveConsumo(item)}`
-            const valor = valores[chave] ?? item.quantidade
-            return item.produtoBaseId
-              ? { produtoBaseId: item.produtoBaseId, quantidadeConsumida: valor }
-              : { insumoId: item.insumoId!, quantidadeConsumida: valor }
-          })
+      const result = await producaoService.agrupar(montarRequest())
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        setAvisoPendente(result.avisos)
+      } else {
+        onSuccess(`Produções agrupadas em ${result.producaoNova.identificador}`)
       }
-
-      const result = await producaoService.agrupar({
-        producaoIds: producoes.map(p => p.id),
-        estadoDestino,
-        dataInicio: dataInicio || undefined,
-        dataTerminoPrevista: dataTerminoPrevista || undefined,
-        justificativa,
-        consumoRealPorProducao: producoesComConsumo.length > 0 ? consumoRealPorProducao : undefined,
-      })
-      onSuccess(`Produções agrupadas em ${result.producaoNova.identificador}`)
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao agrupar produções.')
     } finally {
       setSalvando(false)
     }
+  }
+
+  const handleConfirmarAviso = async () => {
+    if (!avisoPendente) return
+    setConfirmandoAviso(true)
+    setErro(null)
+    try {
+      const result = await producaoService.agrupar(montarRequest(avisoPendente.map(a => a.componenteId)))
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        setAvisoPendente(result.avisos)
+      } else {
+        setAvisoPendente(null)
+        onSuccess(`Produções agrupadas em ${result.producaoNova.identificador}`)
+      }
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao agrupar produções.')
+    } finally {
+      setConfirmandoAviso(false)
+    }
+  }
+
+  if (avisoPendente) {
+    return (
+      <ConfirmarEstoqueNegativoModal
+        avisos={avisoPendente}
+        confirming={confirmandoAviso}
+        onClose={() => setAvisoPendente(null)}
+        onConfirm={handleConfirmarAviso}
+      />
+    )
   }
 
   return (

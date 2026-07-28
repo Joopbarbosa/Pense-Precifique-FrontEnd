@@ -54,7 +54,7 @@ export const producaoService = {
     return response.data
   },
 
-  agrupar: async (data: AgruparProducoesRequest): Promise<AgruparResponse> => {
+  agrupar: async (data: AgruparProducoesRequest): Promise<AgruparResponse | ConfirmacaoEstoqueNegativoResponse> => {
     const response = await api.post('/producoes/agrupar', data)
     return response.data
   },

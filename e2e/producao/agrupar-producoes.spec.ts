@@ -303,17 +303,12 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     expect(nova.estado).toBe('TRAVADA')
   })
 
-  test('RN-052 (achado, Bloco 2/P-TESTE-001) — agrupar com destino EM_ANDAMENTO e aviso pendente falha silenciosamente na UI', async ({ page, request }) => {
-    // Achado de homologação: diferente de IniciarProducaoModal/RetormarProducaoModal (que ganharam
-    // tratamento de ConfirmacaoEstoqueNegativoResponse em #136), AgruparProducoesModal.tsx NUNCA
-    // foi atualizado — `handleAgrupar` (linha ~91-99) sempre lê `result.producaoNova.identificador`
-    // direto, sem checar `isConfirmacaoEstoqueNegativoResponse`. O backend já implementa RN-052
-    // aqui (CONTRATO_API.md — POST /producoes/agrupar com estadoDestino=EM_ANDAMENTO e aviso
-    // pendente retorna 200 com ConfirmacaoEstoqueNegativoResponse, sem producaoNova). O acesso a
-    // `.producaoNova.identificador` sobre esse objeto lança TypeError, capturado pelo catch
-    // genérico do componente como "Erro ao agrupar produções." — sem detalhe do aviso real, sem
-    // nenhum modal de confirmação, sem forma de a artesã prosseguir confirmando o estoque negativo
-    // por este fluxo. Reportado no relatório final para abertura de tarefa de Frontend.
+  test('RN-052 (P-FE-CORRIGE-003) — agrupar com destino EM_ANDAMENTO e aviso pendente é tratado via modal de confirmação', async ({ page, request }) => {
+    // Corrigido em P-FE-CORRIGE-003: `producaoService.agrupar` agora é tipado como união
+    // (AgruparResponse | ConfirmacaoEstoqueNegativoResponse) e `handleAgrupar`/`handleConfirmarAviso`
+    // (AgruparProducoesModal.tsx) checam `isConfirmacaoEstoqueNegativoResponse` antes de acessar
+    // `producaoNova`. Quando pendente, abre `ConfirmarEstoqueNegativoModal` (mesmo componente já
+    // usado em Iniciar/Retomar) e reenvia com `confirmarEstoqueNegativoInsumoIds`.
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RN052-Agrupar-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 0, true) // permite negativo → aviso, não bloqueio
@@ -327,6 +322,13 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     const prd2 = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
     criadasProducaoIds.push(prd2.id)
 
+    let novaId = ''
+    page.on('response', res => {
+      if (res.url().includes('/producoes/agrupar') && res.request().method() === 'POST') {
+        res.json().then(body => { novaId = body.producaoNova?.id ?? '' })
+      }
+    })
+
     await login(page)
     await page.goto('/producao')
     await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
@@ -337,19 +339,30 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     await abrirModalAgrupar(page)
 
     await page.getByLabel(/Estado destino/).selectOption('EM_ANDAMENTO')
-    await preencherJustificativa(page, 'Agrupamento de teste automatizado — achado RN-052, aviso pendente não tratado na UI.')
+    await preencherJustificativa(page, 'Agrupamento de teste automatizado — RN-052, aviso pendente tratado via modal.')
     await confirmarAgrupamento(page)
 
-    // Comportamento real observado: erro genérico, sem modal de confirmação de estoque negativo.
-    await expect(page.getByText('Erro ao agrupar produções.')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('Estoque insuficiente')).toHaveCount(0) // modal de confirmação nunca aparece
+    // Modal de confirmação real aparece — não mais "Erro ao agrupar produções." genérico.
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText('Estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Erro ao agrupar produções.')).toHaveCount(0)
 
-    // Nada foi gravado — nenhuma das originais transicionou (backend confirma "antes de qualquer
-    // gravação" no CONTRATO_API.md).
+    // Nada gravado ainda nesse ponto.
+    const prd1Antes = await buscarProducao(request, token, prd1.id)
+    expect(prd1Antes.estado).toBe('AGUARDANDO_INICIO')
+
+    await dialog.getByRole('button', { name: 'Confirmar mesmo assim', exact: true }).click()
+
+    await expect(page.getByText(/Produções agrupadas em PRD-\d+/)).toBeVisible({ timeout: 10_000 })
+    await expect.poll(() => novaId, { timeout: 5000 }).not.toBe('')
+    criadasProducaoIds.push(novaId)
+
+    const nova = await buscarProducao(request, token, novaId)
+    expect(nova.estado).toBe('EM_ANDAMENTO')
     const prd1Depois = await buscarProducao(request, token, prd1.id)
     const prd2Depois = await buscarProducao(request, token, prd2.id)
-    expect(prd1Depois.estado).toBe('AGUARDANDO_INICIO')
-    expect(prd2Depois.estado).toBe('AGUARDANDO_INICIO')
+    expect(prd1Depois.estado).toBe('NAO_REALIZADA')
+    expect(prd2Depois.estado).toBe('NAO_REALIZADA')
   })
 
   test('213 (era 195) — datas da nova produção agrupada herdam a mais recente e são editáveis', async ({ page, request }) => {

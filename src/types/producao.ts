@@ -108,6 +108,7 @@ export interface AgruparProducoesRequest {
   dataTerminoPrevista?: string
   justificativa: string
   consumoRealPorProducao?: Record<string, ConsumoRealItem[]>
+  confirmarEstoqueNegativoInsumoIds?: string[]
 }
 
 export interface AgruparResponse {
