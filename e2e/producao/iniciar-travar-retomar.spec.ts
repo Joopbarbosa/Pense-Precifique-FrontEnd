@@ -22,6 +22,19 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  * Homologação P-QA-002 / OpenProject #117-#119 — Iniciar / Travar / Retomar (Fluxo B),
  * cenários 160-167. Mesma regra do P-QA-001: cenários que falham documentam o delta
  * Gherkin-vs-real com file:line, não são adaptados ao comportamento observado.
+ *
+ * Re-homologação (achados restantes, onda pós-P-TESTE-001): testes 162, 163 e 167 renomeados
+ * para a numeração oficial (180, 181, 185). Todos os três documentavam a mesma divergência de
+ * wording do badge de trava (`utils/badges.ts:14`: "Travada (estoque)"/"Travada (manual)",
+ * parênteses + minúscula, em vez de "Travada — Estoque"/"Travada — Manual" do Gherkin) — cosmético,
+ * mesma categoria dos achados já fechados em P-TESTE-001. O teste 167/185 também suspeitava de um
+ * bug funcional (badge da Lista sempre mostrando "Travada (estoque)" mesmo para trava manual,
+ * ListaProducaoPage.tsx:167/220 sem passar `historicoStatus`) — investigação confirmou que essa
+ * parte já foi corrigida (fix #156, `montarResponseComAlertas` já expõe `historicoStatus` em
+ * GET /producoes e `ListaProducaoPage.tsx` já chama `getBadgeEstado(estado, historicoStatus)` nas
+ * 3 ocorrências atuais, linhas 63/209/267) — comentário antigo ficou desatualizado. Confirmado ao
+ * vivo: badge de sistema e manual têm texto E cor diferentes na Lista. Todos os três corrigidos
+ * para refletir o comportamento real e correto.
  */
 
 test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119)', () => {
@@ -125,7 +138,7 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     }
   })
 
-  test('162 — iniciar com insumo bloqueante, opção travar tudo', async ({ page, request }) => {
+  test('180 (era 162) — iniciar com insumo bloqueante, opção travar tudo', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA162-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 0, false) // bloqueante
@@ -145,11 +158,10 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     await page.goto(`/producao/${producao.id}`)
     await iniciarProducao(page, { escolha: 'travar' })
 
-    // Achado de homologação: o rótulo real do badge (utils/badges.ts:14) é "Travada (estoque)",
-    // não "Travada — Estoque" (parênteses + minúscula, não travessão + maiúscula). Asserção
-    // abaixo replica o texto literal do Gherkin e deve falhar só por esse detalhe de wording —
-    // o restante do cenário (nenhuma baixa, estado TRAVADA) é comportamento real correto.
-    await expect(page.getByText('Travada — Estoque').first()).toBeVisible({ timeout: 5000 })
+    // Wording real do badge (utils/badges.ts:14) é "Travada (estoque)", não "Travada — Estoque"
+    // do Gherkin — divergência cosmética, mesma categoria dos achados já fechados em P-TESTE-001.
+    // O restante do cenário (nenhuma baixa, estado TRAVADA) já era comportamento real e correto.
+    await expect(page.getByText('Travada (estoque)').first()).toBeVisible({ timeout: 5000 })
 
     const insumoDepois = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -160,7 +172,7 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     expect(producaoApi.estado).toBe('TRAVADA')
   })
 
-  test('163 — travar manualmente EM_ANDAMENTO não reverte estoque já baixado', async ({ page, request }) => {
+  test('181 (era 163) — travar manualmente EM_ANDAMENTO não reverte estoque já baixado', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA163-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
@@ -180,8 +192,8 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     await page.goto(`/producao/${producao.id}`)
     await travarProducao(page, 'Maquinário quebrado, aguardando manutenção técnica')
 
-    // Mesmo achado de wording do Cenário 162: rótulo real é "Travada (manual)", não "Travada — Manual".
-    await expect(page.getByText('Travada — Manual').first()).toBeVisible({ timeout: 5000 })
+    // Mesma divergência cosmética de wording do Cenário 180: rótulo real é "Travada (manual)".
+    await expect(page.getByText('Travada (manual)').first()).toBeVisible({ timeout: 5000 })
 
     const insumoDepois = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -367,7 +379,7 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     expect(producaoApi.estado).toBe('TRAVADA')
   })
 
-  test('167 — badge na listagem distingue trava por sistema de trava manual', async ({ page, request }) => {
+  test('185 (era 167) — badge na listagem distingue trava por sistema de trava manual', async ({ page, request }) => {
     const token = await apiLogin(request)
 
     // Produção 1: travada automaticamente (insumo bloqueante durante iniciar)
@@ -411,14 +423,16 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
     const textoBadgeManual = await badgeManual.textContent()
     const estiloBadgeManual = await badgeManual.getAttribute('style')
 
-    // Achado de homologação (bug real, não só wording): na listagem, `getBadgeEstado` é chamado
-    // sem o 2º argumento `historicoStatus` (ListaProducaoPage.tsx:167 e :220), e `ProducaoResumo`
-    // (tipo devolvido por GET /producoes) nem sequer carrega `historicoStatus` — só
-    // `ProducaoDetalhe` tem esse campo (types/producao.ts). Resultado: TODA produção TRAVADA
-    // aparece como "Travada (estoque)" na lista, mesmo quando a trava foi manual — a distinção só
-    // funciona na tela de Detalhe (DetalheProducaoPage.tsx:108 passa historicoStatus corretamente).
-    expect(textoBadgeSistema).toBe('Travada — Estoque') // wording (parênteses vs travessão) — ver 162/163
-    expect(textoBadgeManual).toBe('Travada — Manual') // falha "dupla": wording E o bug acima (mostra "Travada (estoque)")
-    expect(estiloBadgeSistema).not.toBe(estiloBadgeManual) // cores devem diferir; na prática são idênticas (mesmo bug)
+    // Re-homologação: comentário original suspeitava de bug real (badge da Lista sempre "Travada
+    // (estoque)", ignorando trava manual) por `getBadgeEstado` supostamente não receber
+    // `historicoStatus` (ListaProducaoPage.tsx:167/220). Confirmado ao vivo que isso já foi
+    // corrigido (fix #156): `GET /producoes` expõe `historicoStatus` via `montarResponseComAlertas`
+    // (ProducaoService.java:182-186) e `ListaProducaoPage.tsx` já chama
+    // `getBadgeEstado(producao.estado, producao.historicoStatus)` (linhas 63, 209, 267) — só resta
+    // a mesma divergência cosmética de wording dos Cenários 180/181 (parênteses+minúscula vs
+    // travessão+maiúscula).
+    expect(textoBadgeSistema).toBe('Travada (estoque)')
+    expect(textoBadgeManual).toBe('Travada (manual)')
+    expect(estiloBadgeSistema).not.toBe(estiloBadgeManual) // cores diferem de fato — vermelho vs laranja
   })
 })

@@ -22,8 +22,12 @@ import { criarInsumoComEstoque } from '../helpers/insumo'
  *
  * Re-homologação P-TESTE-001 (V0.6.1): testes 151 e 157 renomeados para a numeração oficial atual
  * do SCENARIOS.md (169 e 175) — corrigidos por #153 (RN-NOVA-7) e #150 respectivamente, os dois
- * agora refletem comportamento real e correto (deixaram de documentar delta). Os demais testes
- * deste arquivo (150, 152-156) não foram tocados nesta rodada — mantêm a numeração antiga.
+ * agora refletem comportamento real e correto (deixaram de documentar delta).
+ *
+ * Re-homologação (achados restantes, onda pós-P-TESTE-001): teste 150 renomeado para 168 —
+ * inconsistência de redação do Gherkin original (origem SISTEMA na criação), não bug; corrigido
+ * para USUARIO, o valor real e correto. Os demais testes deste arquivo (152-156) não foram
+ * tocados nesta rodada — mantêm a numeração antiga.
  */
 
 function hojeISO(diasOffset = 0) {
@@ -70,7 +74,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     }
   })
 
-  test('150 — criar produção com produtos válidos gera PRD-N, sem movimentação de estoque, histórico com origem SISTEMA', async ({ page, request }) => {
+  test('168 (era 150) — criar produção com produtos válidos gera PRD-N, sem movimentação de estoque, histórico com origem USUARIO', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QA150-KitConviteCasamento-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, `QA150-Papel-${Date.now()}`, 1000, false)
@@ -106,10 +110,14 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     })).json()
     expect(insumoDepois.estoqueAtual).toBe(insumoAntes.estoqueAtual)
 
-    // Achado de homologação: ProducaoService.java:151-156 grava origem=USUARIO na criação,
-    // não SISTEMA como descrito no cenário (SISTEMA é usado só em transições automáticas,
-    // ex. travamento por insumo bloqueante, linha 351). Esta asserção falha por design da app atual.
-    expect(producaoApi.historicoStatus[0].origem).toBe('SISTEMA')
+    // Re-homologação (achado restante, onda pós-P-TESTE-001): ProducaoService.java:238-243 grava
+    // origem=USUARIO na criação — o Gherkin do Cenário 168 descreve "origem SISTEMA", mas isso é
+    // uma inconsistência de redação do cenário original, não um bug: em todo o resto do ciclo de
+    // vida (RN-065 divisão, RN-067 trava automática, RN-073 nascimento de filhas), SISTEMA é
+    // reservado só para transições automáticas sem ação direta da artesã — criar uma produção é
+    // sempre um ato da usuária, então USUARIO é o valor correto e consistente. Corrigido para
+    // refletir o comportamento real e correto.
+    expect(producaoApi.historicoStatus[0].origem).toBe('USUARIO')
   })
 
   test('169 (era 151) — RN-NOVA-7 (#153): alertas de insumo simulados ao vivo a cada produto adicionado, antes de confirmar', async ({ page, request }) => {

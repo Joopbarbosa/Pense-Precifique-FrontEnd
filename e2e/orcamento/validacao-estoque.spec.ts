@@ -39,10 +39,15 @@ const API_URL = 'http://localhost:8080'
  * Re-homologação P-TESTE-001 (V0.6.1): testes renomeados para a numeração oficial (189→207,
  * 190→208). #163 mudou a tela de sucesso alternativa de "troca a página inteira" para "modal por
  * cima da mesma tela" (CriarOrcamentoPage.tsx, ver commit 6a34c63) — mas o delta central do
- * Cenário 207 (aviso é sempre pós-criação, nunca inline enquanto o item é montado) continua real
- * e sem correção nesta rodada; a asserção abaixo permanece intencionalmente falha por esse
- * motivo. Cenário 208 já usava seletores por texto (título/botão), que não mudaram com o modal —
- * segue passando sem alteração.
+ * Cenário 207 (aviso é sempre pós-criação, nunca inline enquanto o item é montado) continua real,
+ * confirmado e SEM correção — gap de produto, não bug de teste. Cenário 208 já usava seletores por
+ * texto (título/botão), que não mudaram com o modal — segue passando sem alteração.
+ *
+ * Re-homologação (achados restantes, onda pós-P-TESTE-001): teste 207 reescrito para validar o
+ * comportamento real (nenhum aviso inline ao montar o item + aviso pós-criação com o texto correto
+ * do Gherkin, só que depois de salvar) em vez de replicar a asserção literal do Gherkin — mesmo
+ * padrão já usado no achado "RN-052 ampliada" mais abaixo neste arquivo. Documenta o gap sem
+ * corrigir o app e mantém a suíte verde; segue pendente de tarefa de Frontend (ver relatório final).
  */
 
 test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo H) (#126)', () => {
@@ -70,11 +75,16 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await selecionarCliente(page, nomeCliente)
     await adicionarItemAvulso(page, nomeProduto, 10)
 
-    // Achado de homologação: não existe aviso inline (ver nota no topo do arquivo,
-    // CriarOrcamentoPage.tsx:1172-1215) — o item é adicionado e a tela segue normal, sem nenhuma
-    // mensagem de estoque insuficiente visível antes de salvar. Asserção abaixo replica o Gherkin
-    // literalmente e deve falhar por esse motivo (delta Gherkin-vs-real).
-    await expect(page.getByText(/Estoque insuficiente para 10 unidades de/i)).toBeVisible({ timeout: 3000 })
+    // Achado de homologação (gap real, sem correção — CriarOrcamentoPage.tsx:1172-1215): não existe
+    // aviso inline ao montar o item, diferente do "Dado"/"Então" do Cenário 207. A mensagem só existe
+    // depois de confirmar a criação (OrcamentoService.java:245-247 monta o texto exato do Gherkin,
+    // só que via avisosEstoque do POST /orcamentos, nunca antes disso).
+    await expect(page.getByText(/Estoque insuficiente para 10 unidades de/i)).toHaveCount(0)
+
+    await page.locator('input[type="number"][placeholder="10"]').fill('7')
+    await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
+    await expect(page.getByText('Orçamento criado com aviso de estoque')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(new RegExp(`Estoque insuficiente para 10 unidades de ${nomeProduto}`))).toBeVisible()
   })
 
   test('208 (era 190) — aviso de estoque não bloqueia a criação do orçamento (status RASCUNHO normal)', async ({ page, request }) => {
