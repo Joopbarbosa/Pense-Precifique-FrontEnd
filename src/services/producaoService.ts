@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo } from '../types/producao'
+import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse } from '../types/producao'
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
@@ -23,7 +23,10 @@ export const producaoService = {
     return response.data
   },
 
-  iniciar: async (id: string, body?: { dividir?: boolean }): Promise<ProducaoDetalhe | DivisaoResponse> => {
+  iniciar: async (
+    id: string,
+    body?: { dividir?: boolean; confirmarEstoqueNegativoInsumoIds?: string[] }
+  ): Promise<ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse> => {
     const response = await api.post(`/producoes/${id}/iniciar`, body ?? {})
     return response.data
   },
@@ -33,7 +36,10 @@ export const producaoService = {
     return response.data
   },
 
-  retomar: async (id: string, body?: { dividir?: boolean }): Promise<ProducaoDetalhe | DivisaoResponse> => {
+  retomar: async (
+    id: string,
+    body?: { dividir?: boolean; confirmarEstoqueNegativoInsumoIds?: string[] }
+  ): Promise<ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse> => {
     const response = await api.post(`/producoes/${id}/retomar`, body ?? {})
     return response.data
   },

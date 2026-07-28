@@ -74,6 +74,22 @@ export interface DivisaoResponse {
   producaoB: ProducaoDetalhe
 }
 
+// RN-052 — retornado no lugar da resposta normal de iniciar()/retomar() quando há insumo/produto-base
+// com permitirEstoqueNegativo=true cuja baixa deixaria o estoque negativo e ainda não foi confirmada.
+// Nada é persistido nessa resposta — é preciso reenviar confirmando os `componenteId` listados via
+// `confirmarEstoqueNegativoInsumoIds` para a transição prosseguir.
+export interface AvisoEstoqueNegativo {
+  componenteId: string
+  nome: string
+  estoqueAtual: number
+  quantidadeNecessaria: number
+  mensagem: string
+}
+
+export interface ConfirmacaoEstoqueNegativoResponse {
+  avisos: AvisoEstoqueNegativo[]
+}
+
 export interface ConsumoRealItem {
   insumoId?: string
   produtoBaseId?: string
@@ -99,6 +115,14 @@ export interface AgruparResponse {
   producoesOriginais: ProducaoDetalhe[]
 }
 
-export function isDivisaoResponse(x: ProducaoDetalhe | DivisaoResponse): x is DivisaoResponse {
+export function isDivisaoResponse(
+  x: ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse
+): x is DivisaoResponse {
   return 'producaoOriginal' in x
+}
+
+export function isConfirmacaoEstoqueNegativoResponse(
+  x: ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse
+): x is ConfirmacaoEstoqueNegativoResponse {
+  return 'avisos' in x
 }

@@ -5,9 +5,10 @@ import Button from '../ui/Button'
 import { Spinner } from '../ui'
 import { Play, AlertTriangle, Lock } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
-import { isDivisaoResponse } from '../../types/producao'
-import type { ProducaoDetalhe, DivisaoResponse } from '../../types/producao'
+import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
+import type { ProducaoDetalhe, DivisaoResponse, ConfirmacaoEstoqueNegativoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import ModalDivisao from './ModalDivisao'
+import ConfirmarEstoqueNegativoModal from './ConfirmarEstoqueNegativoModal'
 
 interface Props {
   producaoId: string
@@ -24,6 +25,9 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
   const [erro, setErro] = useState<string | null>(null)
   const [justificativaTrava, setJustificativaTrava] = useState<string | null>(null)
   const [divisao, setDivisao] = useState<DivisaoResponse | null>(null)
+  const [avisoPendente, setAvisoPendente] = useState<AvisoEstoqueNegativo[] | null>(null)
+  const [avisoAcao, setAvisoAcao] = useState<'iniciar' | 'dividir' | null>(null)
+  const [confirmandoAviso, setConfirmandoAviso] = useState(false)
 
   useEffect(() => {
     if (producaoProp) return
@@ -33,25 +37,44 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
       .finally(() => setCarregando(false))
   }, [producaoId, producaoProp])
 
+  const tratarResultadoIniciar = (result: ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse) => {
+    if (isConfirmacaoEstoqueNegativoResponse(result)) {
+      setAvisoPendente(result.avisos)
+      setAvisoAcao('iniciar')
+    } else if (isDivisaoResponse(result)) {
+      setDivisao(result)
+      setEtapa('divisao')
+    } else if (result.estado === 'TRAVADA') {
+      const travas = result.historicoStatus.filter(h => h.statusNovo === 'TRAVADA')
+      setJustificativaTrava(travas[travas.length - 1]?.justificativa ?? null)
+      setEtapa('travada')
+    } else {
+      onSuccess('Produção iniciada.')
+    }
+  }
+
   const handleIniciar = async () => {
     setSalvando(true)
     setErro(null)
     try {
       const result = await producaoService.iniciar(producaoId)
-      if (isDivisaoResponse(result)) {
-        setDivisao(result)
-        setEtapa('divisao')
-      } else if (result.estado === 'TRAVADA') {
-        const travas = result.historicoStatus.filter(h => h.statusNovo === 'TRAVADA')
-        setJustificativaTrava(travas[travas.length - 1]?.justificativa ?? null)
-        setEtapa('travada')
-      } else {
-        onSuccess('Produção iniciada.')
-      }
+      tratarResultadoIniciar(result)
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao iniciar produção.')
     } finally {
       setSalvando(false)
+    }
+  }
+
+  const tratarResultadoDividir = (result: ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse) => {
+    if (isConfirmacaoEstoqueNegativoResponse(result)) {
+      setAvisoPendente(result.avisos)
+      setAvisoAcao('dividir')
+    } else if (isDivisaoResponse(result)) {
+      setDivisao(result)
+      setEtapa('divisao')
+    } else if (result.estado === 'EM_ANDAMENTO') {
+      onSuccess('Produção retomada.')
     }
   }
 
@@ -60,17 +83,47 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
     setErro(null)
     try {
       const result = await producaoService.retomar(producaoId, { dividir: true })
-      if (isDivisaoResponse(result)) {
-        setDivisao(result)
-        setEtapa('divisao')
-      } else if (result.estado === 'EM_ANDAMENTO') {
-        onSuccess('Produção retomada.')
-      }
+      tratarResultadoDividir(result)
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Não foi possível dividir a produção.')
     } finally {
       setSalvando(false)
     }
+  }
+
+  const handleConfirmarAviso = async () => {
+    if (!avisoPendente || !avisoAcao) return
+    setConfirmandoAviso(true)
+    setErro(null)
+    try {
+      const confirmarEstoqueNegativoInsumoIds = avisoPendente.map(a => a.componenteId)
+      if (avisoAcao === 'iniciar') {
+        const result = await producaoService.iniciar(producaoId, { confirmarEstoqueNegativoInsumoIds })
+        setAvisoPendente(null)
+        setAvisoAcao(null)
+        tratarResultadoIniciar(result)
+      } else {
+        const result = await producaoService.retomar(producaoId, { dividir: true, confirmarEstoqueNegativoInsumoIds })
+        setAvisoPendente(null)
+        setAvisoAcao(null)
+        tratarResultadoDividir(result)
+      }
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao confirmar produção.')
+    } finally {
+      setConfirmandoAviso(false)
+    }
+  }
+
+  if (avisoPendente) {
+    return (
+      <ConfirmarEstoqueNegativoModal
+        avisos={avisoPendente}
+        confirming={confirmandoAviso}
+        onClose={() => { setAvisoPendente(null); setAvisoAcao(null) }}
+        onConfirm={handleConfirmarAviso}
+      />
+    )
   }
 
   if (etapa === 'divisao' && divisao) {

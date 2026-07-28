@@ -3,9 +3,10 @@ import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import { RotateCcw, AlertTriangle } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
-import { isDivisaoResponse } from '../../types/producao'
-import type { DivisaoResponse } from '../../types/producao'
+import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
+import type { DivisaoResponse, ProducaoDetalhe, ConfirmacaoEstoqueNegativoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import ModalDivisao from './ModalDivisao'
+import ConfirmarEstoqueNegativoModal from './ConfirmarEstoqueNegativoModal'
 
 interface Props {
   producaoId: string
@@ -18,24 +19,64 @@ export default function RetormarProducaoModal({ producaoId, onClose, onSuccess }
   const [erro, setErro] = useState<string | null>(null)
   const [aindaTravada, setAindaTravada] = useState(false)
   const [divisao, setDivisao] = useState<DivisaoResponse | null>(null)
+  const [avisoPendente, setAvisoPendente] = useState<AvisoEstoqueNegativo[] | null>(null)
+  const [ultimoDividir, setUltimoDividir] = useState(false)
+  const [confirmandoAviso, setConfirmandoAviso] = useState(false)
+
+  const tratarResultado = (result: ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse, dividir: boolean) => {
+    if (isConfirmacaoEstoqueNegativoResponse(result)) {
+      setAvisoPendente(result.avisos)
+      setUltimoDividir(dividir)
+    } else if (isDivisaoResponse(result)) {
+      setDivisao(result)
+    } else if (result.estado === 'EM_ANDAMENTO') {
+      onSuccess('Produção retomada.')
+    } else {
+      setAindaTravada(true)
+    }
+  }
 
   const handleRetomar = async (dividir: boolean) => {
     setSalvando(true)
     setErro(null)
     try {
       const result = await producaoService.retomar(producaoId, dividir ? { dividir: true } : undefined)
-      if (isDivisaoResponse(result)) {
-        setDivisao(result)
-      } else if (result.estado === 'EM_ANDAMENTO') {
-        onSuccess('Produção retomada.')
-      } else {
-        setAindaTravada(true)
-      }
+      tratarResultado(result, dividir)
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao retomar produção.')
     } finally {
       setSalvando(false)
     }
+  }
+
+  const handleConfirmarAviso = async () => {
+    if (!avisoPendente) return
+    setConfirmandoAviso(true)
+    setErro(null)
+    try {
+      const confirmarEstoqueNegativoInsumoIds = avisoPendente.map(a => a.componenteId)
+      const result = await producaoService.retomar(
+        producaoId,
+        ultimoDividir ? { dividir: true, confirmarEstoqueNegativoInsumoIds } : { confirmarEstoqueNegativoInsumoIds }
+      )
+      setAvisoPendente(null)
+      tratarResultado(result, ultimoDividir)
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao retomar produção.')
+    } finally {
+      setConfirmandoAviso(false)
+    }
+  }
+
+  if (avisoPendente) {
+    return (
+      <ConfirmarEstoqueNegativoModal
+        avisos={avisoPendente}
+        confirming={confirmandoAviso}
+        onClose={() => setAvisoPendente(null)}
+        onConfirm={handleConfirmarAviso}
+      />
+    )
   }
 
   if (divisao) {

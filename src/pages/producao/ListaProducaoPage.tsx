@@ -8,8 +8,8 @@ import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
-import { isDivisaoResponse } from '../../types/producao'
-import type { ProducaoResumo, EstadoProducao, DivisaoResponse } from '../../types/producao'
+import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
+import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
@@ -18,6 +18,7 @@ import CancelarProducaoModal from '../../components/producao/CancelarProducaoMod
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
 import AgruparProducoesModal from '../../components/producao/AgruparProducoesModal'
 import ModalDivisao from '../../components/producao/ModalDivisao'
+import ConfirmarEstoqueNegativoModal from '../../components/producao/ConfirmarEstoqueNegativoModal'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanColumn } from '../../components/kanban/KanbanBoard'
 
@@ -333,6 +334,8 @@ export default function ListaProducaoPage() {
   const [kanbanLoading, setKanbanLoading] = useState(false)
   const [kanbanError, setKanbanError] = useState<string | null>(null)
   const [divisaoResult, setDivisaoResult] = useState<DivisaoResponse | null>(null)
+  const [avisoKanban, setAvisoKanban] = useState<{ producaoId: string; avisos: AvisoEstoqueNegativo[] } | null>(null)
+  const [confirmandoAvisoKanban, setConfirmandoAvisoKanban] = useState(false)
 
   const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string, sort: string | undefined) => {
     try {
@@ -434,6 +437,10 @@ export default function ListaProducaoPage() {
     // tipo === 'direto': TRAVADA -> EM_ANDAMENTO via /retomar, sem modal
     try {
       const result = await producaoService.retomar(itemId)
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        setAvisoKanban({ producaoId: itemId, avisos: result.avisos })
+        return false
+      }
       if (isDivisaoResponse(result)) {
         setDivisaoResult(result)
         return true
@@ -448,6 +455,32 @@ export default function ListaProducaoPage() {
     } catch (err: any) {
       setToast(err.response?.data?.message || 'Erro ao retomar produção.')
       return false
+    }
+  }
+
+  const fecharAvisoKanban = () => setAvisoKanban(null)
+  const confirmarAvisoKanban = async () => {
+    if (!avisoKanban) return
+    setConfirmandoAvisoKanban(true)
+    try {
+      const result = await producaoService.retomar(avisoKanban.producaoId, {
+        confirmarEstoqueNegativoInsumoIds: avisoKanban.avisos.map(a => a.componenteId),
+      })
+      setAvisoKanban(null)
+      if (isDivisaoResponse(result)) {
+        setDivisaoResult(result)
+      } else if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        setAvisoKanban({ producaoId: avisoKanban.producaoId, avisos: result.avisos })
+      } else if (result.estado === 'EM_ANDAMENTO') {
+        setToast('Produção retomada.')
+        carregarKanban()
+      } else {
+        setToast('Insumos ainda bloqueantes — produção permanece travada.')
+      }
+    } catch (err: any) {
+      setToast(err.response?.data?.message || 'Erro ao retomar produção.')
+    } finally {
+      setConfirmandoAvisoKanban(false)
     }
   }
 
@@ -780,6 +813,14 @@ export default function ListaProducaoPage() {
           producaoA={divisaoResult.producaoA}
           producaoB={divisaoResult.producaoB}
           onClose={handleFecharDivisao}
+        />
+      )}
+      {avisoKanban && (
+        <ConfirmarEstoqueNegativoModal
+          avisos={avisoKanban.avisos}
+          confirming={confirmandoAvisoKanban}
+          onClose={fecharAvisoKanban}
+          onConfirm={confirmarAvisoKanban}
         />
       )}
     </AppLayout>
