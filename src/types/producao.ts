@@ -18,6 +18,7 @@ export interface ProducaoProdutoItem {
   nomeProduto: string
   tipoProduto: string
   quantidade: number
+  quantidadePerdida: number
 }
 
 export interface HistoricoStatus {
@@ -66,6 +67,10 @@ export interface CriarProducaoRequest {
   dataTerminoPrevista: string
   observacoes?: string
   produtos: { produtoId: string; quantidade: number }[]
+}
+
+export interface FinalizarProducaoRequest {
+  perdas?: { produtoId: string; quantidadePerdida: number }[]
 }
 
 export interface DivisaoResponse {

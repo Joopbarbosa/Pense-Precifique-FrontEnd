@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse } from '../types/producao'
+import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse, FinalizarProducaoRequest } from '../types/producao'
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
@@ -44,8 +44,8 @@ export const producaoService = {
     return response.data
   },
 
-  finalizar: async (id: string): Promise<ProducaoDetalhe> => {
-    const response = await api.post(`/producoes/${id}/finalizar`)
+  finalizar: async (id: string, data?: FinalizarProducaoRequest): Promise<ProducaoDetalhe> => {
+    const response = await api.post(`/producoes/${id}/finalizar`, data ?? {})
     return response.data
   },
 

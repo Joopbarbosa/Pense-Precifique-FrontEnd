@@ -235,6 +235,15 @@ export async function finalizarProducao(page: Page) {
   await page.getByRole('button', { name: 'Confirmar finalização' }).click()
 }
 
+/** RN-NOVA-4 (#188) — abre o modal de finalizar e declara perda por produto antes de confirmar. */
+export async function finalizarProducaoComPerda(page: Page, perdas: Record<string, number>) {
+  await page.getByRole('button', { name: 'Finalizar', exact: true }).click()
+  for (const [produtoId, valor] of Object.entries(perdas)) {
+    await page.locator(`#perda-${produtoId}`).fill(String(valor))
+  }
+  await page.getByRole('button', { name: 'Confirmar finalização' }).click()
+}
+
 /**
  * Composto de setup: cria produção + inicia via API (deduz estoque), devolve o id e o
  * insumosConsumidos original (quantidade baixada por insumo/produtoBase) — usado nos cenários

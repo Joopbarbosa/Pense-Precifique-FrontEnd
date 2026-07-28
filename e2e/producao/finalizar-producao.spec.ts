@@ -8,6 +8,7 @@ import {
   teardownProducoes,
   criarProducaoEmAndamento,
   finalizarProducao,
+  finalizarProducaoComPerda,
   finalizarProducaoViaApi,
 } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
@@ -20,11 +21,10 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  * Mesma regra dos prompts anteriores: cenários que falham documentam o delta Gherkin-vs-real
  * com file:line, não são adaptados ao comportamento observado.
  *
- * Bloco 2/P-TESTE-001 (V0.6.1) — RN-NOVA-4 (#188): backend implementa declaração de perda ao
- * finalizar por completo (FinalizarProducaoRequest.perdas, ProducaoService.finalizar), mas
- * FinalizarProducaoModal.tsx não tem nenhum campo de perda — producaoService.finalizar(id) sempre
- * chama POST sem body. Cobertura de UI é impossível hoje; os 2 testes abaixo validam o contrato
- * via API diretamente (sem `page`). Reportado no relatório final como gap de Frontend.
+ * P-FE-CORRIGE-005 (V0.6.1) — RN-NOVA-4 (#188): FinalizarProducaoModal.tsx ganhou o campo de perda
+ * por produto (input `#perda-{produtoId}`), com bloqueio client-side quando a perda excede a
+ * quantidade planejada. Os testes abaixo cobrem o fluxo via UI (`finalizarProducaoComPerda`); os 2
+ * testes de "API only" mais adiante continuam validando o contrato do backend diretamente.
  */
 
 test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () => {
@@ -104,7 +104,111 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
     }
   })
 
-  test('RN-NOVA-4 (#188, achado — API only) — finalizar com perda declarada incrementa só a diferença (planejado − perda)', async ({ request }) => {
+  test('RN-NOVA-4 (#188) — finalizar via UI declarando perda parcial incrementa só a diferença e persiste quantidadePerdida', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA4c-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RNNOVA4c-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const producao = await criarProducaoEmAndamento(request, token, [{ produtoId: produto.id, quantidade: 10 }])
+    criadasProducaoIds.push(producao.id)
+
+    const produtoAntes = await (await request.get(`${PRODUTO_URL}/${produto.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+
+    await login(page)
+    await page.goto(`/producao/${producao.id}`)
+    await finalizarProducaoComPerda(page, { [produto.id]: 3 })
+
+    await expect(page.getByText('Finalizada').first()).toBeVisible({ timeout: 10_000 })
+
+    const produtoDepois = await (await request.get(`${PRODUTO_URL}/${produto.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).json()
+    expect(produtoDepois.estoqueAtual - produtoAntes.estoqueAtual).toBe(7) // 10 planejado - 3 perda
+
+    const producaoApi = await buscarProducao(request, token, producao.id)
+    expect(producaoApi.produtos[0].quantidadePerdida).toBe(3)
+  })
+
+  test('RN-NOVA-4 (#188) — múltiplos produtos, perda declarada só em um: o outro fica com quantidadePerdida 0', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA4d-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProdutoA = `QA-RNNOVA4d-ProdutoA-${Date.now()}`
+    const produtoA = await criarProdutoComFicha(request, token, nomeProdutoA, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produtoA.id)
+    const nomeProdutoB = `QA-RNNOVA4d-ProdutoB-${Date.now()}`
+    const produtoB = await criarProdutoComFicha(request, token, nomeProdutoB, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produtoB.id)
+
+    const producao = await criarProducaoEmAndamento(request, token, [
+      { produtoId: produtoA.id, quantidade: 10 },
+      { produtoId: produtoB.id, quantidade: 6 },
+    ])
+    criadasProducaoIds.push(producao.id)
+
+    const [produtoAAntes, produtoBAntes] = await Promise.all([
+      (await request.get(`${PRODUTO_URL}/${produtoA.id}`, { headers: { Authorization: `Bearer ${token}` } })).json(),
+      (await request.get(`${PRODUTO_URL}/${produtoB.id}`, { headers: { Authorization: `Bearer ${token}` } })).json(),
+    ])
+
+    await login(page)
+    await page.goto(`/producao/${producao.id}`)
+    await finalizarProducaoComPerda(page, { [produtoA.id]: 4 })
+
+    await expect(page.getByText('Finalizada').first()).toBeVisible({ timeout: 10_000 })
+
+    const [produtoADepois, produtoBDepois] = await Promise.all([
+      (await request.get(`${PRODUTO_URL}/${produtoA.id}`, { headers: { Authorization: `Bearer ${token}` } })).json(),
+      (await request.get(`${PRODUTO_URL}/${produtoB.id}`, { headers: { Authorization: `Bearer ${token}` } })).json(),
+    ])
+    expect(produtoADepois.estoqueAtual - produtoAAntes.estoqueAtual).toBe(6) // 10 planejado - 4 perda
+    expect(produtoBDepois.estoqueAtual - produtoBAntes.estoqueAtual).toBe(6) // sem perda declarada
+
+    const producaoApi = await buscarProducao(request, token, producao.id)
+    const respA = producaoApi.produtos.find((p: { produtoId: string }) => p.produtoId === produtoA.id)
+    const respB = producaoApi.produtos.find((p: { produtoId: string }) => p.produtoId === produtoB.id)
+    expect(respA.quantidadePerdida).toBe(4)
+    expect(respB.quantidadePerdida).toBe(0)
+  })
+
+  test('RN-NOVA-4 (#188) — declarar perda maior que o planejado bloqueia o botão de confirmar antes do submit', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA4e-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RNNOVA4e-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const producao = await criarProducaoEmAndamento(request, token, [{ produtoId: produto.id, quantidade: 5 }])
+    criadasProducaoIds.push(producao.id)
+
+    await login(page)
+    await page.goto(`/producao/${producao.id}`)
+    await page.getByRole('button', { name: 'Finalizar', exact: true }).click()
+    await page.locator(`#perda-${produto.id}`).fill('11')
+
+    await expect(page.getByText('Perda não pode ser maior que a quantidade planejada (5).')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Confirmar finalização' })).toBeDisabled()
+
+    // corrige para um valor válido — botão volta a ficar disponível e a finalização segue normalmente
+    await page.locator(`#perda-${produto.id}`).fill('2')
+    await expect(page.getByRole('button', { name: 'Confirmar finalização' })).toBeEnabled()
+    await page.getByRole('button', { name: 'Confirmar finalização' }).click()
+    await expect(page.getByText('Finalizada').first()).toBeVisible({ timeout: 10_000 })
+
+    const producaoApi = await buscarProducao(request, token, producao.id)
+    expect(producaoApi.produtos[0].quantidadePerdida).toBe(2)
+  })
+
+  test('RN-NOVA-4 (#188) — contrato de backend via API: perda declarada incrementa só a diferença (planejado − perda)', async ({ request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4a-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
@@ -134,7 +238,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
     expect(produtoDepois.estoqueAtual - produtoAntes.estoqueAtual).toBe(7) // 10 planejado - 3 perda
   })
 
-  test('RN-NOVA-4 (#188, achado — API only) — perda maior que a quantidade planejada é bloqueada', async ({ request }) => {
+  test('RN-NOVA-4 (#188) — contrato de backend via API: perda maior que a quantidade planejada é bloqueada (400)', async ({ request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4b-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)

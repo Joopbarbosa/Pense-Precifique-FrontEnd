@@ -226,6 +226,9 @@ export default function DetalheProducaoPage() {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-dark">{p.nomeProduto}</div>
                   <div className="text-[12px] text-muted">{p.tipoProduto}</div>
+                  {producao.estado === 'FINALIZADA' && p.quantidadePerdida > 0 && (
+                    <div className="text-[12px] text-danger">Perda: {p.quantidadePerdida}</div>
+                  )}
                 </div>
                 <span className="flex-shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
                   ×{p.quantidade}
