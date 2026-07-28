@@ -6,6 +6,7 @@ import {
   inativarProduto,
   teardownProducoes,
   criarProducoesEmLote,
+  criarProducaoComData,
   iniciarProducaoViaApi,
   finalizarProducaoViaApi,
 } from '../helpers/producao'
@@ -236,5 +237,96 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     await page.waitForTimeout(600)
     await expect(linhasDesktop(page)).toHaveCount(1)
     await expect(page.getByRole('button', { name: 'Mais ações' })).toHaveCount(0)
+  })
+
+  test('RN-NOVA-2 (P-FE-CORRIGE-004) — filtro de intervalo de data (dataInicioDe/dataInicioAte) na Listagem e no Kanban', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RN-NOVA2-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 1000)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RN-NOVA2-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const antiga = await criarProducaoComData(request, token, produto.id, '2026-01-10', '2026-01-20')
+    criadasProducaoIds.push(antiga.id)
+    const meio = await criarProducaoComData(request, token, produto.id, '2026-03-15', '2026-03-25')
+    criadasProducaoIds.push(meio.id)
+    const recente = await criarProducaoComData(request, token, produto.id, '2026-06-20', '2026-06-30')
+    criadasProducaoIds.push(recente.id)
+
+    const de = page.getByLabel('Data de início — de')
+    const ate = page.getByLabel('Data de início — até')
+
+    await login(page)
+    await page.goto('/producao')
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
+    await page.waitForTimeout(600)
+    await expect(linhasDesktop(page)).toHaveCount(3)
+
+    // Só dataInicioDe: remove a mais antiga
+    await de.fill('2026-03-01')
+    await page.waitForTimeout(400)
+    await expect(linhasDesktop(page)).toHaveCount(2)
+    await expect(page.getByText(antiga.identificador)).toHaveCount(0)
+
+    // Só dataInicioAte (limpa De antes de preencher Até, evita min/max cruzados)
+    await de.fill('')
+    await ate.fill('')
+    await page.waitForTimeout(400)
+    await ate.fill('2026-02-01')
+    await page.waitForTimeout(400)
+    await expect(linhasDesktop(page)).toHaveCount(1)
+    await expect(linhasDesktop(page).getByText(antiga.identificador)).toBeVisible()
+
+    // Combinar os dois: intervalo intermediário cobre só a produção do meio
+    await de.fill('')
+    await ate.fill('')
+    await page.waitForTimeout(400)
+    await de.fill('2026-02-01')
+    await ate.fill('2026-05-01')
+    await page.waitForTimeout(400)
+    await expect(linhasDesktop(page)).toHaveCount(1)
+    await expect(linhasDesktop(page).getByText(meio.identificador)).toBeVisible()
+
+    // Intervalo sem produção correspondente — lista vazia, texto dedicado, sem erro na tela.
+    // Busca temporariamente limpa: com busca+período simultâneos a mensagem de busca tem
+    // prioridade (mais específica, nomeia o termo) — texto de período é o caso isolado.
+    await page.getByPlaceholder('Buscar por produto…').fill('')
+    await de.fill('')
+    await ate.fill('')
+    await page.waitForTimeout(400)
+    await de.fill('2027-01-01')
+    await ate.fill('2027-01-31')
+    await page.waitForTimeout(400)
+    await expect(page.getByText('Nenhuma produção encontrada neste período.')).toBeVisible()
+
+    // Limpar período volta ao comportamento sem filtro de data (restaura a busca)
+    await page.getByRole('button', { name: 'Limpar período', exact: true }).click()
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
+    await page.waitForTimeout(600)
+    await expect(linhasDesktop(page)).toHaveCount(3)
+
+    // Combinável com o filtro de estado, sem um sobrescrever o outro
+    await iniciarProducaoViaApi(request, token, recente.id)
+    await page.getByRole('button', { name: 'Em andamento', exact: true }).click()
+    await de.fill('2026-06-01')
+    await page.waitForTimeout(400)
+    await expect(linhasDesktop(page)).toHaveCount(1)
+    await expect(linhasDesktop(page).getByText(recente.identificador)).toBeVisible()
+
+    await page.getByRole('button', { name: 'Todos', exact: true }).click()
+    await de.fill('')
+    await page.waitForTimeout(400)
+
+    // Kanban consome o mesmo endpoint — mesmos campos de data, mesmo filtro combinado com a busca
+    await page.getByRole('button', { name: 'Kanban', exact: true }).click()
+    await page.waitForTimeout(400)
+    await expect(page.getByLabel('Data de início — de')).toBeVisible()
+    await expect(page.getByText(nomeProduto).first()).toBeVisible()
+
+    await page.getByLabel('Data de início — de').fill('2027-01-01')
+    await page.waitForTimeout(400)
+    await expect(page.getByText(nomeProduto)).toHaveCount(0)
   })
 })

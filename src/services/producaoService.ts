@@ -3,7 +3,7 @@ import type { ProducaoDetalhe, ProducaoResumo, CriarProducaoRequest, DivisaoResp
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
-  listar: async (params: { busca?: string; estado?: string; sort?: string; page?: number; size?: number }): Promise<PageResponse<ProducaoResumo>> => {
+  listar: async (params: { busca?: string; estado?: string; dataInicioDe?: string; dataInicioAte?: string; sort?: string; page?: number; size?: number }): Promise<PageResponse<ProducaoResumo>> => {
     const response = await api.get('/producoes', { params })
     return response.data
   },

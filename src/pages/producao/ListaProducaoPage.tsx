@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
-import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown, Calendar } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
@@ -315,6 +315,8 @@ export default function ListaProducaoPage() {
   const [query, setQuery] = useState('')
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [dataInicioDe, setDataInicioDe] = useState('')
+  const [dataInicioAte, setDataInicioAte] = useState('')
 
   const [producoes, setProducoes] = useState<ProducaoResumo[]>([])
   const [loading, setLoading] = useState(true)
@@ -337,9 +339,17 @@ export default function ListaProducaoPage() {
   const [avisoKanban, setAvisoKanban] = useState<{ producaoId: string; avisos: AvisoEstoqueNegativo[] } | null>(null)
   const [confirmandoAvisoKanban, setConfirmandoAvisoKanban] = useState(false)
 
-  const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string, sort: string | undefined) => {
+  const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string, sort: string | undefined, deIni: string, ateIni: string) => {
     try {
-      const res = await producaoService.listar({ busca: q.trim() || undefined, estado: estadoFiltro || undefined, sort, page: pg, size: 20 })
+      const res = await producaoService.listar({
+        busca: q.trim() || undefined,
+        estado: estadoFiltro || undefined,
+        dataInicioDe: deIni || undefined,
+        dataInicioAte: ateIni || undefined,
+        sort,
+        page: pg,
+        size: 20,
+      })
       if (pg === 0) {
         setProducoes(res.content)
       } else {
@@ -359,15 +369,22 @@ export default function ListaProducaoPage() {
     setLoading(true)
     const delay = query.trim() ? 300 : 0
     const t = setTimeout(() => {
-      carregar(0, filtro, query, sortParam).finally(() => setLoading(false))
+      carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte).finally(() => setLoading(false))
     }, delay)
     return () => clearTimeout(t)
-  }, [filtro, query, sortParam, carregar])
+  }, [filtro, query, sortParam, dataInicioDe, dataInicioAte, carregar])
 
   const carregarKanban = useCallback(async () => {
     setKanbanLoading(true)
     try {
-      const res = await producaoService.listar({ busca: query.trim() || undefined, estado: filtro || undefined, page: 0, size: 100 })
+      const res = await producaoService.listar({
+        busca: query.trim() || undefined,
+        estado: filtro || undefined,
+        dataInicioDe: dataInicioDe || undefined,
+        dataInicioAte: dataInicioAte || undefined,
+        page: 0,
+        size: 100,
+      })
       setKanbanProducoes(res.content)
       setKanbanError(null)
     } catch {
@@ -375,17 +392,36 @@ export default function ListaProducaoPage() {
     } finally {
       setKanbanLoading(false)
     }
-  }, [query, filtro])
+  }, [query, filtro, dataInicioDe, dataInicioAte])
 
   useEffect(() => {
     if (viewMode !== 'kanban') return
     const delay = query.trim() ? 300 : 0
     const t = setTimeout(() => { carregarKanban() }, delay)
     return () => clearTimeout(t)
-  }, [viewMode, query, filtro, carregarKanban])
+  }, [viewMode, query, filtro, dataInicioDe, dataInicioAte, carregarKanban])
 
   const handleFiltroChange = (value: EstadoProducao | '') => {
     setFiltro(value)
+    setProducoes([])
+    setPage(0)
+  }
+
+  const handleDataInicioDeChange = (value: string) => {
+    setDataInicioDe(value)
+    setProducoes([])
+    setPage(0)
+  }
+
+  const handleDataInicioAteChange = (value: string) => {
+    setDataInicioAte(value)
+    setProducoes([])
+    setPage(0)
+  }
+
+  const handleLimparPeriodo = () => {
+    setDataInicioDe('')
+    setDataInicioAte('')
     setProducoes([])
     setPage(0)
   }
@@ -403,7 +439,7 @@ export default function ListaProducaoPage() {
 
   const handleCarregarMais = async () => {
     setLoadingMore(true)
-    await carregar(page + 1, filtro, query, sortParam)
+    await carregar(page + 1, filtro, query, sortParam, dataInicioDe, dataInicioAte)
     setLoadingMore(false)
   }
 
@@ -413,7 +449,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModal(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar(0, filtro, query, sortParam)
+    else carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte)
   }
 
   const handleFecharDivisao = () => {
@@ -497,7 +533,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalCancelarConsumoId(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar(0, filtro, query, sortParam)
+    else carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte)
   }
 
   const encerrarSelecao = () => {
@@ -529,14 +565,15 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalAgrupar(false)
     encerrarSelecao()
-    carregar(0, filtro, query, sortParam)
+    carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte)
   }
 
   const producoesSelecionadas = producoes.filter(p => selecionadas.has(p.id))
 
   const searchActive = query.trim().length > 0
-  const globalEmpty = !loading && producoes.length === 0 && filtro === '' && !searchActive
-  const filtroEmpty = !loading && producoes.length === 0 && (filtro !== '' || searchActive)
+  const periodoAtivo = !!(dataInicioDe || dataInicioAte)
+  const globalEmpty = !loading && producoes.length === 0 && filtro === '' && !searchActive && !periodoAtivo
+  const filtroEmpty = !loading && producoes.length === 0 && (filtro !== '' || searchActive || periodoAtivo)
 
   return (
     <AppLayout active="producao" fullHeight={viewMode === 'kanban'}>
@@ -626,13 +663,49 @@ export default function ListaProducaoPage() {
                 className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
               />
             </div>
+
+            <div>
+              <div className="mb-[7px] flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+                <Calendar size={13} /> Data de início
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <input
+                  type="date"
+                  value={dataInicioDe}
+                  max={dataInicioAte || undefined}
+                  onChange={e => handleDataInicioDeChange(e.target.value)}
+                  aria-label="Data de início — de"
+                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+                <span className="text-[13px] text-muted">até</span>
+                <input
+                  type="date"
+                  value={dataInicioAte}
+                  min={dataInicioDe || undefined}
+                  onChange={e => handleDataInicioAteChange(e.target.value)}
+                  aria-label="Data de início — até"
+                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+                {periodoAtivo && (
+                  <button
+                    type="button"
+                    onClick={handleLimparPeriodo}
+                    className="h-11 cursor-pointer whitespace-nowrap rounded-input border-none bg-transparent px-1 font-[inherit] text-[13px] font-semibold text-teal"
+                  >
+                    Limpar período
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {filtroEmpty ? (
             <div className="py-12 text-center text-sm text-muted">
               {searchActive
                 ? <>Nenhuma produção encontrada para &ldquo;{query.trim()}&rdquo;.</>
-                : <>Nenhuma produção encontrada para este filtro.</>
+                : periodoAtivo
+                  ? <>Nenhuma produção encontrada neste período.</>
+                  : <>Nenhuma produção encontrada para este filtro.</>
               }
             </div>
           ) : (
@@ -726,6 +799,40 @@ export default function ListaProducaoPage() {
                 placeholder="Buscar por produto…"
                 className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
               />
+            </div>
+
+            <div>
+              <div className="mb-[7px] flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+                <Calendar size={13} /> Data de início
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <input
+                  type="date"
+                  value={dataInicioDe}
+                  max={dataInicioAte || undefined}
+                  onChange={e => handleDataInicioDeChange(e.target.value)}
+                  aria-label="Data de início — de"
+                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+                <span className="text-[13px] text-muted">até</span>
+                <input
+                  type="date"
+                  value={dataInicioAte}
+                  min={dataInicioDe || undefined}
+                  onChange={e => handleDataInicioAteChange(e.target.value)}
+                  aria-label="Data de início — até"
+                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+                {periodoAtivo && (
+                  <button
+                    type="button"
+                    onClick={handleLimparPeriodo}
+                    className="h-11 cursor-pointer whitespace-nowrap rounded-input border-none bg-transparent px-1 font-[inherit] text-[13px] font-semibold text-teal"
+                  >
+                    Limpar período
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

@@ -122,6 +122,25 @@ export async function criarProducaoViaApi(
   return res.json()
 }
 
+/** Igual a criarProducaoViaApi, mas com dataInicio explícita — usado por specs que testam
+ * filtro/ordenação por dataInicio (RN-NOVA-2/RN-NOVA-6), onde a data default (hoje) não serve. */
+export async function criarProducaoComData(
+  request: APIRequestContext,
+  token: string,
+  produtoId: string,
+  dataInicio: string,
+  dataTerminoPrevista = amanha()
+) {
+  const res = await request.post(`${API_URL}/producoes`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { dataInicio, dataTerminoPrevista, produtos: [{ produtoId, quantidade: 1 }] },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produção com dataInicio: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 /** Resposta crua (sem checar ok()) — quem chama decide se espera EM_ANDAMENTO, TRAVADA ou DivisaoResponse. */
 export async function iniciarProducaoViaApi(
   request: APIRequestContext,
