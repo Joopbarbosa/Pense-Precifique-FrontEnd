@@ -209,6 +209,8 @@ Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a 
 
 Rodar: `npx playwright test e2e/<arquivo>.spec.ts --reporter=list` (containers precisam estar de pé — `docker compose up -d`).
 
+**Reset de banco entre execuções (V0.6.1, achado do P-TESTE-001):** `e2e/global-setup.ts`, ligado via `globalSetup` em `playwright.config.ts`, roda **uma vez antes de toda a suíte** (mesmo filtrando por arquivo) e faz `TRUNCATE ... CASCADE` de todas as tabelas de domínio direto no container do Postgres (`docker exec pense-precifique-db psql ...`) — nunca `docker compose down -v`/`up`, porque a conta de teste (`penseprecifique@admin.com`) não é seedada por nenhuma migration nem script, só existe porque foi cadastrada manualmente uma vez e vive no volume; derrubar o volume apagaria a conta e quebraria `login()` (que não trata fluxo de registro/onboarding). O TRUNCATE preserva deliberadamente `usuarios`, `empresas`, `configuracoes_precificacao` e `flyway_schema_history` — só zera dados de domínio (`producoes`, `orcamentos`, `insumos`, `produtos`, `clientes`, `catalogos` etc., lista completa no próprio arquivo). Sem isso, estados terminais sem hard-delete (ex. `NAO_REALIZADA`) se acumulavam indefinidamente entre rodadas e quebravam asserções de contagem/estado limpo (Cenário 199 chegou a ter 2185 produções e 13 badges "Não realizada" de execuções antigas). Rodar a suíte sempre pelo Playwright (`npx playwright test` / `npm run test:e2e`) para o reset disparar — nunca pular direto para os specs sem passar pelo config.
+
 ---
 
 ## Padrão de commits
