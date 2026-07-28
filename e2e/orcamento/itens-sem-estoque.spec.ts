@@ -1,24 +1,22 @@
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
-import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
+import { criarProdutoComEstoque, criarProdutoComFichaEEstoque, inativarProduto } from '../helpers/producao'
+import { criarInsumoComEstoque } from '../helpers/insumo'
 import { criarCliente } from '../helpers/orcamento'
 
 const API_URL = 'http://localhost:8080'
 
 /**
  * Bloco 2/P-TESTE-001 (V0.6.1) — RN-NOVA-5 (#194): backend implementa o endpoint somente leitura
- * `GET /orcamentos/{id}/itens-sem-estoque` (CONTRATO_API.md), que deveria alimentar a condição de
- * exibir o botão "Criar produção" no Detalhe do Orçamento quando algum item tem estoque
- * insuficiente.
+ * `GET /orcamentos/{id}/itens-sem-estoque` (CONTRATO_API.md), que alimenta a condição de exibir o
+ * botão "Criar produção" no Detalhe do Orçamento quando algum item tem estoque insuficiente.
  *
- * Achado de homologação: essa feature NÃO existe no frontend — `DetalheOrcamentoPage.tsx` nunca
- * chama esse endpoint (confirmado por grep sem ocorrências de `itens-sem-estoque`/`itensSemEstoque`
- * em todo `src/`), não lê `avisosEstoque` para decidir UI, e o único botão "Criar produção" do
- * sistema é o CTA genérico da listagem vazia de Produção (`ListaProducaoPage.tsx`), sem relação
- * com item de orçamento sem estoque. Cobertura de UI é impossível hoje — os testes abaixo validam
- * o contrato via API diretamente (sem `page`), e o último confirma explicitamente a ausência do
- * botão na tela. Reportado no relatório final como gap de Frontend a ser aberto no OpenProject.
+ * P-FE-CORRIGE-006 (V0.6.1) — `DetalheOrcamentoPage.tsx` passou a chamar esse endpoint no
+ * carregamento e a exibir indicador + botão "Criar produção" por item; o clique navega para
+ * `/producao/nova?produtoId=...&quantidade=...` (quantidade **faltante**, não a solicitada),
+ * lido por `NovaProducaoPage.tsx` via `useSearchParams` (mesmo padrão de `NovoItemCatalogoPage`).
+ * Os 3 primeiros testes seguem validando o contrato de backend via API; os 2 últimos cobrem a UI.
  */
 
 test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () => {
@@ -107,10 +105,10 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     expect(res.status()).toBe(404)
   })
 
-  test('achado: nenhum botão "Criar produção" ligado a item sem estoque existe no Detalhe do Orçamento', async ({ page, request }) => {
+  test('botão "Criar produção" aparece na linha do item sem estoque suficiente', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QA-RNNOVA5c-Produto-${Date.now()}`
-    const produto = await criarProdutoComEstoque(request, token, nomeProduto, 1)
+    const produto = await criarProdutoComEstoque(request, token, nomeProduto, 3)
     criadosProdutoIds.push(produto.id)
     const cliente = await criarCliente(request, token, `QA-RNNOVA5c-Cliente-${Date.now()}`)
 
@@ -128,6 +126,64 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
 
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
+    await expect(page.getByRole('button', { name: 'Criar produção', exact: true })).toBeVisible()
+    await expect(page.getByText(/faltam 7/i)).toBeVisible()
+  })
+
+  test('orçamento sem itens com problema de estoque não exibe nenhum indicador nem botão', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeProduto = `QA-RNNOVA5d-Produto-${Date.now()}`
+    const produto = await criarProdutoComEstoque(request, token, nomeProduto, 100)
+    criadosProdutoIds.push(produto.id)
+    const cliente = await criarCliente(request, token, `QA-RNNOVA5d-Cliente-${Date.now()}`)
+
+    const resCriar = await request.post(`${API_URL}/orcamentos`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        clienteId: cliente.id,
+        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 }],
+        metodoPagamento: 'PIX',
+        prazoProducaoDias: 5,
+        sinalAtivo: false,
+      },
+    })
+    const orcamento = await resCriar.json()
+
+    await login(page)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    await expect(page.getByText(nomeProduto)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Criar produção', exact: true })).toHaveCount(0)
+  })
+
+  test('clicar em "Criar produção" navega pra Nova Produção com o produto e a quantidade FALTANTE pré-preenchidos', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    // precisa de ficha técnica válida (não só estoqueAtual) para POST /producoes/simular-alertas
+    // não recusar o produto ao carregar a Nova Produção com o pré-preenchimento
+    const insumo = await criarInsumoComEstoque(request, token, `QA-RNNOVA5e-Insumo-${Date.now()}`, 100, true)
+    const nomeProduto = `QA-RNNOVA5e-Produto-${Date.now()}`
+    const produto = await criarProdutoComFichaEEstoque(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 3)
+    criadosProdutoIds.push(produto.id)
+    const cliente = await criarCliente(request, token, `QA-RNNOVA5e-Cliente-${Date.now()}`)
+
+    const resCriar = await request.post(`${API_URL}/orcamentos`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        clienteId: cliente.id,
+        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 }],
+        metodoPagamento: 'PIX',
+        prazoProducaoDias: 5,
+        sinalAtivo: false,
+      },
+    })
+    const orcamento = await resCriar.json()
+
+    await login(page)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    await page.getByRole('button', { name: 'Criar produção', exact: true }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/producao/nova\\?produtoId=${produto.id}&quantidade=7`))
+    await expect(page.getByText(nomeProduto)).toBeVisible()
+    // quantidade pré-preenchida é a faltante (7 = 10 solicitado - 3 em estoque), não a solicitada (10)
+    await expect(page.locator('input[type="number"]')).toHaveValue('7')
   })
 })

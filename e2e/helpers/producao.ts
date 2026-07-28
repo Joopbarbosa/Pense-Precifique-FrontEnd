@@ -30,6 +30,38 @@ export async function criarProdutoComFicha(
   return res.json()
 }
 
+/**
+ * Produto válido (ficha técnica + rendimento, necessário para `POST /producoes/simular-alertas`
+ * não recusar o produto) com um `estoqueAtual` inicial explícito — usado pelo RN-NOVA-5 para testar
+ * o botão "Criar produção" do Detalhe do Orçamento, que precisa de estoque insuficiente E de um
+ * produto que a Nova Produção consiga de fato simular alertas (diferente de `criarProdutoComEstoque`,
+ * que não tem ficha técnica e faz `simularAlertas` retornar 400).
+ */
+export async function criarProdutoComFichaEEstoque(
+  request: APIRequestContext,
+  token: string,
+  nome: string,
+  fichaTecnica: FichaItem[],
+  estoqueAtual: number,
+  rendimento = 1
+) {
+  const res = await request.post(`${API_URL}/produtos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      nome,
+      tipo: 'PRODUTO',
+      tempoProducao: 10,
+      rendimento,
+      fichaTecnica,
+      estoqueAtual,
+    },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produto (com ficha e estoque) de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 /** Produto sem ficha técnica (fichaTecnica: []) — precondição do Cenário 152. */
 export async function criarProdutoSemFicha(request: APIRequestContext, token: string, nome: string) {
   const res = await request.post(`${API_URL}/produtos`, {

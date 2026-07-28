@@ -86,6 +86,15 @@ export interface AvisoEstoque {
   mensagem: string;
 }
 
+export interface ItemSemEstoque {
+  produtoId: string;
+  identificador: string;
+  nomeProduto: string;
+  quantidadeSolicitada: number;
+  estoqueAtual: number;
+  quantidadeFaltante: number;
+}
+
 export interface OrcamentoDetalheResponse {
   id: string;
   numero: number;

@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 
@@ -36,6 +36,11 @@ export const orcamentoService = {
 
   cancelar: async (id: string, data?: AvancaStatusRequest): Promise<OrcamentoDetalheResponse> => {
     const response = await api.post(`/orcamentos/${id}/cancelar`, data || {});
+    return response.data;
+  },
+
+  buscarItensSemEstoque: async (id: string): Promise<ItemSemEstoque[]> => {
+    const response = await api.get(`/orcamentos/${id}/itens-sem-estoque`);
     return response.data;
   },
 

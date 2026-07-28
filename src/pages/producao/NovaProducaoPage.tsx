@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button } from '../../components/ui'
@@ -191,6 +191,9 @@ function AlertasInsumos({ alertas }: { alertas: AlertaInsumo[] }) {
 
 export default function NovaProducaoPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const produtoIdParam = searchParams.get('produtoId')
+  const quantidadeParam = searchParams.get('quantidade')
   const { toast, setToast } = useToast()
   const [dataInicio, setDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
@@ -239,6 +242,19 @@ export default function NovaProducaoPage() {
       setVerificandoAlertas(false)
     }
   }
+
+  // RN-NOVA-5 (#194) — pré-preenchimento vindo do botão "Criar produção" no Detalhe do Orçamento
+  // (item sem estoque suficiente). Mesmo padrão de query params de NovoItemCatalogoPage.
+  useEffect(() => {
+    if (!produtoIdParam) return
+    produtoService.buscarPorId(produtoIdParam)
+      .then(produto => {
+        const quantidade = Math.max(1, parseInt(quantidadeParam || '1', 10) || 1)
+        avaliarAlertas([{ produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade }])
+      })
+      .catch(() => setToast('Não foi possível pré-carregar o produto informado.'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtoIdParam, quantidadeParam])
 
   const handleSelectProduto = async (produto: ProdutoResponse) => {
     const existente = produtos.find(p => p.produtoId === produto.id)

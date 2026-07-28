@@ -7,7 +7,7 @@ import ModalShell from "../../components/ui/ModalShell";
 import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, X, Calendar, Info, FileText,
-  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock,
+  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -16,12 +16,14 @@ import type {
   OrcamentoDetalheResponse,
   AvancaStatusRequest,
   MetodoPagamento,
+  ItemSemEstoque,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
 import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
+import { useToast } from "../../hooks/useToast";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -950,6 +952,8 @@ export default function DetalheOrcamentoPage() {
   const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
   const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
   const [confirmandoAviso, setConfirmandoAviso] = useState(false);
+  const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
+  const { toast, setToast } = useToast();
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -969,7 +973,13 @@ export default function DetalheOrcamentoPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+
+    // RN-NOVA-5 (#194) — auxiliar para o botão "Criar produção"; não bloqueia o Detalhe se falhar.
+    orcamentoService
+      .buscarItensSemEstoque(id)
+      .then(setItensSemEstoque)
+      .catch(() => setToast("Não foi possível verificar o estoque dos itens deste orçamento."));
+  }, [id, setToast]);
 
   useEffect(() => {
     carregar();
@@ -1245,52 +1255,73 @@ export default function DetalheOrcamentoPage() {
 
           {/* Itens */}
           <div className="flex flex-col gap-3 border-b border-line py-4">
-            {orcamento.itens.map((it, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
-                  ×{it.quantidade}
-                </span>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-semibold text-dark">
-                      {it.nomeProduto}
-                    </div>
-                    <span className={clsx(
-                      "inline-flex h-[22px] items-center gap-[5px] rounded-full px-[9px] text-[11.5px] font-semibold",
-                      it.itemCatalogoId ? "bg-teal/10 text-teal" : "bg-line-soft text-[#8A8780]"
-                    )}>
-                      {it.itemCatalogoId ? (
-                        <Layers size={11} />
-                      ) : (
-                        <Box size={11} />
-                      )}
-                      {it.itemCatalogoId
-                        ? it.catalogoNome ?? it.catalogoIdentificador
-                        : "Venda sem catálogo"}
-                    </span>
-                  </div>
-                  {it.customizacoes.length > 0 && (
-                    <div className="mt-1.5 inline-flex h-[22px] items-center gap-[5px] rounded-full bg-line-soft px-[9px] text-[11.5px] font-semibold text-body">
-                      <SlidersHorizontal size={11} />
-                      Customizações ({it.customizacoes.length})
-                    </div>
-                  )}
-                  <div>
-                    {it.customizacoes.map((c, k) => (
-                      <span
-                        key={k}
-                        className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/[0.08] px-2 py-0.5 text-[11.5px] text-[#A35A26]"
-                      >
-                        <Tag size={17} /> {c.nomeProduto}
+            {orcamento.itens.map((it, i) => {
+              const semEstoque = itensSemEstoque.find((s) => s.produtoId === it.produtoId);
+              return (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
+                    ×{it.quantidade}
+                  </span>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-sm font-semibold text-dark">
+                        {it.nomeProduto}
+                      </div>
+                      <span className={clsx(
+                        "inline-flex h-[22px] items-center gap-[5px] rounded-full px-[9px] text-[11.5px] font-semibold",
+                        it.itemCatalogoId ? "bg-teal/10 text-teal" : "bg-line-soft text-[#8A8780]"
+                      )}>
+                        {it.itemCatalogoId ? (
+                          <Layers size={11} />
+                        ) : (
+                          <Box size={11} />
+                        )}
+                        {it.itemCatalogoId
+                          ? it.catalogoNome ?? it.catalogoIdentificador
+                          : "Venda sem catálogo"}
                       </span>
-                    ))}
+                    </div>
+                    {it.customizacoes.length > 0 && (
+                      <div className="mt-1.5 inline-flex h-[22px] items-center gap-[5px] rounded-full bg-line-soft px-[9px] text-[11.5px] font-semibold text-body">
+                        <SlidersHorizontal size={11} />
+                        Customizações ({it.customizacoes.length})
+                      </div>
+                    )}
+                    <div>
+                      {it.customizacoes.map((c, k) => (
+                        <span
+                          key={k}
+                          className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/[0.08] px-2 py-0.5 text-[11.5px] text-[#A35A26]"
+                        >
+                          <Tag size={17} /> {c.nomeProduto}
+                        </span>
+                      ))}
+                    </div>
+                    {semEstoque && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 rounded-input border border-orange/30 bg-orange/[0.08] px-3 py-2">
+                        <AlertCircle size={14} className="flex-shrink-0 text-orange" />
+                        <span className="flex-1 text-[12px] leading-[1.4] text-[#A35A26]">
+                          Estoque insuficiente: faltam {semEstoque.quantidadeFaltante} un. (disponível {semEstoque.estoqueAtual} de {semEstoque.quantidadeSolicitada} solicitadas)
+                        </span>
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/producao/nova?produtoId=${semEstoque.produtoId}&quantidade=${Math.ceil(semEstoque.quantidadeFaltante)}`
+                            )
+                          }
+                          className="inline-flex h-7 flex-shrink-0 items-center gap-1.5 rounded-full border-none bg-orange px-3 font-[inherit] text-[11.5px] font-semibold text-white transition-colors duration-150 hover:bg-orange/90"
+                        >
+                          <Factory size={12} /> Criar produção
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
+                    {BRL(it.subtotal)}
                   </div>
                 </div>
-                <div className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
-                  {BRL(it.subtotal)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Total + sinal + validade */}
@@ -1371,6 +1402,12 @@ export default function DetalheOrcamentoPage() {
 
       {/* SEÇÃO 3 — DOCUMENTOS */}
       <DownloadsCard orcamento={orcamento} onDownload={handleDownload} />
+
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
 
       {/* Modais */}
       {modal === "sinal" && (

@@ -185,7 +185,11 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     expect(orcamentoAntesConfirmar.status).toBe('EM_PRODUCAO')
 
     await page.getByRole('button', { name: 'Confirmar mesmo assim', exact: true }).click()
-    await expect(page.getByText('Estoque insuficiente')).toHaveCount(0, { timeout: 5000 })
+    // Só o modal precisa fechar — RN-NOVA-5 (#194, P-FE-CORRIGE-006) passou a exibir um indicador
+    // "Estoque insuficiente" persistente na linha do item quando o produto ainda não tem estoque
+    // suficiente para a quantidade do orçamento, independente do status do orçamento em si; não é
+    // mais seguro assumir que nenhum texto "Estoque insuficiente" existe na página inteira.
+    await expect(dialog).not.toBeVisible({ timeout: 5000 })
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
     expect(orcamentoDepois.status).toBe('FINALIZADO')
