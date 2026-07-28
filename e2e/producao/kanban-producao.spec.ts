@@ -10,6 +10,7 @@ import {
   criarProducaoEmAndamento,
   iniciarProducaoViaApi,
   finalizarProducaoViaApi,
+  travarProducaoViaApi,
   arrastarCard,
 } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
@@ -45,13 +46,16 @@ const INSUMO_URL = `${API_URL}/insumos`
  *   última resposta de `GET /producoes` — o card só migra de coluna depois de `carregarKanban()`
  *   recarregar os dados após a API confirmar a transição (ex. `handleSuccess`, linha 346-351).
  * - `KanbanBoard.tsx` não tem nenhum `data-testid` em colunas ou cards.
- * - Abordagem de drag-and-drop que funcionou (ver `arrastarCard` em `e2e/helpers/producao.ts`):
- *   sequência manual `page.mouse.move/down/move.../up` com um "jiggle" inicial de +10px (supera
- *   o `activationConstraint: {distance: 6}` do `PointerSensor`) e 20 passos intermediários de
- *   50ms cada. `page.dragAndDrop()` nativo NÃO moveu o estado real (testado, sem sucesso — o
- *   card nunca saiu da coluna original). Simulação via teclado é estruturalmente impossível:
- *   `useSensors(useSensor(PointerSensor, ...))` (KanbanBoard.tsx:69) não registra nenhum
- *   `KeyboardSensor`, então `Space`/`ArrowRight` não acionam nada no dnd-kit.
+ * - Abordagem de drag-and-drop via mouse que funcionou (ver `arrastarCard` em
+ *   `e2e/helpers/producao.ts`): sequência manual `page.mouse.move/down/move.../up` com um
+ *   "jiggle" inicial de +10px (supera o `activationConstraint: {distance: 6}` do `PointerSensor`)
+ *   e 20 passos intermediários de 50ms cada. `page.dragAndDrop()` nativo NÃO moveu o estado real
+ *   (testado, sem sucesso — o card nunca saiu da coluna original).
+ * - P-FE-CORRIGE-009 (V0.6.1): `KanbanBoard.tsx` ganhou `KeyboardSensor` (além do `PointerSensor`
+ *   já existente, não em substituição) com um `coordinateGetter` próprio que move o card por
+ *   coluna inteira (não por pixels) usando a ordem de `columns`/`context.droppableRects` do
+ *   dnd-kit — testes 203-205 abaixo cobrem o fluxo só de teclado (Tab, Space/Enter, setas,
+ *   Escape), sem nenhum evento de mouse.
  *
  * Re-homologação P-TESTE-001 (V0.6.1): testes 182 e 184 renomeados para a numeração oficial atual
  * (200 e 202). 182→200 reescrito por completo (mecanismo real mudou de "coluna visível" para
@@ -282,5 +286,160 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     // separada (ver achado do Cenário 182). A asserção abaixo procura essa coluna antes de
     // sequer tentar o drag, e deve falhar por elemento inexistente.
     await expect(page.locator('div.rounded-t-card', { hasText: 'Não realizada' })).toBeVisible({ timeout: 5000 })
+  })
+
+  // ---------------------------------------------------------------------------------------------
+  // P-FE-CORRIGE-009 — KeyboardSensor (RN-052 não se aplica aqui, sem regra de negócio nova)
+  // ---------------------------------------------------------------------------------------------
+
+  /** O identificador (ex. "PRD-1") fica num <span> sem tabIndex — o elemento de fato focável/
+   *  arrastável via teclado é o div ancestral que o `useDraggable` do dnd-kit marca com tabIndex
+   *  (KanbanBoard.tsx, `KanbanCard`). Focar/checar foco tem que mirar esse ancestral, não o texto. */
+  function cardLocator(page: import('@playwright/test').Page, identificador: string) {
+    return page.getByText(identificador, { exact: true }).locator('xpath=ancestor::div[@tabindex][1]')
+  }
+
+  /** Tab real a partir do campo de busca até o foco alcançar o card — prova alcançabilidade por
+   *  teclado de verdade, sem assumir uma contagem fixa de tab-stops. */
+  async function tabAteCard(page: import('@playwright/test').Page, identificador: string, maxTentativas = 25) {
+    for (let i = 0; i < maxTentativas; i++) {
+      await page.keyboard.press('Tab')
+      const focado = await page.evaluate(() => document.activeElement?.textContent ?? '')
+      if (focado.includes(identificador)) return
+    }
+    throw new Error(`Tab não alcançou o card ${identificador} em ${maxTentativas} tentativas`)
+  }
+
+  test('203 (KeyboardSensor) — Tab foca o card; Space/seta/Space move TRAVADA → EM_ANDAMENTO via teclado, mesmo onDrop do mouse', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA203-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA203-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const producao = await criarProducaoEmAndamento(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(producao.id)
+    const travada = await travarProducaoViaApi(request, token, producao.id, 'Trava de teste automatizado — cenário 203, drag via teclado.')
+    expect(travada.estado).toBe('TRAVADA')
+    const identificador = travada.identificador as string
+
+    await login(page)
+    await page.goto('/producao')
+    await page.getByRole('button', { name: 'Kanban' }).click()
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
+    await page.waitForTimeout(800)
+
+    await expect(page.getByText(identificador, { exact: true })).toBeVisible()
+
+    // Tab real desde a busca — nenhum clique de mouse depois daqui.
+    await tabAteCard(page, identificador)
+    await expect(cardLocator(page, identificador)).toBeFocused()
+
+    // Space "pega" o card — o DragOverlay clona o conteúdo, então o texto do identificador
+    // passa a existir 2x na tela (original com opacidade reduzida + clone flutuante).
+    await page.keyboard.press('Space')
+    await expect(page.getByText(identificador, { exact: true })).toHaveCount(2)
+
+    // TRAVADA é a 2ª coluna (índice 1), EM_ANDAMENTO é a 3ª (índice 2) — 1 seta basta. Espera o
+    // dnd-kit recalcular colisão/`over` (efeito assíncrono) antes de confirmar o drop — sem isso o
+    // 2º Space corre risco de fechar o arraste com `over` ainda apontando pra coluna antiga.
+    await page.keyboard.press('ArrowRight')
+    await page.waitForTimeout(250)
+    await page.keyboard.press('Space')
+
+    // tipo "direto" (TRAVADA→EM_ANDAMENTO) chama /retomar direto, sem modal — mesmo onDrop do mouse.
+    await expect(page.getByText('Produção retomada.')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(identificador, { exact: true })).toHaveCount(1) // overlay sumiu
+
+    const depois = await buscarProducao(request, token, producao.id)
+    expect(depois.estado).toBe('EM_ANDAMENTO')
+
+    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=../..')
+    await expect(colunaEmAndamento.getByText(identificador, { exact: true })).toBeVisible()
+  })
+
+  test('204 (KeyboardSensor) — respeita allowedTransitions: FINALIZADA não pode ir pra Aguardando início via teclado', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA204-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA204-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const producao = await criarProducaoEmAndamento(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(producao.id)
+    const finalizada = await finalizarProducaoViaApi(request, token, producao.id)
+    expect(finalizada.estado).toBe('FINALIZADA')
+    const identificador = finalizada.identificador as string
+
+    await login(page)
+    await page.goto('/producao')
+    await page.getByRole('button', { name: 'Kanban' }).click()
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
+    await page.waitForTimeout(800)
+
+    // Foco direto (alcançabilidade real por Tab já provada no teste 203) — aqui o alvo é a
+    // regra de negócio: teclado não pode fazer o mouse não permitiria.
+    await cardLocator(page, identificador).focus()
+    await page.keyboard.press('Space')
+    await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
+
+    // FINALIZADA é a 4ª coluna (índice 3), Aguardando início é a 1ª (índice 0) — 3 setas, com
+    // espera entre elas pro dnd-kit recalcular colisão a cada passo (mesmo motivo do teste 203).
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForTimeout(150)
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForTimeout(150)
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForTimeout(250)
+    await page.keyboard.press('Space')
+
+    await expect(page.getByText('Transição não permitida')).toBeVisible({ timeout: 5000 })
+
+    const depois = await buscarProducao(request, token, producao.id)
+    expect(depois.estado).toBe('FINALIZADA')
+
+    const colunaFinalizada = page.locator('div.rounded-t-card', { hasText: 'Finalizada' }).locator('xpath=../..')
+    await expect(colunaFinalizada.getByText(identificador, { exact: true })).toBeVisible()
+  })
+
+  test('205 (KeyboardSensor) — Escape cancela o arraste sem mover o card e sem chamar onDrop', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA205-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA205-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const producao = await criarProducaoEmAndamento(request, token, [{ produtoId: produto.id, quantidade: 1 }])
+    criadasProducaoIds.push(producao.id)
+    const identificador = producao.identificador as string
+
+    await login(page)
+    await page.goto('/producao')
+    await page.getByRole('button', { name: 'Kanban' }).click()
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
+    await page.waitForTimeout(800)
+
+    await cardLocator(page, identificador).focus()
+    await page.keyboard.press('Space')
+    await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
+
+    await page.keyboard.press('ArrowRight') // rumo a FINALIZADA, ainda não confirmado
+    await page.keyboard.press('Escape')
+
+    await expect(page.getByText(identificador, { exact: true })).toHaveCount(1) // overlay sumiu, sem soltar
+    await page.waitForTimeout(1000) // tempo de sobra pra um toast indevido aparecer, se houver
+    await expect(page.getByText('Transição não permitida')).toHaveCount(0) // onDrop nunca foi chamado
+
+    const depois = await buscarProducao(request, token, producao.id)
+    expect(depois.estado).toBe('EM_ANDAMENTO') // inalterado
+
+    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=../..')
+    await expect(colunaEmAndamento.getByText(identificador, { exact: true })).toBeVisible()
   })
 })
