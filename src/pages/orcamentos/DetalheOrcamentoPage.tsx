@@ -18,6 +18,9 @@ import type {
   MetodoPagamento,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
+import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
+import type { AvisoEstoqueNegativo } from "../../types/producao";
+import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
@@ -944,6 +947,9 @@ export default function DetalheOrcamentoPage() {
   const [saving, setSaving] = useState(false);
   const [modal, setModal] = useState<null | "sinal" | "cancel">(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
+  const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
+  const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
+  const [confirmandoAviso, setConfirmandoAviso] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -974,9 +980,14 @@ export default function DetalheOrcamentoPage() {
     setSaving(true);
     setErroAvanco(null);
     try {
-      const updated = await orcamentoService.avancarStatus(id, data);
-      setOrcamento(updated);
-      setModal(null);
+      const result = await orcamentoService.avancarStatus(id, data);
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        setAvisoEstoqueNegativo(result.avisos);
+        setUltimoAvancoData(data);
+      } else {
+        setOrcamento(result);
+        setModal(null);
+      }
     } catch (err) {
       console.error("Erro ao avançar status:", err);
       const msg =
@@ -985,6 +996,33 @@ export default function DetalheOrcamentoPage() {
       setErroAvanco(msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirmarAvisoEstoque = async () => {
+    if (!id || !avisoEstoqueNegativo) return;
+    setConfirmandoAviso(true);
+    setErroAvanco(null);
+    try {
+      const result = await orcamentoService.avancarStatus(id, {
+        ...ultimoAvancoData,
+        confirmarEstoqueNegativoProdutoIds: avisoEstoqueNegativo.map((a) => a.componenteId),
+      });
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        setAvisoEstoqueNegativo(result.avisos);
+      } else {
+        setAvisoEstoqueNegativo(null);
+        setOrcamento(result);
+        setModal(null);
+      }
+    } catch (err) {
+      console.error("Erro ao avançar status:", err);
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Erro ao avançar status do orçamento.";
+      setErroAvanco(msg);
+    } finally {
+      setConfirmandoAviso(false);
     }
   };
 
@@ -1372,6 +1410,15 @@ export default function DetalheOrcamentoPage() {
           saving={saving}
           onClose={() => setModal(null)}
           onConfirm={(justificativa) => handleCancelar({ justificativa })}
+        />
+      )}
+
+      {avisoEstoqueNegativo && (
+        <ConfirmarEstoqueNegativoModal
+          avisos={avisoEstoqueNegativo}
+          confirming={confirmandoAviso}
+          onClose={() => setAvisoEstoqueNegativo(null)}
+          onConfirm={handleConfirmarAvisoEstoque}
         />
       )}
     </AppLayout>

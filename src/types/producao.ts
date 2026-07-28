@@ -121,8 +121,8 @@ export function isDivisaoResponse(
   return 'producaoOriginal' in x
 }
 
-export function isConfirmacaoEstoqueNegativoResponse(
-  x: ProducaoDetalhe | DivisaoResponse | ConfirmacaoEstoqueNegativoResponse
+export function isConfirmacaoEstoqueNegativoResponse<T extends object>(
+  x: T | ConfirmacaoEstoqueNegativoResponse
 ): x is ConfirmacaoEstoqueNegativoResponse {
   return 'avisos' in x
 }

@@ -127,5 +127,6 @@ export interface AvancaStatusRequest {
   estornarSinal?: boolean;
   dataEstornoSinal?: string;
   justificativa?: string;
+  confirmarEstoqueNegativoProdutoIds?: string[];
 }
 

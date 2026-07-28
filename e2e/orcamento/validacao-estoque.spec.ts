@@ -135,19 +135,13 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     expect(orcamentoApi.status).toBe('RASCUNHO')
   })
 
-  test('RN-052 ampliada (achado, Bloco 2/P-TESTE-001) — orçamento: aviso de estoque negativo ao finalizar não é tratado pela UI', async ({ page, request }) => {
-    // Achado de homologação: diferente de Produção (iniciar()/retomar()/dividir()/agrupar(),
-    // tratados em #136 via ConfirmarEstoqueNegativoModal), DetalheOrcamentoPage.tsx NÃO trata a
-    // resposta polimórfica de POST /orcamentos/{id}/avancar-status na transição
-    // EM_PRODUCAO→FINALIZADO. `orcamentoService.avancarStatus` é tipado fixo como
-    // Promise<OrcamentoDetalheResponse> (orcamentoService.ts) — não é união com
-    // ConfirmacaoEstoqueNegativoResponse como o equivalente em producaoService.iniciar/retomar —
-    // e `handleAvancar` (DetalheOrcamentoPage.tsx) chama `setOrcamento(updated)`
-    // incondicionalmente. Quando o backend retorna ConfirmacaoEstoqueNegativoResponse (200,
-    // `{ avisos: [...] }`, sem os campos normais do orçamento) por RN-052 pendente, o estado da
-    // tela fica com um objeto sem `status`/`itens`/`total`, sem nenhum modal de confirmação e sem
-    // mensagem de erro amigável — a artesã não tem como prosseguir por este fluxo. Reportado no
-    // relatório final para abertura de tarefa de Frontend.
+  test('RN-052 ampliada (P-FE-CORRIGE-003) — orçamento: aviso de estoque negativo ao finalizar é tratado via modal de confirmação', async ({ page, request }) => {
+    // Corrigido em P-FE-CORRIGE-003: `orcamentoService.avancarStatus` agora é tipado como união
+    // (OrcamentoDetalheResponse | ConfirmacaoEstoqueNegativoResponse, reaproveitado de
+    // types/producao.ts) e `handleAvancar` (DetalheOrcamentoPage.tsx) checa
+    // `isConfirmacaoEstoqueNegativoResponse` antes de gravar no estado. Quando pendente, abre
+    // `ConfirmarEstoqueNegativoModal` (mesmo componente de Produção) e reenvia com
+    // `confirmarEstoqueNegativoProdutoIds` ao confirmar.
     const token = await apiLogin(request)
     const nomeProduto = `QA-RN052-Orc-${Date.now()}`
     const produto = await criarProdutoComEstoque(request, token, nomeProduto, 5) // permitirEstoqueNegativo default true (RN-059) → aviso, não bloqueio
@@ -180,19 +174,22 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
     await page.getByRole('button', { name: 'Marcar como finalizado', exact: true }).click()
-    await page.waitForTimeout(1500)
 
-    // Comportamento real observado: sem modal de confirmação de estoque negativo (o equivalente ao
-    // de Produção não existe para Orçamento) — e o status nunca transiciona de verdade no backend,
-    // já que a chamada real devolveu um aviso pendente, não um sucesso.
-    await expect(page.getByText('Estoque insuficiente')).toHaveCount(0)
+    // Modal de confirmação aparece com o aviso real (não um erro genérico nem tela quebrada).
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText('Estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(dialog.getByText(new RegExp(nomeProduto))).toBeVisible()
+
+    // Ainda não persistido nesse ponto — só a confirmação explícita reenvia com os ids confirmados.
+    const orcamentoAntesConfirmar = await buscarOrcamento(request, token, orcamento.id)
+    expect(orcamentoAntesConfirmar.status).toBe('EM_PRODUCAO')
+
+    await page.getByRole('button', { name: 'Confirmar mesmo assim', exact: true }).click()
+    await expect(page.getByText('Estoque insuficiente')).toHaveCount(0, { timeout: 5000 })
+
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
-    expect(orcamentoDepois.status).toBe('EM_PRODUCAO') // nunca chegou a FINALIZADO
+    expect(orcamentoDepois.status).toBe('FINALIZADO')
 
-    // Sinal adicional (não obrigatório para o teste passar) de que a tela quebrou de fato ao
-    // tentar renderizar o objeto malformado — reportar no relatório se aparecer.
-    if (errosRuntime.length > 0) {
-      console.log('Erros de runtime capturados após "Marcar como finalizado":', JSON.stringify(errosRuntime))
-    }
+    expect(errosRuntime).toEqual([])
   })
 })
