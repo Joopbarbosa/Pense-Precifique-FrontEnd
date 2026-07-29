@@ -15,7 +15,7 @@ interface Props {
   onSuccess: (mensagem: string) => void
 }
 
-export default function RetormarProducaoModal({ producaoId, onClose, onSuccess }: Props) {
+export default function RetomarProducaoModal({ producaoId, onClose, onSuccess }: Props) {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aindaTravada, setAindaTravada] = useState(false)

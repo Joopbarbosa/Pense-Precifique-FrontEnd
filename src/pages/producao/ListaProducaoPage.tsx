@@ -14,7 +14,7 @@ import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../t
 import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
-import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
+import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
@@ -888,7 +888,7 @@ export default function ListaProducaoPage() {
         <TravarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
       {modal?.tipo === 'retomar' && (
-        <RetormarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
+        <RetomarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
       {modal?.tipo === 'finalizar' && (
         <FinalizarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />

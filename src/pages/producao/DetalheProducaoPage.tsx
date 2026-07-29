@@ -13,7 +13,7 @@ import { useToast } from '../../hooks/useToast'
 import type { ProducaoDetalhe, EstadoProducao } from '../../types/producao'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
-import RetormarProducaoModal from '../../components/producao/RetormarProducaoModal'
+import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
@@ -344,7 +344,7 @@ export default function DetalheProducaoPage() {
         <TravarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
       {modal === 'retomar' && (
-        <RetormarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
+        <RetomarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
       {modal === 'finalizar' && (
         <FinalizarProducaoModal producaoId={producao.id} producao={producao} onClose={fecharModal} onSuccess={handleSuccess} />
