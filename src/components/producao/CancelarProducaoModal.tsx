@@ -57,7 +57,7 @@ export default function CancelarProducaoModal({ producaoId, onClose, onSuccess }
       <label className="block">
         <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
           <span>Justificativa <span className="text-orange">*</span></span>
-          <span className={clsx('font-normal', valido ? 'text-[#3E9D5A]' : 'text-muted')}>
+          <span className={clsx('font-normal', valido ? 'text-success' : 'text-muted')}>
             {len}/{MIN_CHARS} mín.
           </span>
         </span>

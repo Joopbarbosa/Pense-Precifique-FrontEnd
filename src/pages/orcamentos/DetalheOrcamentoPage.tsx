@@ -267,7 +267,7 @@ function ModalSinal({
               <span>
                 Descreva a forma de pagamento <span className="text-orange">*</span>
               </span>
-              <span className={clsx("font-normal", obsCharCount >= 50 ? "text-[#3E9D5A]" : "text-muted")}>
+              <span className={clsx("font-normal", obsCharCount >= 50 ? "text-success" : "text-muted")}>
                 {obsCharCount}/50 mín.
               </span>
             </span>
@@ -374,7 +374,7 @@ function ModalCancelJustificativa({
         <span>
           Justificativa <span className="text-danger">*</span>
         </span>
-        <span className={clsx("font-normal", len >= 50 ? "text-[#3E9D5A]" : "text-muted")}>
+        <span className={clsx("font-normal", len >= 50 ? "text-success" : "text-muted")}>
           {len}/50 mín.
         </span>
       </span>

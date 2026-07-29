@@ -544,7 +544,7 @@ function PagamentoSection({
             <label className="block">
               <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
                 <span>Descreva o método de pagamento <span className="text-orange">*</span></span>
-                <span className={clsx('font-normal', obsCharCount >= 50 ? 'text-[#3E9D5A]' : 'text-muted')}>
+                <span className={clsx('font-normal', obsCharCount >= 50 ? 'text-success' : 'text-muted')}>
                   {obsCharCount}/50 caracteres mín.
                 </span>
               </span>

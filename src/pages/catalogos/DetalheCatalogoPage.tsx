@@ -172,7 +172,7 @@ export default function DetalheCatalogoPage() {
                 'inline-flex h-[27px] flex-shrink-0 items-center gap-1.5 rounded-full px-[11px] text-[12.5px] font-semibold',
                 catalogo.ativo ? 'bg-success-bg text-success' : 'bg-line-soft text-subtle'
               )}>
-                {catalogo.ativo && <span className="h-1.5 w-1.5 rounded-full bg-[#34A56F]" />}
+                {catalogo.ativo && <span className="h-1.5 w-1.5 rounded-full bg-success" />}
                 {catalogo.ativo ? 'Ativo' : 'Inativo'}
               </span>
             </div>

@@ -172,7 +172,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
           <label>
             <span className="mb-[7px] block text-[13px] font-semibold text-body">
               Observação <span className="text-orange">*</span>
-              <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-[#3E9D5A]' : 'text-muted')}>
+              <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
                 {obs.length}/30 caracteres mín.
               </span>
             </span>
@@ -459,7 +459,7 @@ export default function DetalheInsumoPage() {
               <h1 className="m-0 text-[25px] font-bold tracking-[-0.02em] text-dark">{insumo.nome}</h1>
               {insumo.ativo ? (
                 <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-success-bg px-[11px] text-[12.5px] font-semibold text-success">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#34A56F]" /> Ativo
+                  <span className="h-1.5 w-1.5 rounded-full bg-success" /> Ativo
                 </span>
               ) : (
                 <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-line-soft px-[11px] text-[12.5px] font-semibold text-subtle">

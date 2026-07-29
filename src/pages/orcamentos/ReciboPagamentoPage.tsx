@@ -39,7 +39,7 @@ function DocSectionTitle({ icon, color = GREEN, children }: { icon: React.ReactN
     <div className="mb-3.5 flex items-center gap-[9px]">
       <span className={clsx(
         'grid h-[30px] w-[30px] place-items-center rounded-[9px]',
-        isGreen ? 'bg-[#2E9E60]/[0.12] text-[#2E9E60]' : 'bg-teal/[0.12] text-teal'
+        isGreen ? 'bg-success/[0.12] text-success' : 'bg-teal/[0.12] text-teal'
       )}>
         {icon}
       </span>
@@ -65,7 +65,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
     <div className="flex min-h-[calc((820px-72px)*1.414)] w-full animate-fade-up flex-col rounded-[4px] border border-line bg-white p-14 shadow-[0_10px_40px_-8px_rgba(31,38,52,0.18),0_2px_8px_rgba(0,0,0,0.06)] max-[767px]:min-h-0 max-[767px]:px-6 max-[767px]:py-8">
 
       {/* CABEÇALHO — borda verde */}
-      <div className="flex items-start justify-between gap-5 border-b-2 border-[#2E9E60]/25 pb-[22px]">
+      <div className="flex items-start justify-between gap-5 border-b-2 border-success/25 pb-[22px]">
         <div className="flex items-center gap-3.5">
           <Logo size={56} />
           <div>
@@ -85,19 +85,19 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
           </div>
         </div>
         <div className="flex-shrink-0 text-right">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2E9E60]">Orçamento</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-success">Orçamento</div>
           <div className="text-2xl font-bold leading-[1.1] tracking-[-0.02em] text-dark">{numeroFormatado}</div>
         </div>
       </div>
 
       {/* TÍTULO — QUITAÇÃO TOTAL */}
-      <div className="mt-6 rounded-xl border border-[#2E9E60]/[0.22] border-l-4 border-l-[#2E9E60] bg-[#2E9E60]/[0.07] px-[22px] py-5">
+      <div className="mt-6 rounded-xl border border-success/[0.22] border-l-4 border-l-[#2E9E60] bg-success/[0.07] px-[22px] py-5">
         <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl border border-[#2E9E60]/[0.22] bg-white text-[#2E9E60]">
+          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl border border-success/[0.22] bg-white text-success">
             <BadgeCheck size={22} />
           </span>
           <div>
-            <h1 className="m-0 text-lg font-bold leading-[1.2] tracking-[-0.01em] text-[#1A6B3E]">
+            <h1 className="m-0 text-lg font-bold leading-[1.2] tracking-[-0.01em] text-success">
               RECIBO DE PAGAMENTO — QUITAÇÃO TOTAL
             </h1>
             <div className="mt-[5px] flex flex-wrap gap-x-4 gap-y-0.5 text-[12.5px] text-[#3F6B53]">
@@ -115,17 +115,17 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
       </div>
 
       {/* PEDIDO QUITADO — destaque verde */}
-      <div className="mt-6 overflow-hidden rounded-2xl border-[1.5px] border-[#2E9E60]/[0.38] bg-[#2E9E60]/[0.05]">
-        <div className="flex items-center gap-[11px] border-b border-[#2E9E60]/[0.22] bg-[linear-gradient(135deg,rgba(46,158,96,0.15),rgba(46,158,96,0.04))] px-[18px] py-3.5">
-          <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-[9px] bg-white text-[#2E9E60] shadow-[0_3px_9px_-3px_rgba(46,158,96,0.45)]">
+      <div className="mt-6 overflow-hidden rounded-2xl border-[1.5px] border-success/[0.38] bg-success/[0.05]">
+        <div className="flex items-center gap-[11px] border-b border-success/[0.22] bg-[linear-gradient(135deg,rgba(46,158,96,0.15),rgba(46,158,96,0.04))] px-[18px] py-3.5">
+          <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-[9px] bg-white text-success shadow-[0_3px_9px_-3px_rgba(46,158,96,0.45)]">
             <Check size={14} />
           </span>
-          <span className="text-[15px] font-bold tracking-[-0.005em] text-[#1A6B3E]">Pedido quitado</span>
+          <span className="text-[15px] font-bold tracking-[-0.005em] text-success">Pedido quitado</span>
         </div>
         <div className="flex flex-wrap items-end gap-x-6 gap-y-[18px] p-[18px]">
           <div className="flex-[1_1_220px]">
-            <div className="inline-flex items-center gap-2 text-sm font-bold text-[#1A6B3E]">
-              <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-[#2E9E60] text-white">
+            <div className="inline-flex items-center gap-2 text-sm font-bold text-success">
+              <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-success text-white">
                 <Check size={12} />
               </span>
               Pagamento recebido em sua totalidade
@@ -190,11 +190,11 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
               <span className="text-body">Valor pago agora</span>
               <span className="font-semibold text-dark [font-variant-numeric:tabular-nums]">{BRL(pagoAgora)}</span>
             </div>
-            <div className="mt-1 flex items-center justify-between rounded-[9px] border border-dashed border-[#2E9E60]/40 bg-[#2E9E60]/[0.08] px-3 py-[11px] text-[13.5px]">
-              <span className="flex items-center gap-1.5 font-semibold text-[#1A6B3E]">
+            <div className="mt-1 flex items-center justify-between rounded-[9px] border border-dashed border-success/40 bg-success/[0.08] px-3 py-[11px] text-[13.5px]">
+              <span className="flex items-center gap-1.5 font-semibold text-success">
                 <Check size={14} /> Saldo devedor
               </span>
-              <span className="font-bold text-[#2E9E60] [font-variant-numeric:tabular-nums]">{BRL(0)}</span>
+              <span className="font-bold text-success [font-variant-numeric:tabular-nums]">{BRL(0)}</span>
             </div>
             <div className="mt-2 flex items-baseline justify-between rounded-input border border-orange/[0.28] bg-orange/[0.08] px-4 py-3.5">
               <span className="text-[13.5px] font-bold leading-[1.3] text-dark">Total quitado</span>
@@ -207,7 +207,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
       {/* RODAPÉ */}
       <div className="mt-auto pt-[30px]">
         <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-[11.5px] leading-[1.6] text-dim">
-          <BadgeCheck size={15} className="flex-shrink-0 text-[#2E9E60]" />
+          <BadgeCheck size={15} className="flex-shrink-0 text-success" />
           Este recibo confirma a quitação total do pedido. Gerado pelo sistema
           <strong className="ml-[3px] font-semibold text-dim">Pense &amp; Precifique</strong>
           em <strong className="ml-[3px] font-semibold text-dim">{emissao}</strong>.
@@ -312,8 +312,8 @@ export default function ReciboPagamentoPage() {
               <h1 className="m-0 text-xl font-bold tracking-[-0.02em] text-dark">
                 Recibo de Pagamento
               </h1>
-              <span className="inline-flex h-[30px] items-center gap-[7px] rounded-full bg-[#2E9E60]/[0.12] px-[13px] text-[13px] font-semibold text-[#1A6B3E]">
-                <span className="h-[7px] w-[7px] rounded-full bg-[#2E9E60]" /> Pago
+              <span className="inline-flex h-[30px] items-center gap-[7px] rounded-full bg-success/[0.12] px-[13px] text-[13px] font-semibold text-success">
+                <span className="h-[7px] w-[7px] rounded-full bg-success" /> Pago
               </span>
             </div>
           </div>
