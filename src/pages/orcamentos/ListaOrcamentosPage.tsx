@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -8,6 +8,7 @@ import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
 import { STATUS_LABEL } from '../../constants'
+import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -129,43 +130,32 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
 export default function ListaOrcamentosPage() {
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState<StatusOrcamento | ''>('')
-  const [query, setQuery] = useState('')
   const [periodOpen, setPeriodOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const periodRef = useRef<HTMLDivElement>(null)
+  const isFirstFiltro = useRef(true)
 
-  const [orcamentos, setOrcamentos] = useState<OrcamentoResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
-  const [page, setPage] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-
-  const carregar = useCallback(async (pg: number, statusFiltro: StatusOrcamento | '', q: string) => {
-    try {
-      const res = await orcamentoService.listar(pg, 20, statusFiltro || undefined, q.trim() || undefined)
-      if (pg === 0) {
-        setOrcamentos(res.content)
-      } else {
-        setOrcamentos(prev => [...prev, ...res.content])
-      }
-      setHasMore(!res.last)
-      setPage(pg)
-      setError(null)
-    } catch {
-      setError('Não foi possível carregar os orçamentos.')
-    }
-  }, [])
+  const {
+    items: orcamentos,
+    hasMore,
+    loading,
+    loadingMore,
+    loadMore,
+    query,
+    setQuery,
+    reset,
+    error,
+  } = useDebounceSearch({
+    fetcher: (page, size, q) => orcamentoService.listar(page, size, filtro || undefined, q),
+    errorMessage: 'Não foi possível carregar os orçamentos.',
+  })
 
   useEffect(() => {
-    setLoading(true)
-    const delay = query.trim() ? 300 : 0
-    const t = setTimeout(() => {
-      carregar(0, filtro, query).finally(() => setLoading(false))
-    }, delay)
-    return () => clearTimeout(t)
-  }, [filtro, query, carregar])
+    if (isFirstFiltro.current) { isFirstFiltro.current = false; return }
+    reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtro])
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -179,14 +169,10 @@ export default function ListaOrcamentosPage() {
 
   const handleFiltroChange = (value: StatusOrcamento | '') => {
     setFiltro(value)
-    setOrcamentos([])
-    setPage(0)
   }
 
   const handleCarregarMais = async () => {
-    setLoadingMore(true)
-    await carregar(page + 1, filtro, query)
-    setLoadingMore(false)
+    await loadMore()
   }
 
   const periodActive = !!(dateFrom || dateTo)

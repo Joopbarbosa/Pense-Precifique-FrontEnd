@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -11,6 +11,7 @@ import { Files, Save, Pencil, Copy, Power, Plus, Search, ArrowDown } from 'lucid
 import { catalogoService } from '../../services/catalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import { extractApiError } from '../../utils/apiError'
+import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 
 type CampoOrdenacao = 'numero' | 'nome' | 'margem' | 'quantidadeItens'
 
@@ -237,36 +238,38 @@ function CatalogoCard({ catalogo, index, onVer, onEditar, onDuplicar, onDesativa
 
 export default function ListaCatalogosPage() {
   const navigate = useNavigate()
-  const [catalogos, setCatalogos] = useState<CatalogoResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState<string | null>(null)
-
   const [modalCatalogo, setModalCatalogo] = useState<{ tipo: 'editar' | 'desativar'; catalogo: CatalogoResponse } | null>(null)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [processando, setProcessando] = useState(false)
 
-  const [busca, setBusca] = useState('')
   const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacao | null>(null)
   const [direcao, setDirecao] = useState<'ASC' | 'DESC'>('ASC')
+  const isFirstSort = useRef(true)
 
-  const carregar = useCallback(() => {
-    setLoading(true)
-    setErro(null)
-    catalogoService.listar({
-      busca: busca.trim() || undefined,
+  const {
+    items: catalogos,
+    setItems: setCatalogos,
+    loading,
+    error: erro,
+    query: busca,
+    setQuery: setBusca,
+    reset: carregar,
+  } = useDebounceSearch({
+    fetcher: (page, size, q) => catalogoService.listar({
+      busca: q,
       sort: ordenarPor ? `${ordenarPor},${direcao.toLowerCase()}` : undefined,
-      size: 100,
-    })
-      .then(data => setCatalogos(data.content))
-      .catch(() => setErro('Não foi possível carregar os catálogos. Tente novamente.'))
-      .finally(() => setLoading(false))
-  }, [busca, ordenarPor, direcao])
+      page,
+      size,
+    }),
+    pageSize: 100,
+    errorMessage: 'Não foi possível carregar os catálogos. Tente novamente.',
+  })
 
   useEffect(() => {
-    const delay = busca.trim() ? 300 : 0
-    const t = setTimeout(() => carregar(), delay)
-    return () => clearTimeout(t)
-  }, [carregar])
+    if (isFirstSort.current) { isFirstSort.current = false; return }
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordenarPor, direcao])
 
   const handleSort = (campo: CampoOrdenacao) => {
     if (ordenarPor === campo) {

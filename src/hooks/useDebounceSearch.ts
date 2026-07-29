@@ -6,12 +6,14 @@ interface UseDebounceSearchOptions<T> {
   fetcher: (page: number, size: number, query?: string) => Promise<PageResponse<T>>
   delay?: number
   pageSize?: number
+  errorMessage?: string
 }
 
 export function useDebounceSearch<T>({
   fetcher,
   delay = 300,
   pageSize = 20,
+  errorMessage,
 }: UseDebounceSearchOptions<T>) {
   const [query, setQuery] = useState('')
   const isFirstRender = useRef(true)
@@ -21,7 +23,7 @@ export function useDebounceSearch<T>({
     [fetcher, query]
   )
 
-  const pagination = usePaginatedList({ fetcher: boundFetcher, pageSize })
+  const pagination = usePaginatedList({ fetcher: boundFetcher, pageSize, errorMessage })
   const { reset } = pagination
 
   useEffect(() => {

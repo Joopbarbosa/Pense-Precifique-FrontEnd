@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -9,6 +9,7 @@ import Spinner from '../../components/ui/Spinner'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { produtoService } from '../../services/produtoService'
+import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import type { ProdutoResponse } from '../../types/produto'
 
 const CATS = ['Todos', 'Produto', 'Produto Base', 'Customização', 'Inativos']
@@ -135,44 +136,30 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
 
 export default function ListaProdutosPage() {
   const navigate = useNavigate()
-  const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
-  const [page, setPage] = useState(0)
-  const [hasNext, setHasNext] = useState(false)
-  const [totalElements, setTotalElements] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [busca, setBusca] = useState('')
   const [cat, setCat] = useState('Todos')
+  const isFirstCat = useRef(true)
+
+  const {
+    items: produtos,
+    setItems: setProdutos,
+    hasMore: hasNext,
+    totalElements,
+    setTotalElements,
+    loading,
+    loadingMore,
+    loadMore: carregarMais,
+    query: busca,
+    setQuery: setBusca,
+    reset,
+  } = useDebounceSearch({
+    fetcher: (page, size, q) => produtoService.listar(page, size, CAT_TO_TIPO[cat], q),
+  })
 
   useEffect(() => {
-    setLoading(true)
-    const buscaAtual = busca.trim() || undefined
-    const t = setTimeout(() => {
-      produtoService.listar(0, 20, CAT_TO_TIPO[cat], buscaAtual)
-        .then(data => {
-          setProdutos(data.content)
-          setHasNext(!data.last)
-          setTotalElements(data.totalElements)
-          setPage(0)
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false))
-    }, buscaAtual ? 300 : 0)
-    return () => clearTimeout(t)
-  }, [cat, busca])
-
-  const carregarMais = () => {
-    const nextPage = page + 1
-    setLoadingMore(true)
-    produtoService.listar(nextPage, 20, CAT_TO_TIPO[cat], busca.trim() || undefined)
-      .then(data => {
-        setProdutos(prev => [...prev, ...data.content])
-        setHasNext(!data.last)
-        setPage(nextPage)
-      })
-      .catch(console.error)
-      .finally(() => setLoadingMore(false))
-  }
+    if (isFirstCat.current) { isFirstCat.current = false; return }
+    reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat])
 
   const desativar = async (id: string) => {
     try {

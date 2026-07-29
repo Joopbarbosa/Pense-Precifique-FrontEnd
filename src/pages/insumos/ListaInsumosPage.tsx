@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -18,6 +18,7 @@ import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
 import { useToast } from '../../hooks/useToast'
+import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 
 interface ItemCarrinho {
   insumo: InsumoResponse
@@ -472,54 +473,29 @@ function ImpactoLoteModal({ impacto, onClose }: {
 
 export default function ListaInsumosPage() {
   const navigate = useNavigate()
-  const [insumos, setInsumos] = useState<InsumoResponse[]>([])
   const [filtro, setFiltro] = useState('Todos')
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(0)
-  const [hasNext, setHasNext] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [modalCompra, setModalCompra] = useState(false)
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
   const [confirmDesativar, setConfirmDesativar] = useState<InsumoResponse | null>(null)
   const [desativando, setDesativando] = useState(false)
   const { toast, setToast } = useToast()
 
-  const carregar = useCallback((buscaAtual?: string) => {
-    setLoading(true)
-    setPage(0)
-    insumoService.listar(0, 20, buscaAtual)
-      .then(data => {
-        setInsumos(data.content)
-        setHasNext(!data.last)
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    const buscaAtual = query.trim() || undefined
-    const t = setTimeout(() => {
-      carregar(buscaAtual)
-    }, buscaAtual ? 300 : 0)
-    return () => clearTimeout(t)
-  }, [query, carregar])
+  const {
+    items: insumos,
+    setItems: setInsumos,
+    hasMore: hasNext,
+    loading,
+    loadingMore,
+    loadMore: carregarMais,
+    query,
+    setQuery,
+    reset: carregar,
+  } = useDebounceSearch({
+    fetcher: (page, size, q) => insumoService.listar(page, size, q),
+  })
 
   const handleQueryChange = (novaQuery: string) => {
     setQuery(novaQuery)
-  }
-
-  const carregarMais = () => {
-    const nextPage = page + 1
-    setLoadingMore(true)
-    insumoService.listar(nextPage, 20, query.trim() || undefined)
-      .then(data => {
-        setInsumos(prev => [...prev, ...data.content])
-        setHasNext(!data.last)
-        setPage(nextPage)
-      })
-      .catch(console.error)
-      .finally(() => setLoadingMore(false))
   }
 
   const handleDesativar = async () => {
@@ -545,7 +521,7 @@ export default function ListaInsumosPage() {
 
   const handleImpactoClose = () => {
     setImpactoLote(null)
-    carregar(query.trim() || undefined)
+    carregar()
   }
 
   let lista = insumos

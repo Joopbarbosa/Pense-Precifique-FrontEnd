@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -9,6 +9,7 @@ import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { extractApiError } from '../../utils/apiError'
 import { useToast } from '../../hooks/useToast'
+import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
 import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
@@ -307,12 +308,6 @@ export default function ListaProducaoPage() {
   const [dataInicioDe, setDataInicioDe] = useState('')
   const [dataInicioAte, setDataInicioAte] = useState('')
 
-  const [producoes, setProducoes] = useState<ProducaoResumo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
-  const [page, setPage] = useState(0)
-  const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<{ tipo: TipoModal; producaoId: string } | null>(null)
   const [modoAgrupamento, setModoAgrupamento] = useState(false)
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
@@ -325,98 +320,86 @@ export default function ListaProducaoPage() {
   // existente: este decide QUAIS colunas aparecem no board, não o que é buscado da API.
   // NAO_REALIZADA é a única coluna opcional (oculta por padrão, Cenário 199/200).
   const [mostrarColunaNaoRealizada, setMostrarColunaNaoRealizada] = useState(false)
-  const [kanbanProducoes, setKanbanProducoes] = useState<ProducaoResumo[]>([])
-  const [kanbanLoading, setKanbanLoading] = useState(false)
-  const [kanbanError, setKanbanError] = useState<string | null>(null)
   const [divisaoResult, setDivisaoResult] = useState<DivisaoResponse | null>(null)
   const [avisoKanban, setAvisoKanban] = useState<{ producaoId: string; avisos: AvisoEstoqueNegativo[] } | null>(null)
   const [confirmandoAvisoKanban, setConfirmandoAvisoKanban] = useState(false)
 
-  const carregar = useCallback(async (pg: number, estadoFiltro: EstadoProducao | '', q: string, sort: string | undefined, deIni: string, ateIni: string) => {
-    try {
-      const res = await producaoService.listar({
-        busca: q.trim() || undefined,
-        estado: estadoFiltro || undefined,
-        dataInicioDe: deIni || undefined,
-        dataInicioAte: ateIni || undefined,
-        sort,
-        page: pg,
-        size: 20,
-      })
-      if (pg === 0) {
-        setProducoes(res.content)
-      } else {
-        setProducoes(prev => [...prev, ...res.content])
-      }
-      setHasMore(!res.last)
-      setPage(pg)
-      setError(null)
-    } catch {
-      setError('Não foi possível carregar as produções.')
-    }
-  }, [])
-
   const sortParam = sortField ? `${sortField},${sortDir}` : undefined
 
-  useEffect(() => {
-    setLoading(true)
-    const delay = query.trim() ? 300 : 0
-    const t = setTimeout(() => {
-      carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte).finally(() => setLoading(false))
-    }, delay)
-    return () => clearTimeout(t)
-  }, [filtro, query, sortParam, dataInicioDe, dataInicioAte, carregar])
+  const {
+    items: producoes,
+    setItems: setProducoes,
+    hasMore,
+    loading,
+    loadingMore,
+    loadMore: handleCarregarMais,
+    error,
+    reset: carregar,
+  } = usePaginatedList<ProducaoResumo>({
+    fetcher: (page, size) => producaoService.listar({
+      busca: query.trim() || undefined,
+      estado: filtro || undefined,
+      dataInicioDe: dataInicioDe || undefined,
+      dataInicioAte: dataInicioAte || undefined,
+      sort: sortParam,
+      page,
+      size,
+    }),
+    errorMessage: 'Não foi possível carregar as produções.',
+  })
 
-  const carregarKanban = useCallback(async () => {
-    setKanbanLoading(true)
-    try {
-      const res = await producaoService.listar({
-        busca: query.trim() || undefined,
-        estado: filtro || undefined,
-        dataInicioDe: dataInicioDe || undefined,
-        dataInicioAte: dataInicioAte || undefined,
-        page: 0,
-        size: 100,
-      })
-      setKanbanProducoes(res.content)
-      setKanbanError(null)
-    } catch {
-      setKanbanError('Não foi possível carregar as produções.')
-    } finally {
-      setKanbanLoading(false)
-    }
-  }, [query, filtro, dataInicioDe, dataInicioAte])
+  useEffect(() => {
+    const delay = query.trim() ? 300 : 0
+    const t = setTimeout(() => { carregar() }, delay)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtro, query, sortParam, dataInicioDe, dataInicioAte])
+
+  const {
+    items: kanbanProducoes,
+    loading: kanbanLoading,
+    error: kanbanError,
+    reset: carregarKanban,
+  } = usePaginatedList<ProducaoResumo>({
+    fetcher: (_page, size) => producaoService.listar({
+      busca: query.trim() || undefined,
+      estado: filtro || undefined,
+      dataInicioDe: dataInicioDe || undefined,
+      dataInicioAte: dataInicioAte || undefined,
+      page: 0,
+      size,
+    }),
+    pageSize: 100,
+    errorMessage: 'Não foi possível carregar as produções.',
+  })
 
   useEffect(() => {
     if (viewMode !== 'kanban') return
     const delay = query.trim() ? 300 : 0
     const t = setTimeout(() => { carregarKanban() }, delay)
     return () => clearTimeout(t)
-  }, [viewMode, query, filtro, dataInicioDe, dataInicioAte, carregarKanban])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, query, filtro, dataInicioDe, dataInicioAte])
 
   const handleFiltroChange = (value: EstadoProducao | '') => {
     setFiltro(value)
     setProducoes([])
-    setPage(0)
   }
 
   const handleDataInicioDeChange = (value: string) => {
     setDataInicioDe(value)
     setProducoes([])
-    setPage(0)
   }
 
   const handleDataInicioAteChange = (value: string) => {
     setDataInicioAte(value)
     setProducoes([])
-    setPage(0)
   }
 
   const handleLimparPeriodo = () => {
     setDataInicioDe('')
     setDataInicioAte('')
     setProducoes([])
-    setPage(0)
   }
 
   const handleSortClick = (field: SortField) => {
@@ -427,13 +410,6 @@ export default function ListaProducaoPage() {
       setSortDir('asc')
     }
     setProducoes([])
-    setPage(0)
-  }
-
-  const handleCarregarMais = async () => {
-    setLoadingMore(true)
-    await carregar(page + 1, filtro, query, sortParam, dataInicioDe, dataInicioAte)
-    setLoadingMore(false)
   }
 
   const abrirModal = (tipo: TipoModal, producaoId: string) => setModal({ tipo, producaoId })
@@ -442,7 +418,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModal(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte)
+    else carregar()
   }
 
   const handleFecharDivisao = () => {
@@ -526,7 +502,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalCancelarConsumoId(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte)
+    else carregar()
   }
 
   const encerrarSelecao = () => {
@@ -558,7 +534,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalAgrupar(false)
     encerrarSelecao()
-    carregar(0, filtro, query, sortParam, dataInicioDe, dataInicioAte)
+    carregar()
   }
 
   const producoesSelecionadas = producoes.filter(p => selecionadas.has(p.id))

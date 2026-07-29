@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, Input } from '../../components/ui'
@@ -8,6 +8,7 @@ import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
+import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import type { ClienteResponse, ClienteRequest } from '../../types/cliente'
 
 // ---------- Avatar ----------
@@ -271,43 +272,23 @@ function NovaClienteDrawer({ onClose, editData, onSuccess }: {
 // ---------- ClientesPage ----------
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<ClienteResponse[]>([])
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(0)
-  const [hasNext, setHasNext] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const {
+    items: clientes,
+    setItems: setClientes,
+    hasMore: hasNext,
+    loading,
+    loadingMore,
+    loadMore,
+    query,
+    setQuery,
+  } = useDebounceSearch({
+    fetcher: (page, size, q) => clienteService.listar(page, size, q),
+    delay: 400,
+  })
   const [drawer, setDrawer] = useState(false)
   const [editData, setEditData] = useState<ClienteResponse | null>(null)
   const { toast, setToast } = useToast()
   const [confirmInativar, setConfirmInativar] = useState<ClienteResponse | null>(null)
-  const isFirstRender = useRef(true)
-
-  const loadPage = useCallback(async (pageNum: number, nome: string, reset: boolean) => {
-    reset ? setLoading(true) : setLoadingMore(true)
-    try {
-      const res = await clienteService.listar(pageNum, 20, nome || undefined)
-      setClientes(prev => reset ? res.content : [...prev, ...res.content])
-      setHasNext(!res.last)
-      setPage(pageNum)
-    } catch {
-      // silent — auth errors handled by axios interceptor
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }, [])
-
-  // Mount + search debounce (RN-034)
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      loadPage(0, '', true)
-      return
-    }
-    const t = setTimeout(() => loadPage(0, query, true), 400)
-    return () => clearTimeout(t)
-  }, [query, loadPage])
 
   const handleSuccess = (cliente: ClienteResponse) => {
     const exists = clientes.some(c => c.id === cliente.id)
@@ -429,7 +410,7 @@ export default function ClientesPage() {
           {/* CARREGAR MAIS */}
           {hasNext && (
             <div className="mt-5 flex justify-center">
-              <Button variant="ghost" onClick={() => loadPage(page + 1, query, false)} disabled={loadingMore}>
+              <Button variant="ghost" onClick={loadMore} disabled={loadingMore}>
                 {loadingMore
                   ? <span className="flex items-center gap-2">
                       <Spinner size={15} color="#2A9D8F" trackColor="#EFEDE8" />
