@@ -179,7 +179,7 @@ export default function ListaProdutosPage() {
   const counts = (c: string) => c === cat ? totalElements : 0
 
   return (
-    <AppLayout active="produtos">
+    <AppLayout active="produtos" compact>
 
       {/* HEADER */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
@@ -249,7 +249,7 @@ export default function ListaProdutosPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-4 gap-5 max-[1180px]:grid-cols-3 max-[860px]:grid-cols-2 max-[860px]:gap-3.5 max-[520px]:grid-cols-1">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5 max-[860px]:gap-3.5 max-[520px]:grid-cols-1">
             {produtos.map((p, i) => (
               <ProductCard
                 key={p.id}

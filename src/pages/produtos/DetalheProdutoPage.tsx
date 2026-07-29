@@ -308,7 +308,7 @@ export default function DetalheProdutoPage() {
 
   if (loading || !produto) {
     return (
-      <AppLayout active="produtos">
+      <AppLayout active="produtos" compact>
         <div className="flex items-center gap-2.5 py-[60px] text-sm text-muted">
           <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando produto…
@@ -342,7 +342,7 @@ export default function DetalheProdutoPage() {
   ]
 
   return (
-    <AppLayout active="produtos">
+    <AppLayout active="produtos" compact>
 
       <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
         <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/produtos')}>

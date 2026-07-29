@@ -818,7 +818,7 @@ export default function CadastrarProdutoPage() {
   ]
 
   return (
-    <AppLayout active="produtos">
+    <AppLayout active="produtos" compact>
 
       {/* BREADCRUMB */}
       <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
