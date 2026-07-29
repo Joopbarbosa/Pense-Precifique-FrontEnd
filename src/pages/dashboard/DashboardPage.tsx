@@ -106,7 +106,7 @@ export default function DashboardPage() {
   }, [])
 
   return (
-    <AppLayout active="dashboard">
+    <AppLayout active="dashboard" compact>
       {/* Header */}
       <div className="mb-[26px] flex flex-wrap items-start justify-between gap-5">
         <div>
