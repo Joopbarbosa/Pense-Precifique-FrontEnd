@@ -23,17 +23,26 @@ const INSUMO_URL = `${API_URL}/insumos`
  * 181-184a. Mesma regra dos prompts anteriores: cenários que falham documentam o delta
  * Gherkin-vs-real com file:line, não são adaptados ao comportamento observado.
  *
- * Achados de leitura de código:
+ * "Coluna própria NÃO_REALIZADA no Kanban" (substitui #159, decisão de produto confirmada em
+ * 2026-07-28): a fusão CANCELADA/NAO_REALIZADA do #159 (coluna física única "Cancelada / Não
+ * realizada" + badge por card pra distinguir) foi revertida — o Gherkin original volta a valer.
+ * `getColumnId` foi removido (era `estado === 'NAO_REALIZADA' ? 'CANCELADA' : estado`, agora é
+ * identidade — `getItemColumn={p => p.estado}` direto). `KANBAN_COLUMNS_PRODUCAO`
+ * (ListaProducaoPage.tsx) tem as 6 colunas na ordem do Gherkin (AGUARDANDO_INICIO, EM_ANDAMENTO,
+ * TRAVADA, FINALIZADA, CANCELADA, NAO_REALIZADA — note que EM_ANDAMENTO/TRAVADA trocaram de
+ * posição em relação à ordem antiga do #159), mas NAO_REALIZADA é filtrada de `colunasKanban`
+ * (client-side, sem round-trip extra) a menos que `mostrarColunaNaoRealizada` esteja `true` — novo
+ * controle "Colunas do quadro", um toggle chip com `aria-pressed`/`aria-label` distinto do pill de
+ * filtro de estado (`FILTERS`) que já existia, pra não colidir nome acessível com o pill "Não
+ * realizada" que também existe. Composição entre os dois controles: selecionar o filtro de estado
+ * "Não realizada" força a coluna visível mesmo com o toggle desligado (evita board vazio sem
+ * explicação) — o toggle fica desabilitado enquanto esse filtro estiver ativo.
+ *
+ * Achados de leitura de código (arquitetura geral do Kanban, ainda válidos):
  * - Kanban reutiliza GET /producoes (mesmo endpoint da lista) — `carregarKanban()`
- *   (ListaProducaoPage.tsx:312-323) chama `producaoService.listar({busca, page:0, size:100})`,
- *   sem endpoint próprio.
- * - As 5 colunas são uma constante FIXA `KANBAN_COLUMNS_PRODUCAO` (ListaProducaoPage.tsx:26-32):
- *   AGUARDANDO_INICIO, EM_ANDAMENTO, TRAVADA, FINALIZADA, e uma 5ª coluna de id "CANCELADA"
- *   rotulada "Cancelada / Não realizada". `getColumnId()` (linha 34) mapeia o estado
- *   NAO_REALIZADA para o id de coluna "CANCELADA" sempre — não existe nenhum estado ou UI de
- *   "filtro de colunas visíveis"; NAO_REALIZADA nunca aparece como coluna própria, em hipótese
- *   alguma.
- * - Soltar o card dispara `handleDragEnd` (KanbanBoard.tsx:80-90) → `onDrop` prop = função
+ *   (ListaProducaoPage.tsx) chama `producaoService.listar({busca, page:0, size:100})`, sem
+ *   endpoint próprio.
+ * - Soltar o card dispara `handleDragEnd` (KanbanBoard.tsx) → `onDrop` prop = função
  *   `handleKanbanDrop` (ListaProducaoPage.tsx), que consulta a tabela estática
  *   `TRANSICOES_KANBAN` por `[colunaOrigem][colunaDestino]`. Três tipos de
  *   transição: `modal` (abre modal existente, ex. iniciar/travar/finalizar), `navegar`
@@ -41,32 +50,30 @@ const INSUMO_URL = `${API_URL}/insumos`
  *   `CancelarProducaoConsumoModal` por cima do próprio Kanban, sem sair da tela, igual ao tipo
  *   `modal`. O nome do tipo `'navegar'` ficou desatualizado — mantido só para não renomear a
  *   tabela `TRANSICOES_KANBAN` sem necessidade), `direto` (chama a API imediatamente, só usado em
- *   TRAVADA→EM_ANDAMENTO via retomar).
+ *   TRAVADA→EM_ANDAMENTO via retomar). Nenhuma entrada em `TRANSICOES_KANBAN` tem NAO_REALIZADA
+ *   como destino — arrastar qualquer card pra lá sempre cai no `return false` (transição
+ *   desconhecida), igual a qualquer outra transição não mapeada.
  * - NÃO há movimento otimista: `getItemColumn` deriva sempre do `producao.estado` real vindo da
  *   última resposta de `GET /producoes` — o card só migra de coluna depois de `carregarKanban()`
- *   recarregar os dados após a API confirmar a transição (ex. `handleSuccess`, linha 346-351).
+ *   recarregar os dados após a API confirmar a transição (ex. `handleSuccess`).
  * - `KanbanBoard.tsx` não tem nenhum `data-testid` em colunas ou cards.
  * - Abordagem de drag-and-drop via mouse que funcionou (ver `arrastarCard` em
  *   `e2e/helpers/producao.ts`): sequência manual `page.mouse.move/down/move.../up` com um
  *   "jiggle" inicial de +10px (supera o `activationConstraint: {distance: 6}` do `PointerSensor`)
  *   e 20 passos intermediários de 50ms cada. `page.dragAndDrop()` nativo NÃO moveu o estado real
- *   (testado, sem sucesso — o card nunca saiu da coluna original).
+ *   (testado, sem sucesso — o card nunca saiu da coluna original). `arrastarCard` localiza a
+ *   coluna de destino só pelo texto do label (`hasText`), não por posição/índice — não é afetado
+ *   pela reordenação de colunas desta rodada.
  * - P-FE-CORRIGE-009 (V0.6.1): `KanbanBoard.tsx` ganhou `KeyboardSensor` (além do `PointerSensor`
  *   já existente, não em substituição) com um `coordinateGetter` próprio que move o card por
  *   coluna inteira (não por pixels) usando a ordem de `columns`/`context.droppableRects` do
  *   dnd-kit — testes 203-205 abaixo cobrem o fluxo só de teclado (Tab, Space/Enter, setas,
- *   Escape), sem nenhum evento de mouse.
+ *   Escape), sem nenhum evento de mouse. Contagem/direção de setas ajustada nesta rodada pra
+ *   refletir a nova ordem de colunas (EM_ANDAMENTO agora antes de TRAVADA).
  *
  * Re-homologação P-TESTE-001 (V0.6.1): testes 182 e 184 renomeados para a numeração oficial atual
- * (200 e 202). 182→200 reescrito por completo (mecanismo real mudou de "coluna visível" para
- * "filtro de estado com badge distinto" — #159); 184→202 só renomeado, comportamento já correto.
- *
- * Re-homologação (achados restantes, onda pós-P-TESTE-001): teste 181→199 renomeado. Suspeita
- * inicial de dados NAO_REALIZADA acumulados (ver FRENTE 2/reset de banco no relatório final) só
- * explicava parte do problema — mesmo com banco limpo, o pill de filtro "Não realizada"
- * (ListaProducaoPage.tsx:601) é renderizado incondicionalmente, então a asserção literal do
- * Gherkin nunca fecha em 0. Ajustado para validar o comportamento real; mesmo gap de produto já
- * registrado no Cenário 200 (#159), não é bug independente.
+ * (200 e 202). 202 só renomeado, comportamento já correto (não mexe em coluna, é sobre o modal de
+ * cancelamento).
  */
 
 test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)', () => {
@@ -95,18 +102,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     }
   })
 
-  test('199 (era 181) — colunas padrão visíveis no Kanban', async ({ page }) => {
-    // Re-homologação (achados restantes, onda pós-P-TESTE-001): investigação inicial suspeitou de
-    // dados NAO_REALIZADA acumulados entre execuções (sem reset de banco — ver FRENTE 2 do relatório
-    // final). Com o reset implementado (e2e/global-setup.ts, TRUNCATE antes da suíte) a asserção de
-    // contagem exata de "Não realizada" na tela inteira se mostrou não confiável mesmo assim: o pill
-    // de filtro (FILTERS, ListaProducaoPage.tsx:122, renderizado incondicionalmente no cabeçalho
-    // compartilhado por Lista/Kanban, linha 601) sempre soma 1, e outras specs da MESMA suíte (rodam
-    // antes deste arquivo em ordem alfabética) legitimamente criam produções NAO_REALIZADA reais via
-    // divisão/agrupamento, que nunca são removidas (estado terminal, sem hard-delete) — o total varia
-    // com a composição da suíte, não é um bug. Causa raiz de produto confirmada (mesma do Cenário
-    // 200, #159): a coluna própria nunca existe (checado abaixo por cabeçalho), mas o mecanismo
-    // "oculto por padrão" nunca existiu de fato — sempre houve pelo menos o pill de filtro visível.
+  test('199 (era 181) — colunas padrão visíveis no Kanban, na ordem do Gherkin, sem NÃO_REALIZADA', async ({ page }) => {
     await login(page)
     await page.goto('/producao')
     await page.getByRole('button', { name: 'Kanban' }).click()
@@ -114,28 +110,24 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
 
     const colunas = page.locator('div.rounded-t-card')
     await expect(colunas).toHaveCount(5)
-    for (const label of ['Aguardando início', 'Em andamento', 'Travada', 'Finalizada']) {
-      await expect(colunas.filter({ hasText: label })).toHaveCount(1)
+    const ordemEsperada = ['Aguardando início', 'Em andamento', 'Travada', 'Finalizada', 'Cancelada']
+    for (let i = 0; i < ordemEsperada.length; i++) {
+      await expect(colunas.nth(i)).toContainText(ordemEsperada[i])
     }
-    // não existe coluna própria "Não realizada" — está sempre fundida em "Cancelada / Não realizada"
-    await expect(colunas.filter({ hasText: 'Cancelada' })).toHaveCount(1)
-    await expect(colunas.filter({ hasText: 'Não realizada', hasNotText: 'Cancelada' })).toHaveCount(0)
-    // O pill de filtro (gap do Cenário 200) está sempre visível, independente de dados.
+    // CANCELADA voltou a ser um label isolado, sem "Cancelada / Não realizada" fundido (#159 revertido).
+    await expect(colunas.filter({ hasText: 'Não realizada' })).toHaveCount(0)
+
+    // O controle novo de colunas existe, com o rótulo acessível distinto do pill de filtro de
+    // estado (que também se chama "Não realizada") — desligado por padrão.
+    const toggle = page.getByRole('button', { name: 'Mostrar coluna Não realizada no quadro' })
+    await expect(toggle).toBeVisible()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    // O pill de filtro de estado (mecanismo antigo, ainda existe pra filtrar conteúdo) continua
+    // visível e é um elemento diferente do toggle — ambos com o texto "Não realizada" coexistindo.
     await expect(page.getByRole('button', { name: 'Não realizada', exact: true })).toBeVisible()
   })
 
-  test('200 (era 182) — filtro de estado no Kanban isola NÃO_REALIZADA na coluna compartilhada, com badge distinto', async ({ page, request }) => {
-    // Re-homologação (P-TESTE-001): #159 mudou a solução de raiz — não existe (e continua não
-    // existindo) um "filtro de colunas visíveis"/checkbox de coluna como o Gherkin original
-    // descreve; NAO_REALIZADA continua permanentemente fundida com CANCELADA na mesma coluna
-    // física "Cancelada / Não realizada" (getColumnId, ListaProducaoPage.tsx:36). O que #159
-    // entregou foi diferente: o Kanban passou a reaproveitar os mesmos pills de filtro por estado
-    // da Listagem (FILTERS, incluindo "Não realizada") e cada card na coluna compartilhada agora
-    // mostra um badge (CANCELADA vs NÃO_REALIZADA) que antes não existia — commit 11984b8.
-    // Resolve a necessidade funcional (distinguir/isolar NÃO_REALIZADA) por um caminho diferente
-    // do descrito no Gherkin original (sem criar uma coluna própria). Documentado aqui como
-    // decisão de produto observada, não como bug — mas vale confirmação explícita do usuário se
-    // isso encerra ou não o Cenário 200 como está escrito no SCENARIOS.md (ver relatório final).
+  test('200 (era 182) — toggle "Colunas do quadro" exibe NÃO_REALIZADA como coluna própria, separada de CANCELADA', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA200-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
@@ -168,11 +160,11 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     criadasProducaoIds.push(divisao.producaoA.id, divisao.producaoB.id)
     const identificadorNaoRealizada = divisao.producaoOriginal.identificador as string
 
-    // E uma CANCELADA comum, para provar que o filtro realmente separa as duas dentro da mesma coluna.
+    // E uma CANCELADA comum, pra provar que as duas ficam em colunas de verdade diferentes.
     const producaoCancelavel = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
     await request.post(`${API_URL}/producoes/${producaoCancelavel.id}/cancelar`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { justificativa: 'Cancelamento de teste automatizado — cenário 200, isolar NÃO_REALIZADA no filtro.' },
+      data: { justificativa: 'Cancelamento de teste automatizado — cenário 200, coluna própria de NÃO_REALIZADA.' },
     })
     criadasProducaoIds.push(producaoCancelavel.id)
     const identificadorCancelada = producaoCancelavel.identificador as string
@@ -182,15 +174,36 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await page.getByRole('button', { name: 'Kanban' }).click()
     await page.waitForTimeout(800)
 
-    const colunaCompartilhada = page.locator('div.rounded-t-card', { hasText: 'Cancelada' }).locator('xpath=../..')
-    await expect(colunaCompartilhada.getByText(identificadorNaoRealizada, { exact: true })).toBeVisible({ timeout: 5000 })
-    await expect(colunaCompartilhada.getByText(identificadorCancelada, { exact: true })).toBeVisible()
+    // Por padrão: NAO_REALIZADA não aparece em lugar nenhum (nem fundida, nem em coluna própria) —
+    // CANCELADA mostra só o item cancelado de verdade.
+    const colunaCancelada = page.locator('div.rounded-t-card', { hasText: 'Cancelada' }).locator('xpath=..')
+    await expect(colunaCancelada.getByText(identificadorCancelada, { exact: true })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(identificadorNaoRealizada, { exact: true })).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Não realizada', exact: true }).click()
+    // Liga o toggle — coluna própria "Não realizada" aparece, com só o item de lá dentro.
+    await page.getByRole('button', { name: 'Mostrar coluna Não realizada no quadro' }).click()
     await page.waitForTimeout(600)
 
-    await expect(colunaCompartilhada.getByText(identificadorNaoRealizada, { exact: true })).toBeVisible({ timeout: 5000 })
-    await expect(colunaCompartilhada.getByText(identificadorCancelada, { exact: true })).toHaveCount(0)
+    const colunaNaoRealizada = page.locator('div.rounded-t-card', { hasText: 'Não realizada' }).locator('xpath=..')
+    await expect(colunaNaoRealizada.getByText(identificadorNaoRealizada, { exact: true })).toBeVisible({ timeout: 5000 })
+    await expect(colunaCancelada.getByText(identificadorCancelada, { exact: true })).toBeVisible()
+    // Nenhuma leitura cruzada entre as duas colunas — não é mais fusão com badge, é separação real.
+    await expect(colunaCancelada.getByText(identificadorNaoRealizada, { exact: true })).toHaveCount(0)
+    await expect(colunaNaoRealizada.getByText(identificadorCancelada, { exact: true })).toHaveCount(0)
+
+    // Desliga de novo — coluna some.
+    await page.getByRole('button', { name: 'Ocultar coluna Não realizada no quadro' }).click()
+    await page.waitForTimeout(300)
+    await expect(page.locator('div.rounded-t-card', { hasText: 'Não realizada' })).toHaveCount(0)
+
+    // Composição com o filtro de estado antigo: selecionar o pill "Não realizada" força a coluna
+    // visível mesmo sem tocar no toggle (evita board vazio sem explicação), e desabilita o toggle.
+    await page.getByRole('button', { name: 'Não realizada', exact: true }).click()
+    await page.waitForTimeout(600)
+    await expect(page.locator('div.rounded-t-card', { hasText: 'Não realizada' })).toBeVisible({ timeout: 5000 })
+    const toggleForcado = page.getByRole('button', { name: 'Ocultar coluna Não realizada no quadro' })
+    await expect(toggleForcado).toHaveAttribute('aria-pressed', 'true')
+    await expect(toggleForcado).toBeDisabled()
   })
 
   test('183 — arrastar card FINALIZADA para outra coluna é bloqueado e o card retorna', async ({ page, request }) => {
@@ -221,7 +234,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     const depois = await buscarProducao(request, token, producao.id)
     expect(depois.estado).toBe('FINALIZADA')
 
-    const colunaFinalizada = page.locator('div.rounded-t-card', { hasText: 'Finalizada' }).locator('xpath=../..')
+    const colunaFinalizada = page.locator('div.rounded-t-card', { hasText: 'Finalizada' }).locator('xpath=..')
     await expect(colunaFinalizada.getByText(identificador, { exact: true })).toBeVisible()
   })
 
@@ -260,11 +273,11 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await page.getByRole('dialog').getByText('Fechar', { exact: true }).click()
     await expect(page.getByText('Cancelar produção')).toHaveCount(0)
 
-    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=../..')
+    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=..')
     await expect(colunaEmAndamento.getByText(identificador, { exact: true })).toBeVisible()
   })
 
-  test('184a — arrastar qualquer card para NÃO_REALIZADA é bloqueado', async ({ page, request }) => {
+  test('184a — com a coluna NÃO_REALIZADA visível, arrastar qualquer card pra lá é bloqueado', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA184a-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
@@ -274,18 +287,46 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     criadosProdutoIds.push(produto.id)
     const producao = await criarProducaoViaApi(request, token, [{ produtoId: produto.id, quantidade: 1 }])
     criadasProducaoIds.push(producao.id)
+    const identificador = producao.identificador as string
 
     await login(page)
     await page.goto('/producao')
     await page.getByRole('button', { name: 'Kanban' }).click()
+    await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
     await page.waitForTimeout(800)
 
-    // Achado de homologação: a precondição do Gherkin ("a coluna NÃO_REALIZADA está visível")
-    // nunca se realiza — KANBAN_COLUMNS_PRODUCAO (ListaProducaoPage.tsx:26-32) hardcoda 5
-    // colunas fixas, sem nenhum caminho de código que renderize "Não realizada" como coluna
-    // separada (ver achado do Cenário 182). A asserção abaixo procura essa coluna antes de
-    // sequer tentar o drag, e deve falhar por elemento inexistente.
+    // Pré-condição real do Gherkin agora alcançável: liga o toggle "Colunas do quadro" antes do drag.
+    await page.getByRole('button', { name: 'Mostrar coluna Não realizada no quadro' }).click()
     await expect(page.locator('div.rounded-t-card', { hasText: 'Não realizada' })).toBeVisible({ timeout: 5000 })
+
+    // Via teclado, não mouse: com 6 colunas o board passou a exigir scroll horizontal mesmo no
+    // viewport alargado do describe (`max-w-[1280px]` no conteúdo, AppLayout.tsx — não escala com
+    // o viewport do browser) — origem (Aguardando início) e destino (Não realizada) não cabem
+    // simultaneamente na área visível, o que quebra `arrastarCard` (bounding box de elemento fora
+    // da viewport). O `coordinateGetter` do KeyboardSensor (P-FE-CORRIGE-009) não depende de
+    // visibilidade/scroll — só de posição relativa entre os retângulos das colunas — e já está
+    // validado nos testes 203-205.
+    await cardLocator(page, identificador).focus()
+    await page.keyboard.press('Space')
+    await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
+
+    // Aguardando início(0) → Em andamento(1) → Travada(2) → Finalizada(3) → Cancelada(4) →
+    // Não realizada(5) — 5 setas, com espera entre elas pro dnd-kit recalcular colisão a cada passo.
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForTimeout(200)
+    }
+    await page.keyboard.press('Space')
+
+    // Nenhuma entrada de TRANSICOES_KANBAN tem NAO_REALIZADA como destino — mesma mensagem de
+    // qualquer outra transição não mapeada (ex. teste 183).
+    await expect(page.getByText('Transição não permitida')).toBeVisible({ timeout: 5000 })
+
+    const depois = await buscarProducao(request, token, producao.id)
+    expect(depois.estado).toBe('AGUARDANDO_INICIO')
+
+    const colunaAguardando = page.locator('div.rounded-t-card', { hasText: 'Aguardando início' }).locator('xpath=..')
+    await expect(colunaAguardando.getByText(identificador, { exact: true })).toBeVisible()
   })
 
   // ---------------------------------------------------------------------------------------------
@@ -342,10 +383,10 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await page.keyboard.press('Space')
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(2)
 
-    // TRAVADA é a 2ª coluna (índice 1), EM_ANDAMENTO é a 3ª (índice 2) — 1 seta basta. Espera o
-    // dnd-kit recalcular colisão/`over` (efeito assíncrono) antes de confirmar o drop — sem isso o
-    // 2º Space corre risco de fechar o arraste com `over` ainda apontando pra coluna antiga.
-    await page.keyboard.press('ArrowRight')
+    // EM_ANDAMENTO é a 2ª coluna (índice 1), TRAVADA é a 3ª (índice 2) — 1 seta pra esquerda basta.
+    // Espera o dnd-kit recalcular colisão/`over` (efeito assíncrono) antes de confirmar o drop —
+    // sem isso o 2º Space corre risco de fechar o arraste com `over` ainda apontando pra coluna antiga.
+    await page.keyboard.press('ArrowLeft')
     await page.waitForTimeout(250)
     await page.keyboard.press('Space')
 
@@ -356,7 +397,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     const depois = await buscarProducao(request, token, producao.id)
     expect(depois.estado).toBe('EM_ANDAMENTO')
 
-    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=../..')
+    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=..')
     await expect(colunaEmAndamento.getByText(identificador, { exact: true })).toBeVisible()
   })
 
@@ -402,7 +443,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     const depois = await buscarProducao(request, token, producao.id)
     expect(depois.estado).toBe('FINALIZADA')
 
-    const colunaFinalizada = page.locator('div.rounded-t-card', { hasText: 'Finalizada' }).locator('xpath=../..')
+    const colunaFinalizada = page.locator('div.rounded-t-card', { hasText: 'Finalizada' }).locator('xpath=..')
     await expect(colunaFinalizada.getByText(identificador, { exact: true })).toBeVisible()
   })
 
@@ -429,7 +470,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await page.keyboard.press('Space')
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
 
-    await page.keyboard.press('ArrowRight') // rumo a FINALIZADA, ainda não confirmado
+    await page.keyboard.press('ArrowRight') // rumo a TRAVADA, ainda não confirmado
     await page.keyboard.press('Escape')
 
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(1) // overlay sumiu, sem soltar
@@ -439,7 +480,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     const depois = await buscarProducao(request, token, producao.id)
     expect(depois.estado).toBe('EM_ANDAMENTO') // inalterado
 
-    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=../..')
+    const colunaEmAndamento = page.locator('div.rounded-t-card', { hasText: 'Em andamento' }).locator('xpath=..')
     await expect(colunaEmAndamento.getByText(identificador, { exact: true })).toBeVisible()
   })
 })

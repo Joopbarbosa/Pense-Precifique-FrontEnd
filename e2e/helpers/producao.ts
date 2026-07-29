@@ -367,12 +367,11 @@ export async function moverParaStatus(
 }
 
 /**
- * Simula um drag-and-drop de card no KanbanBoard (@dnd-kit/core, PointerSensor com
- * activationConstraint distance:6, sem KeyboardSensor configurado). `page.dragAndDrop()` nativo
- * e a simulação via teclado NÃO funcionam aqui (ver relatório da P-QA-004) — a única abordagem
- * que efetivamente aciona o dnd-kit é uma sequência manual de mouse down/move/up com um pequeno
- * "jiggle" inicial (supera o activationConstraint) e vários passos intermediários (dnd-kit
- * recalcula colisão a cada pointermove).
+ * Simula um drag-and-drop de card via MOUSE no KanbanBoard (@dnd-kit/core, PointerSensor).
+ * `page.dragAndDrop()` nativo não funciona aqui (ver relatório da P-QA-004) — a única abordagem
+ * de mouse que efetivamente aciona o dnd-kit é uma sequência manual de mouse down/move/up com um
+ * pequeno "jiggle" inicial (supera o activationConstraint distance:6) e vários passos
+ * intermediários (dnd-kit recalcula colisão a cada pointermove).
  *
  * Duas armadilhas de geometria descobertas empiricamente (ver relatório da P-QA-004):
  * 1. O alvo real do drop é o container droppable (`div.overflow-y-auto`, `ref={setNodeRef}` em
@@ -383,6 +382,18 @@ export async function moverParaStatus(
  *    forma consistente em qualquer largura de viewport testada, então não é recorte de tela.
  *    Mirar perto do canto superior-esquerdo do container (colBox.x+40, colBox.y+40) evita o
  *    problema de forma confiável.
+ *
+ * Limite conhecido desta função (não corrigido, ver P-FE-CORRIGE — coluna própria NÃO_REALIZADA):
+ * com 6 colunas o board passa a exigir scroll horizontal mesmo em viewport bem alargado — o
+ * conteúdo da página é limitado a `max-w-[1280px]` (AppLayout.tsx), que não escala com o viewport
+ * do browser. Se origem e destino não estiverem simultaneamente na área visível sem scroll, o
+ * `boundingBox()` de um dos dois fica incorreto (Playwright não faz auto-scroll aqui). Nesse caso,
+ * usar o fluxo de teclado (`KeyboardSensor`, P-FE-CORRIGE-009) em vez desta função — o
+ * `coordinateGetter` dele opera em espaço de coordenadas relativo, não depende de scroll/
+ * visibilidade (ver `kanban-producao.spec.ts`, teste 184a).
+ *
+ * KeyboardSensor foi adicionado ao KanbanBoard em P-FE-CORRIGE-009 (V0.6.1) — Space/setas/Escape
+ * funcionam via teclado desde então, ver os testes 203-205 em `kanban-producao.spec.ts`.
  */
 // ---------------------------------------------------------------------------
 // P-QA-005 (#126, #122) — validação de estoque no orçamento e agrupamento de produções

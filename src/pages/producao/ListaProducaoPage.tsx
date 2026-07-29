@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
-import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown, Calendar } from 'lucide-react'
+import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown, Calendar, Eye, EyeOff, Columns3 } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
@@ -25,15 +25,17 @@ import type { KanbanColumn } from '../../components/kanban/KanbanBoard'
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 type ViewMode = 'lista' | 'kanban'
 
+// Ordem e conjunto fixo por decisão de produto (substitui a fusão CANCELADA/NAO_REALIZADA do #159,
+// ver contexto "Coluna própria NÃO_REALIZADA no Kanban"). NAO_REALIZADA é a única oculta por padrão
+// — filtrada de `colunasKanban` em ListaProducaoPage, nunca removida daqui.
 const KANBAN_COLUMNS_PRODUCAO: KanbanColumn[] = [
-  { id: 'AGUARDANDO_INICIO', label: 'Aguardando início',           headerStyle: { background: '#fffbeb', borderColor: '#fde68a' } },
-  { id: 'TRAVADA',           label: 'Travada',                     headerStyle: { background: '#fef2f2', borderColor: '#fecaca' } },
-  { id: 'EM_ANDAMENTO',      label: 'Em andamento',                headerStyle: { background: '#eff6ff', borderColor: '#bfdbfe' } },
-  { id: 'FINALIZADA',        label: 'Finalizada',                  headerStyle: { background: '#f0fdf4', borderColor: '#bbf7d0' } },
-  { id: 'CANCELADA',         label: 'Cancelada / Não realizada',   headerStyle: { background: '#f8fafc', borderColor: '#e2e8f0' } },
+  { id: 'AGUARDANDO_INICIO', label: 'Aguardando início', headerStyle: { background: '#fffbeb', borderColor: '#fde68a' } },
+  { id: 'EM_ANDAMENTO',      label: 'Em andamento',      headerStyle: { background: '#eff6ff', borderColor: '#bfdbfe' } },
+  { id: 'TRAVADA',           label: 'Travada',           headerStyle: { background: '#fef2f2', borderColor: '#fecaca' } },
+  { id: 'FINALIZADA',        label: 'Finalizada',        headerStyle: { background: '#f0fdf4', borderColor: '#bbf7d0' } },
+  { id: 'CANCELADA',         label: 'Cancelada',         headerStyle: { background: '#f8fafc', borderColor: '#e2e8f0' } },
+  { id: 'NAO_REALIZADA',     label: 'Não realizada',     headerStyle: { background: '#fafaf9', borderColor: '#e7e5e4' } },
 ]
-
-const getColumnId = (estado: EstadoProducao) => estado === 'NAO_REALIZADA' ? 'CANCELADA' : estado
 
 type TransicaoKanban = { tipo: 'modal'; modal: TipoModal } | { tipo: 'navegar' } | { tipo: 'direto' }
 
@@ -57,10 +59,6 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const temBloqueio = producao.alertasInsumos.some(a => a.situacao === 'BLOQUEIO_FUTURO')
   const temAviso = producao.alertasInsumos.some(a => a.situacao === 'AVISO')
-  // CANCELADA e NAO_REALIZADA caem na mesma coluna do Kanban (getColumnId) — badge por card
-  // é o que diferencia as duas dentro da coluna compartilhada, com ou sem filtro ativo.
-  const precisaDistinguirEstado = producao.estado === 'CANCELADA' || producao.estado === 'NAO_REALIZADA'
-  const badge = precisaDistinguirEstado ? getBadgeEstado(producao.estado, producao.historicoStatus) : null
 
   return (
     <div
@@ -75,17 +73,7 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
         {(temBloqueio || temAviso) && <AlertTriangle size={14} className={temBloqueio ? 'text-danger' : 'text-[#C8721F]'} />}
       </div>
       <div className="line-clamp-2 text-[12.5px] leading-[1.4] text-body">{nomesProdutos}</div>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</span>
-        {badge && (
-          <span
-            className="inline-flex h-5 items-center whitespace-nowrap rounded-full px-2 text-[10.5px] font-semibold"
-            style={{ background: badge.bg, color: badge.fg }}
-          >
-            {badge.label}
-          </span>
-        )}
-      </div>
+      <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
     </div>
   )
 }
@@ -332,6 +320,10 @@ export default function ListaProducaoPage() {
   const [modalCancelarConsumoId, setModalCancelarConsumoId] = useState<string | null>(null)
 
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
+  // Controle de colunas visíveis do Kanban — diferente do filtro de estado (`filtro`) já
+  // existente: este decide QUAIS colunas aparecem no board, não o que é buscado da API.
+  // NAO_REALIZADA é a única coluna opcional (oculta por padrão, Cenário 199/200).
+  const [mostrarColunaNaoRealizada, setMostrarColunaNaoRealizada] = useState(false)
   const [kanbanProducoes, setKanbanProducoes] = useState<ProducaoResumo[]>([])
   const [kanbanLoading, setKanbanLoading] = useState(false)
   const [kanbanError, setKanbanError] = useState<string | null>(null)
@@ -575,6 +567,11 @@ export default function ListaProducaoPage() {
   const globalEmpty = !loading && producoes.length === 0 && filtro === '' && !searchActive && !periodoAtivo
   const filtroEmpty = !loading && producoes.length === 0 && (filtro !== '' || searchActive || periodoAtivo)
 
+  // Filtrar pelo estado NAO_REALIZADA implica querer ver essas produções — evita o board vir
+  // vazio sem explicação se a coluna ainda estiver oculta quando esse filtro é selecionado.
+  const colunaNaoRealizadaVisivel = mostrarColunaNaoRealizada || filtro === 'NAO_REALIZADA'
+  const colunasKanban = KANBAN_COLUMNS_PRODUCAO.filter(c => c.id !== 'NAO_REALIZADA' || colunaNaoRealizadaVisivel)
+
   return (
     <AppLayout active="producao" fullHeight={viewMode === 'kanban'}>
       <div className="mb-[22px] flex flex-shrink-0 flex-wrap items-start justify-between gap-5">
@@ -789,6 +786,28 @@ export default function ListaProducaoPage() {
               })}
             </div>
 
+            <div>
+              <div className="mb-[7px] flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+                <Columns3 size={13} /> Colunas do quadro
+              </div>
+              <button
+                type="button"
+                onClick={() => setMostrarColunaNaoRealizada(v => !v)}
+                aria-pressed={colunaNaoRealizadaVisivel}
+                aria-label={`${colunaNaoRealizadaVisivel ? 'Ocultar' : 'Mostrar'} coluna Não realizada no quadro`}
+                disabled={filtro === 'NAO_REALIZADA'}
+                title={filtro === 'NAO_REALIZADA' ? 'Coluna sempre visível enquanto o filtro "Não realizada" estiver ativo' : undefined}
+                className={clsx(
+                  'flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
+                  filtro === 'NAO_REALIZADA' && 'cursor-not-allowed opacity-70',
+                  colunaNaoRealizadaVisivel ? 'border-teal bg-teal/[0.08] text-teal' : 'border-line bg-white text-muted hover:bg-[#FAF8F5]'
+                )}
+              >
+                {colunaNaoRealizadaVisivel ? <Eye size={14} /> : <EyeOff size={14} />}
+                Não realizada
+              </button>
+            </div>
+
             <div className="relative max-w-[420px]">
               <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
                 <Search size={18} />
@@ -849,9 +868,9 @@ export default function ListaProducaoPage() {
           ) : (
             <div className="min-h-0 flex-1">
               <KanbanBoard
-                columns={KANBAN_COLUMNS_PRODUCAO}
+                columns={colunasKanban}
                 items={kanbanProducoes}
-                getItemColumn={p => getColumnId(p.estado)}
+                getItemColumn={p => p.estado}
                 renderCard={(p, isDragging) => (
                   <ProducaoKanbanCard producao={p} isDragging={isDragging} onClick={() => navigate(`/producao/${p.id}`)} />
                 )}
