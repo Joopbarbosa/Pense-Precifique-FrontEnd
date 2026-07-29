@@ -316,7 +316,7 @@ export default function ClientesPage() {
   const openNova = () => { setEditData(null); setDrawer(true) }
   const openEdit = (c: ClienteResponse) => { setEditData(c); setDrawer(true) }
 
-  const empty = clientes.length === 0 && !loading
+  const empty = clientes.length === 0 && !loading && !query.trim()
 
   return (
     <AppLayout active="clientes" compact>
