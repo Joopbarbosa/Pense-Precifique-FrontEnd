@@ -91,9 +91,9 @@ function SelecaoCheckbox({ checked, disabled, onToggle }: { checked: boolean; di
       className={clsx(
         'grid h-6 w-6 flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-100',
         disabled
-          ? 'cursor-not-allowed border-line bg-line-soft opacity-50'
+          ? 'cursor-not-allowed border-line bg-line-soft text-muted opacity-50'
           : checked
-            ? 'cursor-pointer border-teal bg-teal text-white'
+            ? 'cursor-pointer border-orange bg-line-soft text-orange'
             : 'cursor-pointer border-line bg-white'
       )}
     >
