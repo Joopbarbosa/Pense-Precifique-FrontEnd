@@ -12,8 +12,34 @@ interface AppLayoutProps {
   compact?: boolean
 }
 
+const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed'
+
+function readCollapsedPreference(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function AppLayout({ active, children, noPad, fullHeight, compact }: AppLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // Preferência de sidebar recolhida (desktop) — precisa persistir porque AppLayout
+  // remonta a cada navegação (não há layout compartilhado entre rotas), então um
+  // useState puro resetaria o recolhimento a cada clique num link (#181).
+  const [collapsed, setCollapsed] = useState(readCollapsedPreference)
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
+      } catch {
+        // localStorage indisponível (ex: modo privado) — preferência só não persiste, sem quebrar a UI
+      }
+      return next
+    })
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-app">
@@ -28,9 +54,11 @@ export default function AppLayout({ active, children, noPad, fullHeight, compact
         active={active}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
       />
       <div className={clsx('flex min-w-0 flex-1 flex-col', fullHeight ? 'overflow-hidden' : 'overflow-y-auto')}>
-        <TopBar onMenuOpen={() => setDrawerOpen(true)} />
+        <TopBar drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen(v => !v)} />
         {noPad ? children : (
           <div className={clsx(
             'w-full pb-14 pt-[34px] max-md:px-[18px] max-md:pb-12 max-md:pt-[22px]',

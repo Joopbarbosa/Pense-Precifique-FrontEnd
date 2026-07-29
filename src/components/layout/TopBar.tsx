@@ -1,18 +1,22 @@
 import { Logo, Wordmark } from '../ui'
-import { Menu, Bell } from 'lucide-react'
+import { Menu, X, Bell } from 'lucide-react'
 
 interface TopBarProps {
-  onMenuOpen: () => void
+  drawerOpen: boolean
+  onToggleDrawer: () => void
 }
 
-export default function TopBar({ onMenuOpen }: TopBarProps) {
+export default function TopBar({ drawerOpen, onToggleDrawer }: TopBarProps) {
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-white px-4 py-[10px] md:hidden">
+    // z-[60] — acima do Sidebar (z-50) e do overlay (z-[49]), pra que este botão
+    // continue clicável/visível com o drawer mobile aberto (#181).
+    <header className="sticky top-0 z-[60] flex items-center justify-between border-b border-line bg-white px-4 py-[10px] md:hidden">
       <button
-        onClick={onMenuOpen}
+        onClick={onToggleDrawer}
+        aria-label={drawerOpen ? 'Fechar menu' : 'Abrir menu'}
         className="flex cursor-pointer border-none bg-transparent p-1 text-dark"
       >
-        <Menu size={24} />
+        {drawerOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       <div className="flex items-center gap-2">
