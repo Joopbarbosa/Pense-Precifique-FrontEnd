@@ -455,7 +455,7 @@ export default function FormInsumoPage() {
         {/* BOTÕES */}
         <div className="flex flex-col gap-3 px-[26px] py-[18px]">
           {error && (
-            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
+            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
               {error}
             </p>
           )}

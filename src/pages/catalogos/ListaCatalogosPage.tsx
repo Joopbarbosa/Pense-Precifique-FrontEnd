@@ -113,7 +113,7 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
           <span className="mt-1.5 block text-xs text-muted">Itens sem preço ajustado manualmente recalculam automaticamente.</span>
         </label>
         {erro && (
-          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
+          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
             {erro}
           </p>
         )}

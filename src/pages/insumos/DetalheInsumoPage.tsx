@@ -194,7 +194,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
             )}
           </label>
           {error && (
-            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-[#C0392B]">
+            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
               {error}
             </p>
           )}
