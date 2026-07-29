@@ -319,7 +319,7 @@ export default function ClientesPage() {
   const empty = clientes.length === 0 && !loading
 
   return (
-    <AppLayout active="clientes">
+    <AppLayout active="clientes" compact>
 
       {/* TOAST */}
       {toast && (
