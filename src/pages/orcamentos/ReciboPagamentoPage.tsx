@@ -62,7 +62,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
   const pagoAgora = orcamento.sinalAtivo ? valorTotal - valorSinal : valorTotal
 
   return (
-    <div className="flex min-h-[calc((820px-72px)*1.414)] w-full animate-fade-up flex-col rounded-[4px] border border-[#EFEDE8] bg-white p-14 shadow-[0_10px_40px_-8px_rgba(31,38,52,0.18),0_2px_8px_rgba(0,0,0,0.06)] max-[767px]:min-h-0 max-[767px]:px-6 max-[767px]:py-8">
+    <div className="flex min-h-[calc((820px-72px)*1.414)] w-full animate-fade-up flex-col rounded-[4px] border border-line bg-white p-14 shadow-[0_10px_40px_-8px_rgba(31,38,52,0.18),0_2px_8px_rgba(0,0,0,0.06)] max-[767px]:min-h-0 max-[767px]:px-6 max-[767px]:py-8">
 
       {/* CABEÇALHO — borda verde */}
       <div className="flex items-start justify-between gap-5 border-b-2 border-[#2E9E60]/25 pb-[22px]">

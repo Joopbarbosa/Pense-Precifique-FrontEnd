@@ -70,7 +70,7 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-[13px] font-bold text-dark [font-variant-numeric:tabular-nums]">{producao.identificador}</span>
-        {(temBloqueio || temAviso) && <AlertTriangle size={14} className={temBloqueio ? 'text-danger' : 'text-[#C8721F]'} />}
+        {(temBloqueio || temAviso) && <AlertTriangle size={14} className={temBloqueio ? 'text-danger' : 'text-warning'} />}
       </div>
       <div className="line-clamp-2 text-[12.5px] leading-[1.4] text-body">{nomesProdutos}</div>
       <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
@@ -150,7 +150,7 @@ function AlertaIcones({ producao }: { producao: ProducaoResumo }) {
   return (
     <div className="flex items-center gap-1.5">
       {temBloqueio && <AlertTriangle size={16} className="text-danger" />}
-      {temAviso && <AlertTriangle size={16} className="text-[#C8721F]" />}
+      {temAviso && <AlertTriangle size={16} className="text-warning" />}
     </div>
   )
 }

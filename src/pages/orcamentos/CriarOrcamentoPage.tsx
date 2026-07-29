@@ -155,14 +155,14 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
     <div className="flex flex-shrink-0 items-center overflow-hidden rounded-input border border-line">
       <button
         onClick={() => onChange(Math.max(1, value - 1))}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-[#FCFBF9] text-lg text-body transition-colors duration-100 hover:bg-[#F1F0EC]"
+        className="grid h-[42px] w-[38px] place-items-center border-none bg-[#FCFBF9] text-lg text-body transition-colors duration-100 hover:bg-line-soft"
       >−</button>
       <span className="w-[46px] border-x border-line text-center text-[15px] font-bold leading-[42px] text-dark [font-variant-numeric:tabular-nums]">
         {value}
       </span>
       <button
         onClick={() => onChange(value + 1)}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-[#FCFBF9] text-lg text-teal transition-colors duration-100 hover:bg-[#F1F0EC]"
+        className="grid h-[42px] w-[38px] place-items-center border-none bg-[#FCFBF9] text-lg text-teal transition-colors duration-100 hover:bg-line-soft"
       >+</button>
     </div>
   )

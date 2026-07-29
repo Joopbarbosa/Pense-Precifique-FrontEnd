@@ -76,7 +76,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
         </div>
         <div className="absolute left-2.5 top-2.5">
           {inativo ? (
-            <span className="inline-flex h-[25px] items-center whitespace-nowrap rounded-full border border-[#F2D8CF] bg-[#FBEDE7] px-[11px] text-[11.5px] font-bold tracking-[0.01em] text-[#C0492B] shadow-[0_1px_4px_rgba(0,0,0,0.10)]">
+            <span className="inline-flex h-[25px] items-center whitespace-nowrap rounded-full border border-[#F2D8CF] bg-[#FBEDE7] px-[11px] text-[11.5px] font-bold tracking-[0.01em] text-danger shadow-[0_1px_4px_rgba(0,0,0,0.10)]">
               Inativo
             </span>
           ) : (
@@ -93,7 +93,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
       {/* CORPO */}
       <div className="flex flex-1 flex-col px-4 pb-4 pt-[15px]">
         {p.identificador && (
-          <div className="mb-[3px] text-xs font-semibold text-[#A29E96] [font-variant-numeric:tabular-nums]">
+          <div className="mb-[3px] text-xs font-semibold text-muted [font-variant-numeric:tabular-nums]">
             {p.identificador}
           </div>
         )}
@@ -121,7 +121,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
             ) : (
               <div className={clsx(
                 'mt-[5px] inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold [font-variant-numeric:tabular-nums]',
-                semEstoque ? 'bg-[#F1F0EC] text-[#9A968E]' : 'bg-teal/10 text-teal'
+                semEstoque ? 'bg-line-soft text-[#9A968E]' : 'bg-teal/10 text-teal'
               )} style={{ height: 26 }}>
                 <Layers size={14} /> {p.estoqueAtual} un
               </div>
