@@ -54,7 +54,7 @@ function DocSectionTitle({ icon, color = TEAL, children }: { icon: React.ReactNo
 // ── DocumentoMulta ───────────────────────────────────────────────────────────
 
 function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheResponse; empresa: EmpresaResponse | null }) {
-  const numeroFormatado = `#${String(orcamento.numero).padStart(4, '0')}`
+  const numeroFormatado = `#${orcamento.numero}`
   const emissao = fmtDate(orcamento.createdAt)
   const aprovacao = fmtDate(orcamento.dataAprovacao)
   const dataCancelamento = fmtDate(orcamento.updatedAt)
