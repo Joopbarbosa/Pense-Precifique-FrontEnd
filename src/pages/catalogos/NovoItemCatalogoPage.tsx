@@ -10,6 +10,7 @@ import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoRequest, PreviewPrecoRequest } from '../../types/itemCatalogo'
 import { useToast } from '../../hooks/useToast'
+import { extractApiError } from '../../utils/apiError'
 
 const num = (s: string) =>
   parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
@@ -259,15 +260,13 @@ export default function NovoItemCatalogoPage() {
       setProdutoErro(null)
       setErro(null)
     } catch (err: any) {
-      const msg: string | undefined = err.response?.data?.message
-      if (msg && /custo calculado/i.test(msg)) {
+      const msg = extractApiError(err, 'Não foi possível calcular o preço sugerido. Tente novamente.')
+      if (/custo calculado/i.test(msg)) {
         produtoBloqueadoRef.current = request.produtoId
         setProdutoErro(msg)
         setToast(msg)
-      } else if (msg) {
-        setErro(msg)
       } else {
-        setErro('Não foi possível calcular o preço sugerido. Tente novamente.')
+        setErro(msg)
       }
     } finally {
       setCalculandoPreview(false)
@@ -316,12 +315,12 @@ export default function NovoItemCatalogoPage() {
       }
       navigate(`/catalogos/${catalogoId}`)
     } catch (err: any) {
-      const msg: string | undefined = err.response?.data?.message
-      if (msg && /custo calculado/i.test(msg)) {
+      const msg = extractApiError(err, 'Erro ao salvar item do catálogo.')
+      if (/custo calculado/i.test(msg)) {
         produtoBloqueadoRef.current = request.produtoId
         setProdutoErro(msg)
       } else {
-        setErro(msg || 'Erro ao salvar item do catálogo.')
+        setErro(msg)
       }
     } finally {
       setSalvando(false)

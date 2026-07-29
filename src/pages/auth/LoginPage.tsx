@@ -4,6 +4,7 @@ import { Logo, Wordmark, Button, Input, Spinner } from '../../components/ui'
 import { AlertCircle, Mail, Lock } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { useAuthStore } from '../../store/authStore'
+import { extractApiError } from '../../utils/apiError'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -33,7 +34,7 @@ export default function LoginPage() {
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
       navigate(from, { replace: true })
     } catch (error: any) {
-      setAuthError(error.response?.data?.message ?? 'Erro ao entrar. Tente novamente.')
+      setAuthError(extractApiError(error, 'Erro ao entrar. Tente novamente.'))
     } finally {
       setLoading(false)
     }

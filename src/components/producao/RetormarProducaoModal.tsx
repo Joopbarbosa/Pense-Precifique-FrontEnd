@@ -7,6 +7,7 @@ import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../t
 import type { DivisaoResponse, ProducaoDetalhe, ConfirmacaoEstoqueNegativoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import ModalDivisao from './ModalDivisao'
 import ConfirmarEstoqueNegativoModal from './ConfirmarEstoqueNegativoModal'
+import { extractApiError } from '../../utils/apiError'
 
 interface Props {
   producaoId: string
@@ -43,7 +44,7 @@ export default function RetormarProducaoModal({ producaoId, onClose, onSuccess }
       const result = await producaoService.retomar(producaoId, dividir ? { dividir: true } : undefined)
       tratarResultado(result, dividir)
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao retomar produção.')
+      setErro(extractApiError(err, 'Erro ao retomar produção.'))
     } finally {
       setSalvando(false)
     }
@@ -62,7 +63,7 @@ export default function RetormarProducaoModal({ producaoId, onClose, onSuccess }
       setAvisoPendente(null)
       tratarResultado(result, ultimoDividir)
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao retomar produção.')
+      setErro(extractApiError(err, 'Erro ao retomar produção.'))
     } finally {
       setConfirmandoAviso(false)
     }

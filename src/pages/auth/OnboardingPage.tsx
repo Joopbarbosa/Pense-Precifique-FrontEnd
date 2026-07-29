@@ -5,6 +5,7 @@ import { Logo, Wordmark, Button, Spinner } from '../../components/ui'
 import { Check, Lightbulb, Clock, TrendingUp, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
+import { extractApiError } from '../../utils/apiError'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 function Stepper() {
@@ -146,7 +147,7 @@ export default function OnboardingPage() {
       setOnboardingCompleto(true)
       navigate('/dashboard', { replace: true })
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao salvar configurações. Tente novamente.')
+      setError(extractApiError(err, 'Erro ao salvar configurações. Tente novamente.'))
       setLoading(false)
     }
   }

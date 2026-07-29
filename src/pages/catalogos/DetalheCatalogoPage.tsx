@@ -11,6 +11,7 @@ import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
+import { extractApiError } from '../../utils/apiError'
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -118,7 +119,7 @@ export default function DetalheCatalogoPage() {
       setCatalogo(prev => prev ? { ...prev, quantidadeItens: Math.max(0, prev.quantidadeItens - 1) } : prev)
       setItemParaRemover(null)
     } catch (err: any) {
-      setErroAcao(err.response?.data?.message || 'Erro ao remover item. Tente novamente.')
+      setErroAcao(extractApiError(err, 'Erro ao remover item. Tente novamente.'))
     } finally {
       setProcessando(false)
     }

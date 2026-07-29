@@ -7,6 +7,7 @@ import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, C
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
+import { extractApiError } from '../../utils/apiError'
 import { useToast } from '../../hooks/useToast'
 import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
 import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo } from '../../types/producao'
@@ -481,7 +482,7 @@ export default function ListaProducaoPage() {
       setToast('Insumos ainda bloqueantes — produção permanece travada.')
       return false
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao retomar produção.')
+      setToast(extractApiError(err, 'Erro ao retomar produção.'))
       return false
     }
   }
@@ -506,7 +507,7 @@ export default function ListaProducaoPage() {
         setToast('Insumos ainda bloqueantes — produção permanece travada.')
       }
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao retomar produção.')
+      setToast(extractApiError(err, 'Erro ao retomar produção.'))
     } finally {
       setConfirmandoAvisoKanban(false)
     }

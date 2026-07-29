@@ -8,6 +8,7 @@ import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO } from '../../constants'
+import { extractApiError } from '../../utils/apiError'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -106,7 +107,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
       onSuccess()
       onClose()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao registrar baixa. Tente novamente.')
+      setError(extractApiError(err, 'Erro ao registrar baixa. Tente novamente.'))
       setLoading(false)
     }
   }

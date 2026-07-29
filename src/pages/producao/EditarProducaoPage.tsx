@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner } from '../../components/ui'
+import { extractApiError } from '../../utils/apiError'
 import { Search, Box, Trash2, Calendar, StickyNote, Save, Lock } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
@@ -196,7 +197,7 @@ export default function EditarProducaoPage() {
       })
       navigate(`/producao/${id}`)
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao editar produção.')
+      setToast(extractApiError(err, 'Erro ao editar produção.'))
     } finally {
       setSalvando(false)
     }

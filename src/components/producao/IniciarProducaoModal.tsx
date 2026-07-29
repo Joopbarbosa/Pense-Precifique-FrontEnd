@@ -9,6 +9,7 @@ import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../t
 import type { ProducaoDetalhe, DivisaoResponse, ConfirmacaoEstoqueNegativoResponse, AvisoEstoqueNegativo } from '../../types/producao'
 import ModalDivisao from './ModalDivisao'
 import ConfirmarEstoqueNegativoModal from './ConfirmarEstoqueNegativoModal'
+import { extractApiError } from '../../utils/apiError'
 
 interface Props {
   producaoId: string
@@ -60,7 +61,7 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
       const result = await producaoService.iniciar(producaoId)
       tratarResultadoIniciar(result)
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao iniciar produção.')
+      setErro(extractApiError(err, 'Erro ao iniciar produção.'))
     } finally {
       setSalvando(false)
     }
@@ -85,7 +86,7 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
       const result = await producaoService.retomar(producaoId, { dividir: true })
       tratarResultadoDividir(result)
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Não foi possível dividir a produção.')
+      setErro(extractApiError(err, 'Não foi possível dividir a produção.'))
     } finally {
       setSalvando(false)
     }
@@ -109,7 +110,7 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
         tratarResultadoDividir(result)
       }
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao confirmar produção.')
+      setErro(extractApiError(err, 'Erro ao confirmar produção.'))
     } finally {
       setConfirmandoAviso(false)
     }

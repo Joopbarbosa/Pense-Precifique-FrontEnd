@@ -4,6 +4,7 @@ import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import { Ban, AlertCircle } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
+import { extractApiError } from '../../utils/apiError'
 
 interface Props {
   producaoId: string
@@ -29,7 +30,7 @@ export default function CancelarProducaoModal({ producaoId, onClose, onSuccess }
       await producaoService.cancelar(producaoId, { justificativa })
       onSuccess('Produção cancelada')
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao cancelar produção.')
+      setErro(extractApiError(err, 'Erro ao cancelar produção.'))
     } finally {
       setSalvando(false)
     }

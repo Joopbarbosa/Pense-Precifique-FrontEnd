@@ -10,6 +10,7 @@ import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
 import type { AlertaInsumo } from '../../types/producao'
 import { useToast } from '../../hooks/useToast'
+import { extractApiError } from '../../utils/apiError'
 
 interface ProdutoSelecionado {
   produtoId: string
@@ -236,7 +237,7 @@ export default function NovaProducaoPage() {
       ultimoConfirmadoRef.current = candidato
       setAlertasAtuais(avisos)
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao verificar disponibilidade de insumos.')
+      setToast(extractApiError(err, 'Erro ao verificar disponibilidade de insumos.'))
       setProdutos(ultimoConfirmadoRef.current)
     } finally {
       setVerificandoAlertas(false)
@@ -311,7 +312,7 @@ export default function NovaProducaoPage() {
 
       setAlertasAtuais(relevantes)
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao verificar disponibilidade de insumos.')
+      setToast(extractApiError(err, 'Erro ao verificar disponibilidade de insumos.'))
     }
   }
 
@@ -346,7 +347,7 @@ export default function NovaProducaoPage() {
         navigate(`/producao/${result.id}`)
       }
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao criar produção.')
+      setToast(extractApiError(err, 'Erro ao criar produção.'))
     } finally {
       setLoading(false)
     }

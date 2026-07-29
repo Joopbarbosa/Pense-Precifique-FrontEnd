@@ -13,6 +13,7 @@ import { produtoService } from '../../services/produtoService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
 import { MOTIVOS_BAIXA_PRODUTO, MOTIVO_LABEL } from '../../constants'
+import { extractApiError } from '../../utils/apiError'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
@@ -127,7 +128,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
       })
       onSuccess()
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao registrar baixa.')
+      setErro(extractApiError(err, 'Erro ao registrar baixa.'))
     } finally {
       setSalvando(false)
     }

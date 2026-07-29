@@ -8,6 +8,7 @@ import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
 import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
 import { useToast } from '../../hooks/useToast'
+import { extractApiError } from '../../utils/apiError'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -183,7 +184,7 @@ function Precificacao({
       setSaved({ hora, margem })
       setToast('Configurações salvas com sucesso!')
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao salvar. Tente novamente.')
+      setToast(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
     }
   }
 
@@ -336,7 +337,7 @@ function PerfilEmpresa({
       await onSave(nome, email, whatsapp, endereco)
       setToast('Configurações salvas com sucesso!')
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao salvar. Tente novamente.')
+      setToast(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
     }
   }
 
@@ -419,7 +420,7 @@ function ContaSeguranca() {
       setNovaSenha('')
       setConfirmarNovaSenha('')
     } catch (err: any) {
-      setToast(err.response?.data?.message || 'Erro ao atualizar senha. Tente novamente.')
+      setToast(extractApiError(err, 'Erro ao atualizar senha. Tente novamente.'))
     } finally {
       setAtualizando(false)
     }

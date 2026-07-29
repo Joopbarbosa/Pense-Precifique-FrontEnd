@@ -9,6 +9,7 @@ import Spinner from '../../components/ui/Spinner'
 import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
 import { insumoService } from '../../services/insumoService'
 import type { InsumoRequest, NovoInsumoRequest } from '../../types/insumo'
+import { extractApiError } from '../../utils/apiError'
 
 const UNIDADES = ['Unidade', 'cm', 'g', 'ml', 'Folha']
 
@@ -194,7 +195,7 @@ export default function FormInsumoPage() {
         navigate(`/insumos/${novoInsumo.id}`)
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Erro ao salvar. Tente novamente.'
+      const msg = extractApiError(err, 'Erro ao salvar. Tente novamente.')
       setError(msg)
       setLoading(false)
     }

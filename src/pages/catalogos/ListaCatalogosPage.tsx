@@ -10,6 +10,7 @@ import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { Files, Save, Pencil, Copy, Power, Plus, Search, ArrowDown } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
+import { extractApiError } from '../../utils/apiError'
 
 type CampoOrdenacao = 'numero' | 'nome' | 'margem' | 'quantidadeItens'
 
@@ -288,7 +289,7 @@ export default function ListaCatalogosPage() {
       const novo = await catalogoService.duplicar(catalogo.id)
       setCatalogos(prev => [novo, ...prev])
     } catch (err: any) {
-      setErroAcao(err.response?.data?.message || 'Erro ao duplicar catálogo. Tente novamente.')
+      setErroAcao(extractApiError(err, 'Erro ao duplicar catálogo. Tente novamente.'))
     } finally {
       setProcessando(false)
     }
@@ -301,7 +302,7 @@ export default function ListaCatalogosPage() {
       const atualizado = await catalogoService.reativar(catalogo.id)
       setCatalogos(prev => prev.map(c => c.id === atualizado.id ? atualizado : c))
     } catch (err: any) {
-      setErroAcao(err.response?.data?.message || 'Erro ao reativar catálogo. Tente novamente.')
+      setErroAcao(extractApiError(err, 'Erro ao reativar catálogo. Tente novamente.'))
     } finally {
       setProcessando(false)
     }
@@ -316,7 +317,7 @@ export default function ListaCatalogosPage() {
       setCatalogos(prev => prev.map(c => c.id === atualizado.id ? atualizado : c))
       setModalCatalogo(null)
     } catch (err: any) {
-      setErroAcao(err.response?.data?.message || 'Erro ao desativar catálogo. Tente novamente.')
+      setErroAcao(extractApiError(err, 'Erro ao desativar catálogo. Tente novamente.'))
     } finally {
       setProcessando(false)
     }

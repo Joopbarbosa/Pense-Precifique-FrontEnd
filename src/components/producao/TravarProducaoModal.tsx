@@ -4,6 +4,7 @@ import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import { PauseCircle, AlertCircle } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
+import { extractApiError } from '../../utils/apiError'
 
 interface Props {
   producaoId: string
@@ -29,7 +30,7 @@ export default function TravarProducaoModal({ producaoId, onClose, onSuccess }: 
       await producaoService.travar(producaoId, justificativa)
       onSuccess('Produção travada.')
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao travar produção.')
+      setErro(extractApiError(err, 'Erro ao travar produção.'))
     } finally {
       setSalvando(false)
     }

@@ -5,6 +5,7 @@ import Button from '../ui/Button'
 import { Spinner } from '../ui'
 import { Ban, StickyNote, AlertCircle } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
+import { extractApiError } from '../../utils/apiError'
 import ConsumoRealSection, { chaveConsumo } from './ConsumoRealSection'
 import type { ProducaoDetalhe, ConsumoRealItem } from '../../types/producao'
 
@@ -59,7 +60,7 @@ export default function CancelarProducaoConsumoModal({ producaoId, onClose, onSu
       })
       onSuccess('Produção cancelada')
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao cancelar produção.')
+      setErro(extractApiError(err, 'Erro ao cancelar produção.'))
     } finally {
       setSalvando(false)
     }

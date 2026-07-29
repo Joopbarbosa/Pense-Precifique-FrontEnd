@@ -24,6 +24,7 @@ import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
+import { extractApiError } from "../../utils/apiError";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -1000,9 +1001,7 @@ export default function DetalheOrcamentoPage() {
       }
     } catch (err) {
       console.error("Erro ao avançar status:", err);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Erro ao avançar status do orçamento.";
+      const msg = extractApiError(err, "Erro ao avançar status do orçamento.");
       setErroAvanco(msg);
     } finally {
       setSaving(false);
@@ -1027,9 +1026,7 @@ export default function DetalheOrcamentoPage() {
       }
     } catch (err) {
       console.error("Erro ao avançar status:", err);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Erro ao avançar status do orçamento.";
+      const msg = extractApiError(err, "Erro ao avançar status do orçamento.");
       setErroAvanco(msg);
     } finally {
       setConfirmandoAviso(false);

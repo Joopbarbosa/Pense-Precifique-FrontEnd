@@ -5,6 +5,7 @@ import { Spinner } from '../ui'
 import { CheckCircle2 } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import type { ProducaoDetalhe } from '../../types/producao'
+import { extractApiError } from '../../utils/apiError'
 
 interface Props {
   producaoId: string
@@ -46,7 +47,7 @@ export default function FinalizarProducaoModal({ producaoId, producao: producaoP
       await producaoService.finalizar(producaoId, perdasParaEnviar.length > 0 ? { perdas: perdasParaEnviar } : undefined)
       onSuccess('Produção finalizada — estoque atualizado.')
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao finalizar produção.')
+      setErro(extractApiError(err, 'Erro ao finalizar produção.'))
     } finally {
       setSalvando(false)
     }

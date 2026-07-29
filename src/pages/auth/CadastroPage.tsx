@@ -5,6 +5,7 @@ import { Logo, Wordmark, Button, Input, Spinner } from '../../components/ui'
 import { X, Image, AlertCircle, Mail, Lock } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { useAuthStore } from '../../store/authStore'
+import { extractApiError } from '../../utils/apiError'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 function Stepper() {
@@ -209,7 +210,7 @@ export default function CadastroPage() {
       // TODO: Épico 2 — passar nome/empresa para onboarding e salvar via EmpresaService
       navigate('/onboarding')
     } catch (error: any) {
-      const msg: string = error.response?.data?.message ?? 'Erro ao criar conta. Tente novamente.'
+      const msg = extractApiError(error, 'Erro ao criar conta. Tente novamente.')
       if (msg.toLowerCase().includes('e-mail já cadastrado') || msg.toLowerCase().includes('email')) {
         setEmailEmUso(true)
       } else {

@@ -6,6 +6,7 @@ import { Spinner } from '../ui'
 import { Layers, Calendar, StickyNote } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
+import { extractApiError } from '../../utils/apiError'
 import ConsumoRealSection, { chaveConsumo } from './ConsumoRealSection'
 import ConfirmarEstoqueNegativoModal from './ConfirmarEstoqueNegativoModal'
 import { isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
@@ -111,7 +112,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
         onSuccess(`Produções agrupadas em ${result.producaoNova.identificador}`)
       }
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao agrupar produções.')
+      setErro(extractApiError(err, 'Erro ao agrupar produções.'))
     } finally {
       setSalvando(false)
     }
@@ -130,7 +131,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
         onSuccess(`Produções agrupadas em ${result.producaoNova.identificador}`)
       }
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao agrupar produções.')
+      setErro(extractApiError(err, 'Erro ao agrupar produções.'))
     } finally {
       setConfirmandoAviso(false)
     }
