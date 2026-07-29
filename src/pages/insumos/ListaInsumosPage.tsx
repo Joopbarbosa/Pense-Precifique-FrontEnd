@@ -550,7 +550,7 @@ export default function ListaInsumosPage() {
   }
 
   return (
-    <AppLayout active="insumos">
+    <AppLayout active="insumos" compact>
 
       {/* TOAST */}
       {toast && (

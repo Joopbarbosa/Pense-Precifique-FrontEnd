@@ -424,7 +424,7 @@ export default function DetalheInsumoPage() {
 
   if (loading || !insumo) {
     return (
-      <AppLayout active="insumos">
+      <AppLayout active="insumos" compact>
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
           <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando insumo…
@@ -436,7 +436,7 @@ export default function DetalheInsumoPage() {
   const isLow = insumo.estoqueMinimo != null && insumo.estoqueAtual < insumo.estoqueMinimo
 
   return (
-    <AppLayout active="insumos">
+    <AppLayout active="insumos" compact>
 
       <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
         <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/insumos')}>

@@ -214,7 +214,7 @@ export default function FormInsumoPage() {
 
   if (loadingData) {
     return (
-      <AppLayout active="insumos">
+      <AppLayout active="insumos" compact>
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
           <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
           Carregando dados do insumo…
@@ -224,7 +224,7 @@ export default function FormInsumoPage() {
   }
 
   return (
-    <AppLayout active="insumos">
+    <AppLayout active="insumos" compact>
 
       {/* HEADER + breadcrumb */}
       <div className="mb-[22px]">
@@ -244,7 +244,7 @@ export default function FormInsumoPage() {
       </div>
 
       {/* CARD FORM */}
-      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="max-w-[760px] animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
         {/* SEÇÃO 1 — Identificação */}
         <div className="border-b border-line px-[26px] py-6">
