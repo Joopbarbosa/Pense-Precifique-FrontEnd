@@ -8,7 +8,7 @@ interface AppLayoutProps {
   children: React.ReactNode
   noPad?: boolean
   fullHeight?: boolean
-  /** #182 — piloto de espaçamento reduzido (16px em vez de 40px) entre sidebar e conteúdo. */
+  /** #182 — piloto: padding reduzido (16px em vez de 40px) e conteúdo fluido, sem max-w-[1280px]. */
   compact?: boolean
 }
 
@@ -33,8 +33,8 @@ export default function AppLayout({ active, children, noPad, fullHeight, compact
         <TopBar onMenuOpen={() => setDrawerOpen(true)} />
         {noPad ? children : (
           <div className={clsx(
-            'mx-auto w-full max-w-[1280px] pb-14 pt-[34px] max-md:px-[18px] max-md:pb-12 max-md:pt-[22px]',
-            compact ? 'px-4' : 'px-10',
+            'w-full pb-14 pt-[34px] max-md:px-[18px] max-md:pb-12 max-md:pt-[22px]',
+            compact ? 'px-4' : 'mx-auto max-w-[1280px] px-10',
             fullHeight && 'flex min-h-0 flex-1 flex-col'
           )}>
             {children}
