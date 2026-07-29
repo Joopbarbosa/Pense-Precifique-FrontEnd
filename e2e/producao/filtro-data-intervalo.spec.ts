@@ -17,14 +17,11 @@ const INSUMO_URL = `${API_URL}/insumos`
  * intervalo de dataInicio em GET /producoes (`dataInicioDe`/`dataInicioAte`, usado tanto pela
  * Listagem quanto pelo Kanban, já que os dois consomem o mesmo endpoint — ver backend CLAUDE.md).
  *
- * Achado de homologação: NENHUM dos dois parâmetros é construído ou enviado pelo frontend hoje —
- * `producaoService.listar` (`src/services/producaoService.ts`) só aceita
- * `{ busca?, estado?, sort?, page?, size? }`, sem `dataInicioDe`/`dataInicioAte`; não há nenhum
- * campo de input de data na UI de filtro da Listagem nem do Kanban (`ListaProducaoPage.tsx`,
- * confirmado por grep sem ocorrências de `dataInicioDe`/`dataInicioAte`/`DataInicioDe` em todo
- * `src/`). Cobertura de UI é impossível hoje — os testes abaixo validam o contrato via API
- * diretamente (sem `page`), e o último confirma explicitamente a ausência do controle na tela.
- * Reportado no relatório final como gap de Frontend a ser aberto no OpenProject.
+ * Atualizado em P-FE-CORRIGE-022: o gap de UI relatado originalmente (nenhum campo de data na
+ * Listagem/Kanban) foi corrigido em P-FE-CORRIGE-004 — `ListaProducaoPage.tsx` já tem os campos
+ * "Data de início — de/até" (aria-label) em ambas as visões. Os 3 primeiros testes seguem
+ * validando o contrato via API diretamente; o último agora valida o filtro end-to-end pela UI
+ * (existência dos campos + resultado filtrado corretamente), em vez de confirmar a ausência.
  */
 
 test.describe('RN-NOVA-2 (#184/#192) — Filtro de intervalo de dataInicio em GET /producoes', () => {
@@ -114,14 +111,45 @@ test.describe('RN-NOVA-2 (#184/#192) — Filtro de intervalo de dataInicio em GE
     expect(body.totalElements).toBe(0)
   })
 
-  test('achado: nenhum campo de data de filtro existe na tela de Listagem/Kanban', async ({ page }) => {
+  test('filtro de intervalo de data funciona pela UI, na Listagem e no Kanban', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA-RNNOVA2d-Insumo-${Date.now()}`
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, true)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA-RNNOVA2d-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
+    criadosProdutoIds.push(produto.id)
+
+    const dentro = await criarProducaoComData(request, token, produto.id, '2026-08-05')
+    const fora = await criarProducaoComData(request, token, produto.id, '2026-09-05')
+    criadasProducaoIds.push(dentro.id, fora.id)
+
     await login(page)
     await page.goto('/producao')
-    await expect(page.locator('input[type="date"]')).toHaveCount(0)
+    await page.locator('input[placeholder*="Buscar por produto"]').fill(nomeProduto)
+    await page.waitForTimeout(600)
 
+    // Antes do filtro de data: as duas produções aparecem na Listagem.
+    await expect(page.getByText(dentro.identificador, { exact: true }).first()).toBeVisible()
+    await expect(page.getByText(fora.identificador, { exact: true }).first()).toBeVisible()
+
+    const campoDe = page.locator('[aria-label="Data de início — de"]').first()
+    const campoAte = page.locator('[aria-label="Data de início — até"]').first()
+    await expect(campoDe).toHaveCount(1)
+    await expect(campoAte).toHaveCount(1)
+    await campoDe.fill('2026-08-01')
+    await campoAte.fill('2026-08-31')
+    await page.waitForTimeout(600)
+
+    await expect(page.getByText(dentro.identificador, { exact: true }).first()).toBeVisible()
+    await expect(page.getByText(fora.identificador, { exact: true })).toHaveCount(0)
+
+    // Kanban consome o mesmo filtro de data, sem precisar reconfigurar.
     await page.getByRole('button', { name: 'Kanban' }).click()
-    await page.waitForTimeout(500)
-    await expect(page.locator('input[type="date"]')).toHaveCount(0)
+    await page.waitForTimeout(700)
+    await expect(page.locator('[aria-label="Data de início — de"]').first()).toHaveValue('2026-08-01')
+    await expect(page.getByText(dentro.identificador, { exact: true }).first()).toBeVisible()
+    await expect(page.getByText(fora.identificador, { exact: true })).toHaveCount(0)
   })
 })
 
