@@ -81,7 +81,7 @@ export default function NovoCatalogoPage() {
 
   if (loadingConfig) {
     return (
-      <AppLayout active="catalogos">
+      <AppLayout active="catalogos" compact>
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
           <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando…
@@ -91,7 +91,7 @@ export default function NovoCatalogoPage() {
   }
 
   return (
-    <AppLayout active="catalogos">
+    <AppLayout active="catalogos" compact>
 
       {/* HEADER + breadcrumb */}
       <div className="mb-[22px]">

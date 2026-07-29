@@ -127,7 +127,7 @@ export default function DetalheCatalogoPage() {
 
   if (loading || (!catalogo && !erroCarregar)) {
     return (
-      <AppLayout active="catalogos">
+      <AppLayout active="catalogos" compact>
         <div className="flex items-center gap-2.5 py-[60px] text-sm text-muted">
           <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando catálogo…
@@ -138,7 +138,7 @@ export default function DetalheCatalogoPage() {
 
   if (erroCarregar || !catalogo) {
     return (
-      <AppLayout active="catalogos">
+      <AppLayout active="catalogos" compact>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
           <span>{erroCarregar}</span>
           <Button variant="ghost" onClick={carregar}>Tentar novamente</Button>
@@ -148,7 +148,7 @@ export default function DetalheCatalogoPage() {
   }
 
   return (
-    <AppLayout active="catalogos">
+    <AppLayout active="catalogos" compact>
 
       <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">
         <span

@@ -329,7 +329,7 @@ export default function NovoItemCatalogoPage() {
 
   if (loadingContexto) {
     return (
-      <AppLayout active="catalogos">
+      <AppLayout active="catalogos" compact>
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
           <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
           Carregando…
@@ -344,7 +344,7 @@ export default function NovoItemCatalogoPage() {
   const diffOverride = overrideAtivo && precoSugerido != null ? num(precoVenda) - precoSugerido : null
 
   return (
-    <AppLayout active="catalogos">
+    <AppLayout active="catalogos" compact>
 
       {/* BREADCRUMB */}
       <div className="mb-3 flex items-center gap-[7px] text-[12.5px] text-muted">

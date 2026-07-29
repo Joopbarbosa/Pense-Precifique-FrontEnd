@@ -327,7 +327,7 @@ export default function ListaCatalogosPage() {
   }
 
   return (
-    <AppLayout active="catalogos">
+    <AppLayout active="catalogos" compact>
 
       {/* HEADER */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
