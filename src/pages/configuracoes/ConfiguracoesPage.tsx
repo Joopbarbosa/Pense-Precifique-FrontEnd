@@ -189,7 +189,7 @@ function Precificacao({
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,640px)_320px]">
       <div className="flex flex-col gap-6">
         <div className="animate-[fadeUp_.35s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="mb-[5px] flex items-center gap-[11px]">
@@ -514,7 +514,7 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <AppLayout active="config">
+    <AppLayout active="config" compact>
 
       <div className="mb-[22px] flex items-center gap-[15px]">
         <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
