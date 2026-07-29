@@ -1086,7 +1086,7 @@ export default function DetalheOrcamentoPage() {
 
   if (loading) {
     return (
-      <AppLayout active="orcamentos">
+      <AppLayout active="orcamentos" compact>
         <div className="px-5 py-10 text-center text-muted">
           Carregando orçamento...
         </div>
@@ -1096,7 +1096,7 @@ export default function DetalheOrcamentoPage() {
 
   if (!orcamento) {
     return (
-      <AppLayout active="orcamentos">
+      <AppLayout active="orcamentos" compact>
         <div className="px-5 py-10 text-center text-danger">
           Orçamento não encontrado
         </div>
@@ -1125,7 +1125,7 @@ export default function DetalheOrcamentoPage() {
   const kind = cancelKind(status);
 
   return (
-    <AppLayout active="orcamentos">
+    <AppLayout active="orcamentos" compact>
       {/* HEADER */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-[18px]">
         <div>

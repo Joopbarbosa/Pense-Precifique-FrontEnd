@@ -194,7 +194,7 @@ export default function ListaOrcamentosPage() {
   const filtroEmpty = !loading && orcamentos.length === 0 && (filtro !== '' || searchActive)
 
   return (
-    <AppLayout active="orcamentos">
+    <AppLayout active="orcamentos" compact>
 
       {/* HEADER */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">

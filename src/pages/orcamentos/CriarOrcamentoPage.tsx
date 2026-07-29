@@ -1186,7 +1186,7 @@ export default function CriarOrcamentoPage() {
   const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
 
   return (
-    <AppLayout active="orcamentos">
+    <AppLayout active="orcamentos" compact>
 
       {/* Header */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">

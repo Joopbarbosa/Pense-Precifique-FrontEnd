@@ -270,7 +270,7 @@ export default function ReciboPagamentoPage() {
 
   if (loading) {
     return (
-      <AppLayout active="orcamentos">
+      <AppLayout active="orcamentos" compact>
         <div className="px-5 py-10 text-center text-muted">
           Carregando...
         </div>
@@ -280,7 +280,7 @@ export default function ReciboPagamentoPage() {
 
   if (!orcamento) {
     return (
-      <AppLayout active="orcamentos">
+      <AppLayout active="orcamentos" compact>
         <div className="px-5 py-10 text-center text-danger">
           Orçamento não encontrado
         </div>
@@ -289,7 +289,7 @@ export default function ReciboPagamentoPage() {
   }
 
   return (
-    <AppLayout active="orcamentos" noPad>
+    <AppLayout active="orcamentos" compact noPad>
 
       {/* BARRA DE AÇÕES */}
       <div className="flex-shrink-0 border-b border-line bg-white px-7 py-3.5">
