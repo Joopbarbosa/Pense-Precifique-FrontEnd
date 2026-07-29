@@ -79,7 +79,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
               onClick={closeIfMobile}
               title={collapsed ? label : undefined}
               className={({ isActive }) => clsx(
-                'flex items-center gap-[13px] rounded-[11px] px-[13px] py-[11px] text-[14.5px] no-underline transition-colors hover:bg-[#FAF8F5]',
+                'flex items-center gap-[13px] rounded-[11px] px-[13px] py-[11px] text-[14.5px] no-underline transition-colors hover:bg-cream',
                 collapsed && 'md:justify-center md:px-0',
                 isActive
                   ? 'bg-orange/[0.08] font-semibold text-orange shadow-[inset_3px_0_0_#F97316]'
@@ -104,7 +104,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
             onClick={() => { closeIfMobile(); handleLogout() }}
             title={collapsed ? 'Sair' : undefined}
             className={clsx(
-              'flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-[14.5px] font-medium text-subtle hover:bg-[#FAF8F5]',
+              'flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-[14.5px] font-medium text-subtle hover:bg-cream',
               collapsed && 'md:justify-center md:px-0'
             )}
           >

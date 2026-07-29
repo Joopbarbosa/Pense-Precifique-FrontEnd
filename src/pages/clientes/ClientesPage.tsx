@@ -46,7 +46,7 @@ function ClientRow({ cliente, index, rowZIndex, onEdit, onDesativar }: {
       className={clsx(
         'relative block cursor-pointer rounded-card border border-[#F0EEE9] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-colors duration-100',
         'mb-3 md:mb-0 md:grid md:grid-cols-[1.8fr_1.1fr_1.3fr_46px] md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:p-0 md:px-[18px] md:py-3.5 md:shadow-none',
-        inativa ? 'bg-[#FAF9F6]' : 'bg-white md:bg-transparent',
+        inativa ? 'bg-cream' : 'bg-white md:bg-transparent',
         'hover:bg-line'
       )}
       style={{

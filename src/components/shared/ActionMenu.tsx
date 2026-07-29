@@ -87,7 +87,7 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
               'flex w-full items-center gap-2.5 rounded-lg border-none bg-transparent px-2.5 py-[9px] text-left font-[inherit] text-[13.5px] font-medium',
               item.danger
                 ? 'text-danger hover:bg-[#FCF1ED]'
-                : 'text-body hover:bg-[#F7F5F1]'
+                : 'text-body hover:bg-cream'
             )}
           >
             <span className={clsx('flex', item.danger ? 'text-danger' : 'text-muted')}>

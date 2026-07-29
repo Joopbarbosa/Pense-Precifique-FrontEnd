@@ -193,7 +193,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
                         onClick={() => { setMotivo(m.api as BaixaManualProdutoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
                         className={clsx(
                           'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
+                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
                         )}
                       >
                         {m.label}
@@ -452,7 +452,7 @@ export default function DetalheProdutoPage() {
       <div className="mt-4 rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         {aba === 'historico' ? (
           <>
-            <div className={clsx('hidden gap-4 bg-[#FBFAF8] px-5 py-[13px] md:grid', HIST_COLS)}>
+            <div className={clsx('hidden gap-4 bg-cream px-5 py-[13px] md:grid', HIST_COLS)}>
               {['Data', 'Movimentação', 'Quantidade', 'Referência', 'Observação'].map((h, k) => (
                 <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{h}</div>
               ))}

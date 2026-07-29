@@ -237,7 +237,7 @@ export default function ListaOrcamentosPage() {
                     onClick={() => handleFiltroChange(f.value)}
                     className={clsx(
                       'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
-                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
                     )}
                   >
                     {f.label}
@@ -288,7 +288,7 @@ export default function ListaOrcamentosPage() {
                         <button
                           key={d}
                           onClick={() => setPreset(d)}
-                          className="h-[30px] cursor-pointer rounded-full border border-line bg-[#FCFBF9] px-3 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-100 hover:bg-teal/[0.08] hover:text-teal"
+                          className="h-[30px] cursor-pointer rounded-full border border-line bg-cream px-3 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-100 hover:bg-teal/[0.08] hover:text-teal"
                         >
                           Últimos {lbl}
                         </button>

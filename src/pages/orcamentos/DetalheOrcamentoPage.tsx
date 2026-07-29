@@ -488,7 +488,7 @@ function ModalCancelMulta({
                   orcamento.itens.map((it, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-3 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-[11px]"
+                      className="flex items-center gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-[11px]"
                     >
                       <span className="flex-1 text-sm font-medium text-dark">
                         {it.nomeProduto}
@@ -780,7 +780,7 @@ function ModalCancelEstorno({
 
               {/* Aviso sem estorno */}
               {!estornar && (
-                <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-[#F7F5F1] px-3.5 py-3">
+                <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-cream px-3.5 py-3">
                   <Info size={15} className="mt-px flex-shrink-0 text-muted" />
                   <p className="m-0 text-[12.5px] leading-[1.55] text-[#6B6860]">
                     O orçamento será cancelado sem devolução do sinal. Nenhum
@@ -1358,7 +1358,7 @@ export default function DetalheOrcamentoPage() {
                     {BRL(orcamento.valorSinal || 0)}
                   </div>
                 </div>
-                <div className="min-w-[140px] flex-1 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-2.5">
+                <div className="min-w-[140px] flex-1 rounded-[10px] border border-line bg-cream px-3.5 py-2.5">
                   <div className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em] text-[#A8A49C]">
                     Restante
                   </div>

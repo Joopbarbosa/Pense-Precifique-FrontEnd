@@ -171,7 +171,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
 
       {/* OBSERVAÇÕES */}
       {orcamento.observacoes && (
-        <div className="mt-[26px] rounded-input border border-[#F0EEE9] bg-[#FBFAF8] px-[18px] py-4">
+        <div className="mt-[26px] rounded-input border border-[#F0EEE9] bg-cream px-[18px] py-4">
           <Label>Observações</Label>
           <div className="text-[13px] leading-[1.6] text-dark">{orcamento.observacoes}</div>
         </div>

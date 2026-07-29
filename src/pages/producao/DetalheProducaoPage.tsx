@@ -219,7 +219,7 @@ export default function DetalheProducaoPage() {
         <Section icon={<Box size={18} />} title="Produtos">
           <div className="flex flex-col gap-2.5">
             {producao.produtos.map((p, i) => (
-              <div key={i} className="flex items-center gap-3 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+              <div key={i} className="flex items-center gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3">
                 <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
                   <Box size={16} />
                 </span>
@@ -267,7 +267,7 @@ export default function DetalheProducaoPage() {
           <Section icon={<Package size={18} />} title="Insumos consumidos">
             <div className="flex flex-col gap-2">
               {producao.insumosConsumidos.map((ic, i) => (
-                <div key={i} className="flex items-center justify-between rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+                <div key={i} className="flex items-center justify-between rounded-[10px] border border-line bg-cream px-3.5 py-3">
                   <span className="text-sm font-medium text-dark">{ic.nomeInsumo || ic.insumoId || '—'}</span>
                   <span className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
                     {ic.quantidade} {ic.unidadeMedida || 'un'}
@@ -314,7 +314,7 @@ export default function DetalheProducaoPage() {
                   <button
                     key={filha.id}
                     onClick={() => navigate(`/producao/${filha.id}`)}
-                    className="flex items-center justify-between rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3 text-left font-[inherit] transition-colors duration-100 hover:bg-line-soft"
+                    className="flex items-center justify-between rounded-[10px] border border-line bg-cream px-3.5 py-3 text-left font-[inherit] transition-colors duration-100 hover:bg-line-soft"
                   >
                     <span className="text-sm font-semibold text-dark">{filha.identificador}</span>
                     <span

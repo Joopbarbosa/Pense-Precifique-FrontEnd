@@ -108,7 +108,7 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
             <button
               key={p.id}
               onClick={() => { onSelect(p); setQ(''); setOpen(false); setResultados([]) }}
-              className="flex w-full items-center justify-between gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-[#F7F5F1]"
+              className="flex w-full items-center justify-between gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
               <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
               <span className="flex-shrink-0 text-xs text-muted">{moeda(p.precoCusto)} custo</span>
@@ -409,7 +409,7 @@ export default function NovoItemCatalogoPage() {
           <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <Field label="Produto" required>
               {produto ? (
-                <div className="flex items-center justify-between gap-2.5 rounded-input border-[1.5px] border-line bg-[#FBFAF8] px-3.5 py-[11px]">
+                <div className="flex items-center justify-between gap-2.5 rounded-input border-[1.5px] border-line bg-cream px-3.5 py-[11px]">
                   <div className="min-w-0">
                     <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{produto.nome}</div>
                     <div className="text-xs text-muted">{moeda(produto.precoCusto)} de custo</div>
@@ -461,7 +461,7 @@ export default function NovoItemCatalogoPage() {
             </div>
             {customizacoes.length > 0 && (
               <div>
-                <div className="grid grid-cols-[1fr_110px_40px] gap-3 border-t border-line bg-[#FBFAF8] px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+                <div className="grid grid-cols-[1fr_110px_40px] gap-3 border-t border-line bg-cream px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
                   <span>Customização</span><span>Quantidade</span><span />
                 </div>
                 {customizacoes.map(c => (
@@ -534,7 +534,7 @@ export default function NovoItemCatalogoPage() {
                 <div className="relative">
                   <span className={clsx(
                     'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-[#FAF8F5] text-[#6B6860]'
+                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-[#6B6860]'
                   )}>R$</span>
                   <input
                     value={precoVenda}
@@ -547,7 +547,7 @@ export default function NovoItemCatalogoPage() {
                     className={clsx(
                       'h-[50px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-[19px] font-bold outline-none [font-variant-numeric:tabular-nums]',
                       overrideAtivo ? 'border-orange text-orange' : 'border-line text-dark',
-                      produto ? 'bg-white' : 'bg-[#FAF8F5]'
+                      produto ? 'bg-white' : 'bg-cream'
                     )}
                   />
                 </div>

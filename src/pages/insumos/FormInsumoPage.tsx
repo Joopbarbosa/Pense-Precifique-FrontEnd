@@ -66,7 +66,7 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
       </p>
       <div className="flex flex-col gap-[9px]">
         {fichas.map((f, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-[11px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+          <div key={i} className="flex items-center gap-3 rounded-[11px] border border-line bg-cream px-3.5 py-3">
             <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
               <f.icon size={f.size} />
             </span>
@@ -292,7 +292,7 @@ export default function FormInsumoPage() {
                         onClick={() => { setUnidade(u); setUnidadeOpen(false) }}
                         className={clsx(
                           'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          u === unidade ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
+                          u === unidade ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
                         )}
                       >
                         {u}
@@ -346,7 +346,7 @@ export default function FormInsumoPage() {
                   placeholder="100"
                   readOnly={editando || usaLote}
                   {...numBind(usaLote ? qtdCompra : estoque, usaLote ? () => {} : setEstoque)}
-                  className={clsx(inputBase, 'pr-16', (editando || usaLote) && 'bg-[#FAF8F5] text-subtle')}
+                  className={clsx(inputBase, 'pr-16', (editando || usaLote) && 'bg-cream text-subtle')}
                 />
                 <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
                   {unLabel(unidade)}
@@ -366,7 +366,7 @@ export default function FormInsumoPage() {
               <>
                 <Field label="Preço total da compra *" erro={precoErro}>
                   <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-[#FAF8F5] text-sm font-semibold text-[#6B6860]">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-[#6B6860]">
                       R$
                     </span>
                     <input

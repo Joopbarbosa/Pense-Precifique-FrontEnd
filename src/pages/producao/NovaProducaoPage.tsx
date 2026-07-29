@@ -88,7 +88,7 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
             <button
               key={p.id}
               onClick={() => { onSelect(p); setOpen(false); setQ('') }}
-              className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-[#F7F5F1]"
+              className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
               <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
                 <Box size={16} />
@@ -130,7 +130,7 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
         <button
           type="button"
           onClick={() => aplicar((parseInt(valor) || 1) - 1)}
-          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-body transition-colors duration-100 hover:bg-[#FAF8F5]"
+          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-body transition-colors duration-100 hover:bg-cream"
         >
           −
         </button>
@@ -147,7 +147,7 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
         <button
           type="button"
           onClick={() => aplicar((parseInt(valor) || 1) + 1)}
-          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-teal transition-colors duration-100 hover:bg-[#FAF8F5]"
+          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-teal transition-colors duration-100 hover:bg-cream"
         >
           +
         </button>
@@ -416,7 +416,7 @@ export default function NovaProducaoPage() {
             <div className="px-5 pt-3 text-[12.5px] text-muted">Verificando disponibilidade de insumos...</div>
           )}
           {produtos.length === 0 ? (
-            <div className="mx-5 mb-5 mt-4 rounded-[14px] border-[1.5px] border-dashed border-line bg-[#FCFBF9] px-6 py-8 text-center">
+            <div className="mx-5 mb-5 mt-4 rounded-[14px] border-[1.5px] border-dashed border-line bg-cream px-6 py-8 text-center">
               <div className="text-[14.5px] font-semibold text-dark">Nenhum produto adicionado</div>
               <p className="mb-0 mt-1.5 text-[13px] text-muted">Busque um produto acima para adicionar.</p>
             </div>

@@ -117,7 +117,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
       </div>
 
       {/* DATAS */}
-      <div className="mt-[22px] grid grid-cols-2 gap-3.5 rounded-xl border border-[#F0EEE9] bg-[#FBFAF8] p-[18px]">
+      <div className="mt-[22px] grid grid-cols-2 gap-3.5 rounded-xl border border-[#F0EEE9] bg-cream p-[18px]">
         <div>
           <DocLabel>Data de aprovação</DocLabel>
           <div className="text-sm font-semibold text-dark">{aprovacao}</div>
@@ -136,7 +136,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
             { k: 'Valor total do orçamento original', v: BRL(orcamento.total) },
             { k: 'Percentual de multa aplicado',      v: `${pctMulta}%` },
           ].map((r, i) => (
-            <div key={i} className="flex items-center justify-between gap-3.5 border-b border-[#F4F2EE] px-4 py-3">
+            <div key={i} className="flex items-center justify-between gap-3.5 border-b border-cream px-4 py-3">
               <span className="text-[13px] text-body">{r.k}</span>
               <span className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">{r.v}</span>
             </div>
@@ -182,7 +182,7 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
       {/* INSTRUÇÃO DE PAGAMENTO */}
       <div className="mt-6">
         <DocSectionTitle icon={<Wallet size={15} />}>Instrução de pagamento</DocSectionTitle>
-        <div className="rounded-xl border border-[#F0EEE9] bg-[#FBFAF8] px-[18px] py-4">
+        <div className="rounded-xl border border-[#F0EEE9] bg-cream px-[18px] py-4">
           <p className="m-0 text-[13.5px] leading-[1.65] text-dark">
             O valor de <strong className="font-bold text-danger">{BRL(valorMulta)}</strong> referente à multa por cancelamento deve ser pago em prazo acordado entre as partes.{' '}
             Entre em contato para combinar a forma de pagamento.

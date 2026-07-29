@@ -48,6 +48,11 @@ export default {
           DEFAULT: '#C8721F',
           bg:      '#FFF1E8',
         },
+
+        // #139 — famílias de hex hardcoded sem token, formalizadas (P-FE-CORRIGE-022)
+        // Quase-branco: consolida #FAF8F5, #FCFBF9, #FBFAF8, #F7F5F1, #F6F4F0, #F4F2EE, #FAF9F6
+        // (valor mais frequente, coincide com a média ponderada).
+        cream: '#FAF8F5',
       },
       borderRadius: {
         btn:   '10px',   // --r-btn

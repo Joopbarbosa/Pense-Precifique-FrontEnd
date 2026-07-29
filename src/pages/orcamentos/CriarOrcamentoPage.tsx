@@ -131,7 +131,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
               <button
                 key={c.id}
                 onClick={() => { onSelect(c); setOpen(false); setQ('') }}
-                className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-[#F7F5F1]"
+                className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
               >
                 <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-teal/[0.12] font-bold text-teal">
                   {c.nome.charAt(0)}
@@ -155,14 +155,14 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
     <div className="flex flex-shrink-0 items-center overflow-hidden rounded-input border border-line">
       <button
         onClick={() => onChange(Math.max(1, value - 1))}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-[#FCFBF9] text-lg text-body transition-colors duration-100 hover:bg-line-soft"
+        className="grid h-[42px] w-[38px] place-items-center border-none bg-cream text-lg text-body transition-colors duration-100 hover:bg-line-soft"
       >−</button>
       <span className="w-[46px] border-x border-line text-center text-[15px] font-bold leading-[42px] text-dark [font-variant-numeric:tabular-nums]">
         {value}
       </span>
       <button
         onClick={() => onChange(value + 1)}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-[#FCFBF9] text-lg text-teal transition-colors duration-100 hover:bg-line-soft"
+        className="grid h-[42px] w-[38px] place-items-center border-none bg-cream text-lg text-teal transition-colors duration-100 hover:bg-line-soft"
       >+</button>
     </div>
   )
@@ -221,7 +221,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
           onClick={() => onOpenCustom(item)}
           className={clsx(
             'inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border px-3 font-[inherit] text-[13px] font-semibold',
-            item.customs.length ? 'border-orange/40 bg-orange/[0.08] text-[#A35A26]' : 'border-line bg-[#FCFBF9] text-body'
+            item.customs.length ? 'border-orange/40 bg-orange/[0.08] text-[#A35A26]' : 'border-line bg-cream text-body'
           )}
         >
           <SlidersHorizontal size={15} /> Customizações{item.customs.length ? ` (${item.customs.length})` : ''}
@@ -338,7 +338,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
           return (
             <div key={c.id} className={clsx(
               'overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
-              on ? 'border-orange/40 bg-orange/[0.07]' : 'border-line bg-[#FCFBF9]'
+              on ? 'border-orange/40 bg-orange/[0.07]' : 'border-line bg-cream'
             )}>
               {/* Linha principal */}
               <button
@@ -364,11 +364,11 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                 <div className="flex animate-[fadeUp_.2s_ease_both] items-center justify-between gap-3 px-3.5 pb-3">
                   <span className="text-[13px] text-muted">Quantidade</span>
                   <div className="flex items-center overflow-hidden rounded-lg border border-line">
-                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) - 1)} className="grid h-[34px] w-8 place-items-center border-none bg-[#FAF8F5] text-base text-body">−</button>
+                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) - 1)} className="grid h-[34px] w-8 place-items-center border-none bg-cream text-base text-body">−</button>
                     <span className="w-9 border-x border-line text-center text-sm font-bold leading-[34px] text-dark">
                       {sel?.qtd ?? 1}
                     </span>
-                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) + 1)} className="grid h-[34px] w-8 place-items-center border-none bg-[#FAF8F5] text-base text-teal">+</button>
+                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) + 1)} className="grid h-[34px] w-8 place-items-center border-none bg-cream text-base text-teal">+</button>
                   </div>
                   <span className="min-w-[72px] text-right text-[13.5px] font-semibold text-orange">
                     = {BRL(c.valor * (sel?.qtd ?? 1))}
@@ -439,7 +439,7 @@ function PrazoSection({
         onClick={() => setInicioImediato(!inicioImediato)}
         className={clsx(
           'flex items-start gap-2.5 rounded-xl border-[1.5px] px-[15px] py-[13px] text-left font-[inherit] transition-all duration-150',
-          inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-[#FCFBF9]'
+          inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-cream'
         )}
       >
         <span className={clsx(
@@ -530,7 +530,7 @@ function PagamentoSection({
                 onClick={() => setMetodoPagamento(m.id)}
                 className={clsx(
                   'h-[38px] whitespace-nowrap rounded-full border-[1.5px] px-4 font-[inherit] text-[13.5px] font-semibold transition-all duration-150',
-                  on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                  on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
                 )}
               >
                 {m.label}
@@ -857,14 +857,14 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
           value={q}
           onChange={e => setQ(e.target.value)}
           placeholder={modo === 'catalogo' ? 'Buscar item de catálogo...' : 'Buscar produto ou item de catálogo...'}
-          className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[1.5px] border-line bg-[#FCFBF9] px-3 font-[inherit] text-sm text-dark outline-none"
+          className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[1.5px] border-line bg-cream px-3 font-[inherit] text-sm text-dark outline-none"
         />
         {modo === 'catalogo' && catalogos.length > 0 && (
           <div className="relative flex-shrink-0">
             <select
               value={catalogoFiltro}
               onChange={e => onSelectCatalogoFiltro(e.target.value)}
-              className="h-[38px] max-w-[150px] cursor-pointer rounded-[9px] border-[1.5px] border-line bg-[#FCFBF9] py-0 pl-8 pr-[30px] font-[inherit] text-[13px] text-dark outline-none"
+              className="h-[38px] max-w-[150px] cursor-pointer rounded-[9px] border-[1.5px] border-line bg-cream py-0 pl-8 pr-[30px] font-[inherit] text-[13px] text-dark outline-none"
             >
               <option value="">Todos catálogos</option>
               {catalogos.map(c => (
@@ -889,7 +889,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
               <button
                 key={item.id}
                 onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }}
-                className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-[#F7F5F1]"
+                className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
                 <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
                   <Layers size={16} />
@@ -911,7 +911,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
               <button
                 key={p.id}
                 onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }}
-                className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-[#F7F5F1]"
+                className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
                 <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-line-soft text-[#8A8780]">
                   <Box size={16} />
@@ -1218,7 +1218,7 @@ export default function CriarOrcamentoPage() {
             </div>
             <div className="mt-3.5">
               {items.length === 0 ? (
-                <div className="mx-5 mb-5 mt-1 rounded-[14px] border-[1.5px] border-dashed border-line bg-[#FCFBF9] px-6 py-10 text-center">
+                <div className="mx-5 mb-5 mt-1 rounded-[14px] border-[1.5px] border-dashed border-line bg-cream px-6 py-10 text-center">
                   <span className="mb-3.5 inline-grid h-16 w-16 place-items-center rounded-full bg-teal/10 text-teal">
                     <ShoppingCart size={17} />
                   </span>

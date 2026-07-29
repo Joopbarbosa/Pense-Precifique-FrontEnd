@@ -45,7 +45,7 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
         : 'border-line focus-within:border-teal focus-within:shadow-[0_0_0_4px_rgba(42,157,143,0.12)]'
     )}>
       {prefix && (
-        <span className="flex items-center gap-[7px] whitespace-nowrap border-r border-line bg-[#FAF8F5] px-3.5 text-[14.5px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
+        <span className="flex items-center gap-[7px] whitespace-nowrap border-r border-line bg-cream px-3.5 text-[14.5px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
           {icon && <span className="flex text-[#A8A49C] group-focus-within:text-teal">{icon}</span>}{prefix}
         </span>
       )}
@@ -56,7 +56,7 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
         className="h-[52px] min-w-0 flex-1 border-none bg-transparent px-3.5 font-[inherit] text-[17px] font-semibold text-dark outline-none [font-variant-numeric:tabular-nums]"
       />
       {suffix && (
-        <span className="flex items-center border-l border-line bg-[#FAF8F5] px-4 text-[15px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
+        <span className="flex items-center border-l border-line bg-cream px-4 text-[15px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
           {suffix}
         </span>
       )}
@@ -117,7 +117,7 @@ function PerfilCard({ nome, email }: { nome?: string; email?: string }) {
       </div>
       <div className="-mt-8 px-5 pb-5 text-center">
         <div className="mx-auto grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[0_4px_14px_-4px_rgba(0,0,0,0.2)]">
-          <span className="grid h-full w-full place-items-center bg-[#FAF8F5]">
+          <span className="grid h-full w-full place-items-center bg-cream">
             <img src="/logo.png" width={42} height={42} alt="Logo" className="object-contain" />
           </span>
         </div>
@@ -286,7 +286,7 @@ function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', t
       className={clsx(
         'h-12 w-full rounded-input border-[1.5px] border-line px-3.5 font-[inherit] text-[14.5px] outline-none transition-[border-color,box-shadow] duration-150',
         readOnly
-          ? 'bg-[#FAF8F5] text-subtle'
+          ? 'bg-cream text-subtle'
           : 'bg-white text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
       )}
     />
@@ -347,7 +347,7 @@ function PerfilEmpresa({
         <SectionHead icon={<Building2 size={17} />} titulo="Perfil da empresa" />
 
         <div className="mb-[22px] flex flex-wrap items-center gap-[18px] border-b border-line pb-[22px]">
-          <span className="grid h-[84px] w-[84px] flex-shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-[#FAF8F5] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+          <span className="grid h-[84px] w-[84px] flex-shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-cream shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <img src="/logo.png" width={50} height={50} alt="Logo" className="object-contain" />
           </span>
           <div>

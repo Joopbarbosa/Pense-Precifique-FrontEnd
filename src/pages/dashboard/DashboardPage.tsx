@@ -176,7 +176,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-[11px] flex flex-wrap gap-2">
                 {insumosEstoqueBaixo.slice(0, 6).map((ins) => (
-                  <span key={ins.id} className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#ECEAE5] bg-[#FCFBF9] px-3 py-1.5 text-[13px] text-[#6B6860]">
+                  <span key={ins.id} className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#ECEAE5] bg-cream px-3 py-1.5 text-[13px] text-[#6B6860]">
                     <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange" />
                     {ins.nome}
                     <strong className="font-semibold text-[#A35A26]">
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                   <div
                     key={orc.id}
                     onClick={() => navigate(`/orcamentos/${orc.id}`)}
-                    className="flex cursor-pointer items-center justify-between rounded-[10px] border border-[#ECEAE5] bg-[#FCFBF9] px-3.5 py-[11px] transition-colors duration-150 hover:bg-[#F6F4F0]"
+                    className="flex cursor-pointer items-center justify-between rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px] transition-colors duration-150 hover:bg-cream"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span className="flex-shrink-0 text-[13px] font-bold text-[#6B6860]">
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                 {data.produtosMaisVendidos.map((prod, i) => (
                   <div
                     key={prod.nomeProduto}
-                    className="flex items-center gap-3 rounded-[10px] border border-[#ECEAE5] bg-[#FCFBF9] px-3.5 py-[11px]"
+                    className="flex items-center gap-3 rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px]"
                   >
                     <span className={clsx(
                       'grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full text-xs font-bold',
@@ -297,7 +297,7 @@ export default function DashboardPage() {
               <button
                 key={acao.rota}
                 onClick={() => navigate(acao.rota)}
-                className="flex flex-[1_1_180px] items-center gap-3 rounded-xl border border-[#ECEAE5] bg-[#FCFBF9] px-4 py-[13px] text-left font-[inherit] transition-[background-color,border-color,transform] duration-150 hover:-translate-y-px hover:bg-[#F6F4F0]"
+                className="flex flex-[1_1_180px] items-center gap-3 rounded-xl border border-[#ECEAE5] bg-cream px-4 py-[13px] text-left font-[inherit] transition-[background-color,border-color,transform] duration-150 hover:-translate-y-px hover:bg-cream"
               >
                 <span className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                   {acao.icon}

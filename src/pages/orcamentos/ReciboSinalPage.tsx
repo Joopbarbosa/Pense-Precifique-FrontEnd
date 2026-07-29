@@ -158,7 +158,7 @@ function DocumentoRecibo({ orcamento, empresa }: { orcamento: OrcamentoDetalheRe
       </div>
 
       {/* DATAS */}
-      <div className="mt-[22px] grid grid-cols-3 gap-3.5 rounded-xl border border-[#F0EEE9] bg-[#FBFAF8] p-[18px]">
+      <div className="mt-[22px] grid grid-cols-3 gap-3.5 rounded-xl border border-[#F0EEE9] bg-cream p-[18px]">
         <div>
           <DocLabel>Data de aprovação</DocLabel>
           <div className="text-sm font-semibold text-dark">{fmtDate(aprovacao)}</div>

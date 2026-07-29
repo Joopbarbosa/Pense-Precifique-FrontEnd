@@ -27,7 +27,7 @@ export default function ConsumoRealSection({ insumosConsumidos, valores, onChang
         const fracionavel = item.fracionavel ?? true
         const valor = valores[chave] ?? item.quantidade
         return (
-          <div key={chave || i} className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+          <div key={chave || i} className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-dark">{item.nomeInsumo || '—'}</div>
               <div className="text-[12.5px] text-muted">Baixado: {item.quantidade} {item.unidadeMedida || 'un'}</div>

@@ -23,7 +23,7 @@ const sizeClasses = {
 const variantClasses = {
   primary: 'bg-orange text-white border-none shadow-[0_8px_18px_-8px_rgba(249,115,22,0.7)] hover:brightness-105 active:scale-[0.97]',
   secondary: 'bg-teal text-white border-none shadow-[0_8px_18px_-8px_rgba(42,157,143,0.7)] hover:brightness-105 active:scale-[0.97]',
-  ghost: 'bg-white text-body border-[1.5px] border-line shadow-none hover:bg-[#FAF8F5]',
+  ghost: 'bg-white text-body border-[1.5px] border-line shadow-none hover:bg-cream',
   danger: 'bg-danger-bg text-danger border-[1.5px] border-danger/40 shadow-none hover:bg-[#F7E0DA]',
 }
 

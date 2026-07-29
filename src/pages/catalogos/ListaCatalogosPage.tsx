@@ -175,7 +175,7 @@ function CatalogoRow({ catalogo, index, onVer, onEditar, onDuplicar, onDesativar
   return (
     <div
       className={clsx(
-        'hidden cursor-pointer grid-cols-[0.8fr_2.2fr_0.8fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-[#FCFBF9] sm:grid',
+        'hidden cursor-pointer grid-cols-[0.8fr_2.2fr_0.8fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-cream sm:grid',
         !catalogo.ativo && 'opacity-[0.72]'
       )}
       onClick={onVer}

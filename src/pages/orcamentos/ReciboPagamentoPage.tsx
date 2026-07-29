@@ -321,7 +321,7 @@ export default function ReciboPagamentoPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => navigate(`/orcamentos/${id}`)}
-              className="inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-[18px] font-[inherit] text-sm font-semibold text-body transition-colors duration-100 hover:bg-[#FAF8F5]"
+              className="inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-[18px] font-[inherit] text-sm font-semibold text-body transition-colors duration-100 hover:bg-cream"
             >
               <ArrowLeft size={17} /> Voltar ao orçamento
             </button>

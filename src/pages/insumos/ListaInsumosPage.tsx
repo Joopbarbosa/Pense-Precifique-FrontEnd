@@ -297,7 +297,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                   <button
                     key={i.id}
                     onMouseDown={() => addItem(i)}
-                    className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-[#F7F5F1]"
+                    className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
                   >
                     <span className="text-[13.5px] font-semibold text-dark">
                       {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
@@ -321,7 +321,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                 const novoCusto = q > 0 ? p / q : null
 
                 return (
-                  <div key={it.insumo.id} className="rounded-xl border border-line bg-[#FCFBF9] px-4 py-3.5">
+                  <div key={it.insumo.id} className="rounded-xl border border-line bg-cream px-4 py-3.5">
                     <div className="mb-2.5 flex items-center justify-between gap-2.5">
                       <span className="text-sm font-semibold text-dark">{it.insumo.nome}</span>
                       <button onClick={() => removeItem(it.insumo.id)} className="flex border-none bg-transparent text-faint hover:text-danger">
@@ -342,7 +342,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
                         </span>
                       </div>
                       <div className="relative flex-[1_1_130px]">
-                        <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-[#FAF8F5] text-[13px] font-semibold text-[#6B6860]">
+                        <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-cream text-[13px] font-semibold text-[#6B6860]">
                           R$
                         </span>
                         <input
@@ -368,7 +368,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
               })}
               <button
                 onClick={focarBusca}
-                className="flex h-11 items-center justify-center gap-2 rounded-input border-[1.5px] border-dashed border-[#C9C5BC] bg-transparent font-[inherit] text-[13.5px] font-semibold text-body transition-colors duration-100 hover:border-teal hover:bg-[#FAF8F5]"
+                className="flex h-11 items-center justify-center gap-2 rounded-input border-[1.5px] border-dashed border-[#C9C5BC] bg-transparent font-[inherit] text-[13.5px] font-semibold text-body transition-colors duration-100 hover:border-teal hover:bg-cream"
               >
                 <Plus size={16} /> Adicionar mais um insumo
               </button>
@@ -420,7 +420,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="overflow-hidden rounded-[14px] border border-line">
-            <div className="grid grid-cols-[1fr_auto] gap-3 bg-[#FBFAF8] px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+            <div className="grid grid-cols-[1fr_auto] gap-3 bg-cream px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
               <span>Insumo</span><span className="text-right">Custo unitário</span>
             </div>
             {insumosAtualizados.map((item) => {
@@ -603,7 +603,7 @@ export default function ListaInsumosPage() {
                       'inline-flex h-[34px] items-center gap-[7px] rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
                       on
                         ? chip ? clsx(chip.activeClass, 'text-white') : 'border-teal bg-teal text-white'
-                        : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                        : 'border-line bg-white text-body hover:bg-cream'
                     )}
                   >
                     {chip && (

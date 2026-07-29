@@ -72,7 +72,7 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
   return (
     <div className="relative">
       {prefix && (
-        <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-[#FAF8F5] text-sm font-semibold text-[#6B6860]">
+        <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-[#6B6860]">
           {prefix}
         </span>
       )}
@@ -268,7 +268,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         <button
           key={i.id}
           onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutosBase([]) }}
-          className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-[#F7F5F1]"
+          className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
             'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
@@ -371,7 +371,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>
-        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-[#FBFAF8] px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
           <span>Componente</span><span>Quantidade</span><span className="text-right">Custo</span><span></span>
         </div>
         {ficha.length === 0 ? (
@@ -448,7 +448,7 @@ function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChan
     <div className="relative">
       <span className={clsx(
         'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-        highlight ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-[#FAF8F5] text-[#6B6860]'
+        highlight ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-[#6B6860]'
       )}>R$</span>
       <input
         value={value}
@@ -552,7 +552,7 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
             </div>
           ) : (
             <>
-              <div className="mt-2 rounded-xl border border-line bg-[#FBFAF8] p-3.5">
+              <div className="mt-2 rounded-xl border border-line bg-cream p-3.5">
                 <div className={clsx('flex gap-[3px] rounded-[9px] bg-line-soft p-[3px]', modoMargem === 'personalizar' ? 'mb-3' : 'mb-0')}>
                   {([['padrao', `Margem padrão (${margemPadrao ?? 0}%)`], ['personalizar', 'Personalizar']] as [string, string][]).map(([v, l]) => {
                     const on = modoMargem === v

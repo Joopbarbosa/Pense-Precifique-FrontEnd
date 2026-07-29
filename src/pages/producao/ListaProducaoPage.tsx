@@ -64,7 +64,7 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
     <div
       onClick={onClick}
       className={clsx(
-        'rounded-[10px] border border-line bg-[#FCFBF9] px-3 py-2.5 transition-shadow duration-100',
+        'rounded-[10px] border border-line bg-cream px-3 py-2.5 transition-shadow duration-100',
         isDragging ? 'shadow-[0_14px_28px_-10px_rgba(0,0,0,0.28)]' : 'shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]'
       )}
     >
@@ -562,7 +562,7 @@ export default function ListaProducaoPage() {
               onClick={() => setViewMode('lista')}
               className={clsx(
                 'flex h-full cursor-pointer items-center gap-1.5 rounded-[6px] border-none px-3 font-[inherit] text-[13px] font-semibold transition-colors duration-150',
-                viewMode === 'lista' ? 'bg-teal text-white' : 'bg-transparent text-body hover:bg-[#FAF8F5]'
+                viewMode === 'lista' ? 'bg-teal text-white' : 'bg-transparent text-body hover:bg-cream'
               )}
             >
               <List size={15} /> Lista
@@ -571,7 +571,7 @@ export default function ListaProducaoPage() {
               onClick={() => setViewMode('kanban')}
               className={clsx(
                 'flex h-full cursor-pointer items-center gap-1.5 rounded-[6px] border-none px-3 font-[inherit] text-[13px] font-semibold transition-colors duration-150',
-                viewMode === 'kanban' ? 'bg-teal text-white' : 'bg-transparent text-body hover:bg-[#FAF8F5]'
+                viewMode === 'kanban' ? 'bg-teal text-white' : 'bg-transparent text-body hover:bg-cream'
               )}
             >
               <LayoutGrid size={15} /> Kanban
@@ -617,7 +617,7 @@ export default function ListaProducaoPage() {
                     onClick={() => handleFiltroChange(f.value)}
                     className={clsx(
                       'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
-                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
                     )}
                   >
                     {f.label}
@@ -754,7 +754,7 @@ export default function ListaProducaoPage() {
                     onClick={() => handleFiltroChange(f.value)}
                     className={clsx(
                       'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
-                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-[#FAF8F5]'
+                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
                     )}
                   >
                     {f.label}
@@ -777,7 +777,7 @@ export default function ListaProducaoPage() {
                 className={clsx(
                   'flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
                   filtro === 'NAO_REALIZADA' && 'cursor-not-allowed opacity-70',
-                  colunaNaoRealizadaVisivel ? 'border-teal bg-teal/[0.08] text-teal' : 'border-line bg-white text-muted hover:bg-[#FAF8F5]'
+                  colunaNaoRealizadaVisivel ? 'border-teal bg-teal/[0.08] text-teal' : 'border-line bg-white text-muted hover:bg-cream'
                 )}
               >
                 {colunaNaoRealizadaVisivel ? <Eye size={14} /> : <EyeOff size={14} />}

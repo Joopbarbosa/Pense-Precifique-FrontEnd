@@ -92,7 +92,7 @@ function LogoUpload({ preview, onPick, onRemove }: {
   return (
     <div className={clsx(
       'flex items-center gap-4 rounded-[14px] p-3.5 transition-all duration-150',
-      preview ? 'border-[1.5px] border-line bg-white' : 'border-[1.6px] border-dashed border-[#D4D0C8] bg-[#FCFBF9]'
+      preview ? 'border-[1.5px] border-line bg-white' : 'border-[1.6px] border-dashed border-[#D4D0C8] bg-cream'
     )}>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
@@ -130,7 +130,7 @@ function LogoUpload({ preview, onPick, onRemove }: {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="h-[34px] rounded-lg border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[13px] font-semibold text-body hover:bg-[#FAF8F5]"
+            className="h-[34px] rounded-lg border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[13px] font-semibold text-body hover:bg-cream"
           >
             Escolher arquivo
           </button>

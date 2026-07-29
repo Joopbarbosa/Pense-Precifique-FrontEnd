@@ -80,7 +80,7 @@ export default function FinalizarProducaoModal({ producaoId, producao: producaoP
               const perda = perdas[p.produtoId] ?? 0
               const excedeu = perda > p.quantidade
               return (
-                <div key={p.produtoId} className="rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+                <div key={p.produtoId} className="rounded-[10px] border border-line bg-cream px-3.5 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-dark">{p.nomeProduto}</div>

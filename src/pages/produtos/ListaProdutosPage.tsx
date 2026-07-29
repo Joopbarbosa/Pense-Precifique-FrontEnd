@@ -101,7 +101,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
         <h3 className="m-0 text-[15.5px] font-semibold leading-[1.3] tracking-[-0.01em] text-dark">
           {p.nome}
         </h3>
-        <div className="mt-3.5 flex items-end justify-between gap-2.5 border-t border-[#F4F2EE] pt-3.5">
+        <div className="mt-3.5 flex items-end justify-between gap-2.5 border-t border-cream pt-3.5">
           <div>
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
               {isCustom ? 'Valor adicional' : 'Preço de venda'}
@@ -219,7 +219,7 @@ export default function ListaProdutosPage() {
                 'inline-flex h-9 items-center gap-[7px] whitespace-nowrap rounded-full border-[1.5px] px-[15px] font-[inherit] text-[13.5px] font-semibold transition-all duration-150',
                 active
                   ? 'border-transparent bg-orange text-white shadow-[0_6px_14px_-7px_rgba(249,115,22,0.8)]'
-                  : 'border-line bg-white text-body hover:border-[#DEDBD4] hover:bg-[#FAF8F5]'
+                  : 'border-line bg-white text-body hover:border-[#DEDBD4] hover:bg-cream'
               )}
             >
               {c}

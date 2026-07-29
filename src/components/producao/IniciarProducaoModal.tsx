@@ -189,7 +189,7 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
       ) : (
         <div className="flex flex-col gap-2.5">
           {producao.produtos.map((p, i) => (
-            <div key={i} className="flex items-center justify-between rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-3">
+            <div key={i} className="flex items-center justify-between rounded-[10px] border border-line bg-cream px-3.5 py-3">
               <span className="text-sm font-medium text-dark">{p.nomeProduto}</span>
               <span className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">×{p.quantidade}</span>
             </div>

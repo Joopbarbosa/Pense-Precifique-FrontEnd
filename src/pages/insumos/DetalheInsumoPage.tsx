@@ -158,7 +158,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
                         onClick={() => { setMotivo(m.api as BaixaManualInsumoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
                         className={clsx(
                           'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-[#F7F5F1]'
+                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
                         )}
                       >
                         {m.label}
@@ -327,7 +327,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
         <button
           key={p.id}
           onClick={() => onSelect(p.id)}
-          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] hover:bg-[#FAF8F5]"
+          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] hover:bg-cream"
         >
           <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
             <Box size={16} />
@@ -545,7 +545,7 @@ export default function DetalheInsumoPage() {
       <div className="mt-4 rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         {aba === 'historico' ? (
           <>
-            <div className="hidden grid-cols-[116px_1fr_110px_84px_1fr] gap-4 bg-[#FBFAF8] px-5 py-[13px] md:grid">
+            <div className="hidden grid-cols-[116px_1fr_110px_84px_1fr] gap-4 bg-cream px-5 py-[13px] md:grid">
               {['Data', 'Movimentação', 'Quantidade', 'Custo unit.', 'Referência'].map((h, k) => (
                 <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{h}</div>
               ))}

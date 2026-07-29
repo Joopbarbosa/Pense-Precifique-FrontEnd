@@ -171,7 +171,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
             {producoes.map(p => {
               const badge = getBadgeEstado(p.estado, p.historicoStatus)
               return (
-                <div key={p.id} className="flex items-center justify-between rounded-[10px] border border-line bg-[#FCFBF9] px-3.5 py-2.5">
+                <div key={p.id} className="flex items-center justify-between rounded-[10px] border border-line bg-cream px-3.5 py-2.5">
                   <span className="text-sm font-semibold text-dark">{p.identificador}</span>
                   <span
                     className="inline-flex h-6 items-center whitespace-nowrap rounded-full px-[9px] text-[11.5px] font-semibold"
