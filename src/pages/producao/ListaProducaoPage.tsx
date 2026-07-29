@@ -59,8 +59,6 @@ const TRANSICOES_KANBAN: Record<string, Record<string, TransicaoKanban>> = {
 
 function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: ProducaoResumo; isDragging: boolean; onClick: () => void }) {
   const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
-  const temBloqueio = producao.alertasInsumos.some(a => a.situacao === 'BLOQUEIO_FUTURO')
-  const temAviso = producao.alertasInsumos.some(a => a.situacao === 'AVISO')
 
   return (
     <div
@@ -72,7 +70,7 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-[13px] font-bold text-dark [font-variant-numeric:tabular-nums]">{producao.identificador}</span>
-        {(temBloqueio || temAviso) && <AlertTriangle size={14} className={temBloqueio ? 'text-danger' : 'text-warning'} />}
+        <AlertaIcones producao={producao} size={14} />
       </div>
       <div className="line-clamp-2 text-[12.5px] leading-[1.4] text-body">{nomesProdutos}</div>
       <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
@@ -143,17 +141,19 @@ function SortableHeader({ label, field, activeField, dir, onSort }: {
   )
 }
 
-function AlertaIcones({ producao }: { producao: ProducaoResumo }) {
-  if (producao.alertasInsumos.length === 0) return null
-  const temBloqueio = producao.alertasInsumos.some(a => a.situacao === 'BLOQUEIO_FUTURO')
-  const temAviso = producao.alertasInsumos.some(a => a.situacao === 'AVISO')
-  if (!temBloqueio && !temAviso) return null
+function AlertaIcones({ producao, size = 16 }: { producao: ProducaoResumo; size?: number }) {
+  const alertasRelevantes = producao.alertasInsumos.filter(a => a.situacao !== 'SUFICIENTE')
+  if (alertasRelevantes.length === 0) return null
+  const temBloqueio = alertasRelevantes.some(a => a.situacao === 'BLOQUEIO_FUTURO')
+
+  const texto = alertasRelevantes
+    .map(a => `${a.nomeInsumo}: necessário ${a.quantidadeNecessaria}, disponível ${a.estoqueAtual}${a.situacao === 'BLOQUEIO_FUTURO' ? ' (bloqueará ao iniciar)' : ''}`)
+    .join(' • ')
 
   return (
-    <div className="flex items-center gap-1.5">
-      {temBloqueio && <AlertTriangle size={16} className="text-danger" />}
-      {temAviso && <AlertTriangle size={16} className="text-warning" />}
-    </div>
+    <span title={texto} aria-label={texto} className="flex">
+      <AlertTriangle size={size} className={temBloqueio ? 'text-danger' : 'text-warning'} />
+    </span>
   )
 }
 
