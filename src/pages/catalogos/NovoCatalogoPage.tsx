@@ -27,7 +27,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputClass = (hasError?: boolean) => clsx(
   'h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-  hasError ? 'border-[#E05C3A] shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+  hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
 )
 
 export default function NovoCatalogoPage() {

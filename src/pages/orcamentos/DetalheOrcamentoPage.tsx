@@ -1288,7 +1288,7 @@ export default function DetalheOrcamentoPage() {
                       {it.customizacoes.map((c, k) => (
                         <span
                           key={k}
-                          className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/[0.08] px-2 py-0.5 text-[11.5px] text-[#A35A26]"
+                          className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/[0.08] px-2 py-0.5 text-[11.5px] text-warning-alt"
                         >
                           <Tag size={17} /> {c.nomeProduto}
                         </span>
@@ -1297,7 +1297,7 @@ export default function DetalheOrcamentoPage() {
                     {semEstoque && (
                       <div className="mt-2 flex flex-wrap items-center gap-2 rounded-input border border-orange/30 bg-orange/[0.08] px-3 py-2">
                         <AlertCircle size={14} className="flex-shrink-0 text-orange" />
-                        <span className="flex-1 text-[12px] leading-[1.4] text-[#A35A26]">
+                        <span className="flex-1 text-[12px] leading-[1.4] text-warning-alt">
                           Estoque insuficiente: faltam {semEstoque.quantidadeFaltante} un. (disponível {semEstoque.estoqueAtual} de {semEstoque.quantidadeSolicitada} solicitadas)
                         </span>
                         <button

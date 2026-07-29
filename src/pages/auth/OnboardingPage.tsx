@@ -60,14 +60,14 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
 
       <div className="min-w-0 flex-1">
         <label className="block text-[15.5px] font-semibold tracking-[-0.01em] text-dark">
-          {question} <span className="text-[15px] text-[#E05C3A]">*</span>
+          {question} <span className="text-[15px] text-warning-alt">*</span>
         </label>
         <p className="mt-1 mb-3 text-[13px] leading-normal text-muted">{explain}</p>
 
         <div className={clsx(
           'flex h-[54px] items-stretch overflow-hidden rounded-input border-[1.5px] bg-white transition-[border-color,box-shadow] duration-150',
           hasError
-            ? 'border-[#E05C3A] ring-4 ring-[#E05C3A]/10'
+            ? 'border-warning-alt ring-4 ring-warning-alt/10'
             : 'border-line focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/[0.12]'
         )}>
           {affixSide === 'left' && (
@@ -91,14 +91,14 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
         </div>
 
         {hasError && (
-          <p className="mt-1.5 mb-0 text-[12.5px] font-medium text-[#E05C3A]">{error}</p>
+          <p className="mt-1.5 mb-0 text-[12.5px] font-medium text-warning-alt">{error}</p>
         )}
 
         <div className={clsx(
           'flex items-start gap-[9px] rounded-xl border border-[#FCE2CF] bg-orange/[0.08] px-[13px] py-[11px]',
           hasError ? 'mt-2.5' : 'mt-[11px]'
         )}>
-          <span className="mt-px flex-shrink-0 text-[#EC7A2C]">
+          <span className="mt-px flex-shrink-0 text-warning-alt">
             <Lightbulb size={15} />
           </span>
           <p className="m-0 text-[12.7px] leading-[1.55] text-[#8A5A33]">{dica}</p>

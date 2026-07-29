@@ -248,7 +248,7 @@ export default function DetalheProducaoPage() {
                     key={i}
                     className={clsx(
                       'flex items-start gap-2.5 rounded-input border px-3.5 py-3 text-[13.5px]',
-                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/[0.08] text-[#A35A26]'
+                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/[0.08] text-warning-alt'
                     )}
                   >
                     <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />

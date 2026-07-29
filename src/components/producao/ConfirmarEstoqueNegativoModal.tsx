@@ -28,7 +28,7 @@ export default function ConfirmarEstoqueNegativoModal({ avisos, confirming, onCl
         {avisos.map(a => (
           <div
             key={a.componenteId}
-            className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3 text-[13.5px] text-[#A35A26]"
+            className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3 text-[13.5px] text-warning-alt"
           >
             <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
             <span>{a.mensagem}</span>

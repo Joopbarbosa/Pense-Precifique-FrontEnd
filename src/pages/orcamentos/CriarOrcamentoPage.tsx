@@ -221,7 +221,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
           onClick={() => onOpenCustom(item)}
           className={clsx(
             'inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border px-3 font-[inherit] text-[13px] font-semibold',
-            item.customs.length ? 'border-orange/40 bg-orange/[0.08] text-[#A35A26]' : 'border-line bg-cream text-body'
+            item.customs.length ? 'border-orange/40 bg-orange/[0.08] text-warning-alt' : 'border-line bg-cream text-body'
           )}
         >
           <SlidersHorizontal size={15} /> Customizações{item.customs.length ? ` (${item.customs.length})` : ''}
@@ -229,7 +229,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
         {item.customs.map((c, k) => (
           <span key={k} className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line bg-white px-[11px] text-[12.5px] text-dim">
             <Tag size={17} className="text-orange" />
-            {c.nome} <strong className="font-semibold text-[#A35A26]">+{BRL(c.valor)}/un</strong>
+            {c.nome} <strong className="font-semibold text-warning-alt">+{BRL(c.valor)}/un</strong>
           </span>
         ))}
       </div>
@@ -383,7 +383,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
       {/* Rodapé de totais */}
       {selecionadas.length > 0 && (
         <div className="mt-4 flex items-center justify-between rounded-input border border-orange/20 bg-orange/[0.08] px-[15px] py-3">
-          <span className="text-[13.5px] font-semibold text-[#A35A26]">
+          <span className="text-[13.5px] font-semibold text-warning-alt">
             {selecionadas.length} customização{selecionadas.length > 1 ? 'ões' : ''} selecionada{selecionadas.length > 1 ? 's' : ''}
           </span>
           <span className="text-[15px] font-bold text-orange">+{BRL(extraTotal)}</span>
@@ -1348,7 +1348,7 @@ export default function CriarOrcamentoPage() {
           </p>
           <div className="flex flex-col gap-2">
             {avisoEstoque.avisos.map((a, i) => (
-              <div key={i} className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 text-[13.5px] text-[#A35A26]">
+              <div key={i} className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 text-[13.5px] text-warning-alt">
                 <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
                 <span>{a.mensagem}</span>
               </div>

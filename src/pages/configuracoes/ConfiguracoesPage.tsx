@@ -41,7 +41,7 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
     <div className={clsx(
       'group relative flex max-w-[300px] items-stretch overflow-hidden rounded-input border-[1.5px] bg-white transition-[border-color,box-shadow] duration-150',
       hasError
-        ? 'border-[#E05C3A] shadow-[0_0_0_4px_rgba(224,92,58,0.10)]'
+        ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]'
         : 'border-line focus-within:border-teal focus-within:shadow-[0_0_0_4px_rgba(42,157,143,0.12)]'
     )}>
       {prefix && (
@@ -205,21 +205,21 @@ function Precificacao({
           <div className="flex flex-col gap-[22px]">
             <div>
               <label className="mb-2 block text-[13.5px] font-semibold text-body">
-                Valor da sua hora de trabalho <span className="text-[#E05C3A]">*</span>
+                Valor da sua hora de trabalho <span className="text-warning-alt">*</span>
               </label>
               <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Clock size={18} />} inputMode="decimal" error={fieldErrors.hora} />
               {fieldErrors.hora
-                ? <p className="mt-1.5 text-[12.5px] font-medium text-[#E05C3A]">{fieldErrors.hora}</p>
+                ? <p className="mt-1.5 text-[12.5px] font-medium text-warning-alt">{fieldErrors.hora}</p>
                 : <p className="mt-2 text-[12.5px] text-dim">Quanto vale uma hora do seu tempo produzindo.</p>
               }
             </div>
             <div>
               <label className="mb-2 block text-[13.5px] font-semibold text-body">
-                Margem de lucro padrão <span className="text-[#E05C3A]">*</span>
+                Margem de lucro padrão <span className="text-warning-alt">*</span>
               </label>
               <AffixInput value={margem} onChange={v => { setMargem(v.replace(/[^\d]/g, '')); setFieldErrors(p => ({ ...p, margem: undefined })) }} suffix="%" inputMode="numeric" error={fieldErrors.margem} />
               {fieldErrors.margem
-                ? <p className="mt-1.5 text-[12.5px] font-medium text-[#E05C3A]">{fieldErrors.margem}</p>
+                ? <p className="mt-1.5 text-[12.5px] font-medium text-warning-alt">{fieldErrors.margem}</p>
                 : <p className="mt-2 text-[12.5px] text-dim">Percentual aplicado sobre o custo para formar o preço sugerido.</p>
               }
             </div>

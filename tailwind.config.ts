@@ -47,6 +47,10 @@ export default {
         warning: {
           DEFAULT: '#C8721F',
           bg:      '#FFF1E8',
+          // #139 — consolida a família laranja/vermelho de aviso hardcoded
+          // (#E05C3A, #A35A26, #D9603C, #EC7A2C), média ponderada por frequência —
+          // não fica perto o bastante de `warning` nem `danger` pra reaproveitar (~20/255 de distância dos dois).
+          alt: '#C65D31',
         },
 
         // #139 — famílias de hex hardcoded sem token, formalizadas (P-FE-CORRIGE-022)

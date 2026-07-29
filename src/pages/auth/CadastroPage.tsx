@@ -290,7 +290,7 @@ export default function CadastroPage() {
 
               {apiError && (
                 <div role="alert" className="mb-1 flex animate-shake items-start gap-2.5 rounded-[10px] border-[1.5px] border-[#F6C6B7] bg-[#FEF3F0] p-[12px_14px] text-[13.5px] leading-[1.45] text-danger">
-                  <AlertCircle size={18} className="mt-px flex-shrink-0 text-[#D9603C]" />
+                  <AlertCircle size={18} className="mt-px flex-shrink-0 text-warning-alt" />
                   <span>{apiError}</span>
                 </div>
               )}
