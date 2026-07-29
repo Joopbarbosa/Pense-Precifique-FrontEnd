@@ -91,7 +91,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
       </div>
 
       {/* TÍTULO — QUITAÇÃO TOTAL */}
-      <div className="mt-6 rounded-xl border border-success/[0.22] border-l-4 border-l-[#2E9E60] bg-success/[0.07] px-[22px] py-5">
+      <div className="mt-6 rounded-xl border border-success/[0.22] border-l-4 border-l-success bg-success/[0.07] px-[22px] py-5">
         <div className="flex items-center gap-3">
           <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl border border-success/[0.22] bg-white text-success">
             <BadgeCheck size={22} />
