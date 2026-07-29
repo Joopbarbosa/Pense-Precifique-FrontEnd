@@ -205,7 +205,7 @@ export default function EditarProducaoPage() {
 
   if (carregando) {
     return (
-      <AppLayout active="producao">
+      <AppLayout active="producao" compact>
         <div className="flex justify-center py-24"><Spinner /></div>
       </AppLayout>
     )
@@ -213,7 +213,7 @@ export default function EditarProducaoPage() {
 
   if (bloqueado) {
     return (
-      <AppLayout active="producao">
+      <AppLayout active="producao" compact>
         <div className="mx-auto max-w-[640px] rounded-card border border-[#F0EEE9] bg-white p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <span className="mb-3.5 inline-grid h-14 w-14 place-items-center rounded-full bg-danger-bg text-danger">
             <Lock size={22} />
@@ -229,7 +229,7 @@ export default function EditarProducaoPage() {
   }
 
   return (
-    <AppLayout active="producao">
+    <AppLayout active="producao" compact>
       <div className="mb-[22px]">
         <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal">
           Produção / {identificador} / Editar

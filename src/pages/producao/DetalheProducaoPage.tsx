@@ -98,7 +98,7 @@ export default function DetalheProducaoPage() {
 
   if (loading) {
     return (
-      <AppLayout active="producao">
+      <AppLayout active="producao" compact>
         <div className="flex justify-center py-24"><Spinner /></div>
       </AppLayout>
     )
@@ -106,7 +106,7 @@ export default function DetalheProducaoPage() {
 
   if (erro || !producao) {
     return (
-      <AppLayout active="producao">
+      <AppLayout active="producao" compact>
         <div className="px-5 py-10 text-center text-danger">Produção não encontrada</div>
       </AppLayout>
     )
@@ -138,7 +138,7 @@ export default function DetalheProducaoPage() {
   const botoes = botoesPorEstado[producao.estado]
 
   return (
-    <AppLayout active="producao">
+    <AppLayout active="producao" compact>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-[18px]">
         <div>
           <button

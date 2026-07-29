@@ -355,7 +355,7 @@ export default function NovaProducaoPage() {
 
   if (alertas && producaoIdCriada) {
     return (
-      <AppLayout active="producao">
+      <AppLayout active="producao" compact>
         <div className="mx-auto max-w-[640px]">
           <QuoteCard step="!" label="Produção criada com alertas de insumo" hint="Revise antes de prosseguir.">
             <div className="flex flex-col gap-4 px-5 py-5">
@@ -371,7 +371,7 @@ export default function NovaProducaoPage() {
   }
 
   return (
-    <AppLayout active="producao">
+    <AppLayout active="producao" compact>
       <div className="mb-[22px]">
         <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal">
           Produção / Nova Produção

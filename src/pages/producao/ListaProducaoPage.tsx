@@ -550,7 +550,7 @@ export default function ListaProducaoPage() {
   const colunasKanban = KANBAN_COLUMNS_PRODUCAO.filter(c => c.id !== 'NAO_REALIZADA' || colunaNaoRealizadaVisivel)
 
   return (
-    <AppLayout active="producao" fullHeight={viewMode === 'kanban'}>
+    <AppLayout active="producao" compact fullHeight={viewMode === 'kanban'}>
       <div className="mb-[22px] flex flex-shrink-0 flex-wrap items-start justify-between gap-5">
         <div>
           <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Produções</h1>
