@@ -71,7 +71,7 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
             : 'border-line focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/[0.12]'
         )}>
           {affixSide === 'left' && (
-            <span className="grid place-items-center border-r border-line bg-cream px-4 text-base font-semibold text-[#6B6860]">
+            <span className="grid place-items-center border-r border-line bg-cream px-4 text-base font-semibold text-dim">
               {affix}
             </span>
           )}
@@ -84,7 +84,7 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
             className="min-w-0 flex-1 border-none bg-transparent px-4 font-[inherit] text-lg font-semibold text-dark outline-none"
           />
           {affixSide === 'right' && (
-            <span className="grid place-items-center border-l border-line bg-cream px-[18px] text-[17px] font-semibold text-[#6B6860]">
+            <span className="grid place-items-center border-l border-line bg-cream px-[18px] text-[17px] font-semibold text-dim">
               {affix}
             </span>
           )}
@@ -264,7 +264,7 @@ export default function OnboardingPage() {
 
           <p className="mt-[18px] mb-0 flex flex-wrap items-center justify-center gap-1.5 text-center text-[12.7px] text-muted">
             <span className="flex text-teal"><Settings size={20} /></span>
-            <span>Dá pra mudar tudo depois em <strong className="font-semibold text-[#6B6860]">Configurações</strong>.</span>
+            <span>Dá pra mudar tudo depois em <strong className="font-semibold text-dim">Configurações</strong>.</span>
           </p>
         </div>
       </div>

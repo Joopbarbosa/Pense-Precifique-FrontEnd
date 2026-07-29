@@ -337,12 +337,12 @@ function CompraLoteModal({ onClose, onSuccess }: {
                           placeholder="Qtd"
                           className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-3 pr-[50px] font-[inherit] text-sm text-dark outline-none"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12.5px] font-semibold text-[#A8A49C]">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12.5px] font-semibold text-dim">
                           {it.insumo.unidadeMedida}
                         </span>
                       </div>
                       <div className="relative flex-[1_1_130px]">
-                        <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-cream text-[13px] font-semibold text-[#6B6860]">
+                        <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-cream text-[13px] font-semibold text-dim">
                           R$
                         </span>
                         <input
@@ -420,7 +420,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="overflow-hidden rounded-[14px] border border-line">
-            <div className="grid grid-cols-[1fr_auto] gap-3 bg-cream px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+            <div className="grid grid-cols-[1fr_auto] gap-3 bg-cream px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
               <span>Insumo</span><span className="text-right">Custo unitário</span>
             </div>
             {insumosAtualizados.map((item) => {
@@ -441,7 +441,7 @@ function ImpactoLoteModal({ impacto, onClose }: {
                     </span>
                     {!igual && (
                       <>
-                        <ArrowRight size={17} className="text-[#A8A49C]" />
+                        <ArrowRight size={17} className="text-dim" />
                         <span className={clsx('inline-flex items-center gap-1 text-[14.5px] font-bold', subiu ? 'text-danger' : 'text-success')}>
                           {subiu
                             ? <ArrowDown size={14} className="rotate-180" />
@@ -641,7 +641,7 @@ export default function ListaInsumosPage() {
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <div className="hidden grid-cols-[0.7fr_2fr_0.55fr_0.85fr_0.8fr_1fr_1fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
               {['Identificador', 'Insumo', 'Unidade', 'Estoque atual', 'Estoque mín.', 'Custo unitário', 'Status', ''].map((h, k) => (
-                <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+                <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">
                   {h}
                 </div>
               ))}

@@ -70,7 +70,7 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
         title={mov.catalogoReferencia}
         className={clsx(
           'inline-flex h-[22px] max-w-full min-w-0 items-center gap-[5px] rounded-full px-2.5 text-[11.5px] font-semibold',
-          isCatalogo ? 'bg-teal/10 text-teal' : 'bg-line-soft text-[#8A8780]'
+          isCatalogo ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim'
         )}
       >
         <Ic size={11} className="flex-shrink-0" />
@@ -167,7 +167,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
                   placeholder="1"
                   className={clsx(inputBase, 'pr-20')}
                 />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">unidades</span>
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">unidades</span>
               </div>
             </label>
             <label>
@@ -348,7 +348,7 @@ export default function DetalheProdutoPage() {
         <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/produtos')}>
           Produtos
         </span>
-        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <ChevronRight size={15} className="text-dim" />
         <span className="whitespace-nowrap font-semibold text-body">{produto.nome}</span>
       </div>
 
@@ -386,7 +386,7 @@ export default function DetalheProdutoPage() {
                 </span>
               )}
               {produto.algumInsumoNaoFracionavel && (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-line px-[11px] text-[12.5px] font-semibold text-[#6B6860]">
+                <span className="inline-flex h-[27px] items-center rounded-full bg-line px-[11px] text-[12.5px] font-semibold text-dim">
                   Receita não fracionável
                 </span>
               )}
@@ -405,7 +405,7 @@ export default function DetalheProdutoPage() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
           {cells.map((c, i) => (
             <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{c.k}</div>
+              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
               <div className={clsx(
                 'mt-[7px] [font-variant-numeric:tabular-nums]',
                 (c as any).big ? 'text-[28px] tracking-[-0.02em]' : 'text-base',
@@ -413,7 +413,7 @@ export default function DetalheProdutoPage() {
                 ((c as any).big || (c as any).accent || (c as any).price || (c as any).blue) ? 'font-bold' : 'font-semibold',
                 (c as any).danger ? 'text-danger' : (c as any).blue ? 'text-azul' : (c as any).accent ? 'text-teal' : 'text-dark'
               )}>{c.v}</div>
-              {(c as any).hint && <div className="mt-[3px] text-[11.5px] font-medium text-[#A8A49C]">{(c as any).hint}</div>}
+              {(c as any).hint && <div className="mt-[3px] text-[11.5px] font-medium text-dim">{(c as any).hint}</div>}
             </div>
           ))}
         </div>
@@ -438,10 +438,10 @@ export default function DetalheProdutoPage() {
               onClick={() => setAba(a.id)}
               className={clsx(
                 'relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-sm transition-colors duration-150',
-                on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+                on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body'
               )}
             >
-              <span className={clsx('flex', on ? 'text-teal' : 'text-[#B0ACA4]')}><a.icon size={a.size} /></span>
+              <span className={clsx('flex', on ? 'text-teal' : 'text-dim')}><a.icon size={a.size} /></span>
               {a.label}
               {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
@@ -454,7 +454,7 @@ export default function DetalheProdutoPage() {
           <>
             <div className={clsx('hidden gap-4 bg-cream px-5 py-[13px] md:grid', HIST_COLS)}>
               {['Data', 'Movimentação', 'Quantidade', 'Referência', 'Observação'].map((h, k) => (
-                <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{h}</div>
+                <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">{h}</div>
               ))}
             </div>
             {movimentacoes.length === 0 ? (
@@ -537,7 +537,7 @@ export default function DetalheProdutoPage() {
                 >
                   <span className={clsx(
                     'grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]',
-                    item.produtoBaseId ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-[#9A968E]'
+                    item.produtoBaseId ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
                   )}>
                     <Box size={20} />
                   </span>

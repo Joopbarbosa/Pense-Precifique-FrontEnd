@@ -130,7 +130,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
                   placeholder="3"
                   className={clsx(inputBase, 'pr-[62px]')}
                 />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
                   {unidade}
                 </span>
               </div>
@@ -343,7 +343,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
           <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11.5px] font-semibold text-subtle">
             {TIPO_LABEL[p.tipo] ?? p.tipo}
           </span>
-          <span className="flex flex-shrink-0 text-[#CFCBC3]">
+          <span className="flex flex-shrink-0 text-dim">
             <ChevronRight size={15} />
           </span>
         </button>
@@ -442,7 +442,7 @@ export default function DetalheInsumoPage() {
         <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/insumos')}>
           Insumos
         </span>
-        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <ChevronRight size={15} className="text-dim" />
         <span className="whitespace-nowrap font-semibold text-body">{insumo.nome}</span>
       </div>
 
@@ -480,7 +480,7 @@ export default function DetalheInsumoPage() {
                   Fracionável
                 </span>
               ) : (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-[#6B6860]/10 px-[11px] text-[12.5px] font-semibold text-[#6B6860]">
+                <span className="inline-flex h-[27px] items-center rounded-full bg-dim/10 px-[11px] text-[12.5px] font-semibold text-dim">
                   Não fracionável
                 </span>
               )}
@@ -504,7 +504,7 @@ export default function DetalheInsumoPage() {
             { k: 'Custo unitário atual', v: `${moeda(insumo.custoUnitario, 2)} / ${insumo.unidadeMedida}`, accent: true },
           ].map((c, i) => (
             <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{c.k}</div>
+              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
               <div className={clsx(
                 'mt-[7px] [font-variant-numeric:tabular-nums]',
                 c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',
@@ -531,10 +531,10 @@ export default function DetalheInsumoPage() {
               onClick={() => setAba(a.id)}
               className={clsx(
                 'relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-sm transition-colors duration-150',
-                on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+                on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body'
               )}
             >
-              <span className={clsx('flex', on ? 'text-teal' : 'text-[#B0ACA4]')}><a.icon size={a.size} /></span>
+              <span className={clsx('flex', on ? 'text-teal' : 'text-dim')}><a.icon size={a.size} /></span>
               {a.label}
               {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
@@ -547,7 +547,7 @@ export default function DetalheInsumoPage() {
           <>
             <div className="hidden grid-cols-[116px_1fr_110px_84px_1fr] gap-4 bg-cream px-5 py-[13px] md:grid">
               {['Data', 'Movimentação', 'Quantidade', 'Custo unit.', 'Referência'].map((h, k) => (
-                <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{h}</div>
+                <div key={k} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">{h}</div>
               ))}
             </div>
             {movimentacoes.length === 0 ? (

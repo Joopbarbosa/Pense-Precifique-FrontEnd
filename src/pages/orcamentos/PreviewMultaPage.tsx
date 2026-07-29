@@ -28,7 +28,7 @@ const fmtDate = (iso?: string) => {
 
 function DocLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#B0ACA4]">
+    <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-dim">
       {children}
     </div>
   )
@@ -158,14 +158,14 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Produto</th>
-              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Quantidade</th>
+              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Produto</th>
+              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Quantidade</th>
             </tr>
           </thead>
           <tbody>
             {orcamento.itens.length === 0 ? (
               <tr>
-                <td colSpan={2} className="border-b border-[#F0EEE9] px-2.5 py-[13px] text-center align-top text-[13.5px] text-[#B0ACA4]">Nenhum item</td>
+                <td colSpan={2} className="border-b border-[#F0EEE9] px-2.5 py-[13px] text-center align-top text-[13.5px] text-dim">Nenhum item</td>
               </tr>
             ) : (
               orcamento.itens.map((it, i) => (
@@ -192,11 +192,11 @@ function DocumentoMulta({ orcamento, empresa }: { orcamento: OrcamentoDetalheRes
 
       {/* RODAPÉ */}
       <div className="mt-auto pt-[30px]">
-        <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-[11.5px] text-[#9A968E]">
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-[11.5px] text-dim">
           <FileText size={15} className="flex-shrink-0 text-teal" />
           Este documento foi gerado pelo sistema
-          <strong className="ml-[3px] font-semibold text-[#6B6860]">Pense &amp; Precifique</strong>
-          em <strong className="ml-[3px] font-semibold text-[#6B6860]">{emissao}</strong>.
+          <strong className="ml-[3px] font-semibold text-dim">Pense &amp; Precifique</strong>
+          em <strong className="ml-[3px] font-semibold text-dim">{emissao}</strong>.
         </div>
       </div>
 
@@ -283,7 +283,7 @@ export default function PreviewMultaPage() {
 
           {/* Breadcrumb + título */}
           <div className="min-w-0">
-            <div className="mb-1.5 flex flex-wrap items-center gap-[7px] text-[12.5px] text-[#9A968E]">
+            <div className="mb-1.5 flex flex-wrap items-center gap-[7px] text-[12.5px] text-dim">
               {[
                 { label: 'Orçamentos', path: '/orcamentos' },
                 { label: 'Detalhe do orçamento', path: `/orcamentos/${id}` },
@@ -291,11 +291,11 @@ export default function PreviewMultaPage() {
                 <span key={path} className="contents">
                   <button
                     onClick={() => navigate(path)}
-                    className="cursor-pointer border-none bg-none p-0 font-[inherit] text-[12.5px] font-medium text-[#9A968E] transition-colors duration-150 hover:text-teal"
+                    className="cursor-pointer border-none bg-none p-0 font-[inherit] text-[12.5px] font-medium text-dim transition-colors duration-150 hover:text-teal"
                   >
                     {label}
                   </button>
-                  <ChevronRight size={15} className="flex-shrink-0 text-[#CFCBC3]" />
+                  <ChevronRight size={15} className="flex-shrink-0 text-dim" />
                 </span>
               ))}
               <span className="whitespace-nowrap font-semibold text-body">PDF de Multa</span>

@@ -109,7 +109,7 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
         aria-label="Mais ações"
         aria-expanded={open}
         className={clsx(
-          'grid h-[34px] w-[34px] place-items-center rounded-[9px] border-none text-[#8A8780] transition-colors duration-100',
+          'grid h-[34px] w-[34px] place-items-center rounded-[9px] border-none text-dim transition-colors duration-100',
           open ? 'bg-line-soft' : 'bg-transparent hover:bg-line-soft'
         )}
       >

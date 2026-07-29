@@ -155,7 +155,7 @@ export default function DetalheCatalogoPage() {
           className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
           onClick={() => navigate('/catalogos')}
         >Catálogos</span>
-        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <ChevronRight size={15} className="text-dim" />
         <span className="whitespace-nowrap font-semibold text-body">{catalogo.nome}</span>
       </div>
 
@@ -196,7 +196,7 @@ export default function DetalheCatalogoPage() {
             { k: 'Itens no catálogo', v: `${catalogo.quantidadeItens}`, big: true },
           ].map((c, i) => (
             <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">{c.k}</div>
+              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
               <div className={clsx(
                 'mt-[7px] [font-variant-numeric:tabular-nums]',
                 c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',

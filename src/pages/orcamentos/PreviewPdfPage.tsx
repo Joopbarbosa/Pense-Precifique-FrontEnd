@@ -97,11 +97,11 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
       <table className="mt-[22px] w-full border-collapse">
         <thead>
           <tr>
-            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Produto</th>
-            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Customizações</th>
-            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Qtd</th>
-            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Valor unit.</th>
-            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Total</th>
+            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Produto</th>
+            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Customizações</th>
+            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Qtd</th>
+            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Valor unit.</th>
+            <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -137,7 +137,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
               <div className="mt-0.5 text-base font-bold text-teal [font-variant-numeric:tabular-nums]">{BRL(orcamento.valorSinal || 0)}</div>
             </div>
             <div className="min-w-[140px] flex-1 rounded-[9px] border border-[#F0EEE9] bg-white px-[13px] py-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#B0ACA4]">Restante na entrega</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-dim">Restante na entrega</div>
               <div className="mt-0.5 text-base font-bold text-dark [font-variant-numeric:tabular-nums]">{BRL(orcamento.total - (orcamento.valorSinal || 0))}</div>
             </div>
           </div>
@@ -179,15 +179,15 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
 
       {/* RODAPÉ */}
       <div className="mt-auto pt-[26px]">
-        <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-xs text-[#9A968E]">
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-xs text-dim">
           <FileText size={15} className="flex-shrink-0 text-teal" />
           Este orçamento é válido até
-          <strong className="mx-0.5 font-semibold text-[#6B6860]">{dataValidade}</strong>.
+          <strong className="mx-0.5 font-semibold text-dim">{dataValidade}</strong>.
           <span className="ml-auto inline-flex items-center gap-1">
-            Gerado por <strong className="ml-1 font-semibold text-[#6B6860]">Pense &amp; Precifique</strong>
+            Gerado por <strong className="ml-1 font-semibold text-dim">Pense &amp; Precifique</strong>
           </span>
         </div>
-        <p className="mb-0 mt-3 text-[10.5px] leading-[1.55] text-[#B0ACA4]">
+        <p className="mb-0 mt-3 text-[10.5px] leading-[1.55] text-dim">
           Em caso de cancelamento após aprovação, poderá ser cobrado uma taxa referente aos materiais e tempo já investidos na produção.
         </p>
       </div>
@@ -200,7 +200,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#B0ACA4]">
+    <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-dim">
       {children}
     </div>
   )
@@ -313,7 +313,7 @@ export default function PreviewPdfPage() {
               >
                 Orçamentos
               </button>
-              <ChevronRight size={15} className="flex-shrink-0 text-[#CFCBC3]" />
+              <ChevronRight size={15} className="flex-shrink-0 text-dim" />
               <button
                 onClick={() => navigate(`/orcamentos/${orcamento.id}`)}
                 className="cursor-pointer whitespace-nowrap border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-150 hover:text-teal"

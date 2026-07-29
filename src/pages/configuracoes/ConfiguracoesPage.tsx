@@ -45,8 +45,8 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
         : 'border-line focus-within:border-teal focus-within:shadow-[0_0_0_4px_rgba(42,157,143,0.12)]'
     )}>
       {prefix && (
-        <span className="flex items-center gap-[7px] whitespace-nowrap border-r border-line bg-cream px-3.5 text-[14.5px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
-          {icon && <span className="flex text-[#A8A49C] group-focus-within:text-teal">{icon}</span>}{prefix}
+        <span className="flex items-center gap-[7px] whitespace-nowrap border-r border-line bg-cream px-3.5 text-[14.5px] font-semibold text-dim group-focus-within:text-[#1F7A6F]">
+          {icon && <span className="flex text-dim group-focus-within:text-teal">{icon}</span>}{prefix}
         </span>
       )}
       <input
@@ -56,7 +56,7 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
         className="h-[52px] min-w-0 flex-1 border-none bg-transparent px-3.5 font-[inherit] text-[17px] font-semibold text-dark outline-none [font-variant-numeric:tabular-nums]"
       />
       {suffix && (
-        <span className="flex items-center border-l border-line bg-cream px-4 text-[15px] font-semibold text-[#6B6860] group-focus-within:text-[#1F7A6F]">
+        <span className="flex items-center border-l border-line bg-cream px-4 text-[15px] font-semibold text-dim group-focus-within:text-[#1F7A6F]">
           {suffix}
         </span>
       )}
@@ -85,10 +85,10 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
             onClick={() => setAba(a.id)}
             className={clsx(
               'relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-[14.5px] transition-colors duration-150',
-              on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+              on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body'
             )}
           >
-            <span className={clsx('flex', on ? 'text-teal' : 'text-[#B0ACA4]')}><a.icon size={a.size} /></span>
+            <span className={clsx('flex', on ? 'text-teal' : 'text-dim')}><a.icon size={a.size} /></span>
             {a.label}
             {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
           </button>
@@ -210,7 +210,7 @@ function Precificacao({
               <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Clock size={18} />} inputMode="decimal" error={fieldErrors.hora} />
               {fieldErrors.hora
                 ? <p className="mt-1.5 text-[12.5px] font-medium text-[#E05C3A]">{fieldErrors.hora}</p>
-                : <p className="mt-2 text-[12.5px] text-[#A8A49C]">Quanto vale uma hora do seu tempo produzindo.</p>
+                : <p className="mt-2 text-[12.5px] text-dim">Quanto vale uma hora do seu tempo produzindo.</p>
               }
             </div>
             <div>
@@ -220,7 +220,7 @@ function Precificacao({
               <AffixInput value={margem} onChange={v => { setMargem(v.replace(/[^\d]/g, '')); setFieldErrors(p => ({ ...p, margem: undefined })) }} suffix="%" inputMode="numeric" error={fieldErrors.margem} />
               {fieldErrors.margem
                 ? <p className="mt-1.5 text-[12.5px] font-medium text-[#E05C3A]">{fieldErrors.margem}</p>
-                : <p className="mt-2 text-[12.5px] text-[#A8A49C]">Percentual aplicado sobre o custo para formar o preço sugerido.</p>
+                : <p className="mt-2 text-[12.5px] text-dim">Percentual aplicado sobre o custo para formar o preço sugerido.</p>
               }
             </div>
           </div>
@@ -233,8 +233,8 @@ function Precificacao({
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3.5 border-t border-line pt-[22px]">
-            <span className={clsx('flex items-center gap-[7px] text-[12.5px] font-medium', dirty ? 'text-warning' : 'text-[#A8A49C]')}>
-              <span className={clsx('h-2 w-2 rounded-full', dirty ? 'bg-[#E8913B] shadow-[0_0_0_4px_rgba(232,145,59,0.18)]' : 'bg-[#CFCBC3]')} />
+            <span className={clsx('flex items-center gap-[7px] text-[12.5px] font-medium', dirty ? 'text-warning' : 'text-dim')}>
+              <span className={clsx('h-2 w-2 rounded-full', dirty ? 'bg-[#E8913B] shadow-[0_0_0_4px_rgba(232,145,59,0.18)]' : 'bg-dim')} />
               {dirty ? 'Você tem alterações não salvas' : 'Tudo salvo'}
             </span>
             <Button variant="primary" icon={<Check size={14} />} disabled={!dirty || saving || !isValid} onClick={salvar}>
@@ -352,7 +352,7 @@ function PerfilEmpresa({
           </span>
           <div>
             <Button variant="ghost">Alterar logo</Button>
-            <p className="mt-[9px] text-[12.5px] leading-[1.5] text-[#A8A49C]">PNG ou JPG, fundo transparente recomendado.</p>
+            <p className="mt-[9px] text-[12.5px] leading-[1.5] text-dim">PNG ou JPG, fundo transparente recomendado.</p>
           </div>
         </div>
 

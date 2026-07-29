@@ -235,7 +235,7 @@ export default function FormInsumoPage() {
           >
             Insumos
           </span>
-          <ChevronRight size={15} className="text-[#CFCBC3]" />
+          <ChevronRight size={15} className="text-dim" />
           <span className="font-semibold text-body">{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
         </div>
         <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
@@ -316,7 +316,7 @@ export default function FormInsumoPage() {
                       'flex-1 border-none font-[inherit] text-[14.5px] font-semibold transition-colors duration-150',
                       fracao === val
                         ? val ? 'bg-teal text-white' : 'bg-line-soft text-body'
-                        : 'bg-white text-[#A8A49C]'
+                        : 'bg-white text-dim'
                     )}
                   >
                     {lbl}
@@ -348,7 +348,7 @@ export default function FormInsumoPage() {
                   {...numBind(usaLote ? qtdCompra : estoque, usaLote ? () => {} : setEstoque)}
                   className={clsx(inputBase, 'pr-16', (editando || usaLote) && 'bg-cream text-subtle')}
                 />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
                   {unLabel(unidade)}
                 </span>
               </div>
@@ -356,7 +356,7 @@ export default function FormInsumoPage() {
             <Field label="Estoque mínimo para alerta" opt>
               <div className="relative">
                 <input placeholder="10" {...numBind(minimo, setMinimo)} className={clsx(inputBase, 'pr-16')} />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
                   {unLabel(unidade)}
                 </span>
               </div>
@@ -366,7 +366,7 @@ export default function FormInsumoPage() {
               <>
                 <Field label="Preço total da compra *" erro={precoErro}>
                   <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-[#6B6860]">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-dim">
                       R$
                     </span>
                     <input
@@ -385,7 +385,7 @@ export default function FormInsumoPage() {
                       onBlur={() => setQtdTocado(true)}
                       className={clsx(inputBase, 'pr-16', qtdErro && 'border-danger-deep focus:border-danger-deep focus:ring-danger-deep/10')}
                     />
-                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
                       {unLabel(unidade)}
                     </span>
                   </div>

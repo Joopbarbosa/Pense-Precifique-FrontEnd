@@ -17,7 +17,7 @@ function Avatar({ nome, inativa }: { nome: string; inativa: boolean }) {
   return (
     <span className={clsx(
       'grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-full text-base font-bold',
-      inativa ? 'bg-[#ECEAE5] text-[#9A968E] opacity-70' : 'bg-teal/[0.13] text-teal'
+      inativa ? 'bg-[#ECEAE5] text-dim opacity-70' : 'bg-teal/[0.13] text-teal'
     )}>
       {nome.trim().charAt(0).toUpperCase()}
     </span>
@@ -337,7 +337,7 @@ export default function ClientesPage() {
               ? 'Carregando clientes…'
               : empty
                 ? 'Cuide do relacionamento com quem compra de você.'
-                : <><strong className="font-semibold text-[#6B6860]">{clientes.length}</strong> cliente{clientes.length !== 1 ? 's' : ''} na sua agenda{hasNext ? '+' : ''}.</>
+                : <><strong className="font-semibold text-dim">{clientes.length}</strong> cliente{clientes.length !== 1 ? 's' : ''} na sua agenda{hasNext ? '+' : ''}.</>
             }
           </p>
         </div>

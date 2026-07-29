@@ -157,7 +157,7 @@ function Timeline({ current }: { current: ApiStatus }) {
               <span
                 className={clsx(
                   "block whitespace-nowrap text-[12.5px]",
-                  active ? "font-bold text-dark" : done ? "font-medium text-[#6B6860]" : "font-medium text-faint"
+                  active ? "font-bold text-dark" : done ? "font-medium text-dim" : "font-medium text-faint"
                 )}
               >
                 {STATUS_LABEL[s]}
@@ -493,7 +493,7 @@ function ModalCancelMulta({
                       <span className="flex-1 text-sm font-medium text-dark">
                         {it.nomeProduto}
                       </span>
-                      <span className="text-[13px] font-semibold text-[#6B6860]">
+                      <span className="text-[13px] font-semibold text-dim">
                         ×{it.quantidade}
                       </span>
                     </div>
@@ -528,7 +528,7 @@ function ModalCancelMulta({
                       onClick={() => setMultaAtiva(val)}
                       className={clsx(
                         "h-11 w-20 border-none font-[inherit] text-sm font-semibold",
-                        on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-[#A8A49C]"
+                        on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
                       )}
                     >
                       {lbl}
@@ -743,7 +743,7 @@ function ModalCancelEstorno({
                         onClick={() => setEstornar(val)}
                         className={clsx(
                           "h-11 w-20 border-none font-[inherit] text-sm font-semibold transition-all duration-150",
-                          on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-[#A8A49C]"
+                          on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
                         )}
                       >
                         {lbl}
@@ -782,7 +782,7 @@ function ModalCancelEstorno({
               {!estornar && (
                 <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-cream px-3.5 py-3">
                   <Info size={15} className="mt-px flex-shrink-0 text-muted" />
-                  <p className="m-0 text-[12.5px] leading-[1.55] text-[#6B6860]">
+                  <p className="m-0 text-[12.5px] leading-[1.55] text-dim">
                     O orçamento será cancelado sem devolução do sinal. Nenhum
                     documento será gerado.
                   </p>
@@ -1266,7 +1266,7 @@ export default function DetalheOrcamentoPage() {
                       </div>
                       <span className={clsx(
                         "inline-flex h-[22px] items-center gap-[5px] rounded-full px-[9px] text-[11.5px] font-semibold",
-                        it.itemCatalogoId ? "bg-teal/10 text-teal" : "bg-line-soft text-[#8A8780]"
+                        it.itemCatalogoId ? "bg-teal/10 text-teal" : "bg-line-soft text-dim"
                       )}>
                         {it.itemCatalogoId ? (
                           <Layers size={11} />
@@ -1359,7 +1359,7 @@ export default function DetalheOrcamentoPage() {
                   </div>
                 </div>
                 <div className="min-w-[140px] flex-1 rounded-[10px] border border-line bg-cream px-3.5 py-2.5">
-                  <div className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em] text-[#A8A49C]">
+                  <div className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em] text-dim">
                     Restante
                   </div>
                   <div className="mt-1 text-base font-bold text-dark [font-variant-numeric:tabular-nums]">

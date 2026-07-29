@@ -352,7 +352,7 @@ export default function NovoItemCatalogoPage() {
           className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
           onClick={() => navigate(catalogoId ? `/catalogos/${catalogoId}` : '/catalogos')}
         >{catalogoInfo ? catalogoInfo.nome : 'Catálogos'}</span>
-        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <ChevronRight size={15} className="text-dim" />
         <span className="font-semibold text-body">{isEdicao ? 'Editar Item' : 'Novo Item'}</span>
       </div>
 
@@ -461,7 +461,7 @@ export default function NovoItemCatalogoPage() {
             </div>
             {customizacoes.length > 0 && (
               <div>
-                <div className="grid grid-cols-[1fr_110px_40px] gap-3 border-t border-line bg-cream px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+                <div className="grid grid-cols-[1fr_110px_40px] gap-3 border-t border-line bg-cream px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
                   <span>Customização</span><span>Quantidade</span><span />
                 </div>
                 {customizacoes.map(c => (
@@ -534,7 +534,7 @@ export default function NovoItemCatalogoPage() {
                 <div className="relative">
                   <span className={clsx(
                     'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-[#6B6860]'
+                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-dim'
                   )}>R$</span>
                   <input
                     value={precoVenda}

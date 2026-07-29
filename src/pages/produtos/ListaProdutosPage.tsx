@@ -103,7 +103,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
         </h3>
         <div className="mt-3.5 flex items-end justify-between gap-2.5 border-t border-cream pt-3.5">
           <div>
-            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-dim">
               {isCustom ? 'Valor adicional' : 'Preço de venda'}
             </div>
             <div className={clsx('mt-[3px] text-xl font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]', isCustom ? 'text-teal' : 'text-dark')}>
@@ -114,7 +114,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-dim">
               Estoque
             </div>
             {isCustom ? (
@@ -122,7 +122,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
             ) : (
               <div className={clsx(
                 'mt-[5px] inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold [font-variant-numeric:tabular-nums]',
-                semEstoque ? 'bg-line-soft text-[#9A968E]' : 'bg-teal/10 text-teal'
+                semEstoque ? 'bg-line-soft text-dim' : 'bg-teal/10 text-teal'
               )} style={{ height: 26 }}>
                 <Layers size={14} /> {p.estoqueAtual} un
               </div>
@@ -225,7 +225,7 @@ export default function ListaProdutosPage() {
               {c}
               <span className={clsx(
                 'rounded-full px-[7px] py-px text-[11.5px] font-bold opacity-85',
-                active ? 'bg-white/25 text-white' : 'bg-[#F1F0EC] text-[#9A968E]'
+                active ? 'bg-white/25 text-white' : 'bg-[#F1F0EC] text-dim'
               )}>
                 {counts(c)}
               </span>

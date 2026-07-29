@@ -37,7 +37,7 @@ function MetricCard({ icon, iconBg, iconColor, label, value, valueColor, sub }: 
   return (
     <Card padding="20px 22px" className="animate-[fadeUp_.45s_ease_both]">
       <div className="flex items-start justify-between gap-3">
-        <span className="text-[13.5px] font-medium text-[#8A8780]">{label}</span>
+        <span className="text-[13.5px] font-medium text-dim">{label}</span>
         <span
           className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl"
           style={{ background: iconBg, color: iconColor }}
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           <h1 className="m-0 text-[30px] font-bold tracking-[-0.025em] text-[#2D2A26]">
             Dashboard
           </h1>
-          <p className="mt-[7px] mb-0 text-[15px] leading-[1.5] text-[#8A8780]">
+          <p className="mt-[7px] mb-0 text-[15px] leading-[1.5] text-dim">
             Aqui está o resumo do seu negócio.
           </p>
         </div>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-[11px] flex flex-wrap gap-2">
                 {insumosEstoqueBaixo.slice(0, 6).map((ins) => (
-                  <span key={ins.id} className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#ECEAE5] bg-cream px-3 py-1.5 text-[13px] text-[#6B6860]">
+                  <span key={ins.id} className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#ECEAE5] bg-cream px-3 py-1.5 text-[13px] text-dim">
                     <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange" />
                     {ins.nome}
                     <strong className="font-semibold text-[#A35A26]">
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               </span>
               <div>
                 <div className="text-base font-bold text-[#2D2A26]">Orçamentos Recentes</div>
-                <div className="mt-px text-[13px] text-[#8A8780]">Últimas movimentações</div>
+                <div className="mt-px text-[13px] text-dim">Últimas movimentações</div>
               </div>
             </div>
 
@@ -223,13 +223,13 @@ export default function DashboardPage() {
                     className="flex cursor-pointer items-center justify-between rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px] transition-colors duration-150 hover:bg-cream"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex-shrink-0 text-[13px] font-bold text-[#6B6860]">
+                      <span className="flex-shrink-0 text-[13px] font-bold text-dim">
                         #{orc.numero}
                       </span>
                       <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-[#2D2A26]">
                         {orc.nomeCliente}
                       </span>
-                      <span className="flex-shrink-0 rounded-full bg-line-soft px-2 py-[3px] text-[11.5px] font-medium text-[#8A8780]">
+                      <span className="flex-shrink-0 rounded-full bg-line-soft px-2 py-[3px] text-[11.5px] font-medium text-dim">
                         {STATUS_LABEL[orc.status] ?? orc.status}
                       </span>
                     </div>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
               </span>
               <div>
                 <div className="text-base font-bold text-[#2D2A26]">Mais Vendidos</div>
-                <div className="mt-px text-[13px] text-[#8A8780]">Top produtos do período</div>
+                <div className="mt-px text-[13px] text-dim">Top produtos do período</div>
               </div>
             </div>
 
@@ -265,7 +265,7 @@ export default function DashboardPage() {
                   >
                     <span className={clsx(
                       'grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full text-xs font-bold',
-                      i === 0 ? 'bg-orange/[0.15] text-orange' : 'bg-line-soft text-[#8A8780]'
+                      i === 0 ? 'bg-orange/[0.15] text-orange' : 'bg-line-soft text-dim'
                     )}>
                       {i + 1}
                     </span>
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                         {prod.nomeProduto}
                       </div>
                     </div>
-                    <span className="flex-shrink-0 text-[13px] font-semibold text-[#6B6860]">
+                    <span className="flex-shrink-0 text-[13px] font-semibold text-dim">
                       {prod.quantidade} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
                     </span>
                   </div>

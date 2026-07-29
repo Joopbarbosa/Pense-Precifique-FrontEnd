@@ -109,7 +109,7 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
               inputMode="decimal"
               className={clsx(inputClass(!!fieldErrors.margem), 'pr-10')}
             />
-            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">%</span>
+            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">%</span>
           </div>
           {fieldErrors.margem && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.margem}</span>}
           <span className="mt-1.5 block text-xs text-muted">Itens sem preço ajustado manualmente recalculam automaticamente.</span>
@@ -348,7 +348,7 @@ export default function ListaCatalogosPage() {
 
       {/* BUSCA */}
       <div className="group relative mb-[18px] max-w-[420px]">
-        <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-[#A8A49C] group-focus-within:text-teal">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-dim group-focus-within:text-teal">
           <Search size={18} />
         </span>
         <input
@@ -390,7 +390,7 @@ export default function ListaCatalogosPage() {
                     className={clsx(
                       'flex select-none items-center gap-1 text-[11.5px] font-semibold uppercase tracking-[0.04em]',
                       col.campo ? 'cursor-pointer' : 'cursor-default',
-                      ativa ? 'text-teal' : 'text-[#A8A49C]'
+                      ativa ? 'text-teal' : 'text-dim'
                     )}
                   >
                     {col.label}

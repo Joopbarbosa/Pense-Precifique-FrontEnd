@@ -72,7 +72,7 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
   return (
     <div className="relative">
       {prefix && (
-        <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-[#6B6860]">
+        <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-dim">
           {prefix}
         </span>
       )}
@@ -84,7 +84,7 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
         className={clsx(inputBase, prefix ? 'pl-14' : 'pl-3.5', suffix ? 'pr-16' : 'pr-3.5')}
       />
       {suffix && (
-        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
           {suffix}
         </span>
       )}
@@ -121,7 +121,7 @@ function TipoSelector({ value, onChange }: { value: string; onChange: (v: string
               <span className={clsx('whitespace-nowrap text-sm font-bold', on ? 'text-[#1F7A6F]' : 'text-dark')}>{tp.v}</span>
               <span className={clsx(
                 'grid h-[18px] w-[18px] flex-shrink-0 place-items-center rounded-full border-[1.5px]',
-                on ? 'border-teal bg-teal' : 'border-[#CFCBC3] bg-white'
+                on ? 'border-teal bg-teal' : 'border-dim bg-white'
               )}>
                 {on && <Check size={11} strokeWidth={3} className="text-white" />}
               </span>
@@ -263,7 +263,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
-      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[#A8A49C]">{titulo}</div>
+      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
       {itens.map(i => (
         <button
           key={i.id}
@@ -272,7 +272,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         >
           <span className={clsx(
             'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
-            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-[#9A968E]'
+            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
           )}>
             <Box size={16} />
           </span>
@@ -345,7 +345,7 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
         inputMode={fracionavel ? 'decimal' : 'numeric'}
         className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
       />
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-[#A8A49C]">{un}</span>
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-dim">{un}</span>
     </div>
   )
 }
@@ -371,7 +371,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>
-        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
           <span>Componente</span><span>Quantidade</span><span className="text-right">Custo</span><span></span>
         </div>
         {ficha.length === 0 ? (
@@ -436,7 +436,7 @@ function MargemInput({ value, onChange }: { value: string; onChange: (v: string)
         inputMode="numeric"
         className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
       />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#A8A49C]">%</span>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-dim">%</span>
     </div>
   )
 }
@@ -448,7 +448,7 @@ function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChan
     <div className="relative">
       <span className={clsx(
         'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-        highlight ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-[#6B6860]'
+        highlight ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-dim'
       )}>R$</span>
       <input
         value={value}
@@ -493,7 +493,7 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
     <div className="flex items-baseline justify-between gap-2.5 py-[9px]">
       <span className="text-[13.2px] text-body">
         {label}
-        {sub && <span className="mt-px block text-[11.5px] text-[#A8A49C]">{sub}</span>}
+        {sub && <span className="mt-px block text-[11.5px] text-dim">{sub}</span>}
       </span>
       <span className="whitespace-nowrap text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{val}</span>
     </div>
@@ -562,7 +562,7 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
                         onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }}
                         className={clsx(
                           'h-[34px] flex-1 whitespace-nowrap rounded-[7px] border-none font-[inherit] text-xs font-semibold',
-                          on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-[#8A8780]'
+                          on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-dim'
                         )}
                       >{l}</button>
                     )
@@ -825,7 +825,7 @@ export default function CadastrarProdutoPage() {
         <span className="cursor-pointer font-medium hover:text-teal" onClick={() => navigate('/produtos')}>
           Produtos
         </span>
-        <ChevronRight size={15} className="text-[#CFCBC3]" />
+        <ChevronRight size={15} className="text-dim" />
         <span className="whitespace-nowrap font-semibold text-body">
           {editando ? dados.nome || 'Editar Produto' : 'Novo Produto'}
         </span>
@@ -851,12 +851,12 @@ export default function CadastrarProdutoPage() {
               onClick={() => setAba(a.id)}
               className={clsx(
                 'relative flex items-center gap-[9px] whitespace-nowrap border-none bg-transparent px-[18px] py-3 font-[inherit] text-[14.5px] transition-colors duration-150',
-                on ? 'font-semibold text-teal' : 'font-medium text-[#8A8780] hover:text-body'
+                on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body'
               )}
             >
               <span className={clsx(
                 'grid h-6 w-6 place-items-center rounded-[7px] text-xs font-bold',
-                on ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-[#A8A49C]'
+                on ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
               )}>
                 {i + 1}
               </span>

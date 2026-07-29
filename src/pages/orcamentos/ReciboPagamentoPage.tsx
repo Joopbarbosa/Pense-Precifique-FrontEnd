@@ -27,7 +27,7 @@ const fmtDate = (iso?: string) => {
 
 function DocLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#B0ACA4]">
+    <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-dim">
       {children}
     </div>
   )
@@ -135,7 +135,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
             </div>
           </div>
           <div>
-            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-[#9A968E]">Data do pagamento</div>
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-dim">Data do pagamento</div>
             <div className="mt-[3px] text-sm font-semibold text-dark">{dataPagamento}</div>
           </div>
         </div>
@@ -147,15 +147,15 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Item</th>
-              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Customização</th>
-              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9A968E]">Qtd</th>
+              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Item</th>
+              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Customização</th>
+              <th className="border-b-[1.5px] border-teal px-2.5 pb-[9px] text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-dim">Qtd</th>
             </tr>
           </thead>
           <tbody>
             {orcamento.itens.length === 0 ? (
               <tr>
-                <td colSpan={3} className="border-b border-[#F0EEE9] px-2.5 py-[13px] text-center align-top text-[13.5px] text-[#B0ACA4]">Nenhum item</td>
+                <td colSpan={3} className="border-b border-[#F0EEE9] px-2.5 py-[13px] text-center align-top text-[13.5px] text-dim">Nenhum item</td>
               </tr>
             ) : (
               orcamento.itens.map((it, i) => (
@@ -181,7 +181,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
             {orcamento.sinalAtivo && valorSinal > 0 && (
               <div className="flex items-center justify-between px-3 py-2 text-[13.5px]">
                 <span className="flex items-center gap-1.5 text-body">
-                  Entrada já paga <span className="text-xs text-[#9A968E]">em {dataSinal}</span>
+                  Entrada já paga <span className="text-xs text-dim">em {dataSinal}</span>
                 </span>
                 <span className="font-bold text-teal [font-variant-numeric:tabular-nums]">− {BRL(valorSinal)}</span>
               </div>
@@ -206,11 +206,11 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
 
       {/* RODAPÉ */}
       <div className="mt-auto pt-[30px]">
-        <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-[11.5px] leading-[1.6] text-[#9A968E]">
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EEE9] pt-[18px] text-[11.5px] leading-[1.6] text-dim">
           <BadgeCheck size={15} className="flex-shrink-0 text-[#2E9E60]" />
           Este recibo confirma a quitação total do pedido. Gerado pelo sistema
-          <strong className="ml-[3px] font-semibold text-[#6B6860]">Pense &amp; Precifique</strong>
-          em <strong className="ml-[3px] font-semibold text-[#6B6860]">{emissao}</strong>.
+          <strong className="ml-[3px] font-semibold text-dim">Pense &amp; Precifique</strong>
+          em <strong className="ml-[3px] font-semibold text-dim">{emissao}</strong>.
         </div>
       </div>
 
@@ -295,17 +295,17 @@ export default function ReciboPagamentoPage() {
       <div className="flex-shrink-0 border-b border-line bg-white px-7 py-3.5">
         <div className="mx-auto flex max-w-[820px] flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
-            <div className="mb-1.5 flex flex-wrap items-center gap-[7px] text-[12.5px] text-[#9A968E]">
+            <div className="mb-1.5 flex flex-wrap items-center gap-[7px] text-[12.5px] text-dim">
               <span
                 className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
                 onClick={() => navigate('/orcamentos')}
               >Orçamentos</span>
-              <ChevronRight size={15} className="flex-shrink-0 text-[#CFCBC3]" />
+              <ChevronRight size={15} className="flex-shrink-0 text-dim" />
               <span
                 className="cursor-pointer font-medium transition-colors duration-150 hover:text-teal"
                 onClick={() => navigate(`/orcamentos/${id}`)}
               >Detalhe do orçamento</span>
-              <ChevronRight size={15} className="flex-shrink-0 text-[#CFCBC3]" />
+              <ChevronRight size={15} className="flex-shrink-0 text-dim" />
               <span className="whitespace-nowrap font-semibold text-body">Recibo de Pagamento</span>
             </div>
             <div className="flex flex-wrap items-center gap-3">

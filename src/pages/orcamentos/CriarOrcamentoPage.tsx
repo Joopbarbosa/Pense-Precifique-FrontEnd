@@ -194,7 +194,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
             {origemLabel && (
               <span className={clsx(
                 'inline-flex h-[22px] items-center gap-[5px] whitespace-nowrap rounded-full px-[9px] text-[11.5px] font-semibold',
-                item.itemCatalogoId ? 'bg-teal/10 text-teal' : 'bg-line-soft text-[#8A8780]'
+                item.itemCatalogoId ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim'
               )}>
                 {item.itemCatalogoId ? <Layers size={11} /> : <Box size={11} />}
                 {origemLabel}
@@ -227,7 +227,7 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
           <SlidersHorizontal size={15} /> Customizações{item.customs.length ? ` (${item.customs.length})` : ''}
         </button>
         {item.customs.map((c, k) => (
-          <span key={k} className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line bg-white px-[11px] text-[12.5px] text-[#6B6860]">
+          <span key={k} className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line bg-white px-[11px] text-[12.5px] text-dim">
             <Tag size={17} className="text-orange" />
             {c.nome} <strong className="font-semibold text-[#A35A26]">+{BRL(c.valor)}/un</strong>
           </span>
@@ -354,7 +354,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                   </span>
                   <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
                 </div>
-                <span className={clsx('text-sm font-semibold', on ? 'text-orange' : 'text-[#6B6860]')}>
+                <span className={clsx('text-sm font-semibold', on ? 'text-orange' : 'text-dim')}>
                   +{BRL(c.valor)}/un
                 </span>
               </button>
@@ -594,7 +594,7 @@ function PagamentoSection({
                   onClick={() => setAtivo(val)}
                   className={clsx(
                     'h-10 w-[60px] border-none font-[inherit] text-sm font-semibold transition-colors duration-150',
-                    on ? (val ? 'bg-teal text-white' : 'bg-line-soft text-body') : 'bg-white text-[#A8A49C]'
+                    on ? (val ? 'bg-teal text-white' : 'bg-line-soft text-body') : 'bg-white text-dim'
                   )}
                 >{lbl}</button>
               )
@@ -612,7 +612,7 @@ function PagamentoSection({
                     onClick={() => setTipo(tp)}
                     className={clsx(
                       'h-[46px] w-[46px] border-none font-[inherit] text-sm font-semibold',
-                      tipo === tp ? 'bg-teal text-white' : 'bg-white text-[#8A8780]'
+                      tipo === tp ? 'bg-teal text-white' : 'bg-white text-dim'
                     )}
                   >{tp}</button>
                 ))}
@@ -694,7 +694,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
                   onClick={() => setDescTipo(tp)}
                   className={clsx(
                     'h-[42px] w-[42px] border-none font-[inherit] text-[13.5px] font-semibold',
-                    descTipo === tp ? 'bg-teal text-white' : 'bg-white text-[#8A8780]'
+                    descTipo === tp ? 'bg-teal text-white' : 'bg-white text-dim'
                   )}
                 >{tp}</button>
               ))}
@@ -881,7 +881,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
         {itensCatalogoFiltrados.length > 0 && (
           <div>
             {modo === 'tudo' && (
-              <div className="px-[11px] pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+              <div className="px-[11px] pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
                 Itens de catálogo
               </div>
             )}
@@ -904,7 +904,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
         )}
         {modo === 'tudo' && produtos.length > 0 && (
           <div>
-            <div className="px-[11px] pb-0.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A8A49C]">
+            <div className="px-[11px] pb-0.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
               Produtos avulsos
             </div>
             {produtos.map(p => (
@@ -913,7 +913,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                 onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
-                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-line-soft text-[#8A8780]">
+                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-line-soft text-dim">
                   <Box size={16} />
                 </span>
                 <div className="min-w-0 flex-1">

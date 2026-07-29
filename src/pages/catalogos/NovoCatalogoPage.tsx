@@ -102,7 +102,7 @@ export default function NovoCatalogoPage() {
           >
             Catálogos
           </span>
-          <ChevronRight size={15} className="text-[#CFCBC3]" />
+          <ChevronRight size={15} className="text-dim" />
           <span className="font-semibold text-body">Novo Catálogo</span>
         </div>
         <div className="flex items-center gap-[15px]">
@@ -139,7 +139,7 @@ export default function NovoCatalogoPage() {
                   onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
                   className={clsx(inputClass(!!fieldErrors.margem), 'pr-10')}
                 />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#A8A49C]">%</span>
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">%</span>
               </div>
               {fieldErrors.margem && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.margem}</span>}
             </Field>

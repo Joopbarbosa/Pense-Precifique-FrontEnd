@@ -50,6 +50,9 @@ export default {
         },
 
         // #139 — famílias de hex hardcoded sem token, formalizadas (P-FE-CORRIGE-022)
+        // Cinza-texto: consolida #A8A49C, #9A968E, #6B6860, #8A8780, #CFCBC3, #B0ACA4
+        // (média ponderada por frequência — distinto de `muted`, que não cobre bem os tons mais escuros da família).
+        dim: '#9A968E',
         // Quase-branco: consolida #FAF8F5, #FCFBF9, #FBFAF8, #F7F5F1, #F6F4F0, #F4F2EE, #FAF9F6
         // (valor mais frequente, coincide com a média ponderada).
         cream: '#FAF8F5',
