@@ -1,4 +1,5 @@
 import type { TipoProduto } from './index'
+import type { TipoExibicaoQuantidade } from './insumo'
 
 export type { TipoProduto }
 
@@ -15,6 +16,7 @@ export interface FichaTecnicaItemResponse {
   marcaInsumo?: string
   unidadeMedida?: string
   fracionavelInsumo?: boolean
+  tipoExibicaoQuantidade?: TipoExibicaoQuantidade | null
   produtoBaseId?: string
   nomeProdutoBase?: string
   quantidade: number

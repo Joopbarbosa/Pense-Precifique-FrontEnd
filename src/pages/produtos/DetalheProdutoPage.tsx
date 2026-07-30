@@ -14,6 +14,7 @@ import { tipoProdutoBadge } from '../../utils/badges'
 import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
 import { MOTIVOS_BAIXA_PRODUTO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
+import { formatQuantidade } from '../../utils/quantidade'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
@@ -554,7 +555,10 @@ export default function DetalheProdutoPage() {
                       </span>
                     </div>
                     <div className="mt-0.5 text-[12.5px] text-muted">
-                      {item.marcaInsumo ? item.marcaInsumo + ' · ' : ''}{item.quantidade} {item.unidadeMedida || 'un'}
+                      {item.marcaInsumo ? item.marcaInsumo + ' · ' : ''}
+                      {item.insumoId
+                        ? formatQuantidade(item.quantidade, item.fracionavelInsumo ?? true, item.tipoExibicaoQuantidade)
+                        : item.quantidade} {item.unidadeMedida || 'un'}
                     </div>
                   </div>
                   <span className="flex-shrink-0 whitespace-nowrap text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">

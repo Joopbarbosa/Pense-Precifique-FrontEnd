@@ -11,6 +11,7 @@ import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
 import type { ProducaoDetalhe, EstadoProducao } from '../../types/producao'
+import { formatQuantidade } from '../../utils/quantidade'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
@@ -275,7 +276,7 @@ export default function DetalheProducaoPage() {
                 <div key={i} className="flex items-center justify-between rounded-[10px] border border-line bg-cream px-3.5 py-3">
                   <span className="text-sm font-medium text-dark">{ic.nomeInsumo || ic.insumoId || '—'}</span>
                   <span className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
-                    {ic.quantidade} {ic.unidadeMedida || 'un'}
+                    {formatQuantidade(ic.quantidade, ic.fracionavel ?? true, ic.tipoExibicaoQuantidade)} {ic.unidadeMedida || 'un'}
                   </span>
                 </div>
               ))}

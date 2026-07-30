@@ -1,3 +1,5 @@
+import type { TipoExibicaoQuantidade } from './insumo'
+
 export type EstadoProducao =
   | 'AGUARDANDO_INICIO'
   | 'EM_ANDAMENTO'
@@ -58,6 +60,7 @@ export interface ProducaoDetalhe extends ProducaoResumo {
     estoqueAntes: number | null
     estoqueInsuficiente: boolean
     fracionavel: boolean | null
+    tipoExibicaoQuantidade?: TipoExibicaoQuantidade | null
   }[]
   producoesFilhas: { id: string; identificador: string; estado: EstadoProducao }[]
 }
