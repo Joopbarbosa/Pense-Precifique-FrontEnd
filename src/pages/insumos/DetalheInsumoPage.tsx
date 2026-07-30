@@ -7,7 +7,7 @@ import Spinner from '../../components/ui/Spinner'
 import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
-import { MOTIVOS_BAIXA_INSUMO } from '../../constants'
+import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade } from '../../utils/quantidade'
 
@@ -37,9 +37,8 @@ const hexA = (hex: string, a: number) => {
 function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; tipoDisplay: 'entrada' | 'saida' | 'estorno' } {
   if (m.motivo === 'ESTORNO_PRODUCAO') return { titulo: 'Estorno — Cancelamento Produção', tipoDisplay: 'estorno' }
   const labelsEntrada: Record<string, string> = { COMPRA: 'Compra' }
-  const labelsSaida: Record<string, string> = { BAIXA_MANUAL: 'Baixa manual', PRODUCAO: 'Produção', ORCAMENTO: 'Orçamento' }
   if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
-  return { titulo: `Saída — ${labelsSaida[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
+  return { titulo: `Saída — ${MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
 }
 
 function refText(m: MovimentacaoInsumoResponse): string {
