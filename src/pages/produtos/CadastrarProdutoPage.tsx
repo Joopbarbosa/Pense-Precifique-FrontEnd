@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useId } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -49,18 +49,26 @@ interface FichaItem extends ItemDb {
 
 // ---------- Field ----------
 
-function Field({ label, opt, required, children }: {
-  label: string; opt?: boolean; required?: boolean; children: React.ReactNode
+function Field({ label, opt, required, group, children }: {
+  label: string; opt?: boolean; required?: boolean; group?: boolean; children: React.ReactNode
 }) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[13.5px] font-semibold text-body">
+  const labelId = useId()
+  const content = (
+    <>
+      <span id={group ? labelId : undefined} className="mb-2 block text-[13.5px] font-semibold text-body">
         {label}{required && <span className="ml-[3px] text-orange">*</span>}
         {opt && <span className="ml-1.5 text-xs font-medium text-faint">(opcional)</span>}
       </span>
       {children}
-    </label>
+    </>
   )
+  // `group`: quando o campo agrupa múltiplos botões (ex. TipoSelector), evita envolver os
+  // botões num <label> — o HTML associa implicitamente o <label> só ao primeiro descendente
+  // labelable, fazendo esse botão herdar o texto do campo inteiro como nome acessível em vez
+  // do próprio texto. Um <div role="group"> rotulado via aria-labelledby não tem esse efeito.
+  return group
+    ? <div className="block" role="group" aria-labelledby={labelId}>{content}</div>
+    : <label className="block">{content}</label>
 }
 
 // ---------- TextInput ----------
@@ -164,7 +172,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
           </Field>
         </div>
         <div className="col-span-2">
-          <Field label="Tipo do produto" required>
+          <Field label="Tipo do produto" required group>
             <TipoSelector value={st.tipo} onChange={v => set('tipo', v)} />
           </Field>
         </div>
