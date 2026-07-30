@@ -1,8 +1,11 @@
+export type TipoExibicaoQuantidade = 'FRACAO' | 'DECIMAL'
+
 export interface InsumoRequest {
   nome: string
   marca?: string
   unidadeMedida: string
   fracionavel?: boolean
+  tipoExibicaoQuantidade?: TipoExibicaoQuantidade
   estoqueAtual?: number
   estoqueMinimo?: number
   permitirEstoqueNegativo?: boolean
@@ -13,6 +16,7 @@ export interface NovoInsumoRequest {
   marca?: string
   unidadeMedida: string
   fracionavel?: boolean
+  tipoExibicaoQuantidade?: TipoExibicaoQuantidade
   estoqueMinimo?: number
   precoTotalCompraInicial: number
   quantidadeCompradaInicial: number
@@ -27,6 +31,7 @@ export interface InsumoResponse {
   marca?: string
   unidadeMedida: string
   fracionavel: boolean
+  tipoExibicaoQuantidade: TipoExibicaoQuantidade | null
   permitirEstoqueNegativo: boolean
   custoUnitario: number
   estoqueAtual: number

@@ -8,7 +8,7 @@ import SectionTitle from '../../components/shared/SectionTitle'
 import Spinner from '../../components/ui/Spinner'
 import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
 import { insumoService } from '../../services/insumoService'
-import type { InsumoRequest, NovoInsumoRequest } from '../../types/insumo'
+import type { InsumoRequest, NovoInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { extractApiError } from '../../utils/apiError'
 
 const UNIDADES = ['Unidade', 'cm', 'g', 'ml', 'Folha']
@@ -91,6 +91,7 @@ export default function FormInsumoPage() {
   const [unidade, setUnidade] = useState('Folha')
   const [unidadeOpen, setUnidadeOpen] = useState(false)
   const [fracao, setFracao] = useState(false)
+  const [tipoExibicao, setTipoExibicao] = useState<TipoExibicaoQuantidade>('DECIMAL')
   const [estoque, setEstoque] = useState('')
   const [minimo, setMinimo] = useState('')
   const [precoCompra, setPrecoCompra] = useState('')
@@ -115,6 +116,7 @@ export default function FormInsumoPage() {
           const u = UNIDADES.find(u => u === data.unidadeMedida) ?? data.unidadeMedida
           setUnidade(u)
           setFracao(data.fracionavel ?? true)
+          setTipoExibicao(data.tipoExibicaoQuantidade ?? 'DECIMAL')
           setEstoque(data.estoqueAtual.toString())
           setMinimo(data.estoqueMinimo?.toString() ?? '')
           setCustoUnitarioExistente(data.custoUnitario)
@@ -175,6 +177,7 @@ export default function FormInsumoPage() {
           marca: marca.trim() || undefined,
           unidadeMedida: unidade,
           fracionavel: fracao,
+          tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
           permitirEstoqueNegativo,
         }
@@ -186,6 +189,7 @@ export default function FormInsumoPage() {
           marca: marca.trim() || undefined,
           unidadeMedida: unidade,
           fracionavel: fracao,
+          tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
           precoTotalCompraInicial: preco,
           quantidadeCompradaInicial: qComprada,
@@ -303,7 +307,7 @@ export default function FormInsumoPage() {
               </div>
             </Field>
             <Field
-              label="Pode ser usado em frações?"
+              label="Este item pode ser fracionado?"
               hint={fracao ? 'Permite consumo de 0,5g, por exemplo.' : 'Sempre será consumido em quantidades inteiras.'}
             >
               <div className="flex h-12 overflow-hidden rounded-input border-[1.5px] border-line">
@@ -324,6 +328,28 @@ export default function FormInsumoPage() {
                 ))}
               </div>
             </Field>
+            {fracao && (
+              <Field
+                label="Como exibir a quantidade?"
+                hint={tipoExibicao === 'FRACAO' ? 'Ex.: ⅓ folha.' : 'Ex.: 1ml de tinta.'}
+              >
+                <div className="flex h-12 overflow-hidden rounded-input border-[1.5px] border-line">
+                  {([['Decimal', 'DECIMAL'], ['Fração', 'FRACAO']] as [string, TipoExibicaoQuantidade][]).map(([lbl, val]) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => setTipoExibicao(val)}
+                      className={clsx(
+                        'flex-1 border-none font-[inherit] text-[14.5px] font-semibold transition-colors duration-150',
+                        tipoExibicao === val ? 'bg-teal text-white' : 'bg-white text-dim'
+                      )}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            )}
           </div>
         </div>
 

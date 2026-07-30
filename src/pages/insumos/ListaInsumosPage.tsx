@@ -19,6 +19,7 @@ import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
+import { formatQuantidade } from '../../utils/quantidade'
 
 interface ItemCarrinho {
   insumo: InsumoResponse
@@ -114,7 +115,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
       <div className="text-[13.5px] text-body">{insumo.unidadeMedida}</div>
 
       <div className={clsx('text-sm font-semibold [font-variant-numeric:tabular-nums]', low ? 'text-warning' : 'text-dark')}>
-        {insumo.estoqueAtual}
+        {formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)}
         {low && <span className="ml-[5px] text-[11px] text-[#E8973A]">⚠</span>}
       </div>
 
@@ -164,7 +165,7 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
           <div className="mt-2.5 flex flex-wrap gap-2">
             <InsumoStatusBadge insumo={insumo} small />
             <span className="flex items-center gap-1 text-[12.5px] text-body">
-              Estoque: <strong className={clsx('font-semibold', low ? 'text-warning' : 'text-dark')}>{insumo.estoqueAtual} {insumo.unidadeMedida}</strong>
+              Estoque: <strong className={clsx('font-semibold', low ? 'text-warning' : 'text-dark')}>{formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} {insumo.unidadeMedida}</strong>
             </span>
           </div>
         </div>

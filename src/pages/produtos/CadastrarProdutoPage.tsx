@@ -323,22 +323,18 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 
 function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: string; fracionavel: boolean; onChange: (v: string) => void }) {
   const maxFrac = fracionavel ? 2 : 0
+  // Estado local é a fonte da verdade do texto digitado — não resincroniza a partir de `value` a
+  // cada keystroke (o round-trip qtd -> num() -> toLocaleString() truncava "0,25" para "025"/"0"
+  // em insumo não-fracionável). `ficha` só popula este componente uma vez (no add ou no load de
+  // edição, antes do primeiro mount), então o valor inicial do useState já cobre os dois casos.
   const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
-
-  // Sync when value changes from outside (API load)
-  useEffect(() => {
-    setDisplay(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
-  }, [value, maxFrac])
 
   return (
     <div className="relative">
       <input
         value={display}
         onChange={e => {
-          let cleaned = e.target.value.replace(/[^\d.,]/g, '')
-          if (!fracionavel) {
-            cleaned = cleaned.replace(/[.,]/g, '')
-          }
+          const cleaned = e.target.value.replace(/[^\d.,]/g, '')
           setDisplay(cleaned)
           onChange(cleaned)
         }}

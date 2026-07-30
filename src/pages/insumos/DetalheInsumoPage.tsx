@@ -5,10 +5,11 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
-import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest } from '../../types/insumo'
+import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
+import { formatQuantidade } from '../../utils/quantidade'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -229,7 +230,10 @@ function HistTipo({ tipo, titulo }: { tipo: 'entrada' | 'saida' | 'estorno'; tit
   )
 }
 
-function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsumoResponse[]; unidade: string }) {
+function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade }: {
+  movimentacoes: MovimentacaoInsumoResponse[]; unidade: string
+  fracionavel: boolean; tipoExibicaoQuantidade: TipoExibicaoQuantidade | null
+}) {
   return (
     <>
       {movimentacoes.map(m => {
@@ -237,7 +241,7 @@ function HistRows({ movimentacoes, unidade }: { movimentacoes: MovimentacaoInsum
         const positivo = m.tipo === 'ENTRADA'
         const isEstorno = tipoDisplay === 'estorno'
         const deltaClass = positivo && !isEstorno ? 'text-success' : 'text-danger'
-        const deltaT = (positivo ? '+ ' : '− ') + m.quantidade + ` ${unidade}`
+        const deltaT = (positivo ? '+ ' : '− ') + formatQuantidade(m.quantidade, fracionavel, tipoExibicaoQuantidade) + ` ${unidade}`
         const riscado = m.estornada
         const ref = refText(m)
 
@@ -499,8 +503,8 @@ export default function DetalheInsumoPage() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
           {[
             { k: 'Unidade de medida',    v: insumo.unidadeMedida },
-            { k: 'Saldo atual',          v: `${insumo.estoqueAtual} ${insumo.unidadeMedida}`, big: true, warn: isLow },
-            { k: 'Estoque mínimo',       v: insumo.estoqueMinimo != null ? `${insumo.estoqueMinimo} ${insumo.unidadeMedida}` : '—' },
+            { k: 'Saldo atual',          v: `${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}`, big: true, warn: isLow },
+            { k: 'Estoque mínimo',       v: insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}` : '—' },
             { k: 'Custo unitário atual', v: `${moeda(insumo.custoUnitario, 2)} / ${insumo.unidadeMedida}`, accent: true },
           ].map((c, i) => (
             <div key={i} className="bg-white px-5 py-[18px]">
@@ -555,7 +559,7 @@ export default function DetalheInsumoPage() {
                 Nenhuma movimentação registrada ainda.
               </div>
             ) : (
-              <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida} />
+              <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida} fracionavel={insumo.fracionavel} tipoExibicaoQuantidade={insumo.tipoExibicaoQuantidade} />
             )}
           </>
         ) : (
