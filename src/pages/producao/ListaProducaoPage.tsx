@@ -21,6 +21,7 @@ import CancelarProducaoConsumoModal from '../../components/producao/CancelarProd
 import AgruparProducoesModal from '../../components/producao/AgruparProducoesModal'
 import ModalDivisao from '../../components/producao/ModalDivisao'
 import ConfirmarEstoqueNegativoModal from '../../components/producao/ConfirmarEstoqueNegativoModal'
+import ModalDetalheResumidoProducao from '../../components/producao/ModalDetalheResumidoProducao'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanColumn } from '../../components/kanban/KanbanBoard'
 
@@ -309,6 +310,7 @@ export default function ListaProducaoPage() {
   const [dataInicioAte, setDataInicioAte] = useState('')
 
   const [modal, setModal] = useState<{ tipo: TipoModal; producaoId: string } | null>(null)
+  const [detalheResumido, setDetalheResumido] = useState<ProducaoResumo | null>(null)
   const [modoAgrupamento, setModoAgrupamento] = useState(false)
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
   const [modalAgrupar, setModalAgrupar] = useState(false)
@@ -849,7 +851,7 @@ export default function ListaProducaoPage() {
                 items={kanbanProducoes}
                 getItemColumn={p => p.estado}
                 renderCard={(p, isDragging) => (
-                  <ProducaoKanbanCard producao={p} isDragging={isDragging} onClick={() => navigate(`/producao/${p.id}`)} />
+                  <ProducaoKanbanCard producao={p} isDragging={isDragging} onClick={() => setDetalheResumido(p)} />
                 )}
                 onDrop={handleKanbanDrop}
               />
@@ -881,6 +883,9 @@ export default function ListaProducaoPage() {
         </div>
       )}
 
+      {detalheResumido && (
+        <ModalDetalheResumidoProducao producao={detalheResumido} onClose={() => setDetalheResumido(null)} />
+      )}
       {modal?.tipo === 'iniciar' && (
         <IniciarProducaoModal producaoId={modal.producaoId} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
