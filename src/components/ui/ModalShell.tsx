@@ -61,14 +61,14 @@ export default function ModalShell({
               </span>
             )}
             <div className="min-w-0">
-              {subtitle && (
-                <div className="mb-0.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted">
-                  {subtitle}
-                </div>
-              )}
               <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[16.5px] font-bold text-dark">
                 {title}
               </div>
+              {subtitle && (
+                <div className="mt-0.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted">
+                  {subtitle}
+                </div>
+              )}
             </div>
           </div>
 
