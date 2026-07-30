@@ -276,6 +276,8 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
                 isEstorno ? 'italic text-danger-deep' : 'text-muted'
               )}>
                 <span className="[font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</span>
+                <span className="text-[#D8D4CC]">·</span>
+                <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario, 2) : '—'}</span>
                 {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
               </div>
               {m.observacao && (
