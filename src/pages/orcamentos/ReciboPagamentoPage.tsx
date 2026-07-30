@@ -12,7 +12,7 @@ import type { EmpresaResponse } from '../../types/empresa'
 
 // ── Constantes de cor ────────────────────────────────────────────────────────
 
-const GREEN = '#2E9E60'
+const SUCCESS_VARIANT_COLOR = '#2E9E60'
 
 const BRL = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -33,8 +33,8 @@ function DocLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function DocSectionTitle({ icon, color = GREEN, children }: { icon: React.ReactNode; color?: string; children: React.ReactNode }) {
-  const isGreen = color === GREEN
+function DocSectionTitle({ icon, color = SUCCESS_VARIANT_COLOR, children }: { icon: React.ReactNode; color?: string; children: React.ReactNode }) {
+  const isGreen = color === SUCCESS_VARIANT_COLOR
   return (
     <div className="mb-3.5 flex items-center gap-[9px]">
       <span className={clsx(
@@ -143,7 +143,7 @@ function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: Orcamento
 
       {/* DETALHES FINANCEIROS */}
       <div className="mt-6">
-        <DocSectionTitle icon={<ShoppingBag size={15} />} color={GREEN}>Detalhes financeiros</DocSectionTitle>
+        <DocSectionTitle icon={<ShoppingBag size={15} />} color={SUCCESS_VARIANT_COLOR}>Detalhes financeiros</DocSectionTitle>
         <table className="w-full border-collapse">
           <thead>
             <tr>
