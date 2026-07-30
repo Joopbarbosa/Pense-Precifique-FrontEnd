@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import Field from '../../components/ui/Field'
 import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
@@ -32,22 +33,6 @@ interface CustomizacaoItem {
   nome: string
   precoCusto: number
   quantidade: string
-}
-
-// ---------- Field ----------
-
-function Field({ label, required, children, hint }: {
-  label: string; required?: boolean; children: React.ReactNode; hint?: string
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[13.5px] font-semibold text-body">
-        {label}{required && <span className="ml-[3px] text-orange">*</span>}
-      </span>
-      {children}
-      {hint && <span className="mt-1.5 block text-xs text-muted">{hint}</span>}
-    </label>
-  )
 }
 
 const inputClass = (hasError?: boolean) => clsx(
@@ -386,7 +371,7 @@ export default function NovoItemCatalogoPage() {
                 <span className="cursor-pointer font-semibold text-teal" onClick={() => navigate('/catalogos/novo')}>Criar catálogo</span>
               </div>
             ) : (
-              <Field label="Catálogo" required>
+              <Field label="Catálogo" required size="md">
                 <select
                   value={catalogoId ?? ''}
                   onChange={e => {
@@ -407,7 +392,7 @@ export default function NovoItemCatalogoPage() {
 
           {/* Produto */}
           <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <Field label="Produto" required>
+            <Field label="Produto" required size="md">
               {produto ? (
                 <div className="flex items-center justify-between gap-2.5 rounded-input border-[1.5px] border-line bg-cream px-3.5 py-[11px]">
                   <div className="min-w-0">
@@ -431,7 +416,7 @@ export default function NovoItemCatalogoPage() {
 
           {/* Quantidade do pacote */}
           <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <Field label="Quantidade do pacote" required hint="Quantas unidades do produto compõem este item do catálogo.">
+            <Field label="Quantidade do pacote" required hint="Quantas unidades do produto compõem este item do catálogo." size="md">
               <div className="relative max-w-[160px]">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
                   <Box size={16} />

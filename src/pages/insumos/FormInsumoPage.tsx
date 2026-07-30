@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useId } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import Field from '../../components/ui/Field'
 import ModalShell from '../../components/ui/ModalShell'
 import SectionTitle from '../../components/shared/SectionTitle'
 import Spinner from '../../components/ui/Spinner'
@@ -21,30 +22,6 @@ const num = (v: string) => {
 }
 
 const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-
-function Field({ label, opt, hint, erro, group, children }: { label: string; opt?: boolean; hint?: string; erro?: string; group?: boolean; children: React.ReactNode }) {
-  const labelId = useId()
-  const content = (
-    <>
-      <span id={group ? labelId : undefined} className="mb-[7px] flex items-center gap-1.5 text-[13px] font-semibold text-body">
-        {label}
-        {opt && <span className="text-[11.5px] font-medium text-muted">(opcional)</span>}
-      </span>
-      {children}
-      {erro
-        ? <span className="mt-1.5 block text-[12.5px] text-danger-deep">{erro}</span>
-        : hint && <p className="mt-1.5 mb-0 text-xs leading-[1.5] text-muted">{hint}</p>
-      }
-    </>
-  )
-  // `group`: quando o campo agrupa múltiplos botões (ex. toggle Sim/Não), evita envolver os
-  // botões num <label> — o HTML associa implicitamente o <label> só ao primeiro descendente
-  // labelable, fazendo esse botão herdar o texto do campo inteiro como nome acessível em vez
-  // do próprio texto. Um <div role="group"> rotulado via aria-labelledby não tem esse efeito.
-  return group
-    ? <div className="block" role="group" aria-labelledby={labelId}>{content}</div>
-    : <label className="block">{content}</label>
-}
 
 function DesativarModal({ onClose }: { onClose: () => void }) {
   const fichas = [

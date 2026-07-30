@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import Field from '../../components/ui/Field'
 import SectionTitle from '../../components/shared/SectionTitle'
 import { ChevronRight, Files, Save } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
@@ -12,17 +13,6 @@ import type { CatalogoRequest } from '../../types/catalogo'
 const num = (v: string) => {
   const n = parseFloat(v.replace(',', '.'))
   return isNaN(n) ? 0 : n
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-[7px] block text-[13px] font-semibold text-body">
-        {label}
-      </span>
-      {children}
-    </label>
-  )
 }
 
 const inputClass = (hasError?: boolean) => clsx(

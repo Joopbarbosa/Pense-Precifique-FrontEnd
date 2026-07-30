@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useId } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button } from '../../components/ui'
+import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2, Calculator, Sparkles,
@@ -45,30 +45,6 @@ interface ItemDb {
 
 interface FichaItem extends ItemDb {
   qtd: number
-}
-
-// ---------- Field ----------
-
-function Field({ label, opt, required, group, children }: {
-  label: string; opt?: boolean; required?: boolean; group?: boolean; children: React.ReactNode
-}) {
-  const labelId = useId()
-  const content = (
-    <>
-      <span id={group ? labelId : undefined} className="mb-2 block text-[13.5px] font-semibold text-body">
-        {label}{required && <span className="ml-[3px] text-orange">*</span>}
-        {opt && <span className="ml-1.5 text-xs font-medium text-faint">(opcional)</span>}
-      </span>
-      {children}
-    </>
-  )
-  // `group`: quando o campo agrupa múltiplos botões (ex. TipoSelector), evita envolver os
-  // botões num <label> — o HTML associa implicitamente o <label> só ao primeiro descendente
-  // labelable, fazendo esse botão herdar o texto do campo inteiro como nome acessível em vez
-  // do próprio texto. Um <div role="group"> rotulado via aria-labelledby não tem esse efeito.
-  return group
-    ? <div className="block" role="group" aria-labelledby={labelId}>{content}</div>
-    : <label className="block">{content}</label>
 }
 
 // ---------- TextInput ----------
@@ -166,17 +142,17 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
     <div className="max-w-[760px] animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="grid grid-cols-2 gap-x-6 gap-y-[22px]">
         <div className="col-span-2">
-          <Field label="Nome do produto" required>
+          <Field label="Nome do produto" required size="md">
             <TextInput value={st.nome} onChange={v => set('nome', v)} placeholder="Ex: Kit Convite Casamento" />
             {nomeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{nomeErro}</span>}
           </Field>
         </div>
         <div className="col-span-2">
-          <Field label="Tipo do produto" required group>
+          <Field label="Tipo do produto" required group size="md">
             <TipoSelector value={st.tipo} onChange={v => set('tipo', v)} />
           </Field>
         </div>
-        <Field label="Tempo de produção" required>
+        <Field label="Tempo de produção" required size="md">
           <TextInput value={st.tempo} onChange={v => set('tempo', v.replace(/[^\d]/g, ''))} placeholder="45" suffix="minutos" inputMode="numeric" />
           <span className="mt-1.5 block text-xs text-muted">Tempo para produzir o lote inteiro, não a unidade.</span>
         </Field>
@@ -184,7 +160,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
           <ConfiguracoesEstoque permitir={permitirEstoqueNegativo} setPermitir={setPermitirEstoqueNegativo} erro={estoqueNegativoErro} />
         </div>
         <div className="col-span-2">
-          <Field label="Descrição" opt>
+          <Field label="Descrição" opt size="md">
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
           </Field>
         </div>
