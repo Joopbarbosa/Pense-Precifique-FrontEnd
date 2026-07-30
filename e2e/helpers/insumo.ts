@@ -57,6 +57,29 @@ export async function criarInsumoFracionavel(
   return res.json()
 }
 
+/**
+ * Baixa manual direta via API — usado no Cenário 229 (#195) para montar massa de dados de
+ * histórico com cada motivo de saída sem depender do `BaixaModal` de UI (que já tem cobertura
+ * própria fora deste cenário). Observação precisa ter >= 30 caracteres (RN-035/#127).
+ */
+export async function baixaManualInsumo(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO',
+  quantidade: number,
+  observacao: string
+) {
+  const res = await request.post(`${API_URL}/insumos/${id}/baixa-manual`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { quantidade, motivo, observacao },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao registrar baixa manual (${motivo}) de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 /** PUT exige o corpo completo (nome/unidadeMedida obrigatórios de novo) — busca o insumo atual antes de mesclar. */
 export async function definirPermitirNegativo(
   request: APIRequestContext,
