@@ -29,6 +29,11 @@ const ESTADO_LABEL_SIMPLES: Record<string, string> = {
   NAO_REALIZADA: 'Não realizada',
 }
 
+const ORIGEM_LABEL: Record<string, string> = {
+  USUARIO: 'Artesã',
+  SISTEMA: 'Sistema',
+}
+
 function fmtData(iso: string | null): string {
   if (!iso) return '—'
   return iso.split('T')[0].split('-').reverse().join('/')
@@ -294,7 +299,7 @@ export default function DetalheProducaoPage() {
                     <span>{ESTADO_LABEL_SIMPLES[h.statusNovo] ?? h.statusNovo}</span>
                   </div>
                   <div className="mt-0.5 text-[12.5px] text-muted">
-                    {fmtDataHora(h.dataTransicao)} · <span className="uppercase tracking-[0.03em]">{h.origem}</span>
+                    {fmtDataHora(h.dataTransicao)} · <span className="uppercase tracking-[0.03em]">{ORIGEM_LABEL[h.origem] ?? h.origem}</span>
                   </div>
                   {h.justificativa && (
                     <p className="m-0 mt-1 text-[13px] leading-[1.5] text-body">{h.justificativa}</p>
