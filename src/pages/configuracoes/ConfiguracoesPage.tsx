@@ -100,7 +100,12 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
 
 /* ── PerfilCard ──────────────────────────────────────────────── */
 
-function PerfilCard({ nome, email }: { nome?: string; email?: string }) {
+function PerfilCard({ nome, email, configurada, onEditarPerfil }: {
+  nome?: string
+  email?: string
+  configurada: boolean
+  onEditarPerfil: () => void
+}) {
   const dots: [string, string, number, string][] = [
     ['18%', '40%', 5, '#F97316'],
     ['82%', '30%', 6, '#2A9D8F'],
@@ -121,11 +126,33 @@ function PerfilCard({ nome, email }: { nome?: string; email?: string }) {
             <img src="/logo.png" width={42} height={42} alt="Logo" className="object-contain" />
           </span>
         </div>
-        <h3 className="mt-[13px] text-[17px] font-bold tracking-[-0.01em] text-dark">{nome || '—'}</h3>
-        <p className="mt-[3px] text-[13.5px] text-muted">{email || ''}</p>
-        <button className="group mt-4 inline-flex items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 font-[inherit] text-[13.5px] font-semibold text-teal transition-[gap] duration-150 hover:gap-2.5">
-          Editar perfil <ArrowRight size={17} />
-        </button>
+        {configurada ? (
+          <>
+            <h3 className="mt-[13px] text-[17px] font-bold tracking-[-0.01em] text-dark">{nome}</h3>
+            <p className="mt-[3px] text-[13.5px] text-muted">{email || ''}</p>
+            <button
+              onClick={onEditarPerfil}
+              className="group mt-4 inline-flex items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 font-[inherit] text-[13.5px] font-semibold text-teal transition-[gap] duration-150 hover:gap-2.5"
+            >
+              Editar perfil <ArrowRight size={17} />
+            </button>
+          </>
+        ) : (
+          <>
+            <h3 className="mt-[13px] text-[15px] font-bold leading-[1.35] tracking-[-0.01em] text-dark">
+              Você ainda não cadastrou os dados da sua empresa
+            </h3>
+            <p className="mt-[5px] text-[12.5px] leading-[1.5] text-muted">
+              Nome, contato e logo aparecem nos PDFs e recibos enviados às clientes.
+            </p>
+            <button
+              onClick={onEditarPerfil}
+              className="group mt-4 inline-flex items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 font-[inherit] text-[13.5px] font-semibold text-teal transition-[gap] duration-150 hover:gap-2.5"
+            >
+              Cadastrar dados da empresa <ArrowRight size={17} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -140,6 +167,8 @@ function Precificacao({
   saving,
   empresaNome,
   empresaEmail,
+  empresaConfigurada,
+  onEditarPerfil,
 }: {
   initialValorHora: number
   initialMargemPadrao: number
@@ -147,6 +176,8 @@ function Precificacao({
   saving: boolean
   empresaNome?: string
   empresaEmail?: string
+  empresaConfigurada: boolean
+  onEditarPerfil: () => void
 }) {
   const [hora, setHora] = useState(formatHora(initialValorHora))
   const [margem, setMargem] = useState(formatMargem(initialMargemPadrao))
@@ -244,7 +275,7 @@ function Precificacao({
         </div>
       </div>
 
-      <PerfilCard nome={empresaNome} email={empresaEmail} />
+      <PerfilCard nome={empresaNome} email={empresaEmail} configurada={empresaConfigurada} onEditarPerfil={onEditarPerfil} />
       {toast && (
         <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
           {toast}
@@ -543,6 +574,8 @@ export default function ConfiguracoesPage() {
               saving={savingPrecif}
               empresaNome={empresa?.nome}
               empresaEmail={empresa?.email}
+              empresaConfigurada={!!empresa}
+              onEditarPerfil={() => setAba('perfil')}
             />
           )}
           {aba === 'perfil' && (
