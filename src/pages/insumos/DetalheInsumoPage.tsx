@@ -242,7 +242,9 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
               <div className={clsx('whitespace-nowrap text-sm font-bold [font-variant-numeric:tabular-nums]', deltaClass, riscado && 'line-through')}>
                 {deltaT}
               </div>
-              <div className={clsx('text-[13.5px] text-dark [font-variant-numeric:tabular-nums]', riscado && 'line-through')}>—</div>
+              <div className={clsx('text-[13.5px] text-dark [font-variant-numeric:tabular-nums]', riscado && 'line-through')}>
+                {m.custoUnitario != null ? moeda(m.custoUnitario, 2) : '—'}
+              </div>
               <div className={clsx(
                 'text-[13px]',
                 isEstorno ? 'whitespace-normal italic text-danger-deep' : 'overflow-hidden text-ellipsis whitespace-nowrap text-muted'

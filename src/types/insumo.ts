@@ -52,6 +52,7 @@ export interface MovimentacaoInsumoResponse {
   tipo: 'ENTRADA' | 'SAIDA'
   motivo: string
   quantidade: number
+  custoUnitario?: number | null
   observacao?: string
   referenciaId?: string
   referenciaTipo?: string
