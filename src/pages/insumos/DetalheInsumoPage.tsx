@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
@@ -45,29 +46,6 @@ function refText(m: MovimentacaoInsumoResponse): string {
   const labels: Record<string, string> = { PRODUCAO: 'Produção', ORCAMENTO: 'Orçamento', LOTE_COMPRA: 'Compra' }
   if (m.referenciaTipo && m.referenciaId) return `${labels[m.referenciaTipo] ?? m.referenciaTipo} #${m.referenciaId.slice(0, 8)}`
   return ''
-}
-
-function ModalHead({ icon, tint, title, sub, onClose }: { icon: React.ReactNode; tint: string; title: string; sub?: string; onClose: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-5">
-      <div className="flex min-w-0 items-center gap-[13px]">
-        <span className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl" style={{ background: hexA(tint, 0.12), color: tint }}>
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <div className="text-[16.5px] font-bold tracking-[-0.01em] text-dark">{title}</div>
-          {sub && <div className="mt-0.5 text-[12.5px] text-muted">{sub}</div>}
-        </div>
-      </div>
-      <button
-        onClick={onClose}
-        aria-label="Fechar"
-        className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle hover:bg-line-deep"
-      >
-        <X size={20} />
-      </button>
-    </div>
-  )
 }
 
 function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
@@ -113,102 +91,107 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
   }
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]">
-      <div onClick={e => e.stopPropagation()} className="flex max-h-[92vh] w-[min(500px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
-
-        <ModalHead icon={<Minus size={17} />} tint="#C8721F" title="Baixa manual" sub="Registra uma saída fora de produção." onClose={onClose} />
-
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-[22px]">
-          <div className="grid grid-cols-2 gap-4">
-            <label>
-              <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade *</span>
-              <div className="relative">
-                <input
-                  value={qtd}
-                  onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
-                  inputMode="decimal"
-                  placeholder="3"
-                  className={clsx(inputBase, 'pr-[62px]')}
-                />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                  {unidade}
-                </span>
-              </div>
-            </label>
-            <label>
-              <span className="mb-[7px] block text-[13px] font-semibold text-body">Motivo *</span>
-              <div ref={selRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setSelOpen(o => !o)}
-                  className={clsx(
-                    inputBase,
-                    'flex cursor-pointer items-center justify-between text-left',
-                    selOpen && 'border-teal ring-4 ring-teal/[0.12]'
-                  )}
-                >
-                  {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
-                </button>
-                {selOpen && (
-                  <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-                    {MOTIVOS_BAIXA_INSUMO.map(m => (
-                      <button
-                        key={m.api}
-                        type="button"
-                        onClick={() => { setMotivo(m.api as BaixaManualInsumoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
-                        className={clsx(
-                          'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
-                        )}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </label>
-          </div>
-          <label>
-            <span className="mb-[7px] block text-[13px] font-semibold text-body">
-              Observação <span className="text-orange">*</span>
-              <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
-                {obs.length}/30 caracteres mín.
-              </span>
-            </span>
-            <textarea
-              value={obs}
-              onChange={e => setObs(e.target.value)}
-              placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
-              rows={3}
-              className={clsx(
-                'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-                obs.length > 0 && obs.length < 30
-                  ? 'border-[#F2B8A6]'
-                  : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-              )}
-            />
-            {obs.length > 0 && obs.length < 30 && (
-              <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-                <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
-              </div>
-            )}
-          </label>
-          {error && (
-            <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
-              {error}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-[11px] border-t border-line px-6 py-4">
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Baixa manual"
+      subtitle="Registra uma saída fora de produção."
+      icon={<Minus size={17} />}
+      iconBg={hexA('#C8721F', 0.12)}
+      iconColor="#C8721F"
+      width={500}
+      footer={
+        <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar || loading} onClick={handleSubmit}>
             {loading ? 'Registrando…' : 'Registrar baixa'}
           </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <label>
+            <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade *</span>
+            <div className="relative">
+              <input
+                value={qtd}
+                onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
+                inputMode="decimal"
+                placeholder="3"
+                className={clsx(inputBase, 'pr-[62px]')}
+              />
+              <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
+                {unidade}
+              </span>
+            </div>
+          </label>
+          <label>
+            <span className="mb-[7px] block text-[13px] font-semibold text-body">Motivo *</span>
+            <div ref={selRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setSelOpen(o => !o)}
+                className={clsx(
+                  inputBase,
+                  'flex cursor-pointer items-center justify-between text-left',
+                  selOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                )}
+              >
+                {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
+              </button>
+              {selOpen && (
+                <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+                  {MOTIVOS_BAIXA_INSUMO.map(m => (
+                    <button
+                      key={m.api}
+                      type="button"
+                      onClick={() => { setMotivo(m.api as BaixaManualInsumoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
+                      className={clsx(
+                        'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
+                        m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </label>
         </div>
+        <label>
+          <span className="mb-[7px] block text-[13px] font-semibold text-body">
+            Observação <span className="text-orange">*</span>
+            <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
+              {obs.length}/30 caracteres mín.
+            </span>
+          </span>
+          <textarea
+            value={obs}
+            onChange={e => setObs(e.target.value)}
+            placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
+            rows={3}
+            className={clsx(
+              'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
+              obs.length > 0 && obs.length < 30
+                ? 'border-[#F2B8A6]'
+                : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+            )}
+          />
+          {obs.length > 0 && obs.length < 30 && (
+            <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
+              <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
+            </div>
+          )}
+        </label>
+        {error && (
+          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
+            {error}
+          </p>
+        )}
       </div>
-    </div>
+    </ModalShell>
   )
 }
 
@@ -569,7 +552,7 @@ export default function DetalheInsumoPage() {
       {aba === 'historico' && (
         <div className="mt-[13px] flex flex-col items-center gap-3">
           <div className="w-full text-right text-[12.5px] text-muted">
-            {movimentacoes.length} movimentações
+            {movimentacoes.length} movimentaç{movimentacoes.length === 1 ? 'ão' : 'ões'}
           </div>
           {histHasNext && (
             <button
