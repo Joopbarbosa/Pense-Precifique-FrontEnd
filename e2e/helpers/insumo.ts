@@ -26,6 +26,37 @@ export async function criarInsumoComEstoque(
   return res.json()
 }
 
+/**
+ * Insumo fracionável com `tipoExibicaoQuantidade` explícito — usado pela homologação do
+ * Cenário 226 (RN-NOVA-1, glifo de fração em `ConsumoRealSection`/`DetalheProducaoPage`).
+ * Diferente de `criarInsumoComEstoque`, que sempre cria `fracionavel: false`.
+ */
+export async function criarInsumoFracionavel(
+  request: APIRequestContext,
+  token: string,
+  nome: string,
+  estoqueInicial: number,
+  tipoExibicaoQuantidade: 'FRACAO' | 'DECIMAL'
+) {
+  const res = await request.post(`${API_URL}/insumos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      nome,
+      unidadeMedida: 'unidade',
+      fracionavel: true,
+      tipoExibicaoQuantidade,
+      estoqueMinimo: 0.1,
+      precoTotalCompraInicial: Math.max(estoqueInicial, 1) * 10,
+      quantidadeCompradaInicial: Math.max(estoqueInicial, 0.01),
+      permitirEstoqueNegativo: false,
+    },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar insumo fracionável de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 /** PUT exige o corpo completo (nome/unidadeMedida obrigatórios de novo) — busca o insumo atual antes de mesclar. */
 export async function definirPermitirNegativo(
   request: APIRequestContext,
