@@ -53,7 +53,7 @@ function DocSectionTitle({ icon, color = GREEN, children }: { icon: React.ReactN
 // ── DocumentoReciboPagamento ─────────────────────────────────────────────────
 
 function DocumentoReciboPagamento({ orcamento, empresa }: { orcamento: OrcamentoDetalheResponse; empresa: EmpresaResponse | null }) {
-  const numeroFormatado = `#${String(orcamento.numero).padStart(4, '0')}`
+  const numeroFormatado = `#${orcamento.numero}`
   const emissao = fmtDate(orcamento.updatedAt)
   const dataPagamento = fmtDate(orcamento.updatedAt)
   const dataSinal = fmtDate(orcamento.dataSinalPago)

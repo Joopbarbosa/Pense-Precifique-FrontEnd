@@ -835,7 +835,7 @@ function ModalCancelEstorno({
                   ["Cliente", nomeCliente],
                   ["Valor do estorno", BRL(valorSinal)],
                   ["Data do estorno", dataEstorno.split("-").reverse().join("/")],
-                  ["Orçamento", `#${String(orcamento.numero).padStart(4, "0")}`],
+                  ["Orçamento", `#${orcamento.numero}`],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -1137,7 +1137,7 @@ export default function DetalheOrcamentoPage() {
           </button>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="m-0 text-[25px] font-bold tracking-[-0.025em] text-dark">
-              #{String(orcamento.numero).padStart(4, "0")} — {orcamento.nomeCliente}
+              #{orcamento.numero} — {orcamento.nomeCliente}
             </h1>
             <span
               className="inline-flex h-[30px] items-center gap-[7px] rounded-full px-[13px] text-[13px] font-semibold"

@@ -51,7 +51,7 @@ function DocumentoPDF({ orcamento, sinal, empresa }: { orcamento: OrcamentoDetal
         </div>
         <div className="flex-shrink-0 text-right">
           <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal">Orçamento</div>
-          <div className="text-2xl font-bold leading-[1.1] tracking-[-0.02em] text-dark">#{String(orcamento.numero).padStart(4, '0')}</div>
+          <div className="text-2xl font-bold leading-[1.1] tracking-[-0.02em] text-dark">#{orcamento.numero}</div>
         </div>
       </div>
 
@@ -318,7 +318,7 @@ export default function PreviewPdfPage() {
                 onClick={() => navigate(`/orcamentos/${orcamento.id}`)}
                 className="cursor-pointer whitespace-nowrap border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-150 hover:text-teal"
               >
-                #{String(orcamento.numero).padStart(4, '0')} — {orcamento.nomeCliente}
+                #{orcamento.numero} — {orcamento.nomeCliente}
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-3">
