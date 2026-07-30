@@ -286,15 +286,9 @@ export default function NovaProducaoPage() {
 
     let quantidade = existente ? existente.quantidade + 1 : 1
     let quantidadeTravada = false
-    try {
-      const detalhe = await produtoService.buscarPorId(produto.id)
-      if (detalhe.algumInsumoNaoFracionavel) {
-        quantidadeTravada = true
-        quantidade = detalhe.rendimento ?? 1
-      }
-    } catch {
-      setToast('Não foi possível verificar a ficha técnica do produto. Tente novamente.')
-      return
+    if (produto.algumInsumoNaoFracionavel) {
+      quantidadeTravada = true
+      quantidade = produto.rendimento ?? 1
     }
 
     const candidato = existente

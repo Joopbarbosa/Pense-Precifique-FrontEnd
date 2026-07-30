@@ -51,6 +51,7 @@ export interface ProdutoResponse {
   estoqueMinimo?: number
   permitirEstoqueNegativo: boolean
   ativo: boolean
+  algumInsumoNaoFracionavel?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -58,7 +59,6 @@ export interface ProdutoResponse {
 export interface ProdutoDetalheResponse extends ProdutoResponse {
   descricao?: string
   tempoProducao: number
-  algumInsumoNaoFracionavel?: boolean
   fichaTecnica: FichaTecnicaItemResponse[]
 }
 
