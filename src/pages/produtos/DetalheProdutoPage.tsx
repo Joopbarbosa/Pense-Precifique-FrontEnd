@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import {
   X, Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
@@ -136,117 +137,107 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   }
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]">
-      <div onClick={e => e.stopPropagation()} className="flex max-h-[92vh] w-[min(500px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
-
-        <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-5">
-          <div className="flex min-w-0 items-center gap-[13px]">
-            <span className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl bg-orange/[0.12] text-orange">
-              <Minus size={17} />
-            </span>
-            <div className="min-w-0">
-              <div className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold tracking-[-0.01em] text-dark">
-                Baixa manual — {nomeProduto}
-              </div>
-              <div className="mt-0.5 text-[12.5px] text-muted">Registra uma saída fora de produção.</div>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Fechar" className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle hover:bg-line-deep">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-[22px]">
-          <div className="grid grid-cols-2 gap-4">
-            <label>
-              <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade a subtrair *</span>
-              <div className="relative">
-                <input
-                  value={qtd}
-                  onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
-                  inputMode="decimal"
-                  placeholder="1"
-                  className={clsx(inputBase, 'pr-20')}
-                />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">unidades</span>
-              </div>
-            </label>
-            <label>
-              <span className="mb-[7px] block text-[13px] font-semibold text-body">Motivo *</span>
-              <div ref={selRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setSelOpen(o => !o)}
-                  className={clsx(
-                    inputBase,
-                    'flex cursor-pointer items-center justify-between text-left',
-                    selOpen && 'border-teal ring-4 ring-teal/[0.12]'
-                  )}
-                >
-                  {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
-                </button>
-                {selOpen && (
-                  <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-                    {MOTIVOS_BAIXA_PRODUTO.map(m => (
-                      <button
-                        key={m.api}
-                        type="button"
-                        onClick={() => { setMotivo(m.api as BaixaManualProdutoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
-                        className={clsx(
-                          'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
-                        )}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </label>
-          </div>
-
-          <label>
-            <span className="mb-[7px] block text-[13px] font-semibold text-body">
-              Observação <span className="text-orange">*</span>
-              <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
-                {obs.length}/30 caracteres mín.
-              </span>
-            </span>
-            <textarea
-              value={obs}
-              onChange={e => setObs(e.target.value)}
-              placeholder="Descreva o motivo da baixa em detalhes (ex: 2 unidades ficaram com manchas durante o transporte da gráfica até o estúdio e não podem ser vendidas)"
-              rows={3}
-              className={clsx(
-                'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-                obs.length > 0 && obs.length < 30
-                  ? 'border-[#F2B8A6]'
-                  : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-              )}
-            />
-            {obs.length > 0 && obs.length < 30 && (
-              <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-                <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
-              </div>
-            )}
-          </label>
-
-          {erro && (
-            <div className="rounded-[9px] border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">
-              {erro}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-[11px] border-t border-line px-6 py-4">
+    <ModalShell
+      open
+      onClose={onClose}
+      title={`Baixa manual — ${nomeProduto}`}
+      subtitle="Registra uma saída fora de produção."
+      icon={<Minus size={17} />}
+      iconBg="rgba(249,115,22,0.12)"
+      iconColor="#F97316"
+      width={500}
+      footer={
+        <>
           <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
           <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar} onClick={registrar}>
             {salvando ? 'Registrando…' : 'Registrar baixa'}
           </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <label>
+            <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade a subtrair *</span>
+            <div className="relative">
+              <input
+                value={qtd}
+                onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
+                inputMode="decimal"
+                placeholder="1"
+                className={clsx(inputBase, 'pr-20')}
+              />
+              <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">unidades</span>
+            </div>
+          </label>
+          <label>
+            <span className="mb-[7px] block text-[13px] font-semibold text-body">Motivo *</span>
+            <div ref={selRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setSelOpen(o => !o)}
+                className={clsx(
+                  inputBase,
+                  'flex cursor-pointer items-center justify-between text-left',
+                  selOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                )}
+              >
+                {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
+              </button>
+              {selOpen && (
+                <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+                  {MOTIVOS_BAIXA_PRODUTO.map(m => (
+                    <button
+                      key={m.api}
+                      type="button"
+                      onClick={() => { setMotivo(m.api as BaixaManualProdutoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
+                      className={clsx(
+                        'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
+                        m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </label>
         </div>
+
+        <label>
+          <span className="mb-[7px] block text-[13px] font-semibold text-body">
+            Observação <span className="text-orange">*</span>
+            <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
+              {obs.length}/30 caracteres mín.
+            </span>
+          </span>
+          <textarea
+            value={obs}
+            onChange={e => setObs(e.target.value)}
+            placeholder="Descreva o motivo da baixa em detalhes (ex: 2 unidades ficaram com manchas durante o transporte da gráfica até o estúdio e não podem ser vendidas)"
+            rows={3}
+            className={clsx(
+              'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
+              obs.length > 0 && obs.length < 30
+                ? 'border-[#F2B8A6]'
+                : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+            )}
+          />
+          {obs.length > 0 && obs.length < 30 && (
+            <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
+              <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
+            </div>
+          )}
+        </label>
+
+        {erro && (
+          <div className="rounded-[9px] border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">
+            {erro}
+          </div>
+        )}
       </div>
-    </div>
+    </ModalShell>
   )
 }
 
