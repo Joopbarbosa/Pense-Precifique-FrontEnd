@@ -13,6 +13,8 @@ interface ProdutoSelecionado {
   nome: string
   identificador?: string
   quantidade: number
+  // RN-051 — algum insumo não-fracionável na ficha técnica: quantidade travada em rendimento, sem edição livre.
+  quantidadeTravada?: boolean
 }
 
 function QuoteCard({ step, label, hint, children }: {
@@ -111,14 +113,25 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
+        {item.quantidadeTravada && (
+          <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-muted">
+            <Lock size={11} /> Quantidade fixa — insumo não-fracionável na ficha técnica
+          </div>
+        )}
       </div>
-      <input
-        type="number"
-        min={1}
-        value={item.quantidade}
-        onChange={e => onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))}
-        className="h-11 w-[84px] rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-      />
+      {item.quantidadeTravada ? (
+        <div className="flex h-11 w-[84px] flex-shrink-0 items-center justify-center rounded-input border-[1.5px] border-line bg-cream font-[inherit] text-[14.5px] font-semibold text-subtle">
+          {item.quantidade}
+        </div>
+      ) : (
+        <input
+          type="number"
+          min={1}
+          value={item.quantidade}
+          onChange={e => onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))}
+          className="h-11 w-[84px] rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+        />
+      )}
       <button
         onClick={() => onRemove(item.produtoId)}
         className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
@@ -145,7 +158,7 @@ export default function EditarProducaoPage() {
   useEffect(() => {
     if (!id) return
     producaoService.buscarPorId(id)
-      .then(data => {
+      .then(async data => {
         setIdentificador(data.identificador)
         if (data.estado !== 'AGUARDANDO_INICIO') {
           setBloqueado(true)
@@ -154,7 +167,23 @@ export default function EditarProducaoPage() {
         setDataInicio(data.dataInicio ?? '')
         setDataTerminoPrevista(data.dataTerminoPrevista ?? '')
         setObservacoes(data.observacoes ?? '')
-        setProdutos(data.produtos.map(p => ({ produtoId: p.produtoId, nome: p.nomeProduto, quantidade: p.quantidade })))
+
+        // RN-051 — cada produto já lançado pode ter insumo não-fracionável (quantidade travada
+        // em rendimento); ProducaoProdutoItem não traz algumInsumoNaoFracionavel, então é
+        // preciso buscar o detalhe de cada produto para saber se a linha nasce travada.
+        const detalhes = await Promise.all(
+          data.produtos.map(p => produtoService.buscarPorId(p.produtoId).catch(() => null))
+        )
+        setProdutos(data.produtos.map((p, i) => {
+          const detalhe = detalhes[i]
+          const travado = !!detalhe?.algumInsumoNaoFracionavel
+          return {
+            produtoId: p.produtoId,
+            nome: p.nomeProduto,
+            quantidade: travado ? (detalhe!.rendimento ?? p.quantidade) : p.quantidade,
+            quantidadeTravada: travado,
+          }
+        }))
       })
       .catch(() => setToast('Não foi possível carregar a produção.'))
       .finally(() => setCarregando(false))
@@ -166,13 +195,32 @@ export default function EditarProducaoPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  const handleSelectProduto = (produto: ProdutoResponse) => {
-    setProdutos(arr => {
-      const existente = arr.find(p => p.produtoId === produto.id)
-      if (existente) {
-        return arr.map(p => p.produtoId === produto.id ? { ...p, quantidade: p.quantidade + 1 } : p)
+  const handleSelectProduto = async (produto: ProdutoResponse) => {
+    const existente = produtos.find(p => p.produtoId === produto.id)
+    if (existente?.quantidadeTravada) {
+      setToast(`${produto.nome} já foi adicionado — insumo não-fracionável não permite mais de uma unidade por produção.`)
+      return
+    }
+
+    let quantidade = existente ? existente.quantidade + 1 : 1
+    let quantidadeTravada = false
+    try {
+      const detalhe = await produtoService.buscarPorId(produto.id)
+      if (detalhe.algumInsumoNaoFracionavel) {
+        quantidadeTravada = true
+        quantidade = detalhe.rendimento ?? 1
       }
-      return [...arr, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade: 1 }]
+    } catch {
+      setToast('Não foi possível verificar a ficha técnica do produto. Tente novamente.')
+      return
+    }
+
+    setProdutos(arr => {
+      const existenteAtual = arr.find(p => p.produtoId === produto.id)
+      if (existenteAtual) {
+        return arr.map(p => p.produtoId === produto.id ? { ...p, quantidade, quantidadeTravada } : p)
+      }
+      return [...arr, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, quantidadeTravada }]
     })
   }
 
@@ -281,7 +329,7 @@ export default function EditarProducaoPage() {
                 <ProdutoRow
                   key={p.produtoId}
                   item={p}
-                  onQuantidade={(pid, qtd) => setProdutos(arr => arr.map(x => x.produtoId === pid ? { ...x, quantidade: qtd } : x))}
+                  onQuantidade={(pid, qtd) => setProdutos(arr => arr.map(x => x.produtoId === pid && !x.quantidadeTravada ? { ...x, quantidade: qtd } : x))}
                   onRemove={pid => setProdutos(arr => arr.filter(x => x.produtoId !== pid))}
                 />
               ))}

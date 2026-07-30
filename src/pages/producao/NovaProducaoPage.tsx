@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button } from '../../components/ui'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
-import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
+import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle, Lock } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
@@ -17,6 +17,8 @@ interface ProdutoSelecionado {
   nome: string
   identificador?: string
   quantidade: number
+  // RN-051 — algum insumo não-fracionável na ficha técnica: quantidade travada em rendimento, sem stepper.
+  quantidadeTravada?: boolean
 }
 
 function QuoteCard({ step, label, hint, children }: {
@@ -125,33 +127,44 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
+        {item.quantidadeTravada && (
+          <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-muted">
+            <Lock size={11} /> Quantidade fixa — insumo não-fracionável na ficha técnica
+          </div>
+        )}
       </div>
-      <div className="flex h-11 flex-shrink-0 items-stretch overflow-hidden rounded-input border-[1.5px] border-line bg-white focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/[0.12]">
-        <button
-          type="button"
-          onClick={() => aplicar((parseInt(valor) || 1) - 1)}
-          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-body transition-colors duration-100 hover:bg-cream"
-        >
-          −
-        </button>
-        <input
-          type="number"
-          min={1}
-          value={valor}
-          onChange={e => {
-            setValor(e.target.value)
-            onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))
-          }}
-          className="h-full w-[44px] flex-shrink-0 border-x-[1.5px] border-line bg-white text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        />
-        <button
-          type="button"
-          onClick={() => aplicar((parseInt(valor) || 1) + 1)}
-          className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-teal transition-colors duration-100 hover:bg-cream"
-        >
-          +
-        </button>
-      </div>
+      {item.quantidadeTravada ? (
+        <div className="flex h-11 flex-shrink-0 items-center rounded-input border-[1.5px] border-line bg-cream px-4 font-[inherit] text-[14.5px] font-semibold text-subtle">
+          {item.quantidade}
+        </div>
+      ) : (
+        <div className="flex h-11 flex-shrink-0 items-stretch overflow-hidden rounded-input border-[1.5px] border-line bg-white focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/[0.12]">
+          <button
+            type="button"
+            onClick={() => aplicar((parseInt(valor) || 1) - 1)}
+            className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-body transition-colors duration-100 hover:bg-cream"
+          >
+            −
+          </button>
+          <input
+            type="number"
+            min={1}
+            value={valor}
+            onChange={e => {
+              setValor(e.target.value)
+              onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))
+            }}
+            className="h-full w-[44px] flex-shrink-0 border-x-[1.5px] border-line bg-white text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <button
+            type="button"
+            onClick={() => aplicar((parseInt(valor) || 1) + 1)}
+            className="grid w-8 flex-shrink-0 place-items-center border-none bg-transparent text-base text-teal transition-colors duration-100 hover:bg-cream"
+          >
+            +
+          </button>
+        </div>
+      )}
       <button
         onClick={() => onRemove(item.produtoId)}
         className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
@@ -250,8 +263,15 @@ export default function NovaProducaoPage() {
     if (!produtoIdParam) return
     produtoService.buscarPorId(produtoIdParam)
       .then(produto => {
-        const quantidade = Math.max(1, parseInt(quantidadeParam || '1', 10) || 1)
-        avaliarAlertas([{ produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade }])
+        // RN-051 — insumo não-fracionável: quantidade sempre = rendimento, ignora ?quantidade= da query.
+        const travado = !!produto.algumInsumoNaoFracionavel
+        const quantidade = travado
+          ? (produto.rendimento ?? 1)
+          : Math.max(1, parseInt(quantidadeParam || '1', 10) || 1)
+        avaliarAlertas([{
+          produtoId: produto.id, nome: produto.nome, identificador: produto.identificador,
+          quantidade, quantidadeTravada: travado,
+        }])
       })
       .catch(() => setToast('Não foi possível pré-carregar o produto informado.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -259,14 +279,33 @@ export default function NovaProducaoPage() {
 
   const handleSelectProduto = async (produto: ProdutoResponse) => {
     const existente = produtos.find(p => p.produtoId === produto.id)
+    if (existente?.quantidadeTravada) {
+      setToast(`${produto.nome} já foi adicionado — insumo não-fracionável não permite mais de uma unidade por produção.`)
+      return
+    }
+
+    let quantidade = existente ? existente.quantidade + 1 : 1
+    let quantidadeTravada = false
+    try {
+      const detalhe = await produtoService.buscarPorId(produto.id)
+      if (detalhe.algumInsumoNaoFracionavel) {
+        quantidadeTravada = true
+        quantidade = detalhe.rendimento ?? 1
+      }
+    } catch {
+      setToast('Não foi possível verificar a ficha técnica do produto. Tente novamente.')
+      return
+    }
+
     const candidato = existente
-      ? produtos.map(p => p.produtoId === produto.id ? { ...p, quantidade: p.quantidade + 1 } : p)
-      : [...produtos, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade: 1 }]
+      ? produtos.map(p => p.produtoId === produto.id ? { ...p, quantidade, quantidadeTravada } : p)
+      : [...produtos, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, quantidadeTravada }]
 
     await avaliarAlertas(candidato)
   }
 
   const handleQuantidade = (produtoId: string, quantidade: number) => {
+    if (produtos.find(p => p.produtoId === produtoId)?.quantidadeTravada) return
     const candidato = produtos.map(p => p.produtoId === produtoId ? { ...p, quantidade } : p)
     setProdutos(candidato)
 
