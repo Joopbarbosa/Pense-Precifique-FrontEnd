@@ -133,8 +133,11 @@ export default function ListaOrcamentosPage() {
   const [periodOpen, setPeriodOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [appliedDateFrom, setAppliedDateFrom] = useState('')
+  const [appliedDateTo, setAppliedDateTo] = useState('')
   const periodRef = useRef<HTMLDivElement>(null)
   const isFirstFiltro = useRef(true)
+  const isFirstPeriodo = useRef(true)
 
   const {
     items: orcamentos,
@@ -147,7 +150,7 @@ export default function ListaOrcamentosPage() {
     reset,
     error,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => orcamentoService.listar(page, size, filtro || undefined, q),
+    fetcher: (page, size, q) => orcamentoService.listar(page, size, filtro || undefined, q, appliedDateFrom || undefined, appliedDateTo || undefined),
     errorMessage: 'Não foi possível carregar os orçamentos.',
   })
 
@@ -156,6 +159,12 @@ export default function ListaOrcamentosPage() {
     reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtro])
+
+  useEffect(() => {
+    if (isFirstPeriodo.current) { isFirstPeriodo.current = false; return }
+    reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedDateFrom, appliedDateTo])
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -175,9 +184,9 @@ export default function ListaOrcamentosPage() {
     await loadMore()
   }
 
-  const periodActive = !!(dateFrom || dateTo)
+  const periodActive = !!(appliedDateFrom || appliedDateTo)
   const periodLabel = periodActive
-    ? `${dateFrom || '…'} – ${dateTo || '…'}`
+    ? `${appliedDateFrom || '…'} – ${appliedDateTo || '…'}`
     : 'Período'
 
   const setPreset = (days: number) => {
@@ -189,9 +198,22 @@ export default function ListaOrcamentosPage() {
     setDateTo(iso(today))
   }
 
+  const handleAplicarPeriodo = () => {
+    setAppliedDateFrom(dateFrom)
+    setAppliedDateTo(dateTo)
+    setPeriodOpen(false)
+  }
+
+  const handleLimparPeriodo = () => {
+    setDateFrom('')
+    setDateTo('')
+    setAppliedDateFrom('')
+    setAppliedDateTo('')
+  }
+
   const searchActive = query.trim().length > 0
-  const globalEmpty = !loading && orcamentos.length === 0 && filtro === '' && !searchActive
-  const filtroEmpty = !loading && orcamentos.length === 0 && (filtro !== '' || searchActive)
+  const globalEmpty = !loading && orcamentos.length === 0 && filtro === '' && !searchActive && !periodActive
+  const filtroEmpty = !loading && orcamentos.length === 0 && (filtro !== '' || searchActive || periodActive)
 
   return (
     <AppLayout active="orcamentos" compact>
@@ -315,17 +337,17 @@ export default function ListaOrcamentosPage() {
                     {/* Ações */}
                     <div className="mt-4 flex gap-[9px]">
                       <button
-                        onClick={() => { setDateFrom(''); setDateTo('') }}
-                        disabled={!periodActive}
+                        onClick={handleLimparPeriodo}
+                        disabled={!(dateFrom || dateTo || periodActive)}
                         className={clsx(
                           'h-10 flex-1 rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[13.5px] font-semibold',
-                          periodActive ? 'cursor-pointer text-body' : 'cursor-default text-[#C0BCB4]'
+                          (dateFrom || dateTo || periodActive) ? 'cursor-pointer text-body' : 'cursor-default text-[#C0BCB4]'
                         )}
                       >
                         Limpar
                       </button>
                       <button
-                        onClick={() => setPeriodOpen(false)}
+                        onClick={handleAplicarPeriodo}
                         className="h-10 flex-[1.2] cursor-pointer rounded-input border-none bg-teal font-[inherit] text-[13.5px] font-semibold text-white"
                       >
                         Aplicar
@@ -341,7 +363,9 @@ export default function ListaOrcamentosPage() {
             <div className="py-12 text-center text-sm text-muted">
               {searchActive
                 ? <>Nenhum orçamento encontrado para &ldquo;{query.trim()}&rdquo;.</>
-                : <>Nenhum orçamento encontrado em &ldquo;{STATUS_LABEL[filtro as StatusOrcamento]}&rdquo;.</>
+                : filtro
+                  ? <>Nenhum orçamento encontrado em &ldquo;{STATUS_LABEL[filtro as StatusOrcamento]}&rdquo;.</>
+                  : <>Nenhum orçamento encontrado no período selecionado.</>
               }
             </div>
           ) : (
