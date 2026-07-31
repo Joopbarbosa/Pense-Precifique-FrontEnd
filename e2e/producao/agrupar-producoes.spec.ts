@@ -401,7 +401,7 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     await selecionarParaAgrupar(page, [prd1.identificador, prd2.identificador])
     await abrirModalAgrupar(page)
 
-    const inputDataInicio = page.getByLabel(/Data de início/)
+    const inputDataInicio = page.getByRole('dialog').getByLabel(/Data de início/)
 
     // Corrigido por #164: o campo já vem pré-preenchido com a data mais recente entre as
     // produções selecionadas (dataAmanha), sem precisar deixar vazio para o backend herdar.
@@ -453,8 +453,9 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     await selecionarParaAgrupar(page, [prd1.identificador, prd2.identificador])
     await abrirModalAgrupar(page)
 
-    await page.getByLabel(/Data de início/).fill(dataEditada)
-    await expect(page.getByLabel(/Data de início/)).toHaveValue(dataEditada)
+    const inputDataInicio = page.getByRole('dialog').getByLabel(/Data de início/)
+    await inputDataInicio.fill(dataEditada)
+    await expect(inputDataInicio).toHaveValue(dataEditada)
 
     await preencherJustificativa(page, 'Agrupamento de teste automatizado — cenário 195b, edição manual da data.')
     await confirmarAgrupamento(page)
