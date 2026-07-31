@@ -228,7 +228,16 @@ export async function iniciarProducao(page: Page, opcoes?: { escolha?: 'dividir'
     // de etapa (round-trip do POST /iniciar), pulando o clique silenciosamente.
     await page.getByRole('button', { name: 'Dividir produção' }).click({ timeout: 8000 })
   } else if (opcoes?.escolha === 'travar') {
-    await page.getByRole('button', { name: 'Fechar' }).click({ timeout: 8000 })
+    // Achado de flakiness (investigação de flaky pré-existente): o modal "travada" de
+    // IniciarProducaoModal.tsx tem DOIS botões cujo nome acessível é "Fechar" ao mesmo tempo — o X
+    // genérico do header do ModalShell (aria-label="Fechar", presente em todo modal do sistema) e o
+    // botão de texto do próprio rodapé (`<Button variant="ghost">Fechar</Button>`). Os dois chamam o
+    // mesmo `onSuccess(...)`, então não é uma divergência de comportamento — mas
+    // `getByRole('button', { name: 'Fechar' })` sem desambiguação resolve pra 2 elementos assim que
+    // o POST /iniciar troca a etapa do modal para "travada", causando `strict mode violation`
+    // sempre que esse re-render acontece antes do clique (ver relatório da investigação). Filtrar
+    // por `hasText` isola o botão de texto do rodapé (o X do header não tem texto, só aria-label).
+    await page.getByRole('button', { name: 'Fechar' }).filter({ hasText: 'Fechar' }).click({ timeout: 8000 })
   }
 }
 

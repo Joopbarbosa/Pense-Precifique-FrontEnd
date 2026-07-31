@@ -309,12 +309,13 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await cardLocator(page, identificador).focus()
     await page.keyboard.press('Space')
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
+    await esperarOverEmColuna(page, 'Aguardando início') // droppableRects medidos, 1ª seta não vai ser descartada
 
     // Aguardando início(0) → Em andamento(1) → Travada(2) → Finalizada(3) → Cancelada(4) →
-    // Não realizada(5) — 5 setas, com espera entre elas pro dnd-kit recalcular colisão a cada passo.
-    for (let i = 0; i < 5; i++) {
-      await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(200)
+    // Não realizada(5) — 5 setas, esperando o `over` do dnd-kit confirmar cada coluna intermediária
+    // (ver `moverColunaViaTeclado`) antes de avançar pra próxima.
+    for (const coluna of ['Em andamento', 'Travada', 'Finalizada', 'Cancelada', 'Não realizada']) {
+      await moverColunaViaTeclado(page, 'ArrowRight', coluna)
     }
     await page.keyboard.press('Space')
 
@@ -351,6 +352,29 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     throw new Error(`Tab não alcançou o card ${identificador} em ${maxTentativas} tentativas`)
   }
 
+  /**
+   * Achado de flakiness (investigação de 2 flaky pré-existentes, cenários 184a/203/204): o
+   * `coordinateGetter` do KeyboardSensor (KanbanBoard.tsx) só consegue calcular a próxima coluna
+   * usando `context.droppableRects` — que ainda NÃO está populado no exato instante em que o Space
+   * de "pegar" o card é processado (a medição das colunas droppable roda num efeito assíncrono
+   * disparado pelo próprio `onDragStart`). Se a 1ª seta for pressionada rápido demais depois do
+   * Space (que é exatamente o que acontecia com um `waitForTimeout` fixo curto, e às vezes até sem
+   * nenhuma espera), o `coordinateGetter` encontra `droppableRects` vazio, retorna `undefined` e o
+   * dnd-kit descarta esse keydown silenciosamente — nenhum erro, mas a seta simplesmente não move
+   * nada. Esperar a região `aria-live` do dnd-kit (`accessibility.announcements.onDragOver` em
+   * KanbanBoard.tsx) confirmar a coluna de ORIGEM logo após o Space garante que a medição já
+   * aconteceu antes da 1ª seta; esperar a coluna de DESTINO depois de cada seta confirma que o
+   * `over` recalculado (efeito `[overId]` do dnd-kit) já se propagou antes do próximo passo —
+   * ambos sinais reais, não um tempo fixo arbitrário.
+   */
+  async function esperarOverEmColuna(page: import('@playwright/test').Page, coluna: string) {
+    await expect(page.getByRole('status')).toHaveText(`Item sobre a coluna ${coluna}.`, { timeout: 5000 })
+  }
+  async function moverColunaViaTeclado(page: import('@playwright/test').Page, direcao: 'ArrowLeft' | 'ArrowRight', colunaEsperada: string) {
+    await page.keyboard.press(direcao)
+    await esperarOverEmColuna(page, colunaEsperada)
+  }
+
   test('203 (KeyboardSensor) — Tab foca o card; Space/seta/Space move TRAVADA → EM_ANDAMENTO via teclado, mesmo onDrop do mouse', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA203-Insumo-${Date.now()}`
@@ -382,12 +406,12 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     // passa a existir 2x na tela (original com opacidade reduzida + clone flutuante).
     await page.keyboard.press('Space')
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(2)
+    await esperarOverEmColuna(page, 'Travada') // droppableRects medidos, 1ª seta não vai ser descartada
 
     // EM_ANDAMENTO é a 2ª coluna (índice 1), TRAVADA é a 3ª (índice 2) — 1 seta pra esquerda basta.
-    // Espera o dnd-kit recalcular colisão/`over` (efeito assíncrono) antes de confirmar o drop —
+    // `moverColunaViaTeclado` espera o `over` do dnd-kit confirmar "Em andamento" antes do Space —
     // sem isso o 2º Space corre risco de fechar o arraste com `over` ainda apontando pra coluna antiga.
-    await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(250)
+    await moverColunaViaTeclado(page, 'ArrowLeft', 'Em andamento')
     await page.keyboard.press('Space')
 
     // tipo "direto" (TRAVADA→EM_ANDAMENTO) chama /retomar direto, sem modal — mesmo onDrop do mouse.
@@ -427,15 +451,13 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await cardLocator(page, identificador).focus()
     await page.keyboard.press('Space')
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
+    await esperarOverEmColuna(page, 'Finalizada') // droppableRects medidos, 1ª seta não vai ser descartada
 
-    // FINALIZADA é a 4ª coluna (índice 3), Aguardando início é a 1ª (índice 0) — 3 setas, com
-    // espera entre elas pro dnd-kit recalcular colisão a cada passo (mesmo motivo do teste 203).
-    await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(150)
-    await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(150)
-    await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(250)
+    // FINALIZADA é a 4ª coluna (índice 3), Aguardando início é a 1ª (índice 0) — 3 setas, esperando
+    // o `over` do dnd-kit confirmar cada coluna intermediária a cada passo (mesmo motivo do teste 203).
+    await moverColunaViaTeclado(page, 'ArrowLeft', 'Travada')
+    await moverColunaViaTeclado(page, 'ArrowLeft', 'Em andamento')
+    await moverColunaViaTeclado(page, 'ArrowLeft', 'Aguardando início')
     await page.keyboard.press('Space')
 
     await expect(page.getByText('Transição não permitida')).toBeVisible({ timeout: 5000 })
