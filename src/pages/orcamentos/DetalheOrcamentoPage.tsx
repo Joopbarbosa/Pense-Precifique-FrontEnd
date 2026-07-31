@@ -6,7 +6,7 @@ import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
 import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import {
-  Check, Wallet, AlertCircle, Receipt, Ban, X, Calendar, Info, FileText,
+  Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
@@ -414,20 +414,17 @@ function ModalCancelMulta({
   const [multaAtiva, setMultaAtiva] = useState(true);
   const [multaPerc, setMultaPerc] = useState("50");
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
-
   const total = orcamento.total || 0;
   const percNum = parseFloat((multaPerc || "0").replace(",", ".")) || 0;
   const multaAplicada = multaAtiva ? (total * percNum) / 100 : 0;
 
+  const tituloPasso =
+    step === 1 ? "Itens deste pedido"
+    : step === 2 ? "Deseja cobrar multa pelo cancelamento?"
+    : "Resumo do cancelamento";
+
   const Dots = () => (
-    <div className="flex gap-1.5 px-6 pb-4">
+    <div className="flex gap-1.5">
       {[1, 2, 3].map((n) => (
         <span
           key={n}
@@ -437,200 +434,178 @@ function ModalCancelMulta({
     </div>
   );
 
-  const Header = ({ title }: { title: string }) => (
-    <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-[18px]">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-[#FCF3F0] text-danger">
-          <Ban size={16} />
-        </span>
-        <div className="min-w-0">
-          <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
-            Cancelar · Passo {step} de 3
-          </div>
-          <div className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold text-dark">
-            {title}
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title={tituloPasso}
+      subtitle={`Cancelar · Passo ${step} de 3`}
+      icon={<Ban size={16} />}
+      iconBg="#FCF0EC"
+      iconColor="#C0492B"
+      width={540}
+      footer={
+        <div className="flex w-full flex-col gap-3">
+          <Dots />
+          <div className="flex gap-3">
+            {step === 1 && (
+              <>
+                <Button variant="ghost" onClick={onClose}>
+                  Voltar
+                </Button>
+                <Button variant="primary" fullWidth onClick={() => setStep(2)}>
+                  Próximo →
+                </Button>
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <Button variant="ghost" onClick={() => setStep(1)}>
+                  ← Voltar
+                </Button>
+                <Button variant="primary" fullWidth onClick={() => setStep(3)}>
+                  Próximo →
+                </Button>
+              </>
+            )}
+            {step === 3 && (
+              <>
+                <Button variant="ghost" onClick={() => setStep(2)}>
+                  ← Voltar
+                </Button>
+                <Button
+                  variant="danger"
+                  fullWidth
+                  disabled={saving}
+                  onClick={() => onConfirm(multaAtiva ? percNum : 0)}
+                >
+                  {saving ? "Cancelando..." : "Confirmar cancelamento"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
-      </div>
-      <button
-        onClick={onClose}
-        className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
-      >
-        <X size={20} />
-      </button>
-    </div>
-  );
-
-  return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-[rgba(20,18,16,0.4)] p-4 backdrop-blur-[1.5px]"
+      }
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-[min(540px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
-      >
-        {/* ─── PASSO 1 — ITENS CONSUMIDOS ─── */}
-        {step === 1 && (
-          <>
-            <Header title="Itens deste pedido" />
-            <div className="flex-1 overflow-y-auto px-6 pb-2 pt-[18px]">
-              <p className="mb-3.5 mt-0 text-[13.5px] leading-[1.55] text-body">
-                Estes são os itens do pedido. O cancelamento dará baixa conforme
-                as regras de negócio do servidor.
-              </p>
-              <div className="flex flex-col gap-2">
-                {orcamento.itens.length === 0 ? (
-                  <div className="rounded-xl border-[1.5px] border-dashed border-line p-5 text-center text-[13px] text-muted">
-                    Nenhum item neste pedido.
-                  </div>
-                ) : (
-                  orcamento.itens.map((it, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-[11px]"
-                    >
-                      <span className="flex-1 text-sm font-medium text-dark">
-                        {it.nomeProduto}
-                      </span>
-                      <span className="text-[13px] font-semibold text-dim">
-                        ×{it.quantidade}
-                      </span>
-                    </div>
-                  ))
-                )}
+      {/* ─── PASSO 1 — ITENS CONSUMIDOS ─── */}
+      {step === 1 && (
+        <>
+          <p className="mb-3.5 mt-0 text-[13.5px] leading-[1.55] text-body">
+            Estes são os itens do pedido. O cancelamento dará baixa conforme
+            as regras de negócio do servidor.
+          </p>
+          <div className="flex flex-col gap-2">
+            {orcamento.itens.length === 0 ? (
+              <div className="rounded-xl border-[1.5px] border-dashed border-line p-5 text-center text-[13px] text-muted">
+                Nenhum item neste pedido.
               </div>
-            </div>
-            <Dots />
-            <div className="flex gap-3 px-6 pb-[22px]">
-              <Button variant="ghost" onClick={onClose}>
-                Voltar
-              </Button>
-              <Button variant="primary" fullWidth onClick={() => setStep(2)}>
-                Próximo →
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* ─── PASSO 2 — MULTA ─── */}
-        {step === 2 && (
-          <>
-            <Header title="Deseja cobrar multa pelo cancelamento?" />
-            <div className="flex-1 overflow-y-auto px-6 pb-2 pt-[18px]">
-              <div className="mb-[18px] flex w-fit overflow-hidden rounded-input border border-line">
-                {(["Não", "Sim"] as const).map((lbl) => {
-                  const val = lbl === "Sim";
-                  const on = multaAtiva === val;
-                  return (
-                    <button
-                      key={lbl}
-                      onClick={() => setMultaAtiva(val)}
-                      className={clsx(
-                        "h-11 w-20 border-none font-[inherit] text-sm font-semibold",
-                        on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
-                      )}
-                    >
-                      {lbl}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {multaAtiva && (
-                <div className="animate-[fadeUp_.25s_ease_both]">
-                  <span className="mb-2 block text-[13px] font-semibold text-body">
-                    Percentual da multa (%)
+            ) : (
+              orcamento.itens.map((it, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-[11px]"
+                >
+                  <span className="flex-1 text-sm font-medium text-dark">
+                    {it.nomeProduto}
                   </span>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <input
-                      value={multaPerc}
-                      onChange={(e) =>
-                        setMultaPerc(e.target.value.replace(/[^\d.,]/g, ""))
-                      }
-                      inputMode="decimal"
-                      placeholder="50"
-                      className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
-                    />
-                  </div>
-                  <div className="mt-2.5 text-xs text-muted">
-                    Sugestão padrão: 50% do valor total.
-                  </div>
-                  <div className="mt-4 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
-                    <span className="text-sm font-semibold text-dark">
-                      Multa
-                    </span>
-                    <span className="text-xl font-bold text-orange [font-variant-numeric:tabular-nums]">
-                      {BRL(multaAplicada)}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <Dots />
-            <div className="flex gap-3 px-6 pb-[22px]">
-              <Button variant="ghost" onClick={() => setStep(1)}>
-                ← Voltar
-              </Button>
-              <Button variant="primary" fullWidth onClick={() => setStep(3)}>
-                Próximo →
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* ─── PASSO 3 — RESUMO ─── */}
-        {step === 3 && (
-          <>
-            <Header title="Resumo do cancelamento" />
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-2 pt-[18px]">
-              {multaAtiva ? (
-                <div className="flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
-                  <span className="text-sm font-semibold text-dark">
-                    Multa <span className="font-medium text-muted">({percNum}%)</span>
-                  </span>
-                  <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
-                    {BRL(multaAplicada)}
+                  <span className="text-[13px] font-semibold text-dim">
+                    ×{it.quantidade}
                   </span>
                 </div>
-              ) : (
-                <div className="text-[13.5px] text-muted">
-                  Nenhuma multa será cobrada.
-                </div>
-              )}
+              ))
+            )}
+          </div>
+        </>
+      )}
 
-              <div className="flex gap-2.5 rounded-xl border border-orange/30 bg-orange/[0.08] px-3.5 py-3">
-                <AlertCircle size={15} className="mt-px flex-shrink-0 text-orange" />
-                <p className="m-0 text-[12.8px] leading-[1.55] text-[#8A5A33]">
-                  {multaAtiva ? (
-                    <>
-                      Um <strong className="font-bold">PDF de multa</strong> será
-                      gerado para enviar à cliente.
-                    </>
-                  ) : (
-                    "O orçamento será marcado como Cancelado."
+      {/* ─── PASSO 2 — MULTA ─── */}
+      {step === 2 && (
+        <>
+          <div className="mb-[18px] flex w-fit overflow-hidden rounded-input border border-line">
+            {(["Não", "Sim"] as const).map((lbl) => {
+              const val = lbl === "Sim";
+              const on = multaAtiva === val;
+              return (
+                <button
+                  key={lbl}
+                  onClick={() => setMultaAtiva(val)}
+                  className={clsx(
+                    "h-11 w-20 border-none font-[inherit] text-sm font-semibold",
+                    on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
                   )}
-                </p>
+                >
+                  {lbl}
+                </button>
+              );
+            })}
+          </div>
+
+          {multaAtiva && (
+            <div className="animate-[fadeUp_.25s_ease_both]">
+              <span className="mb-2 block text-[13px] font-semibold text-body">
+                Percentual da multa (%)
+              </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <input
+                  value={multaPerc}
+                  onChange={(e) =>
+                    setMultaPerc(e.target.value.replace(/[^\d.,]/g, ""))
+                  }
+                  inputMode="decimal"
+                  placeholder="50"
+                  className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
+                />
+              </div>
+              <div className="mt-2.5 text-xs text-muted">
+                Sugestão padrão: 50% do valor total.
+              </div>
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+                <span className="text-sm font-semibold text-dark">
+                  Multa
+                </span>
+                <span className="text-xl font-bold text-orange [font-variant-numeric:tabular-nums]">
+                  {BRL(multaAplicada)}
+                </span>
               </div>
             </div>
-            <Dots />
-            <div className="flex gap-3 px-6 pb-[22px]">
-              <Button variant="ghost" onClick={() => setStep(2)}>
-                ← Voltar
-              </Button>
-              <Button
-                variant="danger"
-                fullWidth
-                disabled={saving}
-                onClick={() => onConfirm(multaAtiva ? percNum : 0)}
-              >
-                {saving ? "Cancelando..." : "Confirmar cancelamento"}
-              </Button>
+          )}
+        </>
+      )}
+
+      {/* ─── PASSO 3 — RESUMO ─── */}
+      {step === 3 && (
+        <div className="flex flex-col gap-4">
+          {multaAtiva ? (
+            <div className="flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+              <span className="text-sm font-semibold text-dark">
+                Multa <span className="font-medium text-muted">({percNum}%)</span>
+              </span>
+              <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
+                {BRL(multaAplicada)}
+              </span>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          ) : (
+            <div className="text-[13.5px] text-muted">
+              Nenhuma multa será cobrada.
+            </div>
+          )}
+
+          <div className="flex gap-2.5 rounded-xl border border-orange/30 bg-orange/[0.08] px-3.5 py-3">
+            <AlertCircle size={15} className="mt-px flex-shrink-0 text-orange" />
+            <p className="m-0 text-[12.8px] leading-[1.55] text-[#8A5A33]">
+              {multaAtiva ? (
+                <>
+                  Um <strong className="font-bold">PDF de multa</strong> será
+                  gerado para enviar à cliente.
+                </>
+              ) : (
+                "O orçamento será marcado como Cancelado."
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+    </ModalShell>
   );
 }
 
@@ -656,16 +631,11 @@ function ModalCancelEstorno({
   const valorSinal = orcamento.valorSinal || 0;
   const nomeCliente = orcamento.nomeCliente;
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+  const tituloPasso =
+    step === 1 ? `Estornar sinal para ${nomeCliente}?` : "Confirmar estorno do sinal";
 
   const Dots = () => (
-    <div className="flex gap-1.5 px-6 pb-4">
+    <div className="flex gap-1.5">
       {[1, 2].map((n) => (
         <span
           key={n}
@@ -675,206 +645,186 @@ function ModalCancelEstorno({
     </div>
   );
 
-  const Header = ({ title }: { title: string }) => (
-    <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-[18px]">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-[#FCF3F0] text-danger">
-          <Ban size={16} />
-        </span>
-        <div className="min-w-0">
-          <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
-            Cancelar · Passo {step} de 2
-          </div>
-          <div className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold text-dark">
-            {title}
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title={tituloPasso}
+      subtitle={`Cancelar · Passo ${step} de 2`}
+      icon={<Ban size={16} />}
+      iconBg="#FCF0EC"
+      iconColor="#C0492B"
+      width={500}
+      footer={
+        <div className="flex w-full flex-col gap-3">
+          <Dots />
+          <div className="flex gap-3">
+            {step === 1 && (
+              <>
+                <Button variant="ghost" onClick={onClose}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  disabled={saving}
+                  onClick={() =>
+                    estornar
+                      ? setStep(2)
+                      : onConfirm({ estornarSinal: false })
+                  }
+                >
+                  {estornar ? "Próximo →" : saving ? "Cancelando..." : "Confirmar cancelamento"}
+                </Button>
+              </>
+            )}
+            {step === 2 && estornar && (
+              <>
+                <Button variant="ghost" onClick={() => setStep(1)}>
+                  ← Voltar
+                </Button>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  disabled={saving}
+                  onClick={() =>
+                    onConfirm({ estornarSinal: true, dataEstornoSinal: dataEstorno })
+                  }
+                >
+                  {saving ? "Processando..." : "Confirmar e gerar recibo de estorno"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
-      </div>
-      <button
-        onClick={onClose}
-        className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
-      >
-        <X size={20} />
-      </button>
-    </div>
-  );
-
-  return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-[rgba(20,18,16,0.4)] p-4 backdrop-blur-[1.5px]"
+      }
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-[min(500px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
-      >
-        {/* ─── PASSO 1 — ESTORNO ─── */}
-        {step === 1 && (
-          <>
-            <Header title={`Estornar sinal para ${nomeCliente}?`} />
-            <div className="flex-1 overflow-y-auto px-6 pb-2 pt-5">
-              {/* Valor do sinal */}
-              <div className="mb-5 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
-                <div>
-                  <div className="mb-[3px] text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
-                    Sinal recebido
-                  </div>
-                  <div className="text-[22px] font-bold text-orange [font-variant-numeric:tabular-nums]">
-                    {BRL(valorSinal)}
-                  </div>
-                </div>
-                <span className="grid h-12 w-12 place-items-center rounded-[13px] bg-orange/[0.12] text-orange">
-                  <Wallet size={18} />
-                </span>
+      {/* ─── PASSO 1 — ESTORNO ─── */}
+      {step === 1 && (
+        <>
+          {/* Valor do sinal */}
+          <div className="mb-5 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+            <div>
+              <div className="mb-[3px] text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
+                Sinal recebido
               </div>
-
-              {/* Toggle Sim/Não */}
-              <div className="mb-3.5">
-                <div className="mb-2.5 text-sm font-semibold text-dark">
-                  Deseja estornar o sinal?
-                </div>
-                <div className="flex w-fit overflow-hidden rounded-input border border-line">
-                  {(["Não", "Sim"] as const).map((lbl) => {
-                    const val = lbl === "Sim";
-                    const on = estornar === val;
-                    return (
-                      <button
-                        key={lbl}
-                        onClick={() => setEstornar(val)}
-                        className={clsx(
-                          "h-11 w-20 border-none font-[inherit] text-sm font-semibold transition-all duration-150",
-                          on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
-                        )}
-                      >
-                        {lbl}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="text-[22px] font-bold text-orange [font-variant-numeric:tabular-nums]">
+                {BRL(valorSinal)}
               </div>
-
-              {/* Data do estorno (só quando Sim) */}
-              {estornar && (
-                <div className="animate-[fadeUp_.2s_ease_both]">
-                  <label className="mb-4 block">
-                    <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-                      <Calendar size={16} className="text-orange" /> Data do estorno
-                    </span>
-                    <input
-                      type="date"
-                      value={dataEstorno}
-                      onChange={(e) => setDataEstorno(e.target.value)}
-                      className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
-                    />
-                  </label>
-
-                  <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
-                    <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
-                    <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
-                      Um <strong className="font-bold">recibo de estorno</strong>{" "}
-                      será gerado para enviar à cliente como comprovante da devolução.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Aviso sem estorno */}
-              {!estornar && (
-                <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-cream px-3.5 py-3">
-                  <Info size={15} className="mt-px flex-shrink-0 text-muted" />
-                  <p className="m-0 text-[12.5px] leading-[1.55] text-dim">
-                    O orçamento será cancelado sem devolução do sinal. Nenhum
-                    documento será gerado.
-                  </p>
-                </div>
-              )}
             </div>
-            <Dots />
-            <div className="flex gap-3 px-6 pb-[22px]">
-              <Button variant="ghost" onClick={onClose}>
-                Voltar
-              </Button>
-              <Button
-                variant="primary"
-                fullWidth
-                disabled={saving}
-                onClick={() =>
-                  estornar
-                    ? setStep(2)
-                    : onConfirm({ estornarSinal: false })
-                }
-              >
-                {estornar ? "Próximo →" : saving ? "Cancelando..." : "Confirmar cancelamento"}
-              </Button>
+            <span className="grid h-12 w-12 place-items-center rounded-[13px] bg-orange/[0.12] text-orange">
+              <Wallet size={18} />
+            </span>
+          </div>
+
+          {/* Toggle Sim/Não */}
+          <div className="mb-3.5">
+            <div className="mb-2.5 text-sm font-semibold text-dark">
+              Deseja estornar o sinal?
             </div>
-          </>
-        )}
-
-        {/* ─── PASSO 2 — CONFIRMAR ESTORNO ─── */}
-        {step === 2 && estornar && (
-          <>
-            <Header title="Confirmar estorno do sinal" />
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-2 pt-5">
-              <div
-                className="relative min-h-[110px] rounded-2xl px-[22px] py-5 text-white"
-                style={{ background: "linear-gradient(135deg, #F97316 0%, #F4853A 100%)" }}
-              >
-                <div className="pointer-events-none absolute -right-[30px] -top-10 h-[120px] w-[120px] rounded-full bg-white/10" />
-                <div className="relative">
-                  <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/80">
-                    Recibo de Estorno
-                  </div>
-                  <div className="break-words text-[28px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
-                    {BRL(valorSinal)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col">
-                {[
-                  ["Cliente", nomeCliente],
-                  ["Valor do estorno", BRL(valorSinal)],
-                  ["Data do estorno", dataEstorno.split("-").reverse().join("/")],
-                  ["Orçamento", `#${orcamento.numero}`],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="flex justify-between border-b border-line py-[9px] text-[13.5px]"
+            <div className="flex w-fit overflow-hidden rounded-input border border-line">
+              {(["Não", "Sim"] as const).map((lbl) => {
+                const val = lbl === "Sim";
+                const on = estornar === val;
+                return (
+                  <button
+                    key={lbl}
+                    onClick={() => setEstornar(val)}
+                    className={clsx(
+                      "h-11 w-20 border-none font-[inherit] text-sm font-semibold transition-all duration-150",
+                      on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
+                    )}
                   >
-                    <span className="font-medium text-muted">{label}</span>
-                    <span className="font-semibold text-dark">{value}</span>
-                  </div>
-                ))}
-              </div>
+                    {lbl}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Data do estorno (só quando Sim) */}
+          {estornar && (
+            <div className="animate-[fadeUp_.2s_ease_both]">
+              <label className="mb-4 block">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={16} className="text-orange" /> Data do estorno
+                </span>
+                <input
+                  type="date"
+                  value={dataEstorno}
+                  onChange={(e) => setDataEstorno(e.target.value)}
+                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
+                />
+              </label>
 
               <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
                 <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
                 <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
-                  O recibo de estorno ficará disponível para download na tela de
-                  detalhe do orçamento cancelado.
+                  Um <strong className="font-bold">recibo de estorno</strong>{" "}
+                  será gerado para enviar à cliente como comprovante da devolução.
                 </p>
               </div>
             </div>
-            <Dots />
-            <div className="flex gap-3 px-6 pb-[22px]">
-              <Button variant="ghost" onClick={() => setStep(1)}>
-                ← Voltar
-              </Button>
-              <Button
-                variant="primary"
-                fullWidth
-                disabled={saving}
-                onClick={() =>
-                  onConfirm({ estornarSinal: true, dataEstornoSinal: dataEstorno })
-                }
-              >
-                {saving ? "Processando..." : "Confirmar e gerar recibo de estorno"}
-              </Button>
+          )}
+
+          {/* Aviso sem estorno */}
+          {!estornar && (
+            <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-cream px-3.5 py-3">
+              <Info size={15} className="mt-px flex-shrink-0 text-muted" />
+              <p className="m-0 text-[12.5px] leading-[1.55] text-dim">
+                O orçamento será cancelado sem devolução do sinal. Nenhum
+                documento será gerado.
+              </p>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          )}
+        </>
+      )}
+
+      {/* ─── PASSO 2 — CONFIRMAR ESTORNO ─── */}
+      {step === 2 && estornar && (
+        <div className="flex flex-col gap-4">
+          <div
+            className="relative min-h-[110px] rounded-2xl px-[22px] py-5 text-white"
+            style={{ background: "linear-gradient(135deg, #F97316 0%, #F4853A 100%)" }}
+          >
+            <div className="pointer-events-none absolute -right-[30px] -top-10 h-[120px] w-[120px] rounded-full bg-white/10" />
+            <div className="relative">
+              <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/80">
+                Recibo de Estorno
+              </div>
+              <div className="break-words text-[28px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
+                {BRL(valorSinal)}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            {[
+              ["Cliente", nomeCliente],
+              ["Valor do estorno", BRL(valorSinal)],
+              ["Data do estorno", dataEstorno.split("-").reverse().join("/")],
+              ["Orçamento", `#${orcamento.numero}`],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex justify-between border-b border-line py-[9px] text-[13.5px]"
+              >
+                <span className="font-medium text-muted">{label}</span>
+                <span className="font-semibold text-dark">{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
+            <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
+            <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
+              O recibo de estorno ficará disponível para download na tela de
+              detalhe do orçamento cancelado.
+            </p>
+          </div>
+        </div>
+      )}
+    </ModalShell>
   );
 }
 

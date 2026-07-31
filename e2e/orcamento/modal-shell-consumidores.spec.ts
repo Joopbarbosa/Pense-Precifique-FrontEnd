@@ -23,8 +23,13 @@ import {
  * - `ModalCancelJustificativa` (DetalheOrcamentoPage.tsx:340-398) — usa ConfirmacaoModal,
  *   wrapper fino sobre ModalShell que repassa title/subtitle sem alterar a estrutura
  *
- * Fora de escopo: `ModalCancelMulta` e `ModalCancelEstorno` (DetalheOrcamentoPage) são diálogos
- * hand-rolled, não usam ModalShell — cobertos por outro spec (RN-053/estorno).
+ * Migrados nesta leva, adicionados abaixo (239e/239f): `ModalCancelMulta` e `ModalCancelEstorno`
+ * (DetalheOrcamentoPage) eram os últimos dois diálogos hand-rolled da tela — wizards de múltiplos
+ * passos, cada passo com seu próprio título; `title`/`subtitle` do `ModalShell` agora mudam por
+ * passo (`title` = rótulo do passo, `subtitle` = "Cancelar · Passo N de M"), e a barra de
+ * progresso (Dots) foi movida para dentro do slot `footer` (empilhada acima dos botões), já que o
+ * `ModalShell` só expõe uma única região de rodapé. Antes da migração, cada um tinha seu próprio
+ * `useEffect` de Escape (duplicando o que o `ModalShell` já faz) — removido nesta migração.
  */
 
 async function expectTituloAcimaDoSubtitle(dialog: Locator, titulo: string, subtitle: string) {
@@ -182,5 +187,92 @@ test.describe('Cenário 239 — ModalShell nos 4 modais de Orçamento (título a
     // Nenhum dos dois fechamentos cancelou o orçamento.
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
     expect(orcamentoDepois.status).toBe('ENTREGUE')
+  })
+
+  test('239e — ModalCancelMulta (DetalheOrcamentoPage): título do passo acima de "Cancelar · Passo N de 3" em todos os 3 passos, Escape fecha em qualquer passo', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeCliente = `QA239e-Cliente-${Date.now()}`
+    const cliente = await criarCliente(request, token, nomeCliente)
+    const nomeProduto = `QA239e-Produto-${Date.now()}`
+    const produto = await criarProdutoComEstoque(request, token, nomeProduto, 1000)
+    criadosProdutoIds.push(produto.id)
+
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, precoUnitario: 20, margemAplicada: 50, quantidade: 1 },
+    ])
+    await avancarStatusViaApi(request, token, orcamento.id) // RASCUNHO -> ENVIADO
+    await avancarStatusViaApi(request, token, orcamento.id) // ENVIADO -> APROVADO
+    const resEmProducao = await avancarStatusViaApi(request, token, orcamento.id) // APROVADO -> EM_PRODUCAO (sinalAtivo=false)
+    expect((await resEmProducao.json()).status).toBe('EM_PRODUCAO') // cancelKind(EM_PRODUCAO) === 'multa'
+
+    await login(page)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    const dialog = page.getByRole('dialog')
+
+    // Passo 1 — Itens deste pedido
+    await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
+    await expect(dialog).toBeVisible()
+    await expectTituloAcimaDoSubtitle(dialog, 'Itens deste pedido', 'Cancelar · Passo 1 de 3')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    // Passo 2 — Deseja cobrar multa pelo cancelamento?
+    await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Próximo →', exact: true }).click()
+    await expectTituloAcimaDoSubtitle(dialog, 'Deseja cobrar multa pelo cancelamento?', 'Cancelar · Passo 2 de 3')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    // Passo 3 — Resumo do cancelamento
+    await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Próximo →', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Próximo →', exact: true }).click()
+    await expectTituloAcimaDoSubtitle(dialog, 'Resumo do cancelamento', 'Cancelar · Passo 3 de 3')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    // Nenhum dos fechamentos por Escape confirmou o cancelamento.
+    const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
+    expect(orcamentoDepois.status).toBe('EM_PRODUCAO')
+  })
+
+  test('239f — ModalCancelEstorno (DetalheOrcamentoPage): título do passo acima de "Cancelar · Passo N de 2" nos 2 passos, Escape fecha em qualquer passo', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const nomeCliente = `QA239f-Cliente-${Date.now()}`
+    const cliente = await criarCliente(request, token, nomeCliente)
+    const nomeProduto = `QA239f-Produto-${Date.now()}`
+    const produto = await criarProdutoComEstoque(request, token, nomeProduto, 1000)
+    criadosProdutoIds.push(produto.id)
+
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, precoUnitario: 20, margemAplicada: 50, quantidade: 1 },
+    ], { sinalAtivo: true, percentualSinal: 30 })
+    await avancarStatusViaApi(request, token, orcamento.id) // RASCUNHO -> ENVIADO
+    await avancarStatusViaApi(request, token, orcamento.id) // ENVIADO -> APROVADO
+    await avancarStatusViaApi(request, token, orcamento.id) // APROVADO -> AGUARDANDO_SINAL
+    const resSinalPago = await avancarStatusViaApi(request, token, orcamento.id, { metodoSinalRecebido: 'PIX' }) // -> SINAL_PAGO
+    expect((await resSinalPago.json()).status).toBe('SINAL_PAGO') // cancelKind(SINAL_PAGO) === 'estorno'
+
+    await login(page)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    const dialog = page.getByRole('dialog')
+
+    // Passo 1 — Estornar sinal para {cliente}?
+    await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
+    await expect(dialog).toBeVisible()
+    await expectTituloAcimaDoSubtitle(dialog, `Estornar sinal para ${nomeCliente}?`, 'Cancelar · Passo 1 de 2')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    // Passo 2 — Confirmar estorno do sinal
+    await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Próximo →', exact: true }).click()
+    await expectTituloAcimaDoSubtitle(dialog, 'Confirmar estorno do sinal', 'Cancelar · Passo 2 de 2')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    // Nenhum dos fechamentos por Escape confirmou o estorno.
+    const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
+    expect(orcamentoDepois.status).toBe('SINAL_PAGO')
   })
 })

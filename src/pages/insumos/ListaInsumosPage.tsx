@@ -4,12 +4,13 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
+import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import {
-  AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, X, Search, Trash2,
+  AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
   ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -253,132 +254,15 @@ function CompraLoteModal({ onClose, onSuccess }: {
   }
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]">
-      <div onClick={e => e.stopPropagation()} className="flex max-h-[92vh] w-[min(620px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
-
-        <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-5">
-          <div className="flex items-center gap-[13px]">
-            <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-orange/[0.12] text-orange">
-              <ShoppingCart size={17} />
-            </span>
-            <div>
-              <div className="text-[16.5px] font-bold tracking-[-0.01em] text-dark">Registrar compras</div>
-              <div className="mt-0.5 text-[12.5px] text-muted">Adicione os insumos que você comprou.</div>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Fechar" className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-
-          <div className="relative">
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
-                <Search size={16} />
-              </span>
-              <input
-                ref={buscaInputRef}
-                value={busca}
-                onChange={e => setBusca(e.target.value)}
-                onFocus={() => setOpenList(true)}
-                onBlur={() => setTimeout(() => setOpenList(false), 150)}
-                placeholder="Buscar insumo para adicionar…"
-                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-10 pr-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-              />
-            </div>
-            {openList && (
-              <div className="absolute inset-x-0 top-[50px] z-20 max-h-[300px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-                {loadingBusca ? (
-                  <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
-                ) : disponiveis.length === 0 ? (
-                  <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum insumo encontrado</div>
-                ) : disponiveis.map(i => (
-                  <button
-                    key={i.id}
-                    onMouseDown={() => addItem(i)}
-                    className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
-                  >
-                    <span className="text-[13.5px] font-semibold text-dark">
-                      {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
-                    </span>
-                    <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {itens.length === 0 ? (
-            <div className="mt-4 rounded-xl border-[1.5px] border-dashed border-line px-7 py-7 text-center text-[13.5px] text-muted">
-              Nenhum insumo adicionado ainda. Use a busca acima.
-            </div>
-          ) : (
-            <div className="mt-4 flex flex-col gap-2.5">
-              {itens.map(it => {
-                const q = num(it.qtd)
-                const p = num(it.preco)
-                const novoCusto = q > 0 ? p / q : null
-
-                return (
-                  <div key={it.insumo.id} className="rounded-xl border border-line bg-cream px-4 py-3.5">
-                    <div className="mb-2.5 flex items-center justify-between gap-2.5">
-                      <span className="text-sm font-semibold text-dark">{it.insumo.nome}</span>
-                      <button onClick={() => removeItem(it.insumo.id)} className="flex border-none bg-transparent text-faint hover:text-danger">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <div className="relative flex-[1_1_110px]">
-                        <input
-                          value={it.qtd}
-                          onChange={e => updateItem(it.insumo.id, 'qtd', e.target.value)}
-                          inputMode="decimal"
-                          placeholder="Qtd"
-                          className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-3 pr-[50px] font-[inherit] text-sm text-dark outline-none"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12.5px] font-semibold text-dim">
-                          {it.insumo.unidadeMedida}
-                        </span>
-                      </div>
-                      <div className="relative flex-[1_1_130px]">
-                        <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-cream text-[13px] font-semibold text-dim">
-                          R$
-                        </span>
-                        <input
-                          value={it.preco}
-                          onChange={e => updateItem(it.insumo.id, 'preco', e.target.value)}
-                          inputMode="decimal"
-                          placeholder="0,00"
-                          className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-[46px] pr-3 font-[inherit] text-sm text-dark outline-none"
-                        />
-                      </div>
-                      <div className="flex-[1_1_130px] text-right">
-                        {novoCusto != null ? (
-                          <span className="text-[13px] font-bold text-teal">
-                            {moeda(novoCusto)} /{it.insumo.unidadeMedida}
-                          </span>
-                        ) : (
-                          <span className="text-[12.5px] text-muted">—</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-              <button
-                onClick={focarBusca}
-                className="flex h-11 items-center justify-center gap-2 rounded-input border-[1.5px] border-dashed border-[#C9C5BC] bg-transparent font-[inherit] text-[13.5px] font-semibold text-body transition-colors duration-100 hover:border-teal hover:bg-cream"
-              >
-                <Plus size={16} /> Adicionar mais um insumo
-              </button>
-            </div>
-          )}
-
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-[11px] border-t border-line px-6 py-4">
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Registrar compras"
+      subtitle="Adicione os insumos que você comprou."
+      icon={<ShoppingCart size={17} />}
+      width={620}
+      footer={
+        <>
           <Button variant="ghost" onClick={onClose} disabled={loadingConfirm}>Cancelar</Button>
           <Button variant="primary" disabled={!podeConfirmar || loadingConfirm} iconRight={loadingConfirm ? undefined : <ArrowRight size={17} />} onClick={confirmar}>
             {loadingConfirm
@@ -386,9 +270,112 @@ function CompraLoteModal({ onClose, onSuccess }: {
               : `Confirmar${itens.length > 0 ? ` (${itens.length})` : ''} e ver impacto`
             }
           </Button>
+        </>
+      }
+    >
+      <div className="relative">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
+            <Search size={16} />
+          </span>
+          <input
+            ref={buscaInputRef}
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            onFocus={() => setOpenList(true)}
+            onBlur={() => setTimeout(() => setOpenList(false), 150)}
+            placeholder="Buscar insumo para adicionar…"
+            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-10 pr-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          />
         </div>
+        {openList && (
+          <div className="absolute inset-x-0 top-[50px] z-20 max-h-[300px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+            {loadingBusca ? (
+              <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
+            ) : disponiveis.length === 0 ? (
+              <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum insumo encontrado</div>
+            ) : disponiveis.map(i => (
+              <button
+                key={i.id}
+                onMouseDown={() => addItem(i)}
+                className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+              >
+                <span className="text-[13.5px] font-semibold text-dark">
+                  {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
+                </span>
+                <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+
+      {itens.length === 0 ? (
+        <div className="mt-4 rounded-xl border-[1.5px] border-dashed border-line px-7 py-7 text-center text-[13.5px] text-muted">
+          Nenhum insumo adicionado ainda. Use a busca acima.
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-2.5">
+          {itens.map(it => {
+            const q = num(it.qtd)
+            const p = num(it.preco)
+            const novoCusto = q > 0 ? p / q : null
+
+            return (
+              <div key={it.insumo.id} className="rounded-xl border border-line bg-cream px-4 py-3.5">
+                <div className="mb-2.5 flex items-center justify-between gap-2.5">
+                  <span className="text-sm font-semibold text-dark">{it.insumo.nome}</span>
+                  <button onClick={() => removeItem(it.insumo.id)} className="flex border-none bg-transparent text-faint hover:text-danger">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="relative flex-[1_1_110px]">
+                    <input
+                      value={it.qtd}
+                      onChange={e => updateItem(it.insumo.id, 'qtd', e.target.value)}
+                      inputMode="decimal"
+                      placeholder="Qtd"
+                      className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-3 pr-[50px] font-[inherit] text-sm text-dark outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12.5px] font-semibold text-dim">
+                      {it.insumo.unidadeMedida}
+                    </span>
+                  </div>
+                  <div className="relative flex-[1_1_130px]">
+                    <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-cream text-[13px] font-semibold text-dim">
+                      R$
+                    </span>
+                    <input
+                      value={it.preco}
+                      onChange={e => updateItem(it.insumo.id, 'preco', e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-[46px] pr-3 font-[inherit] text-sm text-dark outline-none"
+                    />
+                  </div>
+                  <div className="flex-[1_1_130px] text-right">
+                    {novoCusto != null ? (
+                      <span className="text-[13px] font-bold text-teal">
+                        {moeda(novoCusto)} /{it.insumo.unidadeMedida}
+                      </span>
+                    ) : (
+                      <span className="text-[12.5px] text-muted">—</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          <button
+            onClick={focarBusca}
+            className="flex h-11 items-center justify-center gap-2 rounded-input border-[1.5px] border-dashed border-[#C9C5BC] bg-transparent font-[inherit] text-[13.5px] font-semibold text-body transition-colors duration-100 hover:border-teal hover:bg-cream"
+          >
+            <Plus size={16} /> Adicionar mais um insumo
+          </button>
+        </div>
+      )}
+    </ModalShell>
   )
 }
 
@@ -399,76 +386,60 @@ function ImpactoLoteModal({ impacto, onClose }: {
   const { insumosAtualizados } = impacto
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]">
-      <div onClick={e => e.stopPropagation()} className="flex max-h-[92vh] w-[min(560px,100%)] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
-
-        <div className="flex items-center justify-between gap-3 border-b border-line px-6 py-5">
-          <div className="flex items-center gap-[13px]">
-            <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-teal/[0.12] text-teal">
-              <Layers size={18} />
-            </span>
-            <div>
-              <div className="text-[16.5px] font-bold tracking-[-0.01em] text-dark">Compra registrada!</div>
-              <div className="mt-0.5 text-[12.5px] text-muted">
-                {insumosAtualizados.length} {insumosAtualizados.length === 1 ? 'insumo atualizado' : 'insumos atualizados'}.
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Compra registrada!"
+      subtitle={`${insumosAtualizados.length} ${insumosAtualizados.length === 1 ? 'insumo atualizado' : 'insumos atualizados'}.`}
+      icon={<Layers size={18} />}
+      iconBg="rgba(42,157,143,0.10)"
+      iconColor="#2A9D8F"
+      width={560}
+      footer={<Button variant="primary" onClick={onClose}>Concluir</Button>}
+    >
+      <div className="overflow-hidden rounded-[14px] border border-line">
+        <div className="grid grid-cols-[1fr_auto] gap-3 bg-cream px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
+          <span>Insumo</span><span className="text-right">Custo unitário</span>
+        </div>
+        {insumosAtualizados.map((item) => {
+          const subiu = item.custoUnitarioNovo > item.custoUnitarioAnterior
+          const igual = item.custoUnitarioNovo === item.custoUnitarioAnterior
+          return (
+            <div key={item.insumoId} className="grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line px-4 py-3.5">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-dark">{item.nomeInsumo}</div>
+                <div className="mt-0.5 text-[11.5px] text-muted">
+                  +{item.quantidadeAdicionada} {item.unidadeMedida}
+                  {item.marca ? ` · ${item.marca}` : ''}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-[9px] [font-variant-numeric:tabular-nums]">
+                <span className={clsx('text-[13.5px] text-muted', !igual && 'line-through')}>
+                  {moeda(item.custoUnitarioAnterior, 2)}
+                </span>
+                {!igual && (
+                  <>
+                    <ArrowRight size={17} className="text-dim" />
+                    <span className={clsx('inline-flex items-center gap-1 text-[14.5px] font-bold', subiu ? 'text-danger' : 'text-success')}>
+                      {subiu
+                        ? <ArrowDown size={14} className="rotate-180" />
+                        : <ArrowDown size={14} />
+                      }
+                      {moeda(item.custoUnitarioNovo, 2)}
+                    </span>
+                  </>
+                )}
+                {igual && (
+                  <span className="text-[14.5px] font-bold text-dark">
+                    {moeda(item.custoUnitarioNovo, 2)}
+                  </span>
+                )}
               </div>
             </div>
-          </div>
-          <button onClick={onClose} className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="overflow-hidden rounded-[14px] border border-line">
-            <div className="grid grid-cols-[1fr_auto] gap-3 bg-cream px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-              <span>Insumo</span><span className="text-right">Custo unitário</span>
-            </div>
-            {insumosAtualizados.map((item) => {
-              const subiu = item.custoUnitarioNovo > item.custoUnitarioAnterior
-              const igual = item.custoUnitarioNovo === item.custoUnitarioAnterior
-              return (
-                <div key={item.insumoId} className="grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line px-4 py-3.5">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-dark">{item.nomeInsumo}</div>
-                    <div className="mt-0.5 text-[11.5px] text-muted">
-                      +{item.quantidadeAdicionada} {item.unidadeMedida}
-                      {item.marca ? ` · ${item.marca}` : ''}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-[9px] [font-variant-numeric:tabular-nums]">
-                    <span className={clsx('text-[13.5px] text-muted', !igual && 'line-through')}>
-                      {moeda(item.custoUnitarioAnterior, 2)}
-                    </span>
-                    {!igual && (
-                      <>
-                        <ArrowRight size={17} className="text-dim" />
-                        <span className={clsx('inline-flex items-center gap-1 text-[14.5px] font-bold', subiu ? 'text-danger' : 'text-success')}>
-                          {subiu
-                            ? <ArrowDown size={14} className="rotate-180" />
-                            : <ArrowDown size={14} />
-                          }
-                          {moeda(item.custoUnitarioNovo, 2)}
-                        </span>
-                      </>
-                    )}
-                    {igual && (
-                      <span className="text-[14.5px] font-bold text-dark">
-                        {moeda(item.custoUnitarioNovo, 2)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="flex justify-end border-t border-line px-6 py-4">
-          <Button variant="primary" onClick={onClose}>Concluir</Button>
-        </div>
+          )
+        })}
       </div>
-    </div>
+    </ModalShell>
   )
 }
 

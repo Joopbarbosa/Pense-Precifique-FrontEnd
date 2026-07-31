@@ -138,8 +138,8 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     await expect(page.getByRole('heading', { level: 1 })).toContainText(numeroPuro)
     await expect(page.getByText(numeroPadded)).toHaveCount(0)
 
-    // cancelKind(SINAL_PAGO) === "estorno" -> ModalCancelEstorno (diálogo hand-rolled, sem
-    // role="dialog", Escape tratado por useEffect próprio — não é um dos 4 ModalShell do Cenário 239)
+    // cancelKind(SINAL_PAGO) === "estorno" -> ModalCancelEstorno, migrado para ModalShell (tem
+    // role="dialog", Escape sem useEffect próprio) — ver cobertura estrutural em 239f, modal-shell-consumidores.spec.ts
     await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
     await expect(page.getByText(/Estornar sinal para/)).toBeVisible()
     await page.getByRole('button', { name: 'Próximo →', exact: true }).click()
