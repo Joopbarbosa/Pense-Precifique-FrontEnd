@@ -5,7 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, ModalShell } from '../../components/ui'
 import {
   Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
-  Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus,
+  Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check,
 } from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
@@ -350,7 +350,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                     'grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
                     on ? 'border-orange bg-orange' : 'border-[#D4D0C8] bg-transparent'
                   )}>
-                    {on && <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m4 12.5 4.2 4.2L19 7"/></svg>}
+                    {on && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
                   </span>
                   <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
                 </div>
@@ -446,11 +446,7 @@ function PrazoSection({
           'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
           inicioImediato ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
         )}>
-          {inicioImediato && (
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m4 12.5 4.2 4.2L19 7"/>
-            </svg>
-          )}
+          {inicioImediato && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
         </span>
         <div>
           <div className="text-[14.5px] font-semibold text-dark">Início assim que aprovado</div>
