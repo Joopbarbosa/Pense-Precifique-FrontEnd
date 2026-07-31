@@ -195,7 +195,7 @@ export default function EditarProducaoPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  const handleSelectProduto = async (produto: ProdutoResponse) => {
+  const handleSelectProduto = (produto: ProdutoResponse) => {
     const existente = produtos.find(p => p.produtoId === produto.id)
     if (existente?.quantidadeTravada) {
       setToast(`${produto.nome} já foi adicionado — insumo não-fracionável não permite mais de uma unidade por produção.`)
@@ -204,15 +204,9 @@ export default function EditarProducaoPage() {
 
     let quantidade = existente ? existente.quantidade + 1 : 1
     let quantidadeTravada = false
-    try {
-      const detalhe = await produtoService.buscarPorId(produto.id)
-      if (detalhe.algumInsumoNaoFracionavel) {
-        quantidadeTravada = true
-        quantidade = detalhe.rendimento ?? 1
-      }
-    } catch {
-      setToast('Não foi possível verificar a ficha técnica do produto. Tente novamente.')
-      return
+    if (produto.algumInsumoNaoFracionavel) {
+      quantidadeTravada = true
+      quantidade = produto.rendimento ?? 1
     }
 
     setProdutos(arr => {
