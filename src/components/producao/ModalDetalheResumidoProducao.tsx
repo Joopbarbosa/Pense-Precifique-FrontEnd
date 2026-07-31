@@ -29,6 +29,7 @@ export default function ModalDetalheResumidoProducao({ producao, onClose }: Prop
       title={producao.identificador}
       subtitle="Produção"
       icon={<Factory size={18} />}
+      closeLabel={`Fechar detalhes de ${producao.identificador}`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Fechar</Button>

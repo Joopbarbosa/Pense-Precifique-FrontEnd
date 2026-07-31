@@ -97,6 +97,9 @@ export default function RetomarProducaoModal({ producaoId, onClose, onSuccess }:
       onClose={onClose}
       title="Retomar produção"
       icon={<RotateCcw size={18} />}
+      /* Duplicidade de nome acessível só existe quando `aindaTravada` mostra o botão de rodapé
+         "Fechar" (mesmo texto do X do header) — no outro estado o rodapé usa "Cancelar". */
+      closeLabel={aindaTravada ? 'Fechar modal de retomada' : undefined}
       footer={
         aindaTravada ? (
           <>

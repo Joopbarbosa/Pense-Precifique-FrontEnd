@@ -142,10 +142,12 @@ test.describe('Cenário 223 — Modal de detalhe rápido no Kanban (#185)', () =
     await expect(dialog).toHaveCount(0)
     await expect(page).toHaveURL(/\/producao$/)
 
-    // X do cabeçalho (aria-label="Fechar", sem texto visível "Fechar")
+    // X do cabeçalho — aria-label específico por produção (`Fechar detalhes de {identificador}`,
+    // OpenProject #186-a11y) pra não colidir nome acessível com o "Fechar" de texto do rodapé, que
+    // chama o mesmo onClose. Sem texto visível "Fechar".
     await card.click()
     await expect(dialog).toBeVisible()
-    await page.locator('[role="dialog"] button[aria-label="Fechar"]').click()
+    await dialog.getByRole('button', { name: `Fechar detalhes de ${producao.identificador}`, exact: true }).click()
     await expect(dialog).toHaveCount(0)
     await expect(page).toHaveURL(/\/producao$/)
 

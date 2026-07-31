@@ -75,6 +75,7 @@ export default function CancelarProducaoConsumoModal({ producaoId, onClose, onSu
       iconBg="#FCF0EC"
       iconColor="#C0492B"
       width={560}
+      closeLabel="Fechar modal de cancelamento"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Fechar</Button>

@@ -44,6 +44,7 @@ export default function CancelarProducaoModal({ producaoId, onClose, onSuccess }
       icon={<Ban size={18} />}
       iconBg="#FCF0EC"
       iconColor="#C0492B"
+      closeLabel="Fechar modal de cancelamento"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Fechar</Button>

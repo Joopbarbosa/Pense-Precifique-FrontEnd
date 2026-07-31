@@ -12,6 +12,10 @@ interface ModalShellProps {
   children: React.ReactNode
   footer?: React.ReactNode
   width?: number
+  /** Só necessário quando o próprio `footer` também tem um botão de texto "Fechar" — nesses
+   *  casos os dois ficam com o mesmo nome acessível (ver ModalDetalheResumidoProducao,
+   *  CancelarProducaoModal, CancelarProducaoConsumoModal, RetomarProducaoModal). */
+  closeLabel?: string
 }
 
 export default function ModalShell({
@@ -25,6 +29,7 @@ export default function ModalShell({
   children,
   footer,
   width = 520,
+  closeLabel = 'Fechar',
 }: ModalShellProps) {
   useEffect(() => {
     if (!open) return
@@ -74,7 +79,7 @@ export default function ModalShell({
 
           <button
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={closeLabel}
             className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
           >
             <X size={20} />
