@@ -14,7 +14,7 @@ import {
   travarProducao,
   retomarProducao,
 } from '../helpers/producao'
-import { criarInsumoComEstoque, reporEstoque, definirPermitirNegativo } from '../helpers/insumo'
+import { criarInsumoComEstoque, criarInsumoFracionavel, reporEstoque, definirPermitirNegativo } from '../helpers/insumo'
 
 const INSUMO_URL = 'http://localhost:8080/insumos'
 
@@ -60,7 +60,7 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
   test('160 — iniciar sem insumo bloqueante baixa estoque pela fórmula e vai para EM_ANDAMENTO/USUARIO', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA160-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA160-Produto-${Date.now()}`
     // ficha: 2 unidades de insumo por produto; rendimento 1 → necessária = 2 * (quantidade/1)
@@ -175,7 +175,7 @@ test.describe('Cenários 160-167 — Iniciar/Travar/Retomar (Fluxo B) (#117-#119
   test('181 (era 163) — travar manualmente EM_ANDAMENTO não reverte estoque já baixado', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA163-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA163-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 2 }], 1)

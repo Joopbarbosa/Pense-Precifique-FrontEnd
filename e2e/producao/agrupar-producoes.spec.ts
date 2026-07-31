@@ -13,7 +13,7 @@ import {
   selecionarParaAgrupar,
   linhaProducaoDesktop,
 } from '../helpers/producao'
-import { criarInsumoComEstoque } from '../helpers/insumo'
+import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
 const API_URL = 'http://localhost:8080'
 const INSUMO_URL = `${API_URL}/insumos`
@@ -124,7 +124,7 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
   test('191 — agrupar duas produções AGUARDANDO_INICIO gera nova PRD sem movimentar estoque', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA191-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA191-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
@@ -184,7 +184,7 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
   test('192 — agrupar com produção EM_ANDAMENTO exige declaração de consumo real', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA192-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA192-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 10 }], 1)

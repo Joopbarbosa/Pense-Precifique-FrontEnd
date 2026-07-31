@@ -11,7 +11,7 @@ import {
   finalizarProducaoComPerda,
   finalizarProducaoViaApi,
 } from '../helpers/producao'
-import { criarInsumoComEstoque } from '../helpers/insumo'
+import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
 const PRODUTO_URL = 'http://localhost:8080/produtos'
 const INSUMO_URL = 'http://localhost:8080/insumos'
@@ -50,7 +50,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
   test('168 — finalizar adiciona quantidade ao estoque do produto e registra dataTerminoReal', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA168-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA168-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
@@ -107,7 +107,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
   test('RN-NOVA-4 (#188) — finalizar via UI declarando perda parcial incrementa só a diferença e persiste quantidadePerdida', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4c-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA-RNNOVA4c-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
@@ -138,7 +138,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
   test('RN-NOVA-4 (#188) — múltiplos produtos, perda declarada só em um: o outro fica com quantidadePerdida 0', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4d-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProdutoA = `QA-RNNOVA4d-ProdutoA-${Date.now()}`
     const produtoA = await criarProdutoComFicha(request, token, nomeProdutoA, [{ insumoId: insumo.id, quantidade: 1 }], 1)
@@ -181,7 +181,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
   test('RN-NOVA-4 (#188) — declarar perda maior que o planejado bloqueia o botão de confirmar antes do submit', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4e-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA-RNNOVA4e-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
@@ -211,7 +211,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
   test('RN-NOVA-4 (#188) — contrato de backend via API: perda declarada incrementa só a diferença (planejado − perda)', async ({ request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4a-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA-RNNOVA4a-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
@@ -241,7 +241,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
   test('RN-NOVA-4 (#188) — contrato de backend via API: perda maior que a quantidade planejada é bloqueada (400)', async ({ request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA4b-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA-RNNOVA4b-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)

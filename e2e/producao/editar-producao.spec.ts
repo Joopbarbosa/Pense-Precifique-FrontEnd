@@ -9,7 +9,7 @@ import {
   criarProducaoViaApi,
   criarProducaoEmAndamento,
 } from '../helpers/producao'
-import { criarInsumoComEstoque } from '../helpers/insumo'
+import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
 /**
  * Homologação P-QA-002 / OpenProject #116 — Editar Produção (Fluxo A.1), cenários 158-159.
@@ -50,7 +50,7 @@ test.describe('Cenários 158-159 — Editar Produção (Fluxo A.1) (#116)', () =
   test('158 — editar produção AGUARDANDO_INICIO salva alterações e reexibe alertas recalculados', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA158-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 5, true) // estoque baixo, permite negativo
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 5, 'DECIMAL', true) // estoque baixo, permite negativo
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA158-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)

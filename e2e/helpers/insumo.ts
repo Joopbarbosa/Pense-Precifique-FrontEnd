@@ -36,7 +36,8 @@ export async function criarInsumoFracionavel(
   token: string,
   nome: string,
   estoqueInicial: number,
-  tipoExibicaoQuantidade: 'FRACAO' | 'DECIMAL'
+  tipoExibicaoQuantidade: 'FRACAO' | 'DECIMAL',
+  permitirEstoqueNegativo = false
 ) {
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -48,7 +49,7 @@ export async function criarInsumoFracionavel(
       estoqueMinimo: 0.1,
       precoTotalCompraInicial: Math.max(estoqueInicial, 1) * 10,
       quantidadeCompradaInicial: Math.max(estoqueInicial, 0.01),
-      permitirEstoqueNegativo: false,
+      permitirEstoqueNegativo,
     },
   })
   if (!res.ok()) {

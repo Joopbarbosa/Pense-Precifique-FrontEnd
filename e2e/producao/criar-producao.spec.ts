@@ -9,7 +9,7 @@ import {
   buscarProducao,
   teardownProducoes,
 } from '../helpers/producao'
-import { criarInsumoComEstoque } from '../helpers/insumo'
+import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
 /**
  * Homologação P-QA-001 / OpenProject #115 — Criar Produção (Fluxo A), cenários 150-157 (numeração
@@ -77,7 +77,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
   test('168 (era 150) — criar produção com produtos válidos gera PRD-N, sem movimentação de estoque, histórico com origem USUARIO', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QA150-KitConviteCasamento-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, `QA150-Papel-${Date.now()}`, 1000, false)
+    const insumo = await criarInsumoFracionavel(request, token, `QA150-Papel-${Date.now()}`, 1000, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
@@ -237,7 +237,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
   test('155 — sistema agrupa produto duplicado em uma única linha', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA155-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, true)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA155-KitConviteCasamento-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)

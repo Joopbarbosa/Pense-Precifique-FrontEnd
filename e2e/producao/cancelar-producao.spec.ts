@@ -9,7 +9,7 @@ import {
   criarProducaoViaApi,
   criarProducaoEmAndamentoComConsumo,
 } from '../helpers/producao'
-import { criarInsumoComEstoque } from '../helpers/insumo'
+import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
 const INSUMO_URL = 'http://localhost:8080/insumos'
 
@@ -124,7 +124,7 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
   test('172 — cancelar EM_ANDAMENTO com consumo igual ao original não estorna', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA172-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA172-Produto-${Date.now()}`
     // ficha 10/unidade, rendimento 1, quantidade 5 → baixa 50 (bate com o "baixou 50" do Gherkin)
@@ -170,7 +170,7 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
   test('173 — cancelar EM_ANDAMENTO com consumo parcial estorna a diferença', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA173-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA173-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 10 }], 1)
@@ -213,7 +213,7 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
   test('174 — cancelar com consumo declarado zero estorna integralmente', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA174-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const estoqueAntesDaProducao = insumo.estoqueAtual // 100
     const nomeProduto = `QA174-Produto-${Date.now()}`
@@ -252,7 +252,7 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
   test('175 — consumo divergente sem justificativa preenchida bloqueia confirmação', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA175-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA175-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 10 }], 1)
@@ -277,7 +277,7 @@ test.describe('Cenários 170-176 — Cancelar Produção (Fluxo D) (#121)', () =
   test('176 — declarar consumo maior que o original bloqueia com mensagem de valor inválido', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA176-Insumo-${Date.now()}`
-    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 100, false)
+    const insumo = await criarInsumoFracionavel(request, token, nomeInsumo, 100, 'DECIMAL')
     criadosInsumoIds.push(insumo.id)
     const nomeProduto = `QA176-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 10 }], 1)
