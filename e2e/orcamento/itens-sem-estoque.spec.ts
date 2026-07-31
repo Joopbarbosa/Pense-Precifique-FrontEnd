@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, criarProdutoComFichaEEstoque, inativarProduto } from '../helpers/producao'
-import { criarInsumoComEstoque } from '../helpers/insumo'
+import { criarInsumoFracionavel } from '../helpers/insumo'
 import { criarCliente } from '../helpers/orcamento'
 
 const API_URL = 'http://localhost:8080'
@@ -157,9 +157,14 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
 
   test('clicar em "Criar produção" navega pra Nova Produção com o produto e a quantidade FALTANTE pré-preenchidos', async ({ page, request }) => {
     const token = await apiLogin(request)
-    // precisa de ficha técnica válida (não só estoqueAtual) para POST /producoes/simular-alertas
-    // não recusar o produto ao carregar a Nova Produção com o pré-preenchimento
-    const insumo = await criarInsumoComEstoque(request, token, `QA-RNNOVA5e-Insumo-${Date.now()}`, 100, true)
+    // Precisa de ficha técnica válida (não só estoqueAtual) para POST /producoes/simular-alertas não
+    // recusar o produto ao carregar a Nova Produção com o pré-preenchimento — e precisa ser
+    // fracionável: `criarInsumoComEstoque` sempre cria `fracionavel: false`, o que dispara a trava de
+    // quantidade (RN-051/#187, NovaProducaoPage.tsx:260-278) — quantidade trava em `rendimento` e
+    // ignora `?quantidade=` da query, substituindo o `<input type="number">` por um valor fixo
+    // somente-leitura. Esse cenário testa o pré-preenchimento vindo da query, não a trava — insumo
+    // fracionável evita a trava e mantém o `<input type="number">` real.
+    const insumo = await criarInsumoFracionavel(request, token, `QA-RNNOVA5e-Insumo-${Date.now()}`, 100, 'DECIMAL')
     const nomeProduto = `QA-RNNOVA5e-Produto-${Date.now()}`
     const produto = await criarProdutoComFichaEEstoque(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 3)
     criadosProdutoIds.push(produto.id)
