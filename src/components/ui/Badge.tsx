@@ -1,4 +1,4 @@
-import { AlertCircle, Check, X, Lock } from 'lucide-react'
+import { AlertCircle, Check, X } from 'lucide-react'
 import clsx from 'clsx'
 
 type StatusOrcamento =
@@ -124,15 +124,17 @@ export function EstoqueNegativoBadge({ permitir, variant = 'cadastro' }: Estoque
   )
 }
 
-// ---------- QuantidadeTravadaAviso ----------
+// ---------- MultiploRendimentoAviso ----------
 //
-// Duplicado idêntico entre NovaProducaoPage.tsx/EditarProducaoPage.tsx (ProdutoRow) — RN-051,
-// insumo não-fracionável na ficha técnica trava a quantidade da produção em 1 unidade.
+// Duplicado idêntico entre NovaProducaoPage.tsx/EditarProducaoPage.tsx (ProdutoRow) — PDC-027
+// (reversão de PDC-005, #214): insumo não-fracionável na ficha técnica não trava mais a
+// quantidade em 1× o rendimento — aceita qualquer múltiplo inteiro, limitado ao estoque
+// disponível. O backend valida (mensagem exibida via extractApiError); este aviso só orienta.
 
-export function QuantidadeTravadaAviso() {
+export function MultiploRendimentoAviso({ rendimento }: { rendimento: number }) {
   return (
-    <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-muted">
-      <Lock size={11} /> Quantidade fixa — insumo não-fracionável na ficha técnica
+    <div className="mt-1 text-[11.5px] font-medium text-muted">
+      Insumo não-fracionável — quantidade deve ser múltiplo de {rendimento}
     </div>
   )
 }

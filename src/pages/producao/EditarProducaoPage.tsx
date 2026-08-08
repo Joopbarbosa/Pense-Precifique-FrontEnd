@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Spinner } from '../../components/ui'
+import { Button, Spinner, Stepper } from '../../components/ui'
 import { extractApiError } from '../../utils/apiError'
 import { Search, Box, Trash2, Calendar, StickyNote, Save, Lock } from 'lucide-react'
-import { QuantidadeTravadaAviso } from '../../components/ui/Badge'
+import { MultiploRendimentoAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
@@ -14,8 +14,9 @@ interface ProdutoSelecionado {
   nome: string
   identificador?: string
   quantidade: number
-  // RN-051 — algum insumo não-fracionável na ficha técnica: quantidade travada em rendimento, sem edição livre.
-  quantidadeTravada?: boolean
+  // PDC-027 (reversão de PDC-005, #214) — presente quando algum insumo da ficha técnica não é
+  // fracionável: quantidade deve ser múltiplo deste valor (rendimento do produto), validado pelo backend.
+  multiploRendimento?: number
 }
 
 function QuoteCard({ step, label, hint, children }: {
@@ -109,26 +110,21 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
   onQuantidade: (produtoId: string, quantidade: number) => void
   onRemove: (produtoId: string) => void
 }) {
+  const passo = item.multiploRendimento ?? 1
+
   return (
     <div className="flex items-center gap-4 border-t border-line px-5 py-4">
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
-        {item.quantidadeTravada && <QuantidadeTravadaAviso />}
+        {item.multiploRendimento != null && <MultiploRendimentoAviso rendimento={item.multiploRendimento} />}
       </div>
-      {item.quantidadeTravada ? (
-        <div className="flex h-11 w-[84px] flex-shrink-0 items-center justify-center rounded-input border-[1.5px] border-line bg-cream font-[inherit] text-[14.5px] font-semibold text-subtle">
-          {item.quantidade}
-        </div>
-      ) : (
-        <input
-          type="number"
-          min={1}
-          value={item.quantidade}
-          onChange={e => onQuantidade(item.produtoId, Math.max(1, parseInt(e.target.value) || 1))}
-          className="h-11 w-[84px] rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-        />
-      )}
+      <Stepper
+        value={item.quantidade}
+        onChange={v => onQuantidade(item.produtoId, v)}
+        min={passo}
+        step={passo}
+      />
       <button
         onClick={() => onRemove(item.produtoId)}
         className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
@@ -165,20 +161,20 @@ export default function EditarProducaoPage() {
         setDataTerminoPrevista(data.dataTerminoPrevista ?? '')
         setObservacoes(data.observacoes ?? '')
 
-        // RN-051 — cada produto já lançado pode ter insumo não-fracionável (quantidade travada
-        // em rendimento); ProducaoProdutoItem não traz algumInsumoNaoFracionavel, então é
-        // preciso buscar o detalhe de cada produto para saber se a linha nasce travada.
+        // PDC-027 — cada produto já lançado pode ter insumo não-fracionável (quantidade restrita a
+        // múltiplos do rendimento); ProducaoProdutoItem não traz algumInsumoNaoFracionavel, então é
+        // preciso buscar o detalhe de cada produto para saber se a linha tem essa restrição.
         const detalhes = await Promise.all(
           data.produtos.map(p => produtoService.buscarPorId(p.produtoId).catch(() => null))
         )
         setProdutos(data.produtos.map((p, i) => {
           const detalhe = detalhes[i]
-          const travado = !!detalhe?.algumInsumoNaoFracionavel
+          const multiplo = detalhe?.algumInsumoNaoFracionavel ? (detalhe.rendimento ?? undefined) : undefined
           return {
             produtoId: p.produtoId,
             nome: p.nomeProduto,
-            quantidade: travado ? (detalhe!.rendimento ?? p.quantidade) : p.quantidade,
-            quantidadeTravada: travado,
+            quantidade: p.quantidade,
+            multiploRendimento: multiplo,
           }
         }))
       })
@@ -194,24 +190,15 @@ export default function EditarProducaoPage() {
 
   const handleSelectProduto = (produto: ProdutoResponse) => {
     const existente = produtos.find(p => p.produtoId === produto.id)
-    if (existente?.quantidadeTravada) {
-      setToast(`${produto.nome} já foi adicionado — insumo não-fracionável não permite mais de uma unidade por produção.`)
-      return
-    }
-
-    let quantidade = existente ? existente.quantidade + 1 : 1
-    let quantidadeTravada = false
-    if (produto.algumInsumoNaoFracionavel) {
-      quantidadeTravada = true
-      quantidade = produto.rendimento ?? 1
-    }
+    const multiplo = produto.algumInsumoNaoFracionavel ? (produto.rendimento ?? 1) : undefined
+    const quantidade = existente ? existente.quantidade + (multiplo ?? 1) : (multiplo ?? 1)
 
     setProdutos(arr => {
       const existenteAtual = arr.find(p => p.produtoId === produto.id)
       if (existenteAtual) {
-        return arr.map(p => p.produtoId === produto.id ? { ...p, quantidade, quantidadeTravada } : p)
+        return arr.map(p => p.produtoId === produto.id ? { ...p, quantidade, multiploRendimento: multiplo } : p)
       }
-      return [...arr, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, quantidadeTravada }]
+      return [...arr, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, multiploRendimento: multiplo }]
     })
   }
 
@@ -320,7 +307,7 @@ export default function EditarProducaoPage() {
                 <ProdutoRow
                   key={p.produtoId}
                   item={p}
-                  onQuantidade={(pid, qtd) => setProdutos(arr => arr.map(x => x.produtoId === pid && !x.quantidadeTravada ? { ...x, quantidade: qtd } : x))}
+                  onQuantidade={(pid, qtd) => setProdutos(arr => arr.map(x => x.produtoId === pid ? { ...x, quantidade: qtd } : x))}
                   onRemove={pid => setProdutos(arr => arr.filter(x => x.produtoId !== pid))}
                 />
               ))}

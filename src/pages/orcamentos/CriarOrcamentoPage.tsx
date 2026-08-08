@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, ModalShell } from '../../components/ui'
+import { Button, ModalShell, Stepper } from '../../components/ui'
 import {
   Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
   Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check,
@@ -145,25 +145,6 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-// ── Stepper ────────────────────────────────────────────────────────────────
-function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex flex-shrink-0 items-center overflow-hidden rounded-input border border-line">
-      <button
-        onClick={() => onChange(Math.max(1, value - 1))}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-cream text-lg text-body transition-colors duration-100 hover:bg-line-soft"
-      >−</button>
-      <span className="w-[46px] border-x border-line text-center text-[15px] font-bold leading-[42px] text-dark [font-variant-numeric:tabular-nums]">
-        {value}
-      </span>
-      <button
-        onClick={() => onChange(value + 1)}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-cream text-lg text-teal transition-colors duration-100 hover:bg-line-soft"
-      >+</button>
     </div>
   )
 }
