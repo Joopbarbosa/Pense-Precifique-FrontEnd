@@ -223,20 +223,13 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     const delay = termo ? 300 : 0
     const timer = setTimeout(async () => {
       try {
-        const [ins, prods] = await Promise.all([
-          produtoService.buscarInsumos(termo),
-          produtoService.buscarProdutosBase(termo),
-        ])
+        const ins = await produtoService.buscarInsumos(termo)
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
             .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
         )
-        setProdutosBase(
-          prods
-            .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
-        )
+        setProdutosBase([])
       } catch {
         setInsumos([])
         setProdutosBase([])

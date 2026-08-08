@@ -36,11 +36,6 @@ export const produtoService = {
     return response.data.content
   },
 
-  buscarProdutosBase: async (busca: string): Promise<ProdutoResponse[]> => {
-    const response = await api.get('/produtos', { params: { page: 0, size: 20, tipo: 'PRODUTO_BASE', busca, sort: 'nome' } })
-    return response.data.content
-  },
-
   baixaManual: async (id: string, data: BaixaManualProdutoRequest): Promise<MovimentacaoProdutoResponse> => {
     const response = await api.post(`/produtos/${id}/baixa-manual`, data)
     return response.data
