@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info } from 'lucide-react'
+import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info, Sparkles } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
@@ -48,7 +48,7 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
 }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [resultados, setResultados] = useState<{ id: string; nome: string; precoCusto: number; ativo: boolean }[]>([])
+  const [resultados, setResultados] = useState<{ id: string; nome: string; precoCusto: number; precoVenda?: number; ativo: boolean }[]>([])
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,23 +57,29 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  // Buscadores de seleção exibem no mínimo 6 registros ao focar/clicar sem digitar nada — mesmo
+  // padrão de "Registrar Compra" (Insumo, INS-008) e "Ficha Técnica" (Produto, PDT-010), ver
+  // DECISOES_GLOBAIS.md. `busca` vazia é aceita direto pelo backend (GET /produtos sem `busca`
+  // retorna os primeiros N por `sort=nome`), sem precisar de endpoint novo.
   useEffect(() => {
-    if (!q.trim()) { setResultados([]); return }
-    const qLower = q.trim().toLowerCase()
+    if (!open) return
+    const termo = q.trim()
+    const qLower = termo.toLowerCase()
+    const delay = termo ? 300 : 0
     const timer = setTimeout(async () => {
       try {
-        const data = await produtoService.listar(0, 20, tipo, q)
+        const data = await produtoService.listar(0, 20, tipo, termo)
         setResultados(
           data.content
             .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, precoCusto: p.precoCusto ?? 0, ativo: p.ativo }))
+            .map(p => ({ id: p.id, nome: p.nome, precoCusto: p.precoCusto ?? 0, precoVenda: p.precoVenda ?? undefined, ativo: p.ativo }))
         )
       } catch {
         // silent
       }
-    }, 300)
+    }, delay)
     return () => clearTimeout(timer)
-  }, [q, tipo, jaAdicionados])
+  }, [q, open, tipo, jaAdicionados])
 
   return (
     <div ref={ref} className="group relative">
@@ -96,7 +102,9 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
               className="flex w-full items-center justify-between gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
               <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
-              <span className="flex-shrink-0 text-xs text-muted">{moeda(p.precoCusto)} custo</span>
+              <span className="flex-shrink-0 text-xs text-muted">
+                {moeda(p.precoCusto)} custo{p.precoVenda != null ? ` · ${moeda(p.precoVenda)} venda` : ''}
+              </span>
             </button>
           ))}
         </div>
@@ -501,7 +509,7 @@ export default function NovoItemCatalogoPage() {
               <div className="min-w-0">
                 <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Preço do item</div>
                 <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
-                  {calculandoPreview ? 'Calculando…' : 'Calculado pela API'}
+                  {calculandoPreview ? 'Calculando…' : <><Sparkles size={12} /> Atualiza em tempo real</>}
                 </div>
               </div>
             </div>
