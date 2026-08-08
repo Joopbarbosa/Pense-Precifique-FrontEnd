@@ -128,13 +128,13 @@ export default function DashboardPage() {
 
       {/* Erro de carregamento */}
       {erro && (
-        <div className="mb-[18px] rounded-xl border border-[#FECACA] bg-danger-bg-soft px-5 py-4 text-sm text-[#B91C1C]">
+        <div className="mb-section rounded-xl border border-[#FECACA] bg-danger-bg-soft px-5 py-4 text-sm text-[#B91C1C]">
           Falha ao carregar o dashboard. Tente novamente.
         </div>
       )}
 
       {/* Metrics */}
-      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-section md:grid-cols-3">
         <MetricCard
           icon={<DollarSign size={22} />}
           iconBg={hexA(ORANGE, 0.12)} iconColor={ORANGE}
@@ -165,7 +165,7 @@ export default function DashboardPage() {
 
       {/* Alerta de insumos com estoque baixo */}
       {!loading && insumosEstoqueBaixo.length > 0 && (
-        <div className="mt-[18px] animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] border-l-4 border-l-orange bg-white p-[18px_22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="mt-section animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] border-l-4 border-l-orange bg-white p-[18px_22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="flex flex-wrap items-start gap-3.5">
             <span className="mt-px grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-orange/[0.12] text-orange">
               <AlertTriangle size={20} />
@@ -198,7 +198,7 @@ export default function DashboardPage() {
 
       {/* Lower grid: listas de dados reais */}
       {!loading && !erro && data && (
-        <div className="mt-[18px] grid grid-cols-1 gap-[18px] lg:grid-cols-[1.05fr_1fr]">
+        <div className="mt-section grid grid-cols-1 gap-section lg:grid-cols-[1.05fr_1fr]">
 
           {/* Orçamentos Recentes */}
           <Card padding="22px 24px" className="animate-[fadeUp_.55s_ease_both]">
@@ -288,7 +288,7 @@ export default function DashboardPage() {
 
       {/* Ações Rápidas */}
       {!loading && !erro && (
-        <Card padding="22px 24px" className="mt-[18px] animate-[fadeUp_.65s_ease_both]">
+        <Card padding="22px 24px" className="mt-section animate-[fadeUp_.65s_ease_both]">
           <div className="mb-3.5 text-base font-bold text-[#2D2A26]">
             Ações Rápidas
           </div>

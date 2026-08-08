@@ -66,6 +66,10 @@ export default {
         input: '10px',   // --r-input
         card:  '16px',   // --r-card
       },
+      spacing: {
+        // #204 — ritmo vertical entre seções (mt/gap), documentado no CLAUDE.md
+        section: '18px',
+      },
       boxShadow: {
         card: '0 2px 8px rgba(0,0,0,0.06)',
       },
