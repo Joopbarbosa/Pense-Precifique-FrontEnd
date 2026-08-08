@@ -11,12 +11,15 @@ import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Che
 import { insumoService } from '../../services/insumoService'
 import type { InsumoRequest, NovoInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { extractApiError } from '../../utils/apiError'
+import { tentarConverterFracao } from '../../utils/quantidade'
 
 const UNIDADES = ['Unidade', 'cm', 'g', 'ml', 'Folha']
 
 const unLabel = (u: string) => u === 'Unidade' ? 'un' : u === 'Folha' ? 'folha' : u
 
 const num = (v: string) => {
+  const fracao = tentarConverterFracao(v)
+  if (fracao !== null) return fracao
   const n = parseFloat(v.replace(',', '.'))
   return isNaN(n) ? 0 : n
 }
@@ -197,7 +200,7 @@ export default function FormInsumoPage() {
 
   const numBind = (val: string, set: (v: string) => void) => ({
     value: val,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value.replace(/[^\d.,]/g, '')),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value.replace(/[^\d.,/]/g, '')),
     inputMode: 'decimal' as const,
   })
 

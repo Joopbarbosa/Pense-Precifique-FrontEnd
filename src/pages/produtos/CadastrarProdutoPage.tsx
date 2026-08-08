@@ -11,10 +11,14 @@ import {
 import { produtoService } from '../../services/produtoService'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
+import { tentarConverterFracao } from '../../utils/quantidade'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
-const num = (s: string) =>
-  parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
+const num = (s: string) => {
+  const fracao = tentarConverterFracao(s)
+  if (fracao !== null) return fracao
+  return parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
+}
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -318,7 +322,7 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
       <input
         value={display}
         onChange={e => {
-          const cleaned = e.target.value.replace(/[^\d.,]/g, '')
+          const cleaned = e.target.value.replace(/[^\d.,/]/g, '')
           setDisplay(cleaned)
           onChange(cleaned)
         }}
