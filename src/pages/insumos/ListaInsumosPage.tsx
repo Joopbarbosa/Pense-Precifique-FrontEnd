@@ -20,7 +20,7 @@ import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
-import { formatQuantidade } from '../../utils/quantidade'
+import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
 
 interface ItemCarrinho {
   insumo: InsumoResponse
@@ -38,6 +38,12 @@ const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
 const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
 
 const num = (s: string) => parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
+
+const numQtd = (s: string) => {
+  const fracao = tentarConverterFracao(s)
+  if (fracao !== null) return fracao
+  return num(s)
+}
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -226,14 +232,15 @@ function CompraLoteModal({ onClose, onSuccess }: {
   }
 
   const updateItem = (id: string, field: 'qtd' | 'preco', value: string) => {
+    const allowed = field === 'qtd' ? /[^\d.,/]/g : /[^\d.,]/g
     setItens(prev => prev.map(it =>
-      it.insumo.id === id ? { ...it, [field]: value.replace(/[^\d.,]/g, '') } : it
+      it.insumo.id === id ? { ...it, [field]: value.replace(allowed, '') } : it
     ))
   }
 
   const removeItem = (id: string) => setItens(prev => prev.filter(it => it.insumo.id !== id))
 
-  const podeConfirmar = itens.length > 0 && itens.every(it => num(it.qtd) > 0 && num(it.preco) > 0)
+  const podeConfirmar = itens.length > 0 && itens.every(it => numQtd(it.qtd) > 0 && num(it.preco) > 0)
 
   const confirmar = async () => {
     setLoadingConfirm(true)
@@ -241,7 +248,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
       const response = await loteCompraService.registrar({
         itens: itens.map(it => ({
           insumoId: it.insumo.id,
-          quantidadeComprada: num(it.qtd),
+          quantidadeComprada: numQtd(it.qtd),
           precoTotalPago: num(it.preco),
         })),
       })
@@ -317,7 +324,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
       ) : (
         <div className="mt-4 flex flex-col gap-2.5">
           {itens.map(it => {
-            const q = num(it.qtd)
+            const q = numQtd(it.qtd)
             const p = num(it.preco)
             const novoCusto = q > 0 ? p / q : null
 

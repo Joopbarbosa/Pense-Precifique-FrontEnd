@@ -11,7 +11,13 @@ import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResp
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
-import { formatQuantidade } from '../../utils/quantidade'
+import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+
+const numQtd = (s: string) => {
+  const fracao = tentarConverterFracao(s)
+  if (fracao !== null) return fracao
+  return parseFloat((s || '').replace(',', '.')) || 0
+}
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -63,7 +69,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
   const [error, setError] = useState('')
   const selRef = useRef<HTMLDivElement>(null)
 
-  const podeRegistrar = qtd.trim() !== '' && parseFloat(qtd.replace(',', '.')) > 0 && obs.trim().length >= 30
+  const podeRegistrar = qtd.trim() !== '' && numQtd(qtd) > 0 && obs.trim().length >= 30
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -78,7 +84,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     setError('')
     try {
       await insumoService.baixaManual(insumoId, {
-        quantidade: parseFloat(qtd.replace(',', '.')),
+        quantidade: numQtd(qtd),
         motivo,
         observacao: obs.trim(),
       })
@@ -116,7 +122,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
             <div className="relative">
               <input
                 value={qtd}
-                onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
+                onChange={e => setQtd(e.target.value.replace(/[^\d.,/]/g, ''))}
                 inputMode="decimal"
                 placeholder="3"
                 className={clsx(inputBase, 'pr-[62px]')}
