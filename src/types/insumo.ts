@@ -67,3 +67,14 @@ export interface ProdutoRelacionadoResponse {
   tipo: 'PRODUTO' | 'CUSTOMIZACAO'
 }
 
+export interface SubstituicaoInsumoRequest {
+  produtoId: string
+  novoInsumoId: string
+}
+
+export interface ResolverVinculosInsumoRequest {
+  acao: 'INATIVAR_VINCULADOS' | 'SUBSTITUIR'
+  operacao: 'INATIVAR' | 'EXCLUIR'
+  substituicoes?: SubstituicaoInsumoRequest[]
+}
+

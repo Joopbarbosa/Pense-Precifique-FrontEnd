@@ -80,7 +80,7 @@ test.describe('OpenProject #228 — Inativar/reativar insumo', () => {
 
     await expect(page.getByText('Não foi possível inativar')).toBeVisible()
     await expect(page.getByText(produtoNome)).toBeVisible()
-    await page.getByRole('button', { name: 'Entendi' }).click()
+    await page.getByRole('button', { name: 'Cancelar' }).click()
 
     // insumo continua ativo (bloqueado, não inativou)
     await page.getByRole('button', { name: 'Ativos', exact: true }).click()

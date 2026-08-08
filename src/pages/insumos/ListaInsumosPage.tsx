@@ -11,7 +11,7 @@ import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
-  ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight,
+  ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight, Repeat,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
@@ -470,61 +470,207 @@ function ImpactoLoteModal({ impacto, onClose }: {
   )
 }
 
-function InsumoBloqueadoModal({ insumo, produtos, loading, onClose, onVerProduto }: {
+function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect }: {
+  produto: ProdutoRelacionadoResponse
+  insumoAtualId: string
+  selecionado: InsumoResponse | null
+  onSelect: (insumo: InsumoResponse | null) => void
+}) {
+  const [busca, setBusca] = useState('')
+  const [resultados, setResultados] = useState<InsumoResponse[]>([])
+  const [open, setOpen] = useState(false)
+  const [carregando, setCarregando] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setCarregando(true)
+    const delay = busca.trim() ? 300 : 0
+    const timer = setTimeout(() => {
+      insumoService.buscarParaCarrinho(busca.trim())
+        .then(data => setResultados(data))
+        .catch(() => setResultados([]))
+        .finally(() => setCarregando(false))
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [busca, open])
+
+  const disponiveis = resultados.filter(i => i.ativo && i.id !== insumoAtualId)
+
+  return (
+    <div className="rounded-xl border border-line bg-cream px-4 py-3.5">
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+          <Box size={14} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {produto.identificador && (
+              <span className="text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
+            )}
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-dark">{produto.nome}</span>
+          </div>
+        </div>
+      </div>
+
+      {selecionado ? (
+        <div className="flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] border-teal/40 bg-teal/5 px-3 py-2.5">
+          <span className="text-[13.5px] font-semibold text-dark">{selecionado.nome}</span>
+          <button onClick={() => onSelect(null)} className="flex border-none bg-transparent text-faint hover:text-danger">
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-muted">
+            <Search size={14} />
+          </span>
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Buscar insumo substituto…"
+            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          />
+          {open && (
+            <div className="absolute inset-x-0 top-[44px] z-20 max-h-[220px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+              {carregando ? (
+                <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
+              ) : disponiveis.length === 0 ? (
+                <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum insumo encontrado</div>
+              ) : disponiveis.map(i => (
+                <button
+                  key={i.id}
+                  onMouseDown={() => onSelect(i)}
+                  className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+                >
+                  <span className="text-[13.5px] font-semibold text-dark">{i.nome}</span>
+                  <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InsumoResolverVinculosModal({ insumo, operacao, produtos, loading, onClose, onSuccess, onError }: {
   insumo: InsumoResponse
+  operacao: 'INATIVAR' | 'EXCLUIR'
   produtos: ProdutoRelacionadoResponse[]
   loading: boolean
   onClose: () => void
-  onVerProduto: (produtoId: string) => void
+  onSuccess: () => void
+  onError: (mensagem: string) => void
 }) {
+  const [passo, setPasso] = useState<'opcoes' | 'substituir'>('opcoes')
+  const [processando, setProcessando] = useState(false)
+  const [substitutos, setSubstitutos] = useState<Record<string, InsumoResponse | null>>({})
+
+  const podeConfirmarSubstituicao = produtos.length > 0 && produtos.every(p => substitutos[p.id])
+
+  const executar = async (acao: 'INATIVAR_VINCULADOS' | 'SUBSTITUIR') => {
+    setProcessando(true)
+    try {
+      const substituicoes = acao === 'SUBSTITUIR'
+        ? produtos.map(p => ({ produtoId: p.id, novoInsumoId: substitutos[p.id]!.id }))
+        : undefined
+      await insumoService.resolverVinculos(insumo.id, { acao, operacao, substituicoes })
+      onSuccess()
+    } catch (err) {
+      console.error(err)
+      onError(extractApiError(err, 'Erro ao resolver vínculos. Tente novamente.'))
+    } finally {
+      setProcessando(false)
+    }
+  }
+
+  const tituloAcao = operacao === 'INATIVAR' ? 'inativar' : 'excluir'
+
   return (
     <ModalShell
       open
       onClose={onClose}
-      title="Não foi possível inativar"
+      title={`Não foi possível ${tituloAcao}`}
       subtitle={insumo.nome}
       icon={<AlertCircle size={17} />}
       iconBg="rgba(192,73,43,0.10)"
       iconColor="#C0492B"
-      width={480}
-      footer={<Button variant="primary" onClick={onClose}>Entendi</Button>}
+      width={560}
+      footer={
+        passo === 'opcoes' ? (
+          <div className="flex w-full flex-wrap items-center justify-end gap-2.5">
+            <Button variant="ghost" onClick={onClose} disabled={processando}>Cancelar</Button>
+            <Button variant="secondary" icon={<Repeat size={16} />} onClick={() => setPasso('substituir')} disabled={loading || processando}>
+              Substituir insumo
+            </Button>
+            <Button variant="danger" icon={processando ? undefined : <Power size={16} />} onClick={() => executar('INATIVAR_VINCULADOS')} disabled={loading || processando}>
+              {processando
+                ? <span className="flex items-center gap-2"><Spinner size={16} color="#C0492B" trackColor="rgba(192,73,43,0.25)" /> Inativando…</span>
+                : 'Inativar produtos vinculados'}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={() => setPasso('opcoes')} disabled={processando}>Voltar</Button>
+            <Button variant="primary" onClick={() => executar('SUBSTITUIR')} disabled={!podeConfirmarSubstituicao || processando}>
+              {processando
+                ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" /> Substituindo…</span>
+                : 'Confirmar substituição'}
+            </Button>
+          </>
+        )
+      }
     >
-      <p className="m-0 mb-4 text-sm leading-[1.6] text-body">
-        Este insumo está em uso na ficha técnica {produtos.length === 1 ? 'do produto abaixo' : 'dos produtos abaixo'}.
-        Remova-o dessas fichas técnicas antes de inativá-lo.
-      </p>
-      {loading ? (
-        <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
-          <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
-          Carregando produtos vinculados…
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-[14px] border border-line">
-          {produtos.map((p, i) => (
-            <button
-              key={p.id}
-              onClick={() => onVerProduto(p.id)}
-              className={clsx(
-                'flex w-full items-center gap-3.5 border-0 bg-transparent px-4 py-3.5 text-left font-[inherit] hover:bg-cream',
-                i > 0 && 'border-t border-line'
-              )}
-            >
-              <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
-                <Box size={15} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  {p.identificador && (
-                    <span className="flex-shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
-                  )}
-                  <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
+      {passo === 'opcoes' ? (
+        <>
+          <p className="m-0 mb-4 text-sm leading-[1.6] text-body">
+            Este insumo está em uso na ficha técnica {produtos.length === 1 ? 'do produto abaixo' : 'dos produtos abaixo'}.
+            Escolha como resolver antes de continuar.
+          </p>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
+              <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+              Carregando produtos vinculados…
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-[14px] border border-line">
+              {produtos.map((p, i) => (
+                <div key={p.id} className={clsx('flex items-center gap-3.5 px-4 py-3.5', i > 0 && 'border-t border-line')}>
+                  <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
+                    <Box size={15} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {p.identificador && (
+                        <span className="flex-shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
+                      )}
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
+                    </div>
+                  </div>
+                  <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
+                    {TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo}
+                  </span>
                 </div>
-              </div>
-              <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
-                {TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo}
-              </span>
-              <ChevronRight size={15} className="flex-shrink-0 text-dim" />
-            </button>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          <p className="m-0 mb-1 text-sm leading-[1.6] text-body">
+            Escolha um insumo substituto para cada produto abaixo. A ficha técnica é atualizada automaticamente.
+          </p>
+          {produtos.map(p => (
+            <SeletorInsumoSubstituto
+              key={p.id}
+              produto={p}
+              insumoAtualId={insumo.id}
+              selecionado={substitutos[p.id] ?? null}
+              onSelect={i => setSubstitutos(prev => ({ ...prev, [p.id]: i }))}
+            />
           ))}
         </div>
       )}
@@ -539,7 +685,7 @@ export default function ListaInsumosPage() {
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
   const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
-  const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; produtos: ProdutoRelacionadoResponse[]; loading: boolean } | null>(null)
+  const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; operacao: 'INATIVAR' | 'EXCLUIR'; produtos: ProdutoRelacionadoResponse[]; loading: boolean } | null>(null)
   const { toast, setToast } = useToast()
 
   const {
@@ -576,12 +722,14 @@ export default function ListaInsumosPage() {
       }
       setConfirmAcao(null)
     } catch (err: any) {
-      if (tipo === 'inativar' && err?.response?.status === 400) {
+      const mensagem = err?.response?.data?.message as string | undefined
+      if (err?.response?.status === 400 && mensagem?.includes('vinculado')) {
         setConfirmAcao(null)
-        setBloqueio({ insumo, produtos: [], loading: true })
+        const operacao = tipo === 'inativar' ? 'INATIVAR' : 'EXCLUIR'
+        setBloqueio({ insumo, operacao, produtos: [], loading: true })
         try {
           const produtos = await insumoService.listarProdutosRelacionados(insumo.id)
-          setBloqueio({ insumo, produtos, loading: false })
+          setBloqueio({ insumo, operacao, produtos, loading: false })
         } catch (err2) {
           console.error(err2)
           setBloqueio(null)
@@ -828,14 +976,26 @@ export default function ListaInsumosPage() {
         description='Esta ação exclui o insumo definitivamente e não pode ser desfeita. Se quiser apenas suspender o uso dele, use "Inativar".'
       />
 
-      {/* MODAL: bloqueio ao inativar insumo em uso */}
+      {/* MODAL: bloqueio ao inativar/excluir insumo em uso — resolução via inativar vinculados ou substituir */}
       {bloqueio && (
-        <InsumoBloqueadoModal
+        <InsumoResolverVinculosModal
           insumo={bloqueio.insumo}
+          operacao={bloqueio.operacao}
           produtos={bloqueio.produtos}
           loading={bloqueio.loading}
           onClose={() => setBloqueio(null)}
-          onVerProduto={produtoId => navigate(`/produtos/${produtoId}`)}
+          onSuccess={() => {
+            const { insumo, operacao } = bloqueio
+            if (operacao === 'INATIVAR') {
+              setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: false } : x))
+              setToast('Insumo inativado.')
+            } else {
+              setInsumos(prev => prev.filter(x => x.id !== insumo.id))
+              setToast('Insumo excluído.')
+            }
+            setBloqueio(null)
+          }}
+          onError={mensagem => setToast(mensagem)}
         />
       )}
 

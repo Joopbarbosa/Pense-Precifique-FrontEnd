@@ -1,5 +1,5 @@
 import api from './api'
-import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse, ResolverVinculosInsumoRequest } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const insumoService = {
@@ -55,5 +55,9 @@ export const insumoService = {
   listarProdutosRelacionados: async (id: string): Promise<ProdutoRelacionadoResponse[]> => {
     const response = await api.get(`/insumos/${id}/produtos-relacionados`)
     return response.data
+  },
+
+  resolverVinculos: async (id: string, data: ResolverVinculosInsumoRequest): Promise<void> => {
+    await api.post(`/insumos/${id}/resolver-vinculos`, data)
   },
 }
