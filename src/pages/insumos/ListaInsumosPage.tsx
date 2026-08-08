@@ -14,13 +14,20 @@ import {
   ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { InsumoResponse } from '../../types/insumo'
+import type { InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { extractApiError } from '../../utils/apiError'
+
+const TIPO_PRODUTO_LABEL: Record<string, string> = {
+  PRODUTO: 'Produto',
+  PRODUTO_BASE: 'Produto base',
+  CUSTOMIZACAO: 'Customização',
+}
 
 interface ItemCarrinho {
   insumo: InsumoResponse
@@ -83,20 +90,35 @@ function InsumoStatusBadge({ insumo, small = false }: { insumo: InsumoResponse; 
   )
 }
 
-function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
+function montarMenuItems(insumo: InsumoResponse, { onVer, onEditar, onInativar, onReativar, onExcluir }: {
+  onVer: () => void
+  onEditar: () => void
+  onInativar: () => void
+  onReativar: () => void
+  onExcluir: () => void
+}): ActionMenuItem[] {
+  return [
+    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
+    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
+    insumo.ativo
+      ? { label: 'Inativar', icon: <Power size={16} />,  onClick: onInativar, dividerBefore: true }
+      : { label: 'Reativar', icon: <Power size={16} />,  onClick: onReativar, dividerBefore: true },
+    { label: 'Excluir', icon: <Trash2 size={16} />, onClick: onExcluir, danger: true },
+  ]
+}
+
+function InsumoRow({ insumo, index, onVer, onEditar, onInativar, onReativar, onExcluir }: {
   insumo: InsumoResponse
   index: number
   onVer: () => void
   onEditar: () => void
-  onDesativar: () => void
+  onInativar: () => void
+  onReativar: () => void
+  onExcluir: () => void
 }) {
   const low = isLow(insumo)
 
-  const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
-    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
-    { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
-  ]
+  const menuItems = montarMenuItems(insumo, { onVer, onEditar, onInativar, onReativar, onExcluir })
 
   return (
     <div
@@ -143,20 +165,18 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
   )
 }
 
-function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
+function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, onExcluir }: {
   insumo: InsumoResponse
   index: number
   onVer: () => void
   onEditar: () => void
-  onDesativar: () => void
+  onInativar: () => void
+  onReativar: () => void
+  onExcluir: () => void
 }) {
   const low = isLow(insumo)
 
-  const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
-    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
-    { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
-  ]
+  const menuItems = montarMenuItems(insumo, { onVer, onEditar, onInativar, onReativar, onExcluir })
 
   return (
     <div
@@ -450,13 +470,76 @@ function ImpactoLoteModal({ impacto, onClose }: {
   )
 }
 
+function InsumoBloqueadoModal({ insumo, produtos, loading, onClose, onVerProduto }: {
+  insumo: InsumoResponse
+  produtos: ProdutoRelacionadoResponse[]
+  loading: boolean
+  onClose: () => void
+  onVerProduto: (produtoId: string) => void
+}) {
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Não foi possível inativar"
+      subtitle={insumo.nome}
+      icon={<AlertCircle size={17} />}
+      iconBg="rgba(192,73,43,0.10)"
+      iconColor="#C0492B"
+      width={480}
+      footer={<Button variant="primary" onClick={onClose}>Entendi</Button>}
+    >
+      <p className="m-0 mb-4 text-sm leading-[1.6] text-body">
+        Este insumo está em uso na ficha técnica {produtos.length === 1 ? 'do produto abaixo' : 'dos produtos abaixo'}.
+        Remova-o dessas fichas técnicas antes de inativá-lo.
+      </p>
+      {loading ? (
+        <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
+          <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+          Carregando produtos vinculados…
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-[14px] border border-line">
+          {produtos.map((p, i) => (
+            <button
+              key={p.id}
+              onClick={() => onVerProduto(p.id)}
+              className={clsx(
+                'flex w-full items-center gap-3.5 border-0 bg-transparent px-4 py-3.5 text-left font-[inherit] hover:bg-cream',
+                i > 0 && 'border-t border-line'
+              )}
+            >
+              <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
+                <Box size={15} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  {p.identificador && (
+                    <span className="flex-shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
+                  )}
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
+                </div>
+              </div>
+              <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
+                {TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo}
+              </span>
+              <ChevronRight size={15} className="flex-shrink-0 text-dim" />
+            </button>
+          ))}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
 export default function ListaInsumosPage() {
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState('Todos')
   const [modalCompra, setModalCompra] = useState(false)
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
-  const [confirmDesativar, setConfirmDesativar] = useState<InsumoResponse | null>(null)
-  const [desativando, setDesativando] = useState(false)
+  const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
+  const [processandoAcao, setProcessandoAcao] = useState(false)
+  const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; produtos: ProdutoRelacionadoResponse[]; loading: boolean } | null>(null)
   const { toast, setToast } = useToast()
 
   const {
@@ -477,19 +560,51 @@ export default function ListaInsumosPage() {
     setQuery(novaQuery)
   }
 
-  const handleDesativar = async () => {
-    if (!confirmDesativar) return
-    setDesativando(true)
+  const handleConfirmarAcao = async () => {
+    if (!confirmAcao) return
+    const { tipo, insumo } = confirmAcao
+    setProcessandoAcao(true)
     try {
-      await insumoService.inativar(confirmDesativar.id)
-      setInsumos(prev => prev.filter(x => x.id !== confirmDesativar.id))
-      setToast('Insumo desativado.')
+      if (tipo === 'inativar') {
+        await insumoService.inativar(insumo.id)
+        setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: false } : x))
+        setToast('Insumo inativado.')
+      } else {
+        await insumoService.excluir(insumo.id)
+        setInsumos(prev => prev.filter(x => x.id !== insumo.id))
+        setToast('Insumo excluído.')
+      }
+      setConfirmAcao(null)
+    } catch (err: any) {
+      if (tipo === 'inativar' && err?.response?.status === 400) {
+        setConfirmAcao(null)
+        setBloqueio({ insumo, produtos: [], loading: true })
+        try {
+          const produtos = await insumoService.listarProdutosRelacionados(insumo.id)
+          setBloqueio({ insumo, produtos, loading: false })
+        } catch (err2) {
+          console.error(err2)
+          setBloqueio(null)
+          setToast('Erro ao verificar produtos vinculados. Tente novamente.')
+        }
+      } else {
+        console.error(err)
+        setToast(extractApiError(err, tipo === 'inativar' ? 'Erro ao inativar. Tente novamente.' : 'Erro ao excluir. Tente novamente.'))
+        setConfirmAcao(null)
+      }
+    } finally {
+      setProcessandoAcao(false)
+    }
+  }
+
+  const handleReativar = async (insumo: InsumoResponse) => {
+    try {
+      await insumoService.reativar(insumo.id)
+      setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: true } : x))
+      setToast('Insumo reativado.')
     } catch (err) {
       console.error(err)
-      setToast('Erro ao desativar. Tente novamente.')
-    } finally {
-      setDesativando(false)
-      setConfirmDesativar(null)
+      setToast(extractApiError(err, 'Erro ao reativar. Tente novamente.'))
     }
   }
 
@@ -634,13 +749,17 @@ export default function ListaInsumosPage() {
                   insumo={o} index={i}
                   onVer={() => navigate(`/insumos/${o.id}`)}
                   onEditar={() => navigate(`/insumos/${o.id}/editar`)}
-                  onDesativar={() => setConfirmDesativar(o)}
+                  onInativar={() => setConfirmAcao({ tipo: 'inativar', insumo: o })}
+                  onReativar={() => handleReativar(o)}
+                  onExcluir={() => setConfirmAcao({ tipo: 'excluir', insumo: o })}
                 />
                 <InsumoCard
                   insumo={o} index={i}
                   onVer={() => navigate(`/insumos/${o.id}`)}
                   onEditar={() => navigate(`/insumos/${o.id}/editar`)}
-                  onDesativar={() => setConfirmDesativar(o)}
+                  onInativar={() => setConfirmAcao({ tipo: 'inativar', insumo: o })}
+                  onReativar={() => handleReativar(o)}
+                  onExcluir={() => setConfirmAcao({ tipo: 'excluir', insumo: o })}
                 />
               </React.Fragment>
             ))}
@@ -679,20 +798,46 @@ export default function ListaInsumosPage() {
         <ImpactoLoteModal impacto={impactoLote} onClose={handleImpactoClose} />
       )}
 
-      {/* MODAL: confirmar desativação */}
+      {/* MODAL: confirmar inativação (reversível) */}
       <ConfirmacaoModal
-        open={!!confirmDesativar}
-        onClose={() => setConfirmDesativar(null)}
-        onConfirm={handleDesativar}
+        open={confirmAcao?.tipo === 'inativar'}
+        onClose={() => setConfirmAcao(null)}
+        onConfirm={handleConfirmarAcao}
         variant="danger"
-        title={`Desativar "${confirmDesativar?.nome}"?`}
+        title={`Inativar "${confirmAcao?.insumo.nome}"?`}
         icon={<Power size={16} />}
         width={420}
-        confirmLabel="Desativar insumo"
-        confirmingLabel="Desativando…"
-        confirming={desativando}
-        description="O insumo ficará inativo e não poderá ser usado em novas fichas técnicas. Esta ação não pode ser desfeita por aqui."
+        confirmLabel="Inativar insumo"
+        confirmingLabel="Inativando…"
+        confirming={processandoAcao}
+        description="O insumo ficará inativo e não poderá ser usado em novas fichas técnicas. Você pode reativá-lo quando quiser."
       />
+
+      {/* MODAL: confirmar exclusão (permanente) */}
+      <ConfirmacaoModal
+        open={confirmAcao?.tipo === 'excluir'}
+        onClose={() => setConfirmAcao(null)}
+        onConfirm={handleConfirmarAcao}
+        variant="danger"
+        title={`Excluir "${confirmAcao?.insumo.nome}" permanentemente?`}
+        icon={<Trash2 size={16} />}
+        width={420}
+        confirmLabel="Excluir insumo"
+        confirmingLabel="Excluindo…"
+        confirming={processandoAcao}
+        description='Esta ação exclui o insumo definitivamente e não pode ser desfeita. Se quiser apenas suspender o uso dele, use "Inativar".'
+      />
+
+      {/* MODAL: bloqueio ao inativar insumo em uso */}
+      {bloqueio && (
+        <InsumoBloqueadoModal
+          insumo={bloqueio.insumo}
+          produtos={bloqueio.produtos}
+          loading={bloqueio.loading}
+          onClose={() => setBloqueio(null)}
+          onVerProduto={produtoId => navigate(`/produtos/${produtoId}`)}
+        />
+      )}
 
     </AppLayout>
   )
