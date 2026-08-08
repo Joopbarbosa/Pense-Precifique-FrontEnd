@@ -1,7 +1,7 @@
 export { Logo, Wordmark } from './Brand'
 export { default as Button } from './Button'
 export { default as Input } from './Input'
-export { StatusBadge, TipoProdutoBadge, VencidoBadge } from './Badge'
+export { StatusBadge, TipoProdutoBadge, VencidoBadge, FracionavelBadge, EstoqueNegativoBadge, QuantidadeTravadaAviso } from './Badge'
 export { default as ModalShell } from './ModalShell'
 export { Card, CardHeader, CardFooter } from './Card'
 export { default as EmptyState } from './EmptyState'

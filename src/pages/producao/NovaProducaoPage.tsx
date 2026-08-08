@@ -4,7 +4,8 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button } from '../../components/ui'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
-import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle, Lock } from 'lucide-react'
+import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
+import { FracionavelBadge, EstoqueNegativoBadge, QuantidadeTravadaAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
@@ -98,6 +99,10 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
               <div className="min-w-0 flex-1">
                 <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{p.nome}</div>
                 <div className="text-[12.5px] text-muted">{p.identificador}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  <FracionavelBadge fracionavel={!p.algumInsumoNaoFracionavel} variant="busca" />
+                  <EstoqueNegativoBadge permitir={p.permitirEstoqueNegativo} variant="busca" />
+                </div>
               </div>
             </button>
           ))}
@@ -127,11 +132,7 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
-        {item.quantidadeTravada && (
-          <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-muted">
-            <Lock size={11} /> Quantidade fixa — insumo não-fracionável na ficha técnica
-          </div>
-        )}
+        {item.quantidadeTravada && <QuantidadeTravadaAviso />}
       </div>
       {item.quantidadeTravada ? (
         <div className="flex h-11 flex-shrink-0 items-center rounded-input border-[1.5px] border-line bg-cream px-4 font-[inherit] text-[14.5px] font-semibold text-subtle">

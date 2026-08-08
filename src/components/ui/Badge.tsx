@@ -1,4 +1,4 @@
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Check, X, Lock } from 'lucide-react'
 import clsx from 'clsx'
 
 type StatusOrcamento =
@@ -64,6 +64,76 @@ export function TipoProdutoBadge({ tipo, size = 'md' }: TipoProdutoBadgeProps) {
     >
       {tipo}
     </span>
+  )
+}
+
+// ---------- FracionavelBadge / EstoqueNegativoBadge (#212/#215) ----------
+//
+// Variante 'cadastro': Detalhe Produto, Detalhe Insumo, aba Ficha Técnica de Cadastrar/Editar Produto.
+// Variante 'busca': listagem compacta de resultados de busca (ex.: busca de produto em Nova Produção).
+
+interface FracionavelBadgeProps {
+  fracionavel: boolean
+  labelFracionavel?: string
+  labelNaoFracionavel?: string
+  variant?: 'cadastro' | 'busca'
+}
+
+const FRACIONAVEL_SIZE: Record<'cadastro' | 'busca', string> = {
+  cadastro: 'h-[27px] px-[11px] text-[12.5px]',
+  busca:    'h-[18px] px-[7px] text-[10.5px]',
+}
+
+export function FracionavelBadge({
+  fracionavel,
+  labelFracionavel = 'Fracionável',
+  labelNaoFracionavel = 'Não fracionável',
+  variant = 'cadastro',
+}: FracionavelBadgeProps) {
+  return (
+    <span className={clsx(
+      'inline-flex items-center whitespace-nowrap rounded-full font-semibold',
+      FRACIONAVEL_SIZE[variant],
+      fracionavel ? 'bg-teal/10 text-teal' : 'bg-dim/10 text-dim'
+    )}>
+      {fracionavel ? labelFracionavel : labelNaoFracionavel}
+    </span>
+  )
+}
+
+interface EstoqueNegativoBadgeProps {
+  permitir: boolean
+  variant?: 'cadastro' | 'busca'
+}
+
+const ESTOQUE_NEGATIVO_SIZE: Record<'cadastro' | 'busca', { pill: string; icon: number }> = {
+  cadastro: { pill: 'h-[27px] gap-1.5 px-[11px] text-[12.5px]', icon: 13 },
+  busca:    { pill: 'h-[18px] gap-1 px-[7px] text-[10.5px]',    icon: 10 },
+}
+
+export function EstoqueNegativoBadge({ permitir, variant = 'cadastro' }: EstoqueNegativoBadgeProps) {
+  const s = ESTOQUE_NEGATIVO_SIZE[variant]
+  return permitir ? (
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-teal/[0.12] font-semibold text-teal', s.pill)}>
+      <Check size={s.icon} /> Permite estoque negativo
+    </span>
+  ) : (
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/[0.12] font-semibold text-[#EF4444]', s.pill)}>
+      <X size={s.icon} /> Bloqueia estoque negativo
+    </span>
+  )
+}
+
+// ---------- QuantidadeTravadaAviso ----------
+//
+// Duplicado idêntico entre NovaProducaoPage.tsx/EditarProducaoPage.tsx (ProdutoRow) — RN-051,
+// insumo não-fracionável na ficha técnica trava a quantidade da produção em 1 unidade.
+
+export function QuantidadeTravadaAviso() {
+  return (
+    <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-muted">
+      <Lock size={11} /> Quantidade fixa — insumo não-fracionável na ficha técnica
+    </div>
   )
 }
 

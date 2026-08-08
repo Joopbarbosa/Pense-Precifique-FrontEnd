@@ -4,6 +4,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner } from '../../components/ui'
 import { extractApiError } from '../../utils/apiError'
 import { Search, Box, Trash2, Calendar, StickyNote, Save, Lock } from 'lucide-react'
+import { QuantidadeTravadaAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
@@ -113,11 +114,7 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
-        {item.quantidadeTravada && (
-          <div className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-muted">
-            <Lock size={11} /> Quantidade fixa — insumo não-fracionável na ficha técnica
-          </div>
-        )}
+        {item.quantidadeTravada && <QuantidadeTravadaAviso />}
       </div>
       {item.quantidadeTravada ? (
         <div className="flex h-11 w-[84px] flex-shrink-0 items-center justify-center rounded-input border-[1.5px] border-line bg-cream font-[inherit] text-[14.5px] font-semibold text-subtle">

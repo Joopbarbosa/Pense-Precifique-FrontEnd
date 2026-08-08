@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
+import { FracionavelBadge } from '../../components/ui/Badge'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2, Calculator, Sparkles,
   Info, Check, AlertTriangle, ChevronRight, Pencil, FileText,
@@ -347,6 +348,9 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
   const remove = (idx: number) => setFicha(f => f.filter((_, k) => k !== idx))
   const setQtd = (idx: number, v: string) => setFicha(f => f.map((row, k) => k === idx ? { ...row, qtd: num(v) } : row))
 
+  // RN-051 — só insumos diretos (não produtos-componente) contam para o travamento de quantidade em Produção.
+  const algumInsumoNaoFracionavel = ficha.some(item => item.tipo === 'insumo' && !item.fracionavel)
+
   return (
     <div className="animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -354,6 +358,13 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
           <div className="mb-3.5 flex items-center gap-[9px]">
             <Layers size={18} className="text-teal" />
             <h3 className="m-0 whitespace-nowrap text-[15.5px] font-bold text-dark">Componentes do produto</h3>
+            {ficha.length > 0 && (
+              <FracionavelBadge
+                fracionavel={!algumInsumoNaoFracionavel}
+                labelFracionavel="Produto fracionável"
+                labelNaoFracionavel="Produto não fracionável"
+              />
+            )}
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>

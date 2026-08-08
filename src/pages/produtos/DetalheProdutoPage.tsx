@@ -5,9 +5,10 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
+import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import {
-  X, Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
-  Check, Pencil, Factory, History,
+  Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
+  Pencil, Factory, History,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
@@ -367,19 +368,9 @@ export default function DetalheProdutoPage() {
                 {produto.ativo && <span className="h-1.5 w-1.5 rounded-full bg-success" />}
                 {produto.ativo ? 'Ativo' : 'Inativo'}
               </span>
-              {produto.permitirEstoqueNegativo ? (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-teal/[0.12] px-[11px] text-[12.5px] font-semibold text-teal">
-                  <Check size={13} /> Permite estoque negativo
-                </span>
-              ) : (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-[#EF4444]/[0.12] px-[11px] text-[12.5px] font-semibold text-[#EF4444]">
-                  <X size={13} /> Bloqueia estoque negativo
-                </span>
-              )}
+              <EstoqueNegativoBadge permitir={produto.permitirEstoqueNegativo} />
               {produto.algumInsumoNaoFracionavel && (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-line px-[11px] text-[12.5px] font-semibold text-dim">
-                  Receita não fracionável
-                </span>
+                <FracionavelBadge fracionavel={false} labelNaoFracionavel="Receita não fracionável" />
               )}
             </div>
             <div className="mt-1 text-sm text-muted">

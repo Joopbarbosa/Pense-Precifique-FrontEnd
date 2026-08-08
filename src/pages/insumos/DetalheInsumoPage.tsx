@@ -5,7 +5,8 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
-import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Pencil, History, Layers } from 'lucide-react'
+import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
@@ -455,24 +456,8 @@ export default function DetalheInsumoPage() {
                   Inativo
                 </span>
               )}
-              {insumo.permitirEstoqueNegativo ? (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-teal/[0.12] px-[11px] text-[12.5px] font-semibold text-teal">
-                  <Check size={13} /> Permite estoque negativo
-                </span>
-              ) : (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-[#EF4444]/[0.12] px-[11px] text-[12.5px] font-semibold text-[#EF4444]">
-                  <X size={13} /> Bloqueia estoque negativo
-                </span>
-              )}
-              {insumo.fracionavel ? (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-teal/10 px-[11px] text-[12.5px] font-semibold text-teal">
-                  Fracionável
-                </span>
-              ) : (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-dim/10 px-[11px] text-[12.5px] font-semibold text-dim">
-                  Não fracionável
-                </span>
-              )}
+              <EstoqueNegativoBadge permitir={insumo.permitirEstoqueNegativo} />
+              <FracionavelBadge fracionavel={insumo.fracionavel} />
             </div>
             <div className="mt-1 text-sm text-muted">
               Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong>
