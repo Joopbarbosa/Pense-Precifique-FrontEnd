@@ -7,7 +7,7 @@ type StatusOrcamento =
   | 'Em Produção' | 'Finalizado'
   | 'Entregue' | 'Pago' | 'Cancelado'
 
-type TipoProduto = 'Produto' | 'Produto Base' | 'Customização'
+type TipoProduto = 'Produto' | 'Customização'
 
 interface StatusBadgeProps {
   status: StatusOrcamento
@@ -34,7 +34,6 @@ const STATUS_META: Record<StatusOrcamento, { bg: string; fg: string; dot: string
 
 const TIPO_META: Record<TipoProduto, { bg: string; fg: string }> = {
   'Produto':      { bg: '#E9F1F9', fg: '#3A6FA0' },
-  'Produto Base': { bg: '#EFEDE9', fg: '#6B6860' },
   'Customização': { bg: 'rgba(42,157,143,0.14)', fg: '#2A9D8F' },
 }
 

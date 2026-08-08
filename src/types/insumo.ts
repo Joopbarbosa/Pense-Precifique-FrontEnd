@@ -64,6 +64,6 @@ export interface ProdutoRelacionadoResponse {
   id: string
   identificador?: string
   nome: string
-  tipo: 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
+  tipo: 'PRODUTO' | 'CUSTOMIZACAO'
 }
 

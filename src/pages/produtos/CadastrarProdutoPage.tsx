@@ -25,13 +25,11 @@ const moeda = (n: number) =>
 
 const TIPO_LABEL_TO_API: Record<string, TipoProduto> = {
   'Produto':      'PRODUTO',
-  'Produto Base': 'PRODUTO_BASE',
   'Customização': 'CUSTOMIZACAO',
 }
 
 const TIPO_API_TO_LABEL: Record<string, string> = {
   'PRODUTO':      'Produto',
-  'PRODUTO_BASE': 'Produto Base',
   'CUSTOMIZACAO': 'Customização',
 }
 
@@ -84,7 +82,6 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
 
 const TIPOS = [
   { v: 'Produto',      desc: 'Produto final para criar seu catálogo' },
-  { v: 'Produto Base', desc: 'Componente usado em outros produtos' },
   { v: 'Customização', desc: 'Extra opcional adicionado no orçamento' },
 ]
 
@@ -182,7 +179,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
 
 function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
   if (tipo === 'produto') {
-    const b = tipoProdutoBadge('PRODUTO_BASE')
+    const b = tipoProdutoBadge('PRODUTO')
     return (
       <span
         className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
@@ -205,8 +202,9 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [insumos, setInsumos] = useState<ItemDb[]>([])
-  const [produtosBase, setProdutosBase] = useState<ItemDb[]>([])
+  const [produtos, setProdutos] = useState<ItemDb[]>([])
   const [loadingBusca, setLoadingBusca] = useState(false)
+  const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -220,19 +218,28 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     const termo = q.trim()
     const qLower = termo.toLowerCase()
     setLoadingBusca(true)
+    setErroBusca(false)
     const delay = termo ? 300 : 0
     const timer = setTimeout(async () => {
       try {
-        const ins = await produtoService.buscarInsumos(termo)
+        const [ins, prods] = await Promise.all([
+          produtoService.buscarInsumos(termo),
+          produtoService.buscarProdutosComponente(termo),
+        ])
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
             .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
         )
-        setProdutosBase([])
+        setProdutos(
+          prods
+            .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
+        )
       } catch {
         setInsumos([])
-        setProdutosBase([])
+        setProdutos([])
+        setErroBusca(true)
       } finally {
         setLoadingBusca(false)
       }
@@ -240,7 +247,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     return () => clearTimeout(timer)
   }, [q, open, jaAdicionados])
 
-  const total = insumos.length + produtosBase.length
+  const total = insumos.length + produtos.length
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
@@ -248,7 +255,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       {itens.map(i => (
         <button
           key={i.id}
-          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutosBase([]) }}
+          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]) }}
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
@@ -279,19 +286,21 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         value={q}
         onChange={e => { setQ(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        placeholder="Buscar insumo ou produto base..."
+        placeholder="Buscar insumo ou produto..."
         className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
       />
       {open && (
         <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
+          ) : erroBusca ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-danger-deep">Não foi possível buscar componentes. Tente novamente.</div>
           ) : total === 0 ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum componente encontrado</div>
           ) : (
             <>
               {grupo('Insumos', insumos)}
-              {grupo('Produtos Base', produtosBase)}
+              {grupo('Produtos', produtos)}
             </>
           )}
         </div>
@@ -649,12 +658,10 @@ export default function CadastrarProdutoPage() {
   const rendimentoInvalido = !rendimento.trim() || num(rendimento) <= 0
   const rendimentoErroInline = rendimentoInvalido ? 'Rendimento deve ser maior que zero.' : undefined
 
-  const isProdutoBase = dados.tipo === 'Produto Base'
   const isCustomizacao = dados.tipo === 'Customização'
   const isProduto = dados.tipo === 'Produto'
-  const mensagemSemPreco = isProdutoBase
-    ? 'Produto Base não tem preço de venda.'
-    : 'Produto não tem preço de venda direto — defina o preço ao criar o item de Catálogo.'
+  // Ambos os tipos restantes (PRODUTO e CUSTOMIZACAO) têm preço de venda com override — RN-038a/PDT-001, #210+231+234.
+  const mostrarPrecoMargem = isCustomizacao || isProduto
 
   // Mesma fórmula da Calculadora — mantém o preço final espelhando o sugerido enquanto não houver override manual.
   const custoInsumosCalc = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
@@ -676,19 +683,11 @@ export default function CadastrarProdutoPage() {
       .catch(() => {})
   }, [editando])
 
-  // Limpar precoFinal ao sair do tipo Customização
+  // Preço final nasce espelhando o sugerido ao vivo — para de acompanhar assim que a artesã edita manualmente (override, RN-038a/PDT-001).
   useEffect(() => {
-    if (!isCustomizacao) {
-      setPrecoFinal('')
-      setPrecoFinalManual(false)
-    }
-  }, [isCustomizacao])
-
-  // Preço final nasce espelhando o sugerido ao vivo — para de acompanhar assim que a artesã edita manualmente (override, RN-038a).
-  useEffect(() => {
-    if (!isCustomizacao || editando || precoFinalManual) return
+    if (!mostrarPrecoMargem || editando || precoFinalManual) return
     setPrecoFinal(sugeridoCalc > 0 ? sugeridoCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')
-  }, [isCustomizacao, editando, precoFinalManual, sugeridoCalc])
+  }, [mostrarPrecoMargem, editando, precoFinalManual, sugeridoCalc])
 
   // Carregar dados na edição
   useEffect(() => {
@@ -739,7 +738,7 @@ export default function CadastrarProdutoPage() {
     const rendimentoNum = num(rendimento)
 
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
-    const precoVendaNum = isCustomizacao ? (num(precoFinal) || undefined) : undefined
+    const precoVendaNum = mostrarPrecoMargem ? (num(precoFinal) || undefined) : undefined
 
     const request: ProdutoRequest = {
       nome: dados.nome.trim(),
@@ -762,7 +761,7 @@ export default function CadastrarProdutoPage() {
         ? await produtoService.editar(id, request)
         : await produtoService.cadastrar(request)
 
-      if (isCustomizacao && result.precoVenda != null) {
+      if (mostrarPrecoMargem && result.precoVenda != null) {
         setPrecoFinal(result.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
         setPrecoFinalManual(true)
       }
@@ -864,8 +863,8 @@ export default function CadastrarProdutoPage() {
             margem={margem} setMargem={setMargem}
             modoMargem={modoMargem} setModoMargem={setModoMargem}
             precoFinal={precoFinal} setPrecoFinal={(v: string) => { setPrecoFinalManual(true); setPrecoFinal(v) }}
-            mostrarPrecoMargem={isCustomizacao}
-            mensagemSemPreco={mensagemSemPreco}
+            mostrarPrecoMargem={mostrarPrecoMargem}
+            mensagemSemPreco="Produto não tem preço de venda direto — defina o preço ao criar o item de Catálogo."
             valorHora={valorHora}
             margemPadrao={margemPadrao}
             custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}

@@ -23,7 +23,6 @@ const formatDate = (iso: string) =>
 
 const TIPO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
-  PRODUTO_BASE: 'Produto base',
   CUSTOMIZACAO: 'Customização',
 }
 

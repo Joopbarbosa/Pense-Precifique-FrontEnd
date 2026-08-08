@@ -12,12 +12,11 @@ import { produtoService } from '../../services/produtoService'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import type { ProdutoResponse } from '../../types/produto'
 
-const CATS = ['Todos', 'Produto', 'Produto Base', 'Customização', 'Inativos']
+const CATS = ['Todos', 'Produto', 'Customização', 'Inativos']
 
 const CAT_TO_TIPO: Record<string, string | undefined> = {
   'Todos': undefined,
   'Produto': 'PRODUTO',
-  'Produto Base': 'PRODUTO_BASE',
   'Customização': 'CUSTOMIZACAO',
   'Inativos': undefined,
 }
