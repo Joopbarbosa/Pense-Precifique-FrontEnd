@@ -205,9 +205,9 @@ e2e/
     └── validacao-estoque.spec.ts              # cenários 189-190 (Fluxo H — aviso de estoque no orçamento, #126)
 ```
 
-Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `docs/SCENARIOS(2).md`). Numeração mais alta confirmada nos specs de fora de Produção: **167**.
+Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `legado/SCENARIOS.md`, seção "Cenários 155–167 — Pocket V0.5"). Numeração mais alta confirmada nos specs de fora de Produção: **167**.
 
-**Numeração V0.6 (Produção) — offset conhecido:** os specs em `e2e/producao/` usam **150–195** (numeração do momento em que foram escritos). O doc oficial de cenários (`docs/version/V0.6/SCENARIOS_EP-PRODUCAO_V0.6D0.md`) foi renumerado depois para **168–213** (offset **+18**) — confirmado por grep direto no doc (`Cenário 168 — Criar produção...`, `Cenário 213 — Datas da nova produção agrupada...`). Os specs **não foram renumerados** para acompanhar (débito, ver OP). **Ao criar um spec novo para Produção, seguir a numeração do doc oficial (168–213), não a dos specs existentes (150–195)** — e não presumir que o offset é constante em cenários intermediários sem conferir os dois lados.
+**Numeração V0.6 (Produção) — offset conhecido:** os specs em `e2e/producao/` usam **150–195** (numeração do momento em que foram escritos). O doc oficial de cenários (`legado/SCENARIOS.md`, seção "Cenários 168–213 — Módulo de Produção V0.6") foi renumerado depois para **168–213** (offset **+18**) — confirmado por grep direto no doc (`Cenário 168 — Criar produção...`, `Cenário 213 — Datas da nova produção agrupada...`). Os specs **não foram renumerados** para acompanhar (débito, ver OP). **Ao criar um spec novo para Produção, seguir a numeração do doc oficial (168–213), não a dos specs existentes (150–195)** — e não presumir que o offset é constante em cenários intermediários sem conferir os dois lados. Cenários vigentes de Produção hoje moraram para `modulos/PRODUCAO/cenarios-producao.md` (`PDC-CEN-XXX`) na migração modular — `legado/SCENARIOS.md` fica só como registro histórico da renumeração, não consultar para cenário novo.
 
 **Novos testes E2E sempre reutilizam os helpers de `e2e/helpers/`** — nunca recriar login/setup inline em um spec novo.
 
