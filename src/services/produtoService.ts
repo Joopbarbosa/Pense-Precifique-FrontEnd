@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
@@ -28,7 +28,29 @@ export const produtoService = {
   },
 
   inativar: async (id: string): Promise<void> => {
+    await api.post(`/produtos/${id}/inativar`)
+  },
+
+  reativar: async (id: string): Promise<void> => {
+    await api.post(`/produtos/${id}/reativar`)
+  },
+
+  excluir: async (id: string): Promise<void> => {
     await api.delete(`/produtos/${id}`)
+  },
+
+  catalogosVinculados: async (id: string): Promise<CatalogoVinculadoResponse[]> => {
+    const response = await api.get(`/produtos/${id}/catalogos-vinculados`)
+    return response.data
+  },
+
+  componentesVinculados: async (id: string): Promise<ComponenteVinculadoResponse[]> => {
+    const response = await api.get(`/produtos/${id}/componentes-vinculados`)
+    return response.data
+  },
+
+  resolverVinculos: async (id: string, data: ResolverVinculosProdutoRequest): Promise<void> => {
+    await api.post(`/produtos/${id}/resolver-vinculos`, data)
   },
 
   buscarInsumos: async (busca: string): Promise<InsumoResponse[]> => {

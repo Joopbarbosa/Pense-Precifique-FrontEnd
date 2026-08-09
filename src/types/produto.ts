@@ -88,3 +88,47 @@ export interface PrecoSugeridoResponse {
   precoSugerido: number
 }
 
+export interface CatalogoVinculadoResponse {
+  id: string
+  identificador: string
+  nome: string
+}
+
+export interface ComponenteVinculadoResponse {
+  vinculoId: string
+  produtoId: string
+  produtoIdentificador?: string
+  produtoNome: string
+}
+
+export type TipoVinculoProduto = 'ITEM_CATALOGO_PRINCIPAL' | 'CUSTOMIZACAO_ANEXADA' | 'COMPONENTE_FICHA_TECNICA'
+
+export type AcaoResolucaoVinculo = 'REMOVER_VINCULOS' | 'SUBSTITUIR'
+
+export interface SubstituicaoVinculoProdutoRequest {
+  tipo: TipoVinculoProduto
+  vinculoId: string
+  novoProdutoId: string
+}
+
+export interface SubstituicaoComponenteVinculoRequest {
+  vinculoId: string
+  novoProdutoId: string
+}
+
+export interface ResolucaoVinculoCatalogoRequest {
+  acao: AcaoResolucaoVinculo
+  substituicoes?: SubstituicaoVinculoProdutoRequest[]
+}
+
+export interface ResolucaoVinculoComponenteRequest {
+  acao: AcaoResolucaoVinculo
+  substituicoes?: SubstituicaoComponenteVinculoRequest[]
+}
+
+export interface ResolverVinculosProdutoRequest {
+  operacao: 'INATIVAR' | 'EXCLUIR'
+  catalogo?: ResolucaoVinculoCatalogoRequest
+  componente?: ResolucaoVinculoComponenteRequest
+}
+
