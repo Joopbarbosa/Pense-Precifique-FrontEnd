@@ -25,6 +25,9 @@ export interface ItemCatalogoBuscaResponse {
   precoVenda: number;
   catalogoNome: string;
   catalogoNumero: number;
+  algumInsumoNaoFracionavel: boolean;
+  permitirEstoqueNegativo: boolean;
+  estoqueAtual: number;
 }
 
 export interface OrcamentoRequest {
@@ -65,6 +68,9 @@ export interface OrcamentoItemResponse {
   precoUnitario: number;
   subtotal: number;
   customizacoes: OrcamentoItemCustomizacaoResponse[];
+  algumInsumoNaoFracionavel: boolean;
+  permitirEstoqueNegativo: boolean;
+  estoqueAtual: number;
 }
 
 export interface OrcamentoResponse {

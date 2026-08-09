@@ -9,6 +9,7 @@ import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
+import { EstoqueTags } from '../../components/ui/Badge'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
 import { useToast } from '../../hooks/useToast'
@@ -27,6 +28,9 @@ interface ProdutoSelecionado {
   nome: string
   precoCusto: number
   ativo: boolean
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 interface CustomizacaoItem {
@@ -34,6 +38,9 @@ interface CustomizacaoItem {
   nome: string
   precoCusto: number
   quantidade: string
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 const inputClass = (hasError?: boolean) => clsx(
@@ -43,13 +50,24 @@ const inputClass = (hasError?: boolean) => clsx(
 
 // ---------- ProdutoSearch (busca de produtos tipo PRODUTO ou CUSTOMIZACAO) ----------
 
+interface ProdutoSearchResultado {
+  id: string
+  nome: string
+  precoCusto: number
+  precoVenda?: number
+  ativo: boolean
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
+}
+
 function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
   tipo: 'PRODUTO' | 'CUSTOMIZACAO'; placeholder: string; jaAdicionados: string[]
-  onSelect: (p: { id: string; nome: string; precoCusto: number; ativo: boolean }) => void
+  onSelect: (p: ProdutoSearchResultado) => void
 }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [resultados, setResultados] = useState<{ id: string; nome: string; precoCusto: number; precoVenda?: number; ativo: boolean }[]>([])
+  const [resultados, setResultados] = useState<ProdutoSearchResultado[]>([])
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -73,7 +91,16 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
         setResultados(
           data.content
             .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, precoCusto: p.precoCusto ?? 0, precoVenda: p.precoVenda ?? undefined, ativo: p.ativo }))
+            .map(p => ({
+              id: p.id,
+              nome: p.nome,
+              precoCusto: p.precoCusto ?? 0,
+              precoVenda: p.precoVenda ?? undefined,
+              ativo: p.ativo,
+              algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+              permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+              estoqueAtual: p.estoqueAtual,
+            }))
         )
       } catch {
         // silent
@@ -100,12 +127,20 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
             <button
               key={p.id}
               onClick={() => { onSelect(p); setQ(''); setOpen(false); setResultados([]) }}
-              className="flex w-full items-center justify-between gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
+              className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
-              <span className="flex-shrink-0 text-xs text-muted">
-                {moeda(p.precoCusto)} custo{p.precoVenda != null ? ` · ${moeda(p.precoVenda)} venda` : ''}
+              <span className="flex w-full items-center justify-between gap-[11px]">
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
+                <span className="flex-shrink-0 text-xs text-muted">
+                  {moeda(p.precoCusto)} custo{p.precoVenda != null ? ` · ${moeda(p.precoVenda)} venda` : ''}
+                </span>
               </span>
+              <EstoqueTags
+                fracionavel={!p.algumInsumoNaoFracionavel}
+                permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+                estoqueAtual={p.estoqueAtual}
+                variant="busca"
+              />
             </button>
           ))}
         </div>
@@ -173,7 +208,12 @@ export default function NovoItemCatalogoPage() {
     if (produtoIdParam) {
       tarefas.push(
         produtoService.buscarPorId(produtoIdParam)
-          .then(p => setProduto({ id: p.id, nome: p.nome, precoCusto: p.precoCusto, ativo: p.ativo }))
+          .then(p => setProduto({
+            id: p.id, nome: p.nome, precoCusto: p.precoCusto, ativo: p.ativo,
+            algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+            permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+            estoqueAtual: p.estoqueAtual,
+          }))
           .catch(() => setErro('Não foi possível carregar o produto informado.'))
       )
     }
@@ -186,7 +226,12 @@ export default function NovoItemCatalogoPage() {
             if (!item) { setErro('Item não encontrado neste catálogo.'); return }
 
             const produtoDet = await produtoService.buscarPorId(item.produtoId)
-            setProduto({ id: produtoDet.id, nome: produtoDet.nome, precoCusto: produtoDet.precoCusto, ativo: produtoDet.ativo })
+            setProduto({
+              id: produtoDet.id, nome: produtoDet.nome, precoCusto: produtoDet.precoCusto, ativo: produtoDet.ativo,
+              algumInsumoNaoFracionavel: produtoDet.algumInsumoNaoFracionavel ?? false,
+              permitirEstoqueNegativo: produtoDet.permitirEstoqueNegativo,
+              estoqueAtual: produtoDet.estoqueAtual,
+            })
             setQuantidade(item.quantidadePacote.toString())
             setItemId(item.id)
             setPrecoSugerido(item.precoSugerido)
@@ -196,7 +241,12 @@ export default function NovoItemCatalogoPage() {
             if (item.customizacoesAnexadas.length > 0) {
               const custs = await Promise.all(item.customizacoesAnexadas.map(async c => {
                 const p = await produtoService.buscarPorId(c.produtoId)
-                return { produtoId: c.produtoId, nome: c.produtoNome, precoCusto: p.precoCusto, quantidade: c.quantidade.toString() }
+                return {
+                  produtoId: c.produtoId, nome: c.produtoNome, precoCusto: p.precoCusto, quantidade: c.quantidade.toString(),
+                  algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+                  permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+                  estoqueAtual: p.estoqueAtual,
+                }
               }))
               setCustomizacoes(custs)
             }
@@ -277,8 +327,13 @@ export default function NovoItemCatalogoPage() {
 
   const jaAdicionadosCustom = customizacoes.map(c => c.produtoId)
 
-  const addCustomizacao = (p: { id: string; nome: string; precoCusto: number }) => {
-    setCustomizacoes(cs => [...cs, { produtoId: p.id, nome: p.nome, precoCusto: p.precoCusto, quantidade: '1' }])
+  const addCustomizacao = (p: ProdutoSearchResultado) => {
+    setCustomizacoes(cs => [...cs, {
+      produtoId: p.id, nome: p.nome, precoCusto: p.precoCusto, quantidade: '1',
+      algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel,
+      permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+      estoqueAtual: p.estoqueAtual,
+    }])
   }
   const removeCustomizacao = (produtoId: string) => {
     setCustomizacoes(cs => cs.filter(c => c.produtoId !== produtoId))
@@ -409,6 +464,13 @@ export default function NovoItemCatalogoPage() {
                   <div className="min-w-0">
                     <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{produto.nome}</div>
                     <div className="text-xs text-muted">{moeda(produto.precoCusto)} de custo</div>
+                    <EstoqueTags
+                      className="mt-1.5"
+                      fracionavel={!produto.algumInsumoNaoFracionavel}
+                      permitirEstoqueNegativo={produto.permitirEstoqueNegativo}
+                      estoqueAtual={produto.estoqueAtual}
+                      variant="busca"
+                    />
                   </div>
                   <button
                     onClick={() => { setProduto(null); produtoBloqueadoRef.current = null; setProdutoErro(null) }}

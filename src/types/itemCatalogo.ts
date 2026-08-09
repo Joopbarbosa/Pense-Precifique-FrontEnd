@@ -27,6 +27,9 @@ export interface ItemCatalogoResponse {
   override: boolean
   bloqueadoParaVenda: boolean
   customizacoesAnexadas: CustomizacaoAnexadaResponse[]
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 export interface PreviewPrecoRequest {

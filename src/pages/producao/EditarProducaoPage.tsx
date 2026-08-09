@@ -4,7 +4,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner, Stepper } from '../../components/ui'
 import { extractApiError } from '../../utils/apiError'
 import { Search, Box, Trash2, Calendar, StickyNote, Save, Lock } from 'lucide-react'
-import { MultiploRendimentoAviso } from '../../components/ui/Badge'
+import { EstoqueTags, MultiploRendimentoAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
 import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
@@ -17,6 +17,9 @@ interface ProdutoSelecionado {
   // PDC-027 (reversão de PDC-005, #214) — presente quando algum insumo da ficha técnica não é
   // fracionável: quantidade deve ser múltiplo deste valor (rendimento do produto), validado pelo backend.
   multiploRendimento?: number
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 function QuoteCard({ step, label, hint, children }: {
@@ -96,6 +99,13 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
               <div className="min-w-0 flex-1">
                 <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{p.nome}</div>
                 <div className="text-[12.5px] text-muted">{p.identificador}</div>
+                <EstoqueTags
+                  className="mt-1"
+                  fracionavel={!p.algumInsumoNaoFracionavel}
+                  permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+                  estoqueAtual={p.estoqueAtual}
+                  variant="busca"
+                />
               </div>
             </button>
           ))}
@@ -117,6 +127,13 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-semibold text-dark">{item.nome}</div>
         {item.identificador && <div className="mt-0.5 text-[12.5px] text-muted">{item.identificador}</div>}
+        <EstoqueTags
+          className="mt-1"
+          fracionavel={!item.algumInsumoNaoFracionavel}
+          permitirEstoqueNegativo={item.permitirEstoqueNegativo}
+          estoqueAtual={item.estoqueAtual}
+          variant="busca"
+        />
         {item.multiploRendimento != null && <MultiploRendimentoAviso rendimento={item.multiploRendimento} />}
       </div>
       <Stepper
@@ -162,7 +179,7 @@ export default function EditarProducaoPage() {
         setObservacoes(data.observacoes ?? '')
 
         // PDC-027 — cada produto já lançado pode ter insumo não-fracionável (quantidade restrita a
-        // múltiplos do rendimento); ProducaoProdutoItem não traz algumInsumoNaoFracionavel, então é
+        // múltiplos do rendimento); ProducaoProdutoItem não traz o rendimento do produto, então é
         // preciso buscar o detalhe de cada produto para saber se a linha tem essa restrição.
         const detalhes = await Promise.all(
           data.produtos.map(p => produtoService.buscarPorId(p.produtoId).catch(() => null))
@@ -175,6 +192,9 @@ export default function EditarProducaoPage() {
             nome: p.nomeProduto,
             quantidade: p.quantidade,
             multiploRendimento: multiplo,
+            algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel,
+            permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+            estoqueAtual: p.estoqueAtual,
           }
         }))
       })
@@ -198,7 +218,12 @@ export default function EditarProducaoPage() {
       if (existenteAtual) {
         return arr.map(p => p.produtoId === produto.id ? { ...p, quantidade, multiploRendimento: multiplo } : p)
       }
-      return [...arr, { produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, multiploRendimento: multiplo }]
+      return [...arr, {
+        produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, multiploRendimento: multiplo,
+        algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
+        permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
+        estoqueAtual: produto.estoqueAtual,
+      }]
     })
   }
 

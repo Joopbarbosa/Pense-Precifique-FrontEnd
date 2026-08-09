@@ -1,5 +1,6 @@
-import { AlertCircle, Check, X } from 'lucide-react'
+import { AlertCircle, Check, Layers, X } from 'lucide-react'
 import clsx from 'clsx'
+import { formatQuantidade } from '../../utils/quantidade'
 
 type StatusOrcamento =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -67,10 +68,13 @@ export function TipoProdutoBadge({ tipo, size = 'md' }: TipoProdutoBadgeProps) {
   )
 }
 
-// ---------- FracionavelBadge / EstoqueNegativoBadge (#212/#215) ----------
+// ---------- FracionavelBadge / EstoqueNegativoBadge / EstoqueAtualBadge (#212/#215, estendido em #238) ----------
 //
 // Variante 'cadastro': Detalhe Produto, Detalhe Insumo, aba Ficha Técnica de Cadastrar/Editar Produto.
 // Variante 'busca': listagem compacta de resultados de busca (ex.: busca de produto em Nova Produção).
+// #238 — cor semântica verde/laranja (era teal/cinza) e EstoqueTags agrupa as 3 informações
+// (fracionável + estoque negativo + estoque atual) num único bloco reutilizável em toda tela que lista
+// ou busca Produto/Insumo, por componente individual (não só o agregado do produto).
 
 interface FracionavelBadgeProps {
   fracionavel: boolean
@@ -94,7 +98,7 @@ export function FracionavelBadge({
     <span className={clsx(
       'inline-flex items-center whitespace-nowrap rounded-full font-semibold',
       FRACIONAVEL_SIZE[variant],
-      fracionavel ? 'bg-teal/10 text-teal' : 'bg-dim/10 text-dim'
+      fracionavel ? 'bg-success/10 text-success' : 'bg-orange/10 text-orange'
     )}>
       {fracionavel ? labelFracionavel : labelNaoFracionavel}
     </span>
@@ -121,6 +125,42 @@ export function EstoqueNegativoBadge({ permitir, variant = 'cadastro' }: Estoque
     <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/[0.12] font-semibold text-[#EF4444]', s.pill)}>
       <X size={s.icon} /> Bloqueia estoque negativo
     </span>
+  )
+}
+
+interface EstoqueAtualBadgeProps {
+  estoqueAtual: number
+  fracionavel: boolean
+  unidade?: string
+  variant?: 'cadastro' | 'busca'
+}
+
+export function EstoqueAtualBadge({ estoqueAtual, fracionavel, unidade, variant = 'cadastro' }: EstoqueAtualBadgeProps) {
+  const s = ESTOQUE_NEGATIVO_SIZE[variant]
+  return (
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-line-soft font-semibold text-body', s.pill)}>
+      <Layers size={s.icon} /> {formatQuantidade(estoqueAtual, fracionavel)}{unidade ? ` ${unidade}` : ''} em estoque
+    </span>
+  )
+}
+
+interface EstoqueTagsProps {
+  fracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
+  unidade?: string
+  variant?: 'cadastro' | 'busca'
+  className?: string
+}
+
+/** #238 — tag global fracionável/estoque negativo/estoque atual, um bloco só, reusado por componente. */
+export function EstoqueTags({ fracionavel, permitirEstoqueNegativo, estoqueAtual, unidade, variant = 'busca', className }: EstoqueTagsProps) {
+  return (
+    <div className={clsx('flex flex-wrap items-center gap-1', className)}>
+      <FracionavelBadge fracionavel={fracionavel} variant={variant} />
+      <EstoqueNegativoBadge permitir={permitirEstoqueNegativo} variant={variant} />
+      <EstoqueAtualBadge estoqueAtual={estoqueAtual} fracionavel={fracionavel} unidade={unidade} variant={variant} />
+    </div>
   )
 }
 

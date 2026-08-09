@@ -12,6 +12,7 @@ import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
 import { extractApiError } from '../../utils/apiError'
+import { EstoqueTags } from '../../components/ui/Badge'
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -56,6 +57,13 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
         <div className="mt-[3px] text-[12.5px] text-muted">
           {item.quantidadePacote} un/pacote
         </div>
+        <EstoqueTags
+          className="mt-1.5"
+          fracionavel={!item.algumInsumoNaoFracionavel}
+          permitirEstoqueNegativo={item.permitirEstoqueNegativo}
+          estoqueAtual={item.estoqueAtual}
+          variant="busca"
+        />
         {item.customizacoesAnexadas.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {item.customizacoesAnexadas.map(c => (

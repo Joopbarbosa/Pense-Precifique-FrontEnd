@@ -10,6 +10,7 @@ import Spinner from '../../components/ui/Spinner'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { tipoProdutoBadge } from '../../utils/badges'
+import { EstoqueTags } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
@@ -148,6 +149,15 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
         <h3 className="m-0 text-[15.5px] font-semibold leading-[1.3] tracking-[-0.01em] text-dark">
           {p.nome}
         </h3>
+        {!isCustom && (
+          <EstoqueTags
+            className="mt-2"
+            fracionavel={!p.algumInsumoNaoFracionavel}
+            permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+            estoqueAtual={p.estoqueAtual}
+            variant="busca"
+          />
+        )}
         <div className="mt-3.5 flex items-end justify-between gap-2.5 border-t border-cream pt-3.5">
           <div>
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-dim">
@@ -242,9 +252,17 @@ function SeletorProdutoSubstituto({ label, tipoFiltro, produtoAtualId, seleciona
                 <button
                   key={p.id}
                   onMouseDown={() => onSelect(p)}
-                  className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+                  className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
                 >
                   <span className="text-[13.5px] font-semibold text-dark">{p.nome}</span>
+                  {tipoFiltro === 'PRODUTO' && (
+                    <EstoqueTags
+                      fracionavel={!p.algumInsumoNaoFracionavel}
+                      permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+                      estoqueAtual={p.estoqueAtual}
+                      variant="busca"
+                    />
+                  )}
                 </button>
               ))}
             </div>

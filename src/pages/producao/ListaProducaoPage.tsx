@@ -24,6 +24,8 @@ import ConfirmarEstoqueNegativoModal from '../../components/producao/ConfirmarEs
 import ModalDetalheResumidoProducao from '../../components/producao/ModalDetalheResumidoProducao'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanColumn } from '../../components/kanban/KanbanBoard'
+import { EstoqueTags } from '../../components/ui/Badge'
+import type { ProducaoProdutoItem } from '../../types/producao'
 
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 type ViewMode = 'lista' | 'kanban'
@@ -58,9 +60,33 @@ const TRANSICOES_KANBAN: Record<string, Record<string, TransicaoKanban>> = {
   },
 }
 
-function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: ProducaoResumo; isDragging: boolean; onClick: () => void }) {
-  const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
+// #238 — cada produto da produção em sua própria linha (nome + tag fracionável/estoque negativo/
+// estoque atual), substituindo o `nomesProdutos = produtos.map(...).join(', ')` que colapsava tudo
+// numa única string sem espaço pra tag por componente.
+function ProdutosLista({ produtos, className, nomeClassName }: {
+  produtos: ProducaoProdutoItem[]
+  className?: string
+  nomeClassName?: string
+}) {
+  return (
+    <div className={clsx('flex flex-col gap-1.5', className)}>
+      {produtos.map(p => (
+        <div key={p.produtoId} className="min-w-0">
+          <div className={clsx('truncate', nomeClassName ?? 'text-sm text-body')}>{p.nomeProduto}</div>
+          <EstoqueTags
+            className="mt-0.5"
+            fracionavel={!p.algumInsumoNaoFracionavel}
+            permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+            estoqueAtual={p.estoqueAtual}
+            variant="busca"
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
 
+function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: ProducaoResumo; isDragging: boolean; onClick: () => void }) {
   return (
     <div
       onClick={onClick}
@@ -73,7 +99,9 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
         <span className="text-[13px] font-bold text-dark [font-variant-numeric:tabular-nums]">{producao.identificador}</span>
         <AlertaIcones producao={producao} size={14} />
       </div>
-      <div className="line-clamp-2 text-[12.5px] leading-[1.4] text-body">{nomesProdutos}</div>
+      <div className="max-h-[88px] overflow-y-auto">
+        <ProdutosLista produtos={producao.produtos} nomeClassName="text-[12.5px] leading-[1.4] text-body" />
+      </div>
       <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
     </div>
   )
@@ -199,7 +227,6 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
   const navigate = useNavigate()
   const badge = getBadgeEstado(producao.estado, producao.historicoStatus)
   const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
-  const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)
   const quantidadeTotal = producao.produtos.reduce((soma, p) => soma + p.quantidade, 0)
 
@@ -212,9 +239,9 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
         {producao.identificador}
       </span>
 
-      <span className="line-clamp-2 overflow-hidden text-sm text-body">
-        {nomesProdutos}
-      </span>
+      <div className="max-h-[76px] overflow-y-auto">
+        <ProdutosLista produtos={producao.produtos} />
+      </div>
 
       <span className="text-[13px] text-muted [font-variant-numeric:tabular-nums]">
         {quantidadeTotal}
@@ -257,7 +284,6 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
   const navigate = useNavigate()
   const badge = getBadgeEstado(producao.estado, producao.historicoStatus)
   const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
-  const nomesProdutos = producao.produtos.map(p => p.nomeProduto).join(', ')
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)
 
   return (
@@ -272,7 +298,9 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
             <span className="text-sm font-bold text-dark">{producao.identificador}</span>
             <AlertaIcones producao={producao} />
           </div>
-          <div className="line-clamp-2 mb-2 text-sm text-body">{nomesProdutos}</div>
+          <div className="mb-2 max-h-[100px] overflow-y-auto">
+            <ProdutosLista produtos={producao.produtos} />
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="inline-flex h-6 items-center whitespace-nowrap rounded-full px-[9px] text-[11.5px] font-semibold"

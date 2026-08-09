@@ -9,6 +9,7 @@ import Spinner from '../../components/ui/Spinner'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import { EstoqueTags } from '../../components/ui/Badge'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
   ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight, Repeat,
@@ -139,6 +140,14 @@ function InsumoRow({ insumo, index, onVer, onEditar, onInativar, onReativar, onE
           {insumo.nome}
         </div>
         <div className="mt-0.5 text-[12.5px] text-muted">{insumo.marca}</div>
+        <EstoqueTags
+          className="mt-1.5"
+          fracionavel={insumo.fracionavel}
+          permitirEstoqueNegativo={insumo.permitirEstoqueNegativo}
+          estoqueAtual={insumo.estoqueAtual}
+          unidade={insumo.unidadeMedida}
+          variant="busca"
+        />
       </div>
 
       <div className="text-[13.5px] text-body">{insumo.unidadeMedida}</div>
@@ -195,6 +204,14 @@ function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, on
               Estoque: <strong className={clsx('font-semibold', low ? 'text-warning' : 'text-dark')}>{formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} {insumo.unidadeMedida}</strong>
             </span>
           </div>
+          <EstoqueTags
+            className="mt-1.5"
+            fracionavel={insumo.fracionavel}
+            permitirEstoqueNegativo={insumo.permitirEstoqueNegativo}
+            estoqueAtual={insumo.estoqueAtual}
+            unidade={insumo.unidadeMedida}
+            variant="busca"
+          />
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
           <div className="text-right">
@@ -325,12 +342,21 @@ function CompraLoteModal({ onClose, onSuccess }: {
               <button
                 key={i.id}
                 onMouseDown={() => addItem(i)}
-                className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+                className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
               >
-                <span className="text-[13.5px] font-semibold text-dark">
-                  {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
+                <span className="flex w-full items-center justify-between gap-2.5">
+                  <span className="text-[13.5px] font-semibold text-dark">
+                    {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
+                  </span>
+                  <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
                 </span>
-                <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                <EstoqueTags
+                  fracionavel={i.fracionavel}
+                  permitirEstoqueNegativo={i.permitirEstoqueNegativo}
+                  estoqueAtual={i.estoqueAtual}
+                  unidade={i.unidadeMedida}
+                  variant="busca"
+                />
               </button>
             ))}
           </div>
@@ -542,10 +568,19 @@ function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect
                 <button
                   key={i.id}
                   onMouseDown={() => onSelect(i)}
-                  className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+                  className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
                 >
-                  <span className="text-[13.5px] font-semibold text-dark">{i.nome}</span>
-                  <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                  <span className="flex w-full items-center justify-between gap-2.5">
+                    <span className="text-[13.5px] font-semibold text-dark">{i.nome}</span>
+                    <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                  </span>
+                  <EstoqueTags
+                    fracionavel={i.fracionavel}
+                    permitirEstoqueNegativo={i.permitirEstoqueNegativo}
+                    estoqueAtual={i.estoqueAtual}
+                    unidade={i.unidadeMedida}
+                    variant="busca"
+                  />
                 </button>
               ))}
             </div>

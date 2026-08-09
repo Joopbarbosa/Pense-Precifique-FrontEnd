@@ -25,6 +25,7 @@ import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEs
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
 import { extractApiError } from "../../utils/apiError";
+import { EstoqueTags } from "../../components/ui/Badge";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -1228,6 +1229,13 @@ export default function DetalheOrcamentoPage() {
                           : "Venda sem catálogo"}
                       </span>
                     </div>
+                    <EstoqueTags
+                      className="mt-1.5"
+                      fracionavel={!it.algumInsumoNaoFracionavel}
+                      permitirEstoqueNegativo={it.permitirEstoqueNegativo}
+                      estoqueAtual={it.estoqueAtual}
+                      variant="busca"
+                    />
                     {it.customizacoes.length > 0 && (
                       <div className="mt-1.5 inline-flex h-[22px] items-center gap-[5px] rounded-full bg-line-soft px-[9px] text-[11.5px] font-semibold text-body">
                         <SlidersHorizontal size={11} />
