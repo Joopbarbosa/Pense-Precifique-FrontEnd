@@ -4,6 +4,7 @@ export interface CustomizacaoAnexadaRequest {
 }
 
 export interface CustomizacaoAnexadaResponse {
+  id: string
   produtoId: string
   produtoNome: string
   quantidade: number
@@ -35,9 +36,8 @@ export interface PreviewPrecoRequest {
 }
 
 export interface PreviewPrecoResponse {
-  custoUnitario: number
+  precoVendaProduto: number
   quantidadePacote: number
-  custoCustomizacoes: number
-  margem: number
+  precoVendaCustomizacoes: number
   precoSugerido: number
 }

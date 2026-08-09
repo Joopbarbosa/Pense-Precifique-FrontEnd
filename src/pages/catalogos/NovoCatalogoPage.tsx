@@ -1,41 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
 import SectionTitle from '../../components/shared/SectionTitle'
 import { ChevronRight, Files, Save } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
-import { empresaService } from '../../services/empresaService'
 import type { CatalogoRequest } from '../../types/catalogo'
 
-const num = (v: string) => {
-  const n = parseFloat(v.replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
-
-const inputClass = (hasError?: boolean) => clsx(
-  'h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-  hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-)
+const inputClass = (hasError?: boolean) =>
+  `h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 ${
+    hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+  }`
 
 export default function NovoCatalogoPage() {
   const navigate = useNavigate()
 
   const [nome, setNome] = useState('')
-  const [margem, setMargem] = useState('')
-  const [loadingConfig, setLoadingConfig] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    empresaService.getConfiguracao()
-      .then(cfg => setMargem((cfg.margemPadrao ?? 0).toString()))
-      .catch(() => {})
-      .finally(() => setLoadingConfig(false))
-  }, [])
 
   const handleSubmit = async () => {
     setError('')
@@ -43,7 +27,6 @@ export default function NovoCatalogoPage() {
 
     const request: CatalogoRequest = {
       nome: nome.trim(),
-      margem: num(margem),
     }
 
     setLoading(true)
@@ -54,10 +37,7 @@ export default function NovoCatalogoPage() {
       const data = err.response?.data
       const msg: string | undefined = data?.message
       const fe: Record<string, string> = { ...(data?.fieldErrors ?? {}) }
-      if (msg && /margem/i.test(msg)) {
-        fe.margem = msg
-        setFieldErrors(fe)
-      } else if (msg && /nome/i.test(msg)) {
+      if (msg && /nome/i.test(msg)) {
         fe.nome = msg
         setFieldErrors(fe)
       } else {
@@ -67,17 +47,6 @@ export default function NovoCatalogoPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (loadingConfig) {
-    return (
-      <AppLayout active="catalogos" compact>
-        <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
-          <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
-          Carregando…
-        </div>
-      </AppLayout>
-    )
   }
 
   return (
@@ -109,8 +78,8 @@ export default function NovoCatalogoPage() {
       <div className="max-w-[640px] animate-fade-up rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
         <div className="px-[26px] py-6">
-          <SectionTitle title="Dados do catálogo" subtitle="Nome e margem de lucro aplicada aos itens deste catálogo." />
-          <div className="grid grid-cols-2 gap-3.5 max-[600px]:grid-cols-1">
+          <SectionTitle title="Dados do catálogo" subtitle="Nome deste catálogo de produtos." />
+          <div className="grid grid-cols-1 gap-3.5">
             <Field label="Nome do catálogo *">
               <input
                 placeholder="Catálogo Casamentos 2026"
@@ -119,19 +88,6 @@ export default function NovoCatalogoPage() {
                 className={inputClass(!!fieldErrors.nome)}
               />
               {fieldErrors.nome && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.nome}</span>}
-            </Field>
-            <Field label="Margem de lucro *">
-              <div className="relative">
-                <input
-                  placeholder="50"
-                  inputMode="decimal"
-                  value={margem}
-                  onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
-                  className={clsx(inputClass(!!fieldErrors.margem), 'pr-10')}
-                />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">%</span>
-              </div>
-              {fieldErrors.margem && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.margem}</span>}
             </Field>
           </div>
         </div>

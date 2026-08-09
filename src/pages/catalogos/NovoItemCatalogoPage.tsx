@@ -4,12 +4,13 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info, Sparkles } from 'lucide-react'
+import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
+import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import type { CatalogoResponse } from '../../types/catalogo'
-import type { ItemCatalogoRequest, PreviewPrecoRequest } from '../../types/itemCatalogo'
+import type { ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 
@@ -135,6 +136,7 @@ export default function NovoItemCatalogoPage() {
 
   const [precoVenda, setPrecoVenda] = useState('')
   const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
+  const [previewDetalhe, setPreviewDetalhe] = useState<PreviewPrecoResponse | null>(null)
   // true só quando o preço exibido reflete um ajuste manual real (edição do usuário
   // ou item carregado já com override) — evita sobrescrever o preço "por inércia" a cada
   // preview e também é a única fonte de verdade de "override" agora que o preview não
@@ -245,6 +247,7 @@ export default function NovoItemCatalogoPage() {
     try {
       const resp = await itemCatalogoService.previewPreco(catalogoId, request)
       setPrecoSugerido(resp.precoSugerido)
+      setPreviewDetalhe(resp)
       // Sem override ativo, o preço de venda acompanha o sugerido ao vivo; com override,
       // o valor digitado pela usuária é preservado (preview não devolve precoVenda/override).
       if (!precoEditadoManualmente) {
@@ -391,7 +394,7 @@ export default function NovoItemCatalogoPage() {
                 >
                   <option value="" disabled>Selecione um catálogo</option>
                   {catalogos.map(c => (
-                    <option key={c.id} value={c.id}>{c.nome} ({c.margem}% de margem)</option>
+                    <option key={c.id} value={c.id}>{c.nome}</option>
                   ))}
                 </select>
               </Field>
@@ -501,61 +504,31 @@ export default function NovoItemCatalogoPage() {
 
         {/* COLUNA DIREITA — preço */}
         <div className="sticky top-6 max-[1040px]:static">
-          <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
-            <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
-              <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
-                <Calculator size={20} />
-              </span>
-              <div className="min-w-0">
-                <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Preço do item</div>
-                <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
-                  {calculandoPreview ? 'Calculando…' : <><Sparkles size={12} /> Atualiza em tempo real</>}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-5 pb-5 pt-2.5">
-              <div className="rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-[18px] py-4">
-                <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">Preço sugerido</div>
-                <div className="mt-0.5 text-[28px] font-bold tracking-[-0.02em] text-teal [font-variant-numeric:tabular-nums]">
-                  {precoSugerido != null ? moeda(precoSugerido) : '—'}
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <span className="mb-[7px] block text-[13px] font-semibold text-body">Preço de venda</span>
-                <div className="relative">
-                  <span className={clsx(
-                    'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-dim'
-                  )}>R$</span>
-                  <input
-                    value={precoVenda}
-                    onChange={e => {
-                      setPrecoVenda(e.target.value.replace(/[^\d.,]/g, ''))
-                      setPrecoEditadoManualmente(true)
-                    }}
-                    inputMode="decimal"
-                    disabled={!produto}
-                    className={clsx(
-                      'h-[50px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-[19px] font-bold outline-none [font-variant-numeric:tabular-nums]',
-                      overrideAtivo ? 'border-orange text-orange' : 'border-line text-dark',
-                      produto ? 'bg-white' : 'bg-cream'
-                    )}
-                  />
-                </div>
-              </div>
-
-              {diffOverride != null && (
-                <div className="mt-3 flex gap-2 rounded-[11px] border border-[#F6E4CE] bg-[#FFF8F0] px-[13px] py-[11px]">
-                  <Info size={15} className="mt-px flex-shrink-0 text-warning" />
-                  <p className="m-0 text-[12.3px] leading-[1.5] text-[#7A5A33]">
-                    Você ajustou o preço manualmente (<strong className="font-bold">{diffOverride > 0 ? '+' : '−'}{moeda(Math.abs(diffOverride))}</strong> {diffOverride > 0 ? 'acima' : 'abaixo'} do sugerido).
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <CalculadoraPreco
+            titulo="Preço do item"
+            calculando={calculandoPreview}
+            sugerido={precoSugerido}
+            precoFinalLabel="Preço de venda"
+            precoFinal={precoVenda}
+            onPrecoFinalChange={v => { setPrecoVenda(v); setPrecoEditadoManualmente(true) }}
+            overrideAtivo={overrideAtivo}
+            diffOverride={diffOverride}
+            disabledInput={!produto}
+          >
+            {previewDetalhe && (
+              <>
+                <LinhaCalculadora
+                  label={`Produto${produto ? ` (${produto.nome})` : ''} × ${previewDetalhe.quantidadePacote}`}
+                  value={moeda(previewDetalhe.precoVendaProduto * previewDetalhe.quantidadePacote)}
+                  sub={`${previewDetalhe.quantidadePacote}× ${moeda(previewDetalhe.precoVendaProduto)}`}
+                />
+                {previewDetalhe.precoVendaCustomizacoes > 0 && (
+                  <LinhaCalculadora label="Customizações anexadas" value={moeda(previewDetalhe.precoVendaCustomizacoes)} />
+                )}
+                <div className="my-1 h-px bg-line" />
+              </>
+            )}
+          </CalculadoraPreco>
         </div>
 
       </div>
