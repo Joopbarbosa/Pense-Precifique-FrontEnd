@@ -145,6 +145,7 @@ Ciclo de vida completo (6 estados, ver backend `CLAUDE.md`) com lista + Kanban, 
 |----|-----------|
 | C10 | Upload de logo do perfil não funciona nas Configurações |
 | 006.1 | Campo de quantidade em ficha técnica exibe "025" ao digitar "0,25" em insumo não-fracionável (exibição cosmética; validação de envio funciona) — adiado, sem data |
+| BUG-RESOLVER-VINCULOS-INSUMO | Fluxo "Inativar produtos vinculados" (`InsumoResolverVinculosModal`, `ListaInsumosPage.tsx`, #228/#237) nunca mostra o toast "Insumo inativado." — `e2e/insumos/resolver-vinculos-insumo.spec.ts` falha de forma consistente (não-flaky) nesse ponto. Confirmado via `git worktree` que o bug já existia antes do #238 (mesma falha no commit `5d85627`, sem nenhuma mudança minha) — não é regressão, mas descoberto durante a rodada de testes completa em Docker pedida ao fechar #238 (2026-08-09). "Substituir insumo" (a outra opção do mesmo modal) funciona normalmente. Ainda não investigado a fundo — próxima sessão que mexer em Insumo deveria abrir isso como issue própria. |
 
 **Bugs de backend que afetavam a UI — ambos corrigidos:**
 - `GET /produtos?busca=` ignorava o parâmetro de busca (`BUG-BUSCA-PRODUTO`). Corrigido no backend em 2026-07-09, commit `222b939`. Validado via curl e Playwright na tela de Orçamento (modo "Tudo").
