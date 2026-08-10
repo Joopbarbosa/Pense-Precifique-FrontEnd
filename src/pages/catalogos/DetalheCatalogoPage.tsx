@@ -12,6 +12,7 @@ import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
 import { extractApiError } from '../../utils/apiError'
+import { EstoqueTags } from '../../components/ui/Badge'
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -56,6 +57,13 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
         <div className="mt-[3px] text-[12.5px] text-muted">
           {item.quantidadePacote} un/pacote
         </div>
+        <EstoqueTags
+          className="mt-1.5"
+          fracionavel={!item.algumInsumoNaoFracionavel}
+          permitirEstoqueNegativo={item.permitirEstoqueNegativo}
+          estoqueAtual={item.estoqueAtual}
+          variant="busca"
+        />
         {item.customizacoesAnexadas.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {item.customizacoesAnexadas.map(c => (
@@ -176,9 +184,6 @@ export default function DetalheCatalogoPage() {
                 {catalogo.ativo ? 'Ativo' : 'Inativo'}
               </span>
             </div>
-            <div className="mt-1 text-sm text-muted">
-              Margem de <strong className="font-semibold text-body">{catalogo.margem}%</strong>
-            </div>
           </div>
         </div>
       </div>
@@ -191,19 +196,10 @@ export default function DetalheCatalogoPage() {
 
       <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
-          {[
-            { k: 'Margem de lucro', v: `${catalogo.margem}%`, accent: true },
-            { k: 'Itens no catálogo', v: `${catalogo.quantidadeItens}`, big: true },
-          ].map((c, i) => (
-            <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
-              <div className={clsx(
-                'mt-[7px] [font-variant-numeric:tabular-nums]',
-                c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',
-                c.accent ? 'text-teal' : 'text-dark'
-              )}>{c.v}</div>
-            </div>
-          ))}
+          <div className="bg-white px-5 py-[18px]">
+            <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">Itens no catálogo</div>
+            <div className="mt-[7px] text-[28px] font-bold tracking-[-0.02em] text-dark [font-variant-numeric:tabular-nums]">{catalogo.quantidadeItens}</div>
+          </div>
         </div>
       </div>
 
@@ -219,7 +215,7 @@ export default function DetalheCatalogoPage() {
           <EmptyState
             icon={<Box size={20} />}
             title="Nenhum item neste catálogo ainda"
-            description="Adicione produtos para compor este catálogo com a margem definida."
+            description="Adicione produtos para compor este catálogo."
             action={{ label: 'Adicionar item', icon: <Plus size={16} />, onClick: () => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`) }}
           />
         ) : (

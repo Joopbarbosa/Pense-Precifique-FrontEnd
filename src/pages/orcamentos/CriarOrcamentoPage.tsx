@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, ModalShell } from '../../components/ui'
+import { Button, ModalShell, Stepper } from '../../components/ui'
 import {
   Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
   Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check,
@@ -17,6 +17,7 @@ import type { ProdutoResponse } from '../../types/produto'
 import type { OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse, AvisoEstoque } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
 import { METODOS_PAGAMENTO } from '../../constants'
+import { EstoqueTags } from '../../components/ui/Badge'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
@@ -31,6 +32,9 @@ interface Item {
   itemCatalogoId?: string
   catalogoNome?: string
   margemAplicada?: number
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 // ── QuoteCard ──────────────────────────────────────────────────────────────
@@ -149,25 +153,6 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
   )
 }
 
-// ── Stepper ────────────────────────────────────────────────────────────────
-function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex flex-shrink-0 items-center overflow-hidden rounded-input border border-line">
-      <button
-        onClick={() => onChange(Math.max(1, value - 1))}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-cream text-lg text-body transition-colors duration-100 hover:bg-line-soft"
-      >−</button>
-      <span className="w-[46px] border-x border-line text-center text-[15px] font-bold leading-[42px] text-dark [font-variant-numeric:tabular-nums]">
-        {value}
-      </span>
-      <button
-        onClick={() => onChange(value + 1)}
-        className="grid h-[42px] w-[38px] place-items-center border-none bg-cream text-lg text-teal transition-colors duration-100 hover:bg-line-soft"
-      >+</button>
-    </div>
-  )
-}
-
 // ── ItemRow ────────────────────────────────────────────────────────────────
 function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
   item: Item
@@ -202,6 +187,13 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
             )}
           </div>
           <div className="mt-0.5 text-[13px] text-muted">{BRL(item.preco)} / unidade</div>
+          <EstoqueTags
+            className="mt-1.5"
+            fracionavel={!item.algumInsumoNaoFracionavel}
+            permitirEstoqueNegativo={item.permitirEstoqueNegativo}
+            estoqueAtual={item.estoqueAtual}
+            variant="busca"
+          />
         </div>
         <Stepper value={item.qtd} onChange={v => onQtd(item.id, v)} />
         <div className="min-w-[108px] text-right">
@@ -247,7 +239,10 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
   const [selecionadas, setSelecionadas] = useState<{ id: string; nome: string; valor: number; qtd: number }[]>(
     item.customs.map(c => ({ ...c, qtd: c.qtd ?? 1 }))
   )
-  const [customizacoes, setCustomizacoes] = useState<{ id: string; nome: string; valor: number }[]>([])
+  const [customizacoes, setCustomizacoes] = useState<{
+    id: string; nome: string; valor: number
+    algumInsumoNaoFracionavel: boolean; permitirEstoqueNegativo: boolean; estoqueAtual: number
+  }[]>([])
   const [loadingCustom, setLoadingCustom] = useState(true)
   const [errorCustom, setErrorCustom] = useState(false)
 
@@ -260,6 +255,9 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
           id: p.id,
           nome: p.nome,
           valor: p.precoVenda ?? 0,
+          algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+          permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+          estoqueAtual: p.estoqueAtual,
         })))
       })
       .catch(() => setErrorCustom(true))
@@ -352,7 +350,16 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                   )}>
                     {on && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
                   </span>
-                  <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
+                  <div>
+                    <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
+                    <EstoqueTags
+                      className="mt-1"
+                      fracionavel={!c.algumInsumoNaoFracionavel}
+                      permitirEstoqueNegativo={c.permitirEstoqueNegativo}
+                      estoqueAtual={c.estoqueAtual}
+                      variant="busca"
+                    />
+                  </div>
                 </div>
                 <span className={clsx('text-sm font-semibold', on ? 'text-orange' : 'text-dim')}>
                   +{BRL(c.valor)}/un
@@ -893,6 +900,13 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                 <div className="min-w-0 flex-1">
                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{item.nomeProduto}</div>
                   <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
+                  <EstoqueTags
+                    className="mt-1"
+                    fracionavel={!item.algumInsumoNaoFracionavel}
+                    permitirEstoqueNegativo={item.permitirEstoqueNegativo}
+                    estoqueAtual={item.estoqueAtual}
+                    variant="busca"
+                  />
                 </div>
               </button>
             ))}
@@ -915,6 +929,13 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                 <div className="min-w-0 flex-1">
                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{p.nome}</div>
                   <div className="text-xs text-muted">Avulso · margem editável</div>
+                  <EstoqueTags
+                    className="mt-1"
+                    fracionavel={!p.algumInsumoNaoFracionavel}
+                    permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+                    estoqueAtual={p.estoqueAtual}
+                    variant="busca"
+                  />
                 </div>
               </button>
             ))}
@@ -1084,6 +1105,9 @@ export default function CriarOrcamentoPage() {
       customs: [],
       itemCatalogoId: item.id,
       catalogoNome: item.catalogoNome,
+      algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
+      permitirEstoqueNegativo: item.permitirEstoqueNegativo,
+      estoqueAtual: item.estoqueAtual,
     }])
     setProductOpen(false)
   }
@@ -1104,6 +1128,9 @@ export default function CriarOrcamentoPage() {
       produtoId: produtoAvulsoModal.id,
       produtoIdentificador: produtoAvulsoModal.identificador,
       margemAplicada,
+      algumInsumoNaoFracionavel: produtoAvulsoModal.algumInsumoNaoFracionavel ?? false,
+      permitirEstoqueNegativo: produtoAvulsoModal.permitirEstoqueNegativo,
+      estoqueAtual: produtoAvulsoModal.estoqueAtual,
     }])
     setProdutoAvulsoModal(null)
   }

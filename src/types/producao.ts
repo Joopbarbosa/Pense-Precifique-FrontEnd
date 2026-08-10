@@ -21,6 +21,9 @@ export interface ProducaoProdutoItem {
   tipoProduto: string
   quantidade: number
   quantidadePerdida: number
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 export interface HistoricoStatus {

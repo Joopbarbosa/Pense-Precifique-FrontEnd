@@ -12,6 +12,7 @@ import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
 import type { ProducaoDetalhe, EstadoProducao } from '../../types/producao'
 import { formatQuantidade } from '../../utils/quantidade'
+import { EstoqueTags } from '../../components/ui/Badge'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
@@ -232,6 +233,13 @@ export default function DetalheProducaoPage() {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-dark">{p.nomeProduto}</div>
                   <div className="text-[12px] text-muted">{p.tipoProduto}</div>
+                  <EstoqueTags
+                    className="mt-1"
+                    fracionavel={!p.algumInsumoNaoFracionavel}
+                    permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+                    estoqueAtual={p.estoqueAtual}
+                    variant="busca"
+                  />
                   {producao.estado === 'FINALIZADA' && p.quantidadePerdida > 0 && (
                     <div className="text-[12px] text-danger">Perda: {p.quantidadePerdida}</div>
                   )}

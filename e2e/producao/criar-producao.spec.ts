@@ -137,7 +137,12 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     const nomeFita = `QA169-FitaCetim-${Date.now()}`
     const papel = await criarInsumoComEstoque(request, token, nomePapel, 100, false)
     const cola = await criarInsumoComEstoque(request, token, nomeCola, 1, true) // permite negativo → aviso
-    const fita = await criarInsumoComEstoque(request, token, nomeFita, 1, false) // não permite → bloqueio
+    // Fracionável — evita cair na validação de múltiplos de rendimento (PDC-027, #214), que passou
+    // a rejeitar com uma mensagem diferente ("quantidade máxima permitida...") antes mesmo de
+    // chegar em simularAlertas/calcularAlertas para insumo não-fracionável sem estoque suficiente.
+    // Esta suíte testa RN-NOVA-7 (alertas ao vivo), não PDC-027 (coberto em
+    // trava-quantidade-nao-fracionavel.spec.ts) — insumo fracionável mantém o caminho original.
+    const fita = await criarInsumoFracionavel(request, token, nomeFita, 1, 'DECIMAL', false) // não permite → bloqueio
     criadosInsumoIds.push(papel.id, cola.id, fita.id)
 
     // 3 produtos separados (1 insumo cada) — simularAlertas roda sobre a lista inteira a cada

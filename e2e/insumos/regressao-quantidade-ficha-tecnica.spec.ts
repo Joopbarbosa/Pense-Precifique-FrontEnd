@@ -47,7 +47,7 @@ test.describe('Cenário 228 — Regressão bug 025/0,25 na ficha técnica (#186)
     await page.getByPlaceholder('45').fill('30')
     await page.getByRole('button', { name: 'Próximo: Ficha Técnica' }).click()
 
-    const busca = page.getByPlaceholder('Buscar insumo ou produto base...')
+    const busca = page.getByPlaceholder('Buscar insumo ou produto...')
 
     // insumo não-fracionável — regressão original do bug 025
     await busca.fill(insumoNaoFrac.nome)

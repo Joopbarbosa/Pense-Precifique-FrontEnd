@@ -1,4 +1,4 @@
-export type TipoProduto = 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
+export type TipoProduto = 'PRODUTO' | 'CUSTOMIZACAO'
 
 export type StatusOrcamento =
   | 'RASCUNHO'

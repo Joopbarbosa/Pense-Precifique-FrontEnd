@@ -1,10 +1,12 @@
 # Pense & Precifique — Front-End
 
-> **V0.6** — Lido automaticamente pelo Claude Code.
+> **V0.7** — Lido automaticamente pelo Claude Code.
 > Caminho: `/home/joaobarbosa/Documentos/Projetos/Pense & Precifique/pense-precifique-frontend`
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
 > Atualizado em: 2026-07-28 — Módulo de Produção V0.6 (Kanban, cancelar Fluxo A/B, agrupar, dividir) confirmado **em `main`, mergeado e estável** — a nota de 2026-07-20 sobre a branch `feat/producao-criar-editar` ainda não mergeada estava desatualizada (confirmado via `git log`: `main` já tinha o módulo completo, 130+ commits à frente de `origin/master`, antes mesmo do início da Onda 1 de correções abaixo). Onda 1 de correções pontuais (P-FE-CORRIGE-001 a 011) aplicada nesta mesma retomada: declaração de perda ao finalizar produção (RN-NOVA-4), botão "Criar produção" para item de orçamento sem estoque (RN-NOVA-5), preview de preço de item de catálogo sem persistência prematura (RN-NOVA-8), drag-and-drop do Kanban via teclado (`KeyboardSensor`), coluna própria `NÃO_REALIZADA` no Kanban (oculta por padrão), identificador `ORC-N` corrigido na Listagem de Orçamentos, `@dnd-kit/sortable` removido (dependência não usada). Itens bloqueados por backend (numeração por `numero` real vez de nome, contagem de badges por categoria em Produtos, filtro de intervalo de data em `GET /orcamentos`) documentados nos relatórios de sessão, não implementados no frontend.
 > Atualizado em: 2026-07-31 — Retomada de fechamento V0.6.1.1 (pocket de limpeza): itens bloqueados por backend da nota acima todos resolvidos e implementados. Componente `Field` unificado, `ModalShell` confirmado como padrão oficial de modal, `CancelarProducaoPage` migrada para modal (`CancelarProducaoConsumoModal`), `RetormarProducaoModal` renomeado (typo corrigido), `KeyboardSensor` no Kanban implementado e testado. Decisão de fluxo sem branch por tarefa.
+> Atualizado em: 2026-08-09 — #238 (V0.7): tag global fracionável/estoque negativo/estoque atual (RN-NOVA-10, registrada em `DECISOES_GLOBAIS.md`) estendida a todas as telas de listagem/busca de Produto/Insumo por componente individual, não só o agregado do produto já existente. Componente novo `EstoqueTags` em `components/ui/Badge.tsx` (agrupa `FracionavelBadge`+`EstoqueNegativoBadge`+`EstoqueAtualBadge`, cor verde/laranja em vez de teal/cinza — mudança visual retroativa nos 4 consumidores antigos também). Passo 0 (curl + leitura de DTO Java) encontrou 4 respostas de API sem os 3 campos — `ItemCatalogoBuscaResponse`, `ItemCatalogoResponse`, `OrcamentoItemResponse`, `ProducaoProdutoResponse` — usuário optou por eu também alterar o backend nesta mesma sessão (mappers passaram a receber `List<FichaTecnicaItem>`/`Map<UUID,List<FichaTecnicaItem>>` do Service, mesmo padrão N+1 já usado em `ProdutoService`); commit backend separado, próprio repo/branch `feature/V0.7`. `ListaProducaoPage.tsx` ganhou `ProdutosLista` — produtos de uma produção agora renderizam em linhas próprias (nome + tag) em vez do `nomesProdutos.join(', ')` antigo, nas 3 visões (tabela, card mobile, card Kanban); nenhum teste E2E dependia do formato de string antigo (confirmado via grep antes da mudança).
+> Atualizado em: 2026-08-09 — `BUG-RESOLVER-VINCULOS-INSUMO` corrigido (#228, V0.7). Causa raiz real: não era bug de toast/frontend wiring — a chamada `POST /insumos/{id}/resolver-vinculos` sempre falhava com 400 (`"Valor inválido para o campo 'acao'."`) porque o frontend de Insumo enviava `acao: 'INATIVAR_VINCULADOS'`, um literal que nunca existiu no enum compartilhado do backend `AcaoResolucaoVinculo` (`REMOVER_VINCULOS` | `SUBSTITUIR`). Confirmado via curl direto na API antes de qualquer alteração (Passo 0), e por comparação com o fluxo análogo de Produto (`ListaProdutosPage.tsx`), que já usava `'REMOVER_VINCULOS'` corretamente desde o início — só o lado de Insumo divergiu. Corrigido trocando o literal em `src/types/insumo.ts` e `ListaInsumosPage.tsx` (2 usos), sem tocar no backend. `resolver-vinculos-insumo.spec.ts` passou 6x seguidas após a correção (mais suíte completa de Insumo, 11/11); validação visual manual via script Playwright avulso confirmou toast + status "Inativo" na listagem.
 
 ---
 
@@ -14,6 +16,7 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 **Estilo:** Tailwind CSS — classes utilitárias. Nunca CSS inline com valores hardcoded. Nunca classes CSS customizadas. Valores verdadeiramente dinâmicos (calculados em JS, vindos de prop ou da API) podem usar `style={{}}`.
 **Ícones:** sempre via Lucide React (`import { X } from 'lucide-react'`). Nunca criar SVG manual inline.
 **Design system:** tokens em `tailwind.config.ts`. Cores: `text-teal`, `bg-orange`, `text-dark`, `border-line`, `bg-app`, `text-muted`, `text-body`, `text-danger`, etc. Nunca usar valores hex hardcoded — sempre o token correspondente.
+- **Espaçamento: `spacing.section` = `18px`** (`tailwind.config.ts`, V0.7/#204) — token para o ritmo vertical entre blocos/seções (`mt-section`, `mb-section`, `gap-section`), mesmo padrão de `borderRadius.card`/`boxShadow.card`. Aplicado em `DashboardPage.tsx` (Header, Métricas, Alerta de estoque, Grid inferior, Ações Rápidas), substituindo os 6 usos de `mt-[18px]`/`gap-[18px]`/`mb-[18px]` arbitrários. `18px` também aparece como valor arbitrário em dezenas de outras telas (ex. `ListaOrcamentosPage`, `DetalheOrcamentoPage`, `ConfiguracoesPage`) — não migradas nesta tarefa, candidatas a reaproveitar o token quando forem tocadas por outro motivo. Padding interno de `Card` (20/22/24px, inconsistente entre `MetricCard` e os demais cards do Dashboard) permanece sem token — decisão de design não coberta por esta tarefa.
 **Componentes base:** `Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu` em `components/ui/` e `components/shared/`.
 - **`ModalShell` é o padrão oficial de todo modal do sistema** (V0.6.1.1) — nunca reimplementar overlay/painel/botão-fechar inline. Renderiza `title` acima de `subtitle` (ordem corrigida em `434034c`, era invertida) e fecha via Escape. Último débito migrado: wizard de cancelamento com multa/estorno em `DetalheOrcamentoPage.tsx` (`ModalCancelMulta`/`ModalCancelEstorno`) e `CompraLoteModal`/`ImpactoLoteModal` em `ListaInsumosPage.tsx` — nenhum consumidor conhecido reimplementa modal inline hoje. Wizards de múltiplos passos usam o slot `footer` do `ModalShell` para empilhar a barra de progresso (Dots) acima da linha de botões (`<div className="flex w-full flex-col gap-3">`), já que o `ModalShell` só expõe uma única região de rodapé — título/subtitle mudam por passo (`title` = rótulo do passo atual, `subtitle` = "Cancelar · Passo N de M").
 - **`Field` é o wrapper oficial de label+input** (`components/ui/Field.tsx`, prop `size?: 'sm'|'md'`, V0.6.1.1) — substituiu as 4 implementações locais divergentes (`FormInsumoPage`, `CadastrarProdutoPage`, `NovoCatalogoPage`, `NovoItemCatalogoPage`). Nunca recriar wrapper de label local — usar este.
@@ -30,6 +33,7 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 - Toast: sempre via hook `useToast` — proibido estado boolean local
 - **Busca em listagens é sempre server-side**, via `?busca=` para a API, com debounce (~300ms) e reset de paginação para a página 0 a cada nova busca — nunca filtrar client-side sobre os itens já carregados na página. Padrão consolidado em Produtos, Insumos (#110/V0.5) e Orçamentos (#93/V0.5). Filtro client-side é bug, não atalho aceitável — ver histórico de `BUG-BUSCA-PRODUTO`/`BUG-BUSCA-ORCAMENTO` em Bugs conhecidos.
 - **Aba Conta (Configurações — alteração de senha):** validação client-side mínima antes de chamar a API (tamanho da nova senha ≥ 8, nova senha === confirmação); erro vindo da API (ex. senha atual incorreta) é lido de `err.response?.data?.message`. Ver `usuarioService.ts` e `ConfiguracoesPage.tsx`.
+- **Padrão "resolver vínculos" (V0.7, Produto e Insumo):** quando `POST /{id}/inativar` ou `DELETE /{id}` retorna 400 por vínculo pendente, o modal de resolução busca os vínculos estruturados via `GET` dedicado (`/produtos/{id}/catalogos-vinculados` + `/componentes-vinculados`; `/insumos/{id}/produtos-relacionados`) e oferece, por bloco de tipo de vínculo, `REMOVER_VINCULOS` ou `SUBSTITUIR` (seletor de item substituto), enviando tudo em `POST /{id}/resolver-vinculos` numa única chamada que já executa a operação original. Candidato a padrão de referência para qualquer módulo futuro com bloqueio de exclusão/inativação por vínculo — ver `ListaProdutosPage.tsx`/`ListaInsumosPage.tsx` para a UI de referência.
 
 ---
 
@@ -56,8 +60,8 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 - **Antes de criar um service novo, conferir `src/services/`** — todo módulo tem o seu (`authService`, `catalogoService`, `clienteService`, `dashboardService`, `empresaService`, `insumoService`, `itemCatalogoService`, `loteCompraService`, `orcamentoService`, `producaoService`, `produtoService`, `usuarioService`). `usuarioService.ts` existe desde o Épico 1 (dados do usuário) e ganhou `alterarSenha` na V0.5 (#111) — não recriar.
 - `npm run build` antes de qualquer commit
 - **"Compila limpo" nunca é validação suficiente** — toda tela precisa de verificação visual real (Playwright, se disponível no ambiente, ou navegador manual) antes de reportar como concluída. Recorrente no bloco Catálogo: C-003/004/005 foram inicialmente "validados" só por curl, sem checagem visual, até isso ser explicitamente exigido no corpo do prompt a partir do C-005.
-- Toda correção de bug ou tarefa de tech debt termina com commit + push antes de considerar o chat encerrado — mesmo sem fechamento de épico. Branch sempre `main`: `git push origin main`. Nunca deixar mudança sem commit entre chats.
-- **Decisão de fluxo (2026-07-29):** esta leva (V0.6.1.1) não usa branch por tarefa — todo trabalho vai direto em `main`, sem staging separado.
+- Toda correção de bug ou tarefa de tech debt termina com commit + push antes de considerar o chat encerrado — mesmo sem fechamento de épico. Nunca deixar mudança sem commit entre chats.
+- **GitFlow por versão, retomado em V0.7 (2026-08-06/07):** trabalho de uma versão (`V[X.Y]`) vai para a branch `feature/V[X.Y]`, criada no início da fase de Backend/Frontend da versão — não mais commit direto em `main`. PR de merge para `main` só no fechamento formal da versão (após a Retomada). **Substitui a decisão de fluxo de 2026-07-29** (V0.6.1.1, "sem branch por tarefa, tudo direto em `main`") — essa prática vigorou entre V0.6.1.1 e V0.6.3, revertida a partir de V0.7.
 - **Nota de backlog "decisão registrada"/"concluído" não é o mesmo que confirmado no código** — sempre conferir o código-fonte (ou curl na API) antes de escrever prompt/implementação em cima de uma anotação assim. Recorrente nesta leva: vários itens do backlog vivo ficaram marcados como pendentes (checkbox `[ ]` de Frontend/Teste) mesmo depois de implementados — a fonte de verdade é sempre o código e o `git log`, não o checkbox.
 - **Rastreamento migrou de ClickUp para OpenProject.** Padrão real confirmado em `git log --oneline -15`: `tipo(escopo): descrição — OpenProject #N` (ex. `fix(insumos): corrige busca de insumos para usar API server-side — OpenProject #110`) — número como **sufixo**, sempre com a palavra "OpenProject" antes do `#N`. Vários números na mesma tarefa: `— OpenProject #94,#95,#96,#97`. Commits antigos com `ClickUp <código> / <task-id>` são histórico, não o padrão atual. **Diferente do backend**, que usa o número como prefixo sem a palavra "OpenProject" (`#N tipo: descrição`) — cada repo segue o próprio `git log`.
 - **Todo prompt segue a estrutura fixa de `PADRAO_PROMPTS.md`** (ambiente, comando de commit pronto, conta de teste, checklist de validação) — decidido em 2026-07-09. Arquivo confirmado em `/home/joaobarbosa/Documentos/Projetos/Pense Software/Skills/PADRAO_PROMPTS.md` (fora deste projeto, pasta irmã "Pense Software").
@@ -67,24 +71,23 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 ## Tipos principais
 
 ```ts
-type TipoProduto = 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
+type TipoProduto = 'PRODUTO' | 'CUSTOMIZACAO' // PRODUTO_BASE eliminado em V0.7 (#210+231+234)
 type StatusOrcamento = 'RASCUNHO'|'ENVIADO'|'APROVADO'|'AGUARDANDO_SINAL'|'SINAL_PAGO'|'EM_PRODUCAO'|'FINALIZADO'|'ENTREGUE'|'PAGO'|'CANCELADO'
 type MetodoPagamento = 'PIX'|'DINHEIRO'|'CREDITO'|'DEBITO'|'TRANSFERENCIA'|'BOLETO'|'OUTRO'
 ```
 
-**Nota (bloco Catálogo):** `Produto` tipo `PRODUTO` não tem mais `precoVenda`/`margemLucro` próprios no formulário (vêm do Catálogo, ou de `margemAplicada` ad-hoc na venda avulsa — RN-054). Ganhou `rendimento`, `custoTotalLote`, `custoUnitario`, `algumInsumoNaoFracionavel`. `CUSTOMIZACAO` manteve `precoVenda`/`margemLucro` normalmente.
+**Nota (V0.7, #210+231+234):** desde a eliminação de `PRODUTO_BASE`, `Produto` tipo `PRODUTO` voltou a ter `precoVenda`/`margemLucro` próprios no formulário (mesmo modelo calculado+override antes exclusivo de `CUSTOMIZACAO`), no lugar do modelo anterior (herdava do Catálogo ou de `margemAplicada` ad-hoc na venda avulsa — RN-054, que continua existindo só para venda avulsa sem catálogo). Mantém `rendimento`, `custoTotalLote`, `custoUnitario`, `algumInsumoNaoFracionavel`.
 
 ---
 
-## Cores de badge por tipo de produto (errata v6)
+## Cores de badge por tipo de produto
 
 | Tipo | Cor |
 |------|-----|
 | PRODUTO | Azul |
-| PRODUTO_BASE | Cinza |
 | CUSTOMIZACAO | Teal |
 
-Helper: `src/utils/badges.ts` — nunca reimplementar inline.
+`PRODUTO_BASE` (badge cinza) removido em V0.7 — tipo eliminado. Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 
 ---
 
@@ -205,9 +208,9 @@ e2e/
     └── validacao-estoque.spec.ts              # cenários 189-190 (Fluxo H — aviso de estoque no orçamento, #126)
 ```
 
-Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `docs/SCENARIOS(2).md`). Numeração mais alta confirmada nos specs de fora de Produção: **167**.
+Cenários renumerados na retomada V0.5 (146–154 → 159–167, colisão com a v0.3 — ver `legado/SCENARIOS.md`, seção "Cenários 155–167 — Pocket V0.5"). Numeração mais alta confirmada nos specs de fora de Produção: **167**.
 
-**Numeração V0.6 (Produção) — offset conhecido:** os specs em `e2e/producao/` usam **150–195** (numeração do momento em que foram escritos). O doc oficial de cenários (`docs/version/V0.6/SCENARIOS_EP-PRODUCAO_V0.6D0.md`) foi renumerado depois para **168–213** (offset **+18**) — confirmado por grep direto no doc (`Cenário 168 — Criar produção...`, `Cenário 213 — Datas da nova produção agrupada...`). Os specs **não foram renumerados** para acompanhar (débito, ver OP). **Ao criar um spec novo para Produção, seguir a numeração do doc oficial (168–213), não a dos specs existentes (150–195)** — e não presumir que o offset é constante em cenários intermediários sem conferir os dois lados.
+**Numeração V0.6 (Produção) — offset conhecido:** os specs em `e2e/producao/` usam **150–195** (numeração do momento em que foram escritos). O doc oficial de cenários (`legado/SCENARIOS.md`, seção "Cenários 168–213 — Módulo de Produção V0.6") foi renumerado depois para **168–213** (offset **+18**) — confirmado por grep direto no doc (`Cenário 168 — Criar produção...`, `Cenário 213 — Datas da nova produção agrupada...`). Os specs **não foram renumerados** para acompanhar (débito, ver OP). **Ao criar um spec novo para Produção, seguir a numeração do doc oficial (168–213), não a dos specs existentes (150–195)** — e não presumir que o offset é constante em cenários intermediários sem conferir os dois lados. Cenários vigentes de Produção hoje moraram para `modulos/PRODUCAO/cenarios-producao.md` (`PDC-CEN-XXX`) na migração modular — `legado/SCENARIOS.md` fica só como registro histórico da renumeração, não consultar para cenário novo.
 
 **Novos testes E2E sempre reutilizam os helpers de `e2e/helpers/`** — nunca recriar login/setup inline em um spec novo.
 

@@ -1,5 +1,5 @@
 import api from './api'
-import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse, ResolverVinculosInsumoRequest } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const insumoService = {
@@ -25,8 +25,16 @@ export const insumoService = {
     return response.data
   },
 
-  inativar: async (id: string): Promise<void> => {
+  excluir: async (id: string): Promise<void> => {
     await api.delete(`/insumos/${id}`)
+  },
+
+  inativar: async (id: string): Promise<void> => {
+    await api.post(`/insumos/${id}/inativar`)
+  },
+
+  reativar: async (id: string): Promise<void> => {
+    await api.post(`/insumos/${id}/reativar`)
   },
 
   baixaManual: async (id: string, data: BaixaManualInsumoRequest): Promise<MovimentacaoInsumoResponse> => {
@@ -47,5 +55,9 @@ export const insumoService = {
   listarProdutosRelacionados: async (id: string): Promise<ProdutoRelacionadoResponse[]> => {
     const response = await api.get(`/insumos/${id}/produtos-relacionados`)
     return response.data
+  },
+
+  resolverVinculos: async (id: string, data: ResolverVinculosInsumoRequest): Promise<void> => {
+    await api.post(`/insumos/${id}/resolver-vinculos`, data)
   },
 }

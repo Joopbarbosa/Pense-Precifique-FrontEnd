@@ -5,9 +5,10 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
+import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import {
-  X, Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
-  Check, Pencil, Factory, History,
+  Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
+  Pencil, Factory, History,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
@@ -313,13 +314,12 @@ export default function DetalheProdutoPage() {
   const tipoLabel = badge.label
 
   const isCustom = produto.tipo === 'CUSTOMIZACAO'
-  const isProdutoBase = produto.tipo === 'PRODUTO_BASE'
 
   const precoCustoTotal = produto.fichaTecnica.reduce((s, i) => s + i.custoTotal, 0)
 
   const cells = [
     { k: 'Tipo', v: tipoLabel },
-    ...(!isProdutoBase ? [{ k: 'Estoque atual', v: `${produto.estoqueAtual} unidades`, big: true, danger: produto.estoqueAtual === 0 }] : []),
+    { k: 'Estoque atual', v: `${produto.estoqueAtual} unidades`, big: true, danger: produto.estoqueAtual === 0 },
     ...(produto.estoqueMinimo != null ? [{ k: 'Estoque mínimo', v: `${produto.estoqueMinimo} unidades` }] : []),
     { k: 'Preço de custo', v: moeda(produto.precoCusto), accent: true, hint: 'calculado pela ficha técnica' },
     ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
@@ -368,19 +368,9 @@ export default function DetalheProdutoPage() {
                 {produto.ativo && <span className="h-1.5 w-1.5 rounded-full bg-success" />}
                 {produto.ativo ? 'Ativo' : 'Inativo'}
               </span>
-              {produto.permitirEstoqueNegativo ? (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-teal/[0.12] px-[11px] text-[12.5px] font-semibold text-teal">
-                  <Check size={13} /> Permite estoque negativo
-                </span>
-              ) : (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-[#EF4444]/[0.12] px-[11px] text-[12.5px] font-semibold text-[#EF4444]">
-                  <X size={13} /> Bloqueia estoque negativo
-                </span>
-              )}
+              <EstoqueNegativoBadge permitir={produto.permitirEstoqueNegativo} />
               {produto.algumInsumoNaoFracionavel && (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-line px-[11px] text-[12.5px] font-semibold text-dim">
-                  Receita não fracionável
-                </span>
+                <FracionavelBadge fracionavel={false} labelNaoFracionavel="Receita não fracionável" />
               )}
             </div>
             <div className="mt-1 text-sm text-muted">
@@ -409,16 +399,14 @@ export default function DetalheProdutoPage() {
             </div>
           ))}
         </div>
-        {!isProdutoBase && (
-          <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
-            <Button variant="primary" icon={<Factory size={20} />} onClick={() => navigate('/producao')}>
-              Registrar produção
-            </Button>
-            <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
-              Baixa manual
-            </Button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
+          <Button variant="primary" icon={<Factory size={20} />} onClick={() => navigate('/producao')}>
+            Registrar produção
+          </Button>
+          <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
+            Baixa manual
+          </Button>
+        </div>
       </div>
 
       <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line">
@@ -542,7 +530,7 @@ export default function DetalheProdutoPage() {
                         'whitespace-nowrap rounded-full px-2.5 py-[3px] text-[11.5px] font-semibold',
                         item.produtoBaseId ? 'bg-teal/10 text-teal' : 'bg-line-soft text-subtle'
                       )}>
-                        {item.produtoBaseId ? 'Produto Base' : 'Insumo'}
+                        {item.produtoBaseId ? 'Produto' : 'Insumo'}
                       </span>
                     </div>
                     <div className="mt-0.5 text-[12.5px] text-muted">

@@ -9,18 +9,26 @@ import Spinner from '../../components/ui/Spinner'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import { EstoqueTags } from '../../components/ui/Badge'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
-  ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight,
+  ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight, Repeat,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { InsumoResponse } from '../../types/insumo'
+import type { InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
-import { formatQuantidade } from '../../utils/quantidade'
+import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { extractApiError } from '../../utils/apiError'
+
+const TIPO_PRODUTO_LABEL: Record<string, string> = {
+  PRODUTO: 'Produto',
+  PRODUTO_BASE: 'Produto base',
+  CUSTOMIZACAO: 'Customização',
+}
 
 interface ItemCarrinho {
   insumo: InsumoResponse
@@ -38,6 +46,12 @@ const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
 const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
 
 const num = (s: string) => parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
+
+const numQtd = (s: string) => {
+  const fracao = tentarConverterFracao(s)
+  if (fracao !== null) return fracao
+  return num(s)
+}
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -77,20 +91,35 @@ function InsumoStatusBadge({ insumo, small = false }: { insumo: InsumoResponse; 
   )
 }
 
-function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
+function montarMenuItems(insumo: InsumoResponse, { onVer, onEditar, onInativar, onReativar, onExcluir }: {
+  onVer: () => void
+  onEditar: () => void
+  onInativar: () => void
+  onReativar: () => void
+  onExcluir: () => void
+}): ActionMenuItem[] {
+  return [
+    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
+    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
+    insumo.ativo
+      ? { label: 'Inativar', icon: <Power size={16} />,  onClick: onInativar, dividerBefore: true }
+      : { label: 'Reativar', icon: <Power size={16} />,  onClick: onReativar, dividerBefore: true },
+    { label: 'Excluir', icon: <Trash2 size={16} />, onClick: onExcluir, danger: true },
+  ]
+}
+
+function InsumoRow({ insumo, index, onVer, onEditar, onInativar, onReativar, onExcluir }: {
   insumo: InsumoResponse
   index: number
   onVer: () => void
   onEditar: () => void
-  onDesativar: () => void
+  onInativar: () => void
+  onReativar: () => void
+  onExcluir: () => void
 }) {
   const low = isLow(insumo)
 
-  const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
-    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
-    { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
-  ]
+  const menuItems = montarMenuItems(insumo, { onVer, onEditar, onInativar, onReativar, onExcluir })
 
   return (
     <div
@@ -111,6 +140,14 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
           {insumo.nome}
         </div>
         <div className="mt-0.5 text-[12.5px] text-muted">{insumo.marca}</div>
+        <EstoqueTags
+          className="mt-1.5"
+          fracionavel={insumo.fracionavel}
+          permitirEstoqueNegativo={insumo.permitirEstoqueNegativo}
+          estoqueAtual={insumo.estoqueAtual}
+          unidade={insumo.unidadeMedida}
+          variant="busca"
+        />
       </div>
 
       <div className="text-[13.5px] text-body">{insumo.unidadeMedida}</div>
@@ -137,20 +174,18 @@ function InsumoRow({ insumo, index, onVer, onEditar, onDesativar }: {
   )
 }
 
-function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
+function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, onExcluir }: {
   insumo: InsumoResponse
   index: number
   onVer: () => void
   onEditar: () => void
-  onDesativar: () => void
+  onInativar: () => void
+  onReativar: () => void
+  onExcluir: () => void
 }) {
   const low = isLow(insumo)
 
-  const menuItems: ActionMenuItem[] = [
-    { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
-    { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
-    { label: 'Desativar',    icon: <Power size={16} />,  onClick: onDesativar, danger: true, dividerBefore: true },
-  ]
+  const menuItems = montarMenuItems(insumo, { onVer, onEditar, onInativar, onReativar, onExcluir })
 
   return (
     <div
@@ -169,6 +204,14 @@ function InsumoCard({ insumo, index, onVer, onEditar, onDesativar }: {
               Estoque: <strong className={clsx('font-semibold', low ? 'text-warning' : 'text-dark')}>{formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} {insumo.unidadeMedida}</strong>
             </span>
           </div>
+          <EstoqueTags
+            className="mt-1.5"
+            fracionavel={insumo.fracionavel}
+            permitirEstoqueNegativo={insumo.permitirEstoqueNegativo}
+            estoqueAtual={insumo.estoqueAtual}
+            unidade={insumo.unidadeMedida}
+            variant="busca"
+          />
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
           <div className="text-right">
@@ -226,14 +269,15 @@ function CompraLoteModal({ onClose, onSuccess }: {
   }
 
   const updateItem = (id: string, field: 'qtd' | 'preco', value: string) => {
+    const allowed = field === 'qtd' ? /[^\d.,/]/g : /[^\d.,]/g
     setItens(prev => prev.map(it =>
-      it.insumo.id === id ? { ...it, [field]: value.replace(/[^\d.,]/g, '') } : it
+      it.insumo.id === id ? { ...it, [field]: value.replace(allowed, '') } : it
     ))
   }
 
   const removeItem = (id: string) => setItens(prev => prev.filter(it => it.insumo.id !== id))
 
-  const podeConfirmar = itens.length > 0 && itens.every(it => num(it.qtd) > 0 && num(it.preco) > 0)
+  const podeConfirmar = itens.length > 0 && itens.every(it => numQtd(it.qtd) > 0 && num(it.preco) > 0)
 
   const confirmar = async () => {
     setLoadingConfirm(true)
@@ -241,7 +285,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
       const response = await loteCompraService.registrar({
         itens: itens.map(it => ({
           insumoId: it.insumo.id,
-          quantidadeComprada: num(it.qtd),
+          quantidadeComprada: numQtd(it.qtd),
           precoTotalPago: num(it.preco),
         })),
       })
@@ -298,12 +342,21 @@ function CompraLoteModal({ onClose, onSuccess }: {
               <button
                 key={i.id}
                 onMouseDown={() => addItem(i)}
-                className="flex w-full items-center justify-between gap-2.5 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+                className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
               >
-                <span className="text-[13.5px] font-semibold text-dark">
-                  {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
+                <span className="flex w-full items-center justify-between gap-2.5">
+                  <span className="text-[13.5px] font-semibold text-dark">
+                    {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
+                  </span>
+                  <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
                 </span>
-                <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                <EstoqueTags
+                  fracionavel={i.fracionavel}
+                  permitirEstoqueNegativo={i.permitirEstoqueNegativo}
+                  estoqueAtual={i.estoqueAtual}
+                  unidade={i.unidadeMedida}
+                  variant="busca"
+                />
               </button>
             ))}
           </div>
@@ -317,7 +370,7 @@ function CompraLoteModal({ onClose, onSuccess }: {
       ) : (
         <div className="mt-4 flex flex-col gap-2.5">
           {itens.map(it => {
-            const q = num(it.qtd)
+            const q = numQtd(it.qtd)
             const p = num(it.preco)
             const novoCusto = q > 0 ? p / q : null
 
@@ -443,13 +496,231 @@ function ImpactoLoteModal({ impacto, onClose }: {
   )
 }
 
+function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect }: {
+  produto: ProdutoRelacionadoResponse
+  insumoAtualId: string
+  selecionado: InsumoResponse | null
+  onSelect: (insumo: InsumoResponse | null) => void
+}) {
+  const [busca, setBusca] = useState('')
+  const [resultados, setResultados] = useState<InsumoResponse[]>([])
+  const [open, setOpen] = useState(false)
+  const [carregando, setCarregando] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setCarregando(true)
+    const delay = busca.trim() ? 300 : 0
+    const timer = setTimeout(() => {
+      insumoService.buscarParaCarrinho(busca.trim())
+        .then(data => setResultados(data))
+        .catch(() => setResultados([]))
+        .finally(() => setCarregando(false))
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [busca, open])
+
+  const disponiveis = resultados.filter(i => i.ativo && i.id !== insumoAtualId)
+
+  return (
+    <div className="rounded-xl border border-line bg-cream px-4 py-3.5">
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+          <Box size={14} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {produto.identificador && (
+              <span className="text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
+            )}
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-dark">{produto.nome}</span>
+          </div>
+        </div>
+      </div>
+
+      {selecionado ? (
+        <div className="flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] border-teal/40 bg-teal/5 px-3 py-2.5">
+          <span className="text-[13.5px] font-semibold text-dark">{selecionado.nome}</span>
+          <button onClick={() => onSelect(null)} className="flex border-none bg-transparent text-faint hover:text-danger">
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-muted">
+            <Search size={14} />
+          </span>
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Buscar insumo substituto…"
+            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          />
+          {open && (
+            <div className="absolute inset-x-0 top-[44px] z-20 max-h-[220px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+              {carregando ? (
+                <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
+              ) : disponiveis.length === 0 ? (
+                <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum insumo encontrado</div>
+              ) : disponiveis.map(i => (
+                <button
+                  key={i.id}
+                  onMouseDown={() => onSelect(i)}
+                  className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+                >
+                  <span className="flex w-full items-center justify-between gap-2.5">
+                    <span className="text-[13.5px] font-semibold text-dark">{i.nome}</span>
+                    <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                  </span>
+                  <EstoqueTags
+                    fracionavel={i.fracionavel}
+                    permitirEstoqueNegativo={i.permitirEstoqueNegativo}
+                    estoqueAtual={i.estoqueAtual}
+                    unidade={i.unidadeMedida}
+                    variant="busca"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InsumoResolverVinculosModal({ insumo, operacao, produtos, loading, onClose, onSuccess, onError }: {
+  insumo: InsumoResponse
+  operacao: 'INATIVAR' | 'EXCLUIR'
+  produtos: ProdutoRelacionadoResponse[]
+  loading: boolean
+  onClose: () => void
+  onSuccess: () => void
+  onError: (mensagem: string) => void
+}) {
+  const [passo, setPasso] = useState<'opcoes' | 'substituir'>('opcoes')
+  const [processando, setProcessando] = useState(false)
+  const [substitutos, setSubstitutos] = useState<Record<string, InsumoResponse | null>>({})
+
+  const podeConfirmarSubstituicao = produtos.length > 0 && produtos.every(p => substitutos[p.id])
+
+  const executar = async (acao: 'REMOVER_VINCULOS' | 'SUBSTITUIR') => {
+    setProcessando(true)
+    try {
+      const substituicoes = acao === 'SUBSTITUIR'
+        ? produtos.map(p => ({ produtoId: p.id, novoInsumoId: substitutos[p.id]!.id }))
+        : undefined
+      await insumoService.resolverVinculos(insumo.id, { acao, operacao, substituicoes })
+      onSuccess()
+    } catch (err) {
+      console.error(err)
+      onError(extractApiError(err, 'Erro ao resolver vínculos. Tente novamente.'))
+    } finally {
+      setProcessando(false)
+    }
+  }
+
+  const tituloAcao = operacao === 'INATIVAR' ? 'inativar' : 'excluir'
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title={`Não foi possível ${tituloAcao}`}
+      subtitle={insumo.nome}
+      icon={<AlertCircle size={17} />}
+      iconBg="rgba(192,73,43,0.10)"
+      iconColor="#C0492B"
+      width={560}
+      footer={
+        passo === 'opcoes' ? (
+          <div className="flex w-full flex-wrap items-center justify-end gap-2.5">
+            <Button variant="ghost" onClick={onClose} disabled={processando}>Cancelar</Button>
+            <Button variant="secondary" icon={<Repeat size={16} />} onClick={() => setPasso('substituir')} disabled={loading || processando}>
+              Substituir insumo
+            </Button>
+            <Button variant="danger" icon={processando ? undefined : <Power size={16} />} onClick={() => executar('REMOVER_VINCULOS')} disabled={loading || processando}>
+              {processando
+                ? <span className="flex items-center gap-2"><Spinner size={16} color="#C0492B" trackColor="rgba(192,73,43,0.25)" /> Inativando…</span>
+                : 'Inativar produtos vinculados'}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={() => setPasso('opcoes')} disabled={processando}>Voltar</Button>
+            <Button variant="primary" onClick={() => executar('SUBSTITUIR')} disabled={!podeConfirmarSubstituicao || processando}>
+              {processando
+                ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" /> Substituindo…</span>
+                : 'Confirmar substituição'}
+            </Button>
+          </>
+        )
+      }
+    >
+      {passo === 'opcoes' ? (
+        <>
+          <p className="m-0 mb-4 text-sm leading-[1.6] text-body">
+            Este insumo está em uso na ficha técnica {produtos.length === 1 ? 'do produto abaixo' : 'dos produtos abaixo'}.
+            Escolha como resolver antes de continuar.
+          </p>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
+              <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+              Carregando produtos vinculados…
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-[14px] border border-line">
+              {produtos.map((p, i) => (
+                <div key={p.id} className={clsx('flex items-center gap-3.5 px-4 py-3.5', i > 0 && 'border-t border-line')}>
+                  <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
+                    <Box size={15} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {p.identificador && (
+                        <span className="flex-shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
+                      )}
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
+                    </div>
+                  </div>
+                  <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
+                    {TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          <p className="m-0 mb-1 text-sm leading-[1.6] text-body">
+            Escolha um insumo substituto para cada produto abaixo. A ficha técnica é atualizada automaticamente.
+          </p>
+          {produtos.map(p => (
+            <SeletorInsumoSubstituto
+              key={p.id}
+              produto={p}
+              insumoAtualId={insumo.id}
+              selecionado={substitutos[p.id] ?? null}
+              onSelect={i => setSubstitutos(prev => ({ ...prev, [p.id]: i }))}
+            />
+          ))}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
 export default function ListaInsumosPage() {
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState('Todos')
   const [modalCompra, setModalCompra] = useState(false)
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
-  const [confirmDesativar, setConfirmDesativar] = useState<InsumoResponse | null>(null)
-  const [desativando, setDesativando] = useState(false)
+  const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
+  const [processandoAcao, setProcessandoAcao] = useState(false)
+  const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; operacao: 'INATIVAR' | 'EXCLUIR'; produtos: ProdutoRelacionadoResponse[]; loading: boolean } | null>(null)
   const { toast, setToast } = useToast()
 
   const {
@@ -470,19 +741,53 @@ export default function ListaInsumosPage() {
     setQuery(novaQuery)
   }
 
-  const handleDesativar = async () => {
-    if (!confirmDesativar) return
-    setDesativando(true)
+  const handleConfirmarAcao = async () => {
+    if (!confirmAcao) return
+    const { tipo, insumo } = confirmAcao
+    setProcessandoAcao(true)
     try {
-      await insumoService.inativar(confirmDesativar.id)
-      setInsumos(prev => prev.filter(x => x.id !== confirmDesativar.id))
-      setToast('Insumo desativado.')
+      if (tipo === 'inativar') {
+        await insumoService.inativar(insumo.id)
+        setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: false } : x))
+        setToast('Insumo inativado.')
+      } else {
+        await insumoService.excluir(insumo.id)
+        setInsumos(prev => prev.filter(x => x.id !== insumo.id))
+        setToast('Insumo excluído.')
+      }
+      setConfirmAcao(null)
+    } catch (err: any) {
+      const mensagem = err?.response?.data?.message as string | undefined
+      if (err?.response?.status === 400 && mensagem?.includes('vinculado')) {
+        setConfirmAcao(null)
+        const operacao = tipo === 'inativar' ? 'INATIVAR' : 'EXCLUIR'
+        setBloqueio({ insumo, operacao, produtos: [], loading: true })
+        try {
+          const produtos = await insumoService.listarProdutosRelacionados(insumo.id)
+          setBloqueio({ insumo, operacao, produtos, loading: false })
+        } catch (err2) {
+          console.error(err2)
+          setBloqueio(null)
+          setToast('Erro ao verificar produtos vinculados. Tente novamente.')
+        }
+      } else {
+        console.error(err)
+        setToast(extractApiError(err, tipo === 'inativar' ? 'Erro ao inativar. Tente novamente.' : 'Erro ao excluir. Tente novamente.'))
+        setConfirmAcao(null)
+      }
+    } finally {
+      setProcessandoAcao(false)
+    }
+  }
+
+  const handleReativar = async (insumo: InsumoResponse) => {
+    try {
+      await insumoService.reativar(insumo.id)
+      setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: true } : x))
+      setToast('Insumo reativado.')
     } catch (err) {
       console.error(err)
-      setToast('Erro ao desativar. Tente novamente.')
-    } finally {
-      setDesativando(false)
-      setConfirmDesativar(null)
+      setToast(extractApiError(err, 'Erro ao reativar. Tente novamente.'))
     }
   }
 
@@ -627,13 +932,17 @@ export default function ListaInsumosPage() {
                   insumo={o} index={i}
                   onVer={() => navigate(`/insumos/${o.id}`)}
                   onEditar={() => navigate(`/insumos/${o.id}/editar`)}
-                  onDesativar={() => setConfirmDesativar(o)}
+                  onInativar={() => setConfirmAcao({ tipo: 'inativar', insumo: o })}
+                  onReativar={() => handleReativar(o)}
+                  onExcluir={() => setConfirmAcao({ tipo: 'excluir', insumo: o })}
                 />
                 <InsumoCard
                   insumo={o} index={i}
                   onVer={() => navigate(`/insumos/${o.id}`)}
                   onEditar={() => navigate(`/insumos/${o.id}/editar`)}
-                  onDesativar={() => setConfirmDesativar(o)}
+                  onInativar={() => setConfirmAcao({ tipo: 'inativar', insumo: o })}
+                  onReativar={() => handleReativar(o)}
+                  onExcluir={() => setConfirmAcao({ tipo: 'excluir', insumo: o })}
                 />
               </React.Fragment>
             ))}
@@ -672,20 +981,58 @@ export default function ListaInsumosPage() {
         <ImpactoLoteModal impacto={impactoLote} onClose={handleImpactoClose} />
       )}
 
-      {/* MODAL: confirmar desativação */}
+      {/* MODAL: confirmar inativação (reversível) */}
       <ConfirmacaoModal
-        open={!!confirmDesativar}
-        onClose={() => setConfirmDesativar(null)}
-        onConfirm={handleDesativar}
+        open={confirmAcao?.tipo === 'inativar'}
+        onClose={() => setConfirmAcao(null)}
+        onConfirm={handleConfirmarAcao}
         variant="danger"
-        title={`Desativar "${confirmDesativar?.nome}"?`}
+        title={`Inativar "${confirmAcao?.insumo.nome}"?`}
         icon={<Power size={16} />}
         width={420}
-        confirmLabel="Desativar insumo"
-        confirmingLabel="Desativando…"
-        confirming={desativando}
-        description="O insumo ficará inativo e não poderá ser usado em novas fichas técnicas. Esta ação não pode ser desfeita por aqui."
+        confirmLabel="Inativar insumo"
+        confirmingLabel="Inativando…"
+        confirming={processandoAcao}
+        description="O insumo ficará inativo e não poderá ser usado em novas fichas técnicas. Você pode reativá-lo quando quiser."
       />
+
+      {/* MODAL: confirmar exclusão (permanente) */}
+      <ConfirmacaoModal
+        open={confirmAcao?.tipo === 'excluir'}
+        onClose={() => setConfirmAcao(null)}
+        onConfirm={handleConfirmarAcao}
+        variant="danger"
+        title={`Excluir "${confirmAcao?.insumo.nome}" permanentemente?`}
+        icon={<Trash2 size={16} />}
+        width={420}
+        confirmLabel="Excluir insumo"
+        confirmingLabel="Excluindo…"
+        confirming={processandoAcao}
+        description='Esta ação exclui o insumo definitivamente e não pode ser desfeita. Se quiser apenas suspender o uso dele, use "Inativar".'
+      />
+
+      {/* MODAL: bloqueio ao inativar/excluir insumo em uso — resolução via inativar vinculados ou substituir */}
+      {bloqueio && (
+        <InsumoResolverVinculosModal
+          insumo={bloqueio.insumo}
+          operacao={bloqueio.operacao}
+          produtos={bloqueio.produtos}
+          loading={bloqueio.loading}
+          onClose={() => setBloqueio(null)}
+          onSuccess={() => {
+            const { insumo, operacao } = bloqueio
+            if (operacao === 'INATIVAR') {
+              setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: false } : x))
+              setToast('Insumo inativado.')
+            } else {
+              setInsumos(prev => prev.filter(x => x.id !== insumo.id))
+              setToast('Insumo excluído.')
+            }
+            setBloqueio(null)
+          }}
+          onError={mensagem => setToast(mensagem)}
+        />
+      )}
 
     </AppLayout>
   )

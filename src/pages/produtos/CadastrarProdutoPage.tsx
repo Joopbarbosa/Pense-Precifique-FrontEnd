@@ -4,30 +4,34 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
+import { FracionavelBadge } from '../../components/ui/Badge'
 import {
-  ArrowRight, Box, Plus, Search, Layers, Trash2, Calculator, Sparkles,
-  Info, Check, AlertTriangle, ChevronRight, Pencil, FileText,
+  ArrowRight, Box, Plus, Search, Layers, Trash2,
+  Check, AlertTriangle, ChevronRight, Pencil, FileText,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
+import { tentarConverterFracao } from '../../utils/quantidade'
+import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
-const num = (s: string) =>
-  parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
+const num = (s: string) => {
+  const fracao = tentarConverterFracao(s)
+  if (fracao !== null) return fracao
+  return parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
+}
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const TIPO_LABEL_TO_API: Record<string, TipoProduto> = {
   'Produto':      'PRODUTO',
-  'Produto Base': 'PRODUTO_BASE',
   'Customização': 'CUSTOMIZACAO',
 }
 
 const TIPO_API_TO_LABEL: Record<string, string> = {
   'PRODUTO':      'Produto',
-  'PRODUTO_BASE': 'Produto Base',
   'CUSTOMIZACAO': 'Customização',
 }
 
@@ -80,7 +84,6 @@ function TextInput({ value, onChange, placeholder, suffix, prefix, inputMode }: 
 
 const TIPOS = [
   { v: 'Produto',      desc: 'Produto final para criar seu catálogo' },
-  { v: 'Produto Base', desc: 'Componente usado em outros produtos' },
   { v: 'Customização', desc: 'Extra opcional adicionado no orçamento' },
 ]
 
@@ -178,7 +181,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
 
 function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
   if (tipo === 'produto') {
-    const b = tipoProdutoBadge('PRODUTO_BASE')
+    const b = tipoProdutoBadge('PRODUTO')
     return (
       <span
         className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
@@ -201,8 +204,9 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [insumos, setInsumos] = useState<ItemDb[]>([])
-  const [produtosBase, setProdutosBase] = useState<ItemDb[]>([])
+  const [produtos, setProdutos] = useState<ItemDb[]>([])
   const [loadingBusca, setLoadingBusca] = useState(false)
+  const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -216,26 +220,28 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     const termo = q.trim()
     const qLower = termo.toLowerCase()
     setLoadingBusca(true)
+    setErroBusca(false)
     const delay = termo ? 300 : 0
     const timer = setTimeout(async () => {
       try {
         const [ins, prods] = await Promise.all([
           produtoService.buscarInsumos(termo),
-          produtoService.buscarProdutosBase(termo),
+          produtoService.buscarProdutosComponente(termo),
         ])
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
             .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
         )
-        setProdutosBase(
+        setProdutos(
           prods
             .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
             .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
         )
       } catch {
         setInsumos([])
-        setProdutosBase([])
+        setProdutos([])
+        setErroBusca(true)
       } finally {
         setLoadingBusca(false)
       }
@@ -243,7 +249,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     return () => clearTimeout(timer)
   }, [q, open, jaAdicionados])
 
-  const total = insumos.length + produtosBase.length
+  const total = insumos.length + produtos.length
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
@@ -251,7 +257,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       {itens.map(i => (
         <button
           key={i.id}
-          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutosBase([]) }}
+          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]) }}
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
@@ -282,19 +288,21 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         value={q}
         onChange={e => { setQ(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        placeholder="Buscar insumo ou produto base..."
+        placeholder="Buscar insumo ou produto..."
         className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
       />
       {open && (
         <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
+          ) : erroBusca ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-danger-deep">Não foi possível buscar componentes. Tente novamente.</div>
           ) : total === 0 ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum componente encontrado</div>
           ) : (
             <>
               {grupo('Insumos', insumos)}
-              {grupo('Produtos Base', produtosBase)}
+              {grupo('Produtos', produtos)}
             </>
           )}
         </div>
@@ -318,7 +326,7 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
       <input
         value={display}
         onChange={e => {
-          const cleaned = e.target.value.replace(/[^\d.,]/g, '')
+          const cleaned = e.target.value.replace(/[^\d.,/]/g, '')
           setDisplay(cleaned)
           onChange(cleaned)
         }}
@@ -341,6 +349,9 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
   const remove = (idx: number) => setFicha(f => f.filter((_, k) => k !== idx))
   const setQtd = (idx: number, v: string) => setFicha(f => f.map((row, k) => k === idx ? { ...row, qtd: num(v) } : row))
 
+  // RN-051 — só insumos diretos (não produtos-componente) contam para o travamento de quantidade em Produção.
+  const algumInsumoNaoFracionavel = ficha.some(item => item.tipo === 'insumo' && !item.fracionavel)
+
   return (
     <div className="animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -348,6 +359,13 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
           <div className="mb-3.5 flex items-center gap-[9px]">
             <Layers size={18} className="text-teal" />
             <h3 className="m-0 whitespace-nowrap text-[15.5px] font-bold text-dark">Componentes do produto</h3>
+            {ficha.length > 0 && (
+              <FracionavelBadge
+                fracionavel={!algumInsumoNaoFracionavel}
+                labelFracionavel="Produto fracionável"
+                labelNaoFracionavel="Produto não fracionável"
+              />
+            )}
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>
@@ -421,30 +439,6 @@ function MargemInput({ value, onChange }: { value: string; onChange: (v: string)
   )
 }
 
-// ---------- PrecoFinalInput ----------
-
-function PrecoFinalInput({ value, onChange, highlight }: { value: string; onChange: (v: string) => void; highlight: boolean }) {
-  return (
-    <div className="relative">
-      <span className={clsx(
-        'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-        highlight ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-dim'
-      )}>R$</span>
-      <input
-        value={value}
-        onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
-        inputMode="decimal"
-        className={clsx(
-          'h-[52px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-xl font-bold outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums]',
-          highlight
-            ? 'border-orange text-orange focus:ring-4 focus:ring-orange/[0.12]'
-            : 'border-line text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-        )}
-      />
-    </div>
-  )
-}
-
 // ---------- Calculadora ----------
 
 function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, setModoMargem, precoFinal, setPrecoFinal, mostrarPrecoMargem, mensagemSemPreco, valorHora, margemPadrao, custoTotalLote, custoUnitario }: {
@@ -469,119 +463,82 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
   const diff = pf - sugerido
   const manual = mostrarPrecoMargem && Math.abs(diff) > 0.005
 
-  const linha = (label: string, val: string, sub?: string) => (
-    <div className="flex items-baseline justify-between gap-2.5 py-[9px]">
-      <span className="text-[13.2px] text-body">
-        {label}
-        {sub && <span className="mt-px block text-[11.5px] text-dim">{sub}</span>}
-      </span>
-      <span className="whitespace-nowrap text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{val}</span>
-    </div>
-  )
-
   return (
     <div className="static lg:sticky lg:top-6">
-      <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
-        <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
-          <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
-            <Calculator size={20} />
-          </span>
-          <div className="min-w-0">
-            <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Calculadora de Custo</div>
-            <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
-              <Sparkles size={12} /> Atualiza em tempo real
-            </div>
-          </div>
+      <CalculadoraPreco
+        titulo="Calculadora de Custo"
+        mostrarSugerido={mostrarPrecoMargem}
+        mensagemSemPreco={mensagemSemPreco}
+        sugerido={sugerido}
+        precoFinalLabel="Preço final de venda"
+        precoFinal={precoFinal}
+        onPrecoFinalChange={setPrecoFinal}
+        overrideAtivo={manual}
+        diffOverride={manual ? diff : null}
+      >
+        <LinhaCalculadora label="Custo dos insumos" value={moeda(custoInsumos)} />
+        <LinhaCalculadora label="Mão de obra" value={moeda(maoObra)} sub={`${num(tempo)} min × ${moeda(valorHora ?? 0)}/h`} />
+        <div className="my-1 h-px bg-line" />
+        <div className="flex items-baseline justify-between gap-2.5 py-2.5">
+          <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo Total da Receita</span>
+          <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(subtotal)}</span>
+        </div>
+        <div className="flex items-baseline justify-between gap-2.5 py-2.5">
+          <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo unitário</span>
+          <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(custoUnitarioAoVivo)}</span>
         </div>
 
-        <div className="px-5 pb-[18px] pt-2.5">
-          {linha('Custo dos insumos', moeda(custoInsumos))}
-          {linha('Mão de obra', moeda(maoObra), `${num(tempo)} min × ${moeda(valorHora ?? 0)}/h`)}
-          <div className="my-1 h-px bg-line" />
-          <div className="flex items-baseline justify-between gap-2.5 py-2.5">
-            <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo Total da Receita</span>
-            <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(subtotal)}</span>
+        {(custoTotalLote != null || custoUnitario != null) && (
+          <div className="mb-2 mt-1.5 rounded-[10px] border border-azul/20 bg-azul/[0.07] px-4 py-3">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.04em] text-azul">Valores salvos</div>
+            {custoTotalLote != null && (
+              <div className="flex justify-between gap-2.5 py-[3px] text-[13.5px]">
+                <span className="text-body">Custo Total do lote</span>
+                <span className="font-bold text-azul [font-variant-numeric:tabular-nums]">{moeda(custoTotalLote)}</span>
+              </div>
+            )}
+            {custoUnitario != null && (
+              <div className="flex justify-between gap-2.5 py-[3px] text-[13.5px]">
+                <span className="text-body">Custo Unitário</span>
+                <span className="font-bold text-azul [font-variant-numeric:tabular-nums]">{moeda(custoUnitario)}</span>
+              </div>
+            )}
           </div>
-          <div className="flex items-baseline justify-between gap-2.5 py-2.5">
-            <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo unitário</span>
-            <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(custoUnitarioAoVivo)}</span>
-          </div>
+        )}
 
-          {(custoTotalLote != null || custoUnitario != null) && (
-            <div className="mb-2 mt-1.5 rounded-[10px] border border-azul/20 bg-azul/[0.07] px-4 py-3">
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.04em] text-azul">Valores salvos</div>
-              {custoTotalLote != null && (
-                <div className="flex justify-between gap-2.5 py-[3px] text-[13.5px]">
-                  <span className="text-body">Custo Total do lote</span>
-                  <span className="font-bold text-azul [font-variant-numeric:tabular-nums]">{moeda(custoTotalLote)}</span>
-                </div>
-              )}
-              {custoUnitario != null && (
-                <div className="flex justify-between gap-2.5 py-[3px] text-[13.5px]">
-                  <span className="text-body">Custo Unitário</span>
-                  <span className="font-bold text-azul [font-variant-numeric:tabular-nums]">{moeda(custoUnitario)}</span>
+        {mostrarPrecoMargem && (
+          <>
+            <div className="mt-2 rounded-xl border border-line bg-cream p-3.5">
+              <div className={clsx('flex gap-[3px] rounded-[9px] bg-line-soft p-[3px]', modoMargem === 'personalizar' ? 'mb-3' : 'mb-0')}>
+                {([['padrao', `Margem padrão (${margemPadrao ?? 0}%)`], ['personalizar', 'Personalizar']] as [string, string][]).map(([v, l]) => {
+                  const on = modoMargem === v
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }}
+                      className={clsx(
+                        'h-[34px] flex-1 whitespace-nowrap rounded-[7px] border-none font-[inherit] text-xs font-semibold',
+                        on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-dim'
+                      )}
+                    >{l}</button>
+                  )
+                })}
+              </div>
+              {modoMargem === 'personalizar' && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-semibold text-body">Margem de lucro</span>
+                  <MargemInput value={margem} onChange={setMargem} />
                 </div>
               )}
             </div>
-          )}
 
-          {!mostrarPrecoMargem ? (
-            <div className="mt-2 rounded-xl border border-teal/[0.18] bg-teal/[0.06] px-4 py-3.5 text-center">
-              <div className="text-xs font-semibold text-[#1F7A6F]">{mensagemSemPreco}</div>
-              <div className="mt-[3px] text-[11.5px] text-muted">O custo acima é registrado automaticamente.</div>
+            <div className="flex items-baseline justify-between gap-2.5 pb-1 pt-3">
+              <span className="text-[13px] text-body">Lucro ({num(margem)}%)</span>
+              <span className="text-sm font-bold text-success [font-variant-numeric:tabular-nums]">+ {moeda(lucro)}</span>
             </div>
-          ) : (
-            <>
-              <div className="mt-2 rounded-xl border border-line bg-cream p-3.5">
-                <div className={clsx('flex gap-[3px] rounded-[9px] bg-line-soft p-[3px]', modoMargem === 'personalizar' ? 'mb-3' : 'mb-0')}>
-                  {([['padrao', `Margem padrão (${margemPadrao ?? 0}%)`], ['personalizar', 'Personalizar']] as [string, string][]).map(([v, l]) => {
-                    const on = modoMargem === v
-                    return (
-                      <button
-                        key={v}
-                        onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }}
-                        className={clsx(
-                          'h-[34px] flex-1 whitespace-nowrap rounded-[7px] border-none font-[inherit] text-xs font-semibold',
-                          on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-dim'
-                        )}
-                      >{l}</button>
-                    )
-                  })}
-                </div>
-                {modoMargem === 'personalizar' && (
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[13px] font-semibold text-body">Margem de lucro</span>
-                    <MargemInput value={margem} onChange={setMargem} />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-baseline justify-between gap-2.5 pb-1 pt-3">
-                <span className="text-[13px] text-body">Lucro ({num(margem)}%)</span>
-                <span className="text-sm font-bold text-success [font-variant-numeric:tabular-nums]">+ {moeda(lucro)}</span>
-              </div>
-
-              <div key={Math.round(sugerido * 100)} className="mt-2 animate-flash rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-[18px] py-4">
-                <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">Preço sugerido</div>
-                <div className="mt-0.5 text-[30px] font-bold tracking-[-0.02em] text-teal [font-variant-numeric:tabular-nums]">{moeda(sugerido)}</div>
-              </div>
-
-              <div className="mt-4">
-                <span className="mb-[7px] block text-[13px] font-semibold text-body">Preço final de venda</span>
-                <PrecoFinalInput value={precoFinal} onChange={setPrecoFinal} highlight={manual} />
-              </div>
-              {manual && (
-                <div className="mt-3 flex gap-2 rounded-[11px] border border-[#F6E4CE] bg-[#FFF8F0] px-[13px] py-[11px]">
-                  <Info size={15} className="mt-px flex-shrink-0 text-warning" />
-                  <p className="m-0 text-[12.3px] leading-[1.5] text-[#7A5A33]">
-                    Você ajustou o preço manualmente (<strong className="font-bold">{diff > 0 ? '+' : '−'}{moeda(Math.abs(diff))}</strong> {diff > 0 ? 'acima' : 'abaixo'} do sugerido).
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+          </>
+        )}
+      </CalculadoraPreco>
     </div>
   )
 }
@@ -652,12 +609,10 @@ export default function CadastrarProdutoPage() {
   const rendimentoInvalido = !rendimento.trim() || num(rendimento) <= 0
   const rendimentoErroInline = rendimentoInvalido ? 'Rendimento deve ser maior que zero.' : undefined
 
-  const isProdutoBase = dados.tipo === 'Produto Base'
   const isCustomizacao = dados.tipo === 'Customização'
   const isProduto = dados.tipo === 'Produto'
-  const mensagemSemPreco = isProdutoBase
-    ? 'Produto Base não tem preço de venda.'
-    : 'Produto não tem preço de venda direto — defina o preço ao criar o item de Catálogo.'
+  // Ambos os tipos restantes (PRODUTO e CUSTOMIZACAO) têm preço de venda com override — RN-038a/PDT-001, #210+231+234.
+  const mostrarPrecoMargem = isCustomizacao || isProduto
 
   // Mesma fórmula da Calculadora — mantém o preço final espelhando o sugerido enquanto não houver override manual.
   const custoInsumosCalc = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
@@ -679,19 +634,11 @@ export default function CadastrarProdutoPage() {
       .catch(() => {})
   }, [editando])
 
-  // Limpar precoFinal ao sair do tipo Customização
+  // Preço final nasce espelhando o sugerido ao vivo — para de acompanhar assim que a artesã edita manualmente (override, RN-038a/PDT-001).
   useEffect(() => {
-    if (!isCustomizacao) {
-      setPrecoFinal('')
-      setPrecoFinalManual(false)
-    }
-  }, [isCustomizacao])
-
-  // Preço final nasce espelhando o sugerido ao vivo — para de acompanhar assim que a artesã edita manualmente (override, RN-038a).
-  useEffect(() => {
-    if (!isCustomizacao || editando || precoFinalManual) return
+    if (!mostrarPrecoMargem || editando || precoFinalManual) return
     setPrecoFinal(sugeridoCalc > 0 ? sugeridoCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')
-  }, [isCustomizacao, editando, precoFinalManual, sugeridoCalc])
+  }, [mostrarPrecoMargem, editando, precoFinalManual, sugeridoCalc])
 
   // Carregar dados na edição
   useEffect(() => {
@@ -742,7 +689,7 @@ export default function CadastrarProdutoPage() {
     const rendimentoNum = num(rendimento)
 
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
-    const precoVendaNum = isCustomizacao ? (num(precoFinal) || undefined) : undefined
+    const precoVendaNum = mostrarPrecoMargem ? (num(precoFinal) || undefined) : undefined
 
     const request: ProdutoRequest = {
       nome: dados.nome.trim(),
@@ -765,7 +712,7 @@ export default function CadastrarProdutoPage() {
         ? await produtoService.editar(id, request)
         : await produtoService.cadastrar(request)
 
-      if (isCustomizacao && result.precoVenda != null) {
+      if (mostrarPrecoMargem && result.precoVenda != null) {
         setPrecoFinal(result.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
         setPrecoFinalManual(true)
       }
@@ -867,8 +814,8 @@ export default function CadastrarProdutoPage() {
             margem={margem} setMargem={setMargem}
             modoMargem={modoMargem} setModoMargem={setModoMargem}
             precoFinal={precoFinal} setPrecoFinal={(v: string) => { setPrecoFinalManual(true); setPrecoFinal(v) }}
-            mostrarPrecoMargem={isCustomizacao}
-            mensagemSemPreco={mensagemSemPreco}
+            mostrarPrecoMargem={mostrarPrecoMargem}
+            mensagemSemPreco="Produto não tem preço de venda direto — defina o preço ao criar o item de Catálogo."
             valorHora={valorHora}
             margemPadrao={margemPadrao}
             custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}

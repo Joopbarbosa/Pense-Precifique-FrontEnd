@@ -4,6 +4,7 @@ export interface CustomizacaoAnexadaRequest {
 }
 
 export interface CustomizacaoAnexadaResponse {
+  id: string
   produtoId: string
   produtoNome: string
   quantidade: number
@@ -26,6 +27,9 @@ export interface ItemCatalogoResponse {
   override: boolean
   bloqueadoParaVenda: boolean
   customizacoesAnexadas: CustomizacaoAnexadaResponse[]
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 export interface PreviewPrecoRequest {
@@ -35,9 +39,8 @@ export interface PreviewPrecoRequest {
 }
 
 export interface PreviewPrecoResponse {
-  custoUnitario: number
+  precoVendaProduto: number
   quantidadePacote: number
-  custoCustomizacoes: number
-  margem: number
+  precoVendaCustomizacoes: number
   precoSugerido: number
 }

@@ -64,6 +64,17 @@ export interface ProdutoRelacionadoResponse {
   id: string
   identificador?: string
   nome: string
-  tipo: 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
+  tipo: 'PRODUTO' | 'CUSTOMIZACAO'
+}
+
+export interface SubstituicaoInsumoRequest {
+  produtoId: string
+  novoInsumoId: string
+}
+
+export interface ResolverVinculosInsumoRequest {
+  acao: 'REMOVER_VINCULOS' | 'SUBSTITUIR'
+  operacao: 'INATIVAR' | 'EXCLUIR'
+  substituicoes?: SubstituicaoInsumoRequest[]
 }
 

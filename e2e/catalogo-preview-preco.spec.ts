@@ -9,8 +9,9 @@ const INSUMO_URL = `${API_URL}/insumos`
 
 /**
  * Bloco 2/P-TESTE-001 (V0.6.1) — RN-NOVA-8: preview de preço de Item de Catálogo.
- * Endpoint dedicado `POST /catalogos/{catalogoId}/itens/preview-preco` (backend, RN-042/RN-044)
- * recalcula ao vivo sem persistir nada.
+ * Endpoint dedicado `POST /catalogos/{catalogoId}/itens/preview-preco` (backend, RN-044) recalcula
+ * ao vivo sem persistir nada. Fórmula atualizada em #239 (V0.7) — catálogo deixou de ter margem
+ * própria; `precoSugerido = produto.precoVenda × quantidadePacote + Σ(customizacao.precoVenda × quantidade)`.
  *
  * P-FE-CORRIGE-007 (V0.6.1) — `NovoItemCatalogoPage.tsx` passou a chamar o endpoint de preview a
  * cada debounce de 500ms (produto/quantidade/customização) em vez dos endpoints reais de
@@ -42,10 +43,10 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     }
   })
 
-  async function criarCatalogo(request: import('@playwright/test').APIRequestContext, token: string, nome: string, margem: number) {
+  async function criarCatalogo(request: import('@playwright/test').APIRequestContext, token: string, nome: string) {
     const res = await request.post(`${API_URL}/catalogos`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { nome, margem },
+      data: { nome },
     })
     if (!res.ok()) throw new Error(`Falha ao criar catálogo de teste: ${res.status()} ${await res.text()}`)
     return res.json()
@@ -58,7 +59,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     return res.json()
   }
 
-  test('preview recalcula ao vivo pela fórmula RN-042 e não persiste nada (API)', async ({ request }) => {
+  test('preview recalcula ao vivo pela fórmula precoVenda×quantidade e não persiste nada (API, #239)', async ({ request }) => {
     const token = await apiLogin(request)
     const nomeInsumo = `QA-RNNOVA8-Insumo-${Date.now()}`
     const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 10, true) // custo unitário 10 (100/10)
@@ -66,16 +67,16 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     const nomeProduto = `QA-RNNOVA8-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 2 }], 1)
     criadosProdutoIds.push(produto.id)
-    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8-Catalogo-${Date.now()}`, 50)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8-Catalogo-${Date.now()}`)
     criadosCatalogoIds.push(catalogo.id)
 
-    // custoUnitario do produto inclui material (ficha técnica) + mão de obra (tempoProducao ×
-    // valorHora da conta) — lê o valor real em vez de assumir só o material, pra não acoplar o
-    // teste à configuração de valorHora da conta de teste.
+    // precoVenda do produto é calculado a partir do custo + margemPadrao da conta na criação
+    // (nenhum precoVenda explícito foi passado) — lê o valor real em vez de recalcular aqui, pra
+    // não acoplar o teste à configuração de margemPadrao/valorHora da conta de teste.
     const produtoInfo = await (await request.get(`${API_URL}/produtos/${produto.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
-    const custoUnitarioReal = produtoInfo.custoUnitario
+    const precoVendaReal = produtoInfo.precoVenda
 
     const res = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens/preview-preco`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -83,8 +84,9 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     })
     expect(res.ok()).toBe(true)
     const body = await res.json()
-    expect(body.custoUnitario).toBe(custoUnitarioReal)
-    expect(body.precoSugerido).toBeCloseTo(custoUnitarioReal * 3 * 1.5, 2) // RN-042: custo × qtdPacote × (1 + margem/100)
+    expect(body.precoVendaProduto).toBe(precoVendaReal)
+    expect(body.precoVendaCustomizacoes).toBe(0)
+    expect(body.precoSugerido).toBeCloseTo(precoVendaReal * 3, 2) // #239: precoVenda do produto × quantidadePacote
 
     const itensDepois = await itensDoCatalogo(request, token, catalogo.id)
     expect(itensDepois).toEqual([]) // preview via API real não persiste nada
@@ -103,7 +105,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
       const nomeProduto = `QA-RNNOVA8b-Produto-${Date.now()}`
       const produto = await criarProdutoSemFicha(request, token, nomeProduto) // sem ficha técnica = sem custo de material
       criadosProdutoIds.push(produto.id)
-      const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8b-Catalogo-${Date.now()}`, 50)
+      const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8b-Catalogo-${Date.now()}`)
       criadosCatalogoIds.push(catalogo.id)
 
       const res = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens/preview-preco`, {
@@ -126,7 +128,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     const nomeProduto = `QA-RNNOVA8c-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
-    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8c-Catalogo-${Date.now()}`, 50)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8c-Catalogo-${Date.now()}`)
     criadosCatalogoIds.push(catalogo.id)
 
     // Captura toda chamada de rede que crie/edite/remova um ItemCatalogo de verdade — distingue de
@@ -178,7 +180,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     const nomeProduto = `QA-RNNOVA8d-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
-    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8d-Catalogo-${Date.now()}`, 50)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8d-Catalogo-${Date.now()}`)
     criadosCatalogoIds.push(catalogo.id)
 
     await login(page)
@@ -186,9 +188,10 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     await page.getByPlaceholder('Buscar produto...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
 
-    // Regex ancorada (sem sufixo) pra pegar só o valor de "Preço sugerido" — a mesma tela também
-    // mostra "R$ X,XX de custo" (produto selecionado) e "R$ X,XX/un" (customizações).
-    const precoSugeridoLocator = page.getByText(/^R\$\s[\d.,]+$/)
+    // Desde #239 a Calculadora compartilhada também lista uma linha "Produto × N" acima da caixa
+    // de sugerido (mesmo formato "R$ X,XX") — não dá mais pra achar o valor por uma regex genérica
+    // de "R$". Localiza a caixa pelo rótulo exato "Preço sugerido" e lê o valor no irmão seguinte.
+    const precoSugeridoLocator = page.getByText('Preço sugerido', { exact: true }).locator('xpath=following-sibling::div[1]')
 
     await page.getByPlaceholder('1').fill('1')
     await page.waitForTimeout(900)
@@ -213,7 +216,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
       const nomeProduto = `QA-RNNOVA8e-Produto-${Date.now()}`
       const produto = await criarProdutoSemFicha(request, token, nomeProduto)
       criadosProdutoIds.push(produto.id)
-      const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8e-Catalogo-${Date.now()}`, 50)
+      const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8e-Catalogo-${Date.now()}`)
       criadosCatalogoIds.push(catalogo.id)
 
       await login(page)
@@ -240,7 +243,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     const nomeProduto = `QA-RNNOVA8f-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
-    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8f-Catalogo-${Date.now()}`, 50)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8f-Catalogo-${Date.now()}`)
     criadosCatalogoIds.push(catalogo.id)
 
     await login(page)
@@ -269,7 +272,7 @@ test.describe('RN-NOVA-8 — Preview de preço de Item de Catálogo', () => {
     const nomeProduto = `QA-RNNOVA8g-Produto-${Date.now()}`
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
-    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8g-Catalogo-${Date.now()}`, 50)
+    const catalogo = await criarCatalogo(request, token, `QA-RNNOVA8g-Catalogo-${Date.now()}`)
     criadosCatalogoIds.push(catalogo.id)
 
     // Item real pré-existente, criado direto via API (não é o que este teste investiga).

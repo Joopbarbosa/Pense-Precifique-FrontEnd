@@ -5,12 +5,19 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
-import { X, Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Check, Pencil, History, Layers } from 'lucide-react'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Pencil, History, Layers } from 'lucide-react'
+import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
-import { formatQuantidade } from '../../utils/quantidade'
+import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+
+const numQtd = (s: string) => {
+  const fracao = tentarConverterFracao(s)
+  if (fracao !== null) return fracao
+  return parseFloat((s || '').replace(',', '.')) || 0
+}
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -23,7 +30,6 @@ const formatDate = (iso: string) =>
 
 const TIPO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
-  PRODUTO_BASE: 'Produto base',
   CUSTOMIZACAO: 'Customização',
 }
 
@@ -63,7 +69,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
   const [error, setError] = useState('')
   const selRef = useRef<HTMLDivElement>(null)
 
-  const podeRegistrar = qtd.trim() !== '' && parseFloat(qtd.replace(',', '.')) > 0 && obs.trim().length >= 30
+  const podeRegistrar = qtd.trim() !== '' && numQtd(qtd) > 0 && obs.trim().length >= 30
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -78,7 +84,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     setError('')
     try {
       await insumoService.baixaManual(insumoId, {
-        quantidade: parseFloat(qtd.replace(',', '.')),
+        quantidade: numQtd(qtd),
         motivo,
         observacao: obs.trim(),
       })
@@ -116,7 +122,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
             <div className="relative">
               <input
                 value={qtd}
-                onChange={e => setQtd(e.target.value.replace(/[^\d.,]/g, ''))}
+                onChange={e => setQtd(e.target.value.replace(/[^\d.,/]/g, ''))}
                 inputMode="decimal"
                 placeholder="3"
                 className={clsx(inputBase, 'pr-[62px]')}
@@ -456,24 +462,8 @@ export default function DetalheInsumoPage() {
                   Inativo
                 </span>
               )}
-              {insumo.permitirEstoqueNegativo ? (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-teal/[0.12] px-[11px] text-[12.5px] font-semibold text-teal">
-                  <Check size={13} /> Permite estoque negativo
-                </span>
-              ) : (
-                <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-[#EF4444]/[0.12] px-[11px] text-[12.5px] font-semibold text-[#EF4444]">
-                  <X size={13} /> Bloqueia estoque negativo
-                </span>
-              )}
-              {insumo.fracionavel ? (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-teal/10 px-[11px] text-[12.5px] font-semibold text-teal">
-                  Fracionável
-                </span>
-              ) : (
-                <span className="inline-flex h-[27px] items-center rounded-full bg-dim/10 px-[11px] text-[12.5px] font-semibold text-dim">
-                  Não fracionável
-                </span>
-              )}
+              <EstoqueNegativoBadge permitir={insumo.permitirEstoqueNegativo} />
+              <FracionavelBadge fracionavel={insumo.fracionavel} />
             </div>
             <div className="mt-1 text-sm text-muted">
               Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong>

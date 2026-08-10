@@ -13,21 +13,15 @@ import type { CatalogoResponse } from '../../types/catalogo'
 import { extractApiError } from '../../utils/apiError'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 
-type CampoOrdenacao = 'numero' | 'nome' | 'margem' | 'quantidadeItens'
+type CampoOrdenacao = 'numero' | 'nome' | 'quantidadeItens'
 
 const COLUNAS: { label: string; campo: CampoOrdenacao | null }[] = [
   { label: 'Identificador', campo: 'numero' },
   { label: 'Nome', campo: 'nome' },
-  { label: 'Margem', campo: 'margem' },
   { label: 'Itens', campo: 'quantidadeItens' },
   { label: 'Status', campo: null },
   { label: '', campo: null },
 ]
-
-const num = (v: string) => {
-  const n = parseFloat(v.replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
 
 const inputClass = (hasError?: boolean) => clsx(
   'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
@@ -40,7 +34,6 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
   onSuccess: (atualizado: CatalogoResponse) => void
 }) {
   const [nome, setNome] = useState(catalogo.nome)
-  const [margem, setMargem] = useState(catalogo.margem.toString())
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -50,16 +43,13 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
     setFieldErrors({})
     setSalvando(true)
     try {
-      const atualizado = await catalogoService.editar(catalogo.id, { nome: nome.trim(), margem: num(margem) })
+      const atualizado = await catalogoService.editar(catalogo.id, { nome: nome.trim() })
       onSuccess(atualizado)
     } catch (err: any) {
       const data = err.response?.data
       const msg: string | undefined = data?.message
       const fe: Record<string, string> = { ...(data?.fieldErrors ?? {}) }
-      if (msg && /margem/i.test(msg)) {
-        fe.margem = msg
-        setFieldErrors(fe)
-      } else if (msg && /nome/i.test(msg)) {
+      if (msg && /nome/i.test(msg)) {
         fe.nome = msg
         setFieldErrors(fe)
       } else {
@@ -99,20 +89,6 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
             className={inputClass(!!fieldErrors.nome)}
           />
           {fieldErrors.nome && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.nome}</span>}
-        </label>
-        <label>
-          <span className="mb-[7px] block text-[13px] font-semibold text-body">Margem de lucro *</span>
-          <div className="relative">
-            <input
-              value={margem}
-              onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
-              inputMode="decimal"
-              className={clsx(inputClass(!!fieldErrors.margem), 'pr-10')}
-            />
-            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">%</span>
-          </div>
-          {fieldErrors.margem && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.margem}</span>}
-          <span className="mt-1.5 block text-xs text-muted">Itens sem preço ajustado manualmente recalculam automaticamente.</span>
         </label>
         {erro && (
           <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
@@ -175,7 +151,7 @@ function CatalogoRow({ catalogo, index, onVer, onEditar, onDuplicar, onDesativar
   return (
     <div
       className={clsx(
-        'hidden cursor-pointer grid-cols-[0.8fr_2.2fr_0.8fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-cream sm:grid',
+        'hidden cursor-pointer grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-cream sm:grid',
         !catalogo.ativo && 'opacity-[0.72]'
       )}
       onClick={onVer}
@@ -187,9 +163,6 @@ function CatalogoRow({ catalogo, index, onVer, onEditar, onDuplicar, onDesativar
       </div>
       <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">
         {catalogo.nome}
-      </div>
-      <div className="text-sm text-body [font-variant-numeric:tabular-nums]">
-        {catalogo.margem}%
       </div>
       <div className="text-sm text-body [font-variant-numeric:tabular-nums]">
         {catalogo.quantidadeItens} {catalogo.quantidadeItens === 1 ? 'item' : 'itens'}
@@ -219,9 +192,6 @@ function CatalogoCard({ catalogo, index, onVer, onEditar, onDuplicar, onDesativa
           <div className="mt-0.5 text-[14.5px] font-semibold text-dark">{catalogo.nome}</div>
           <div className="mt-2.5 flex flex-wrap gap-2">
             <CatalogoStatusBadge ativo={catalogo.ativo} small />
-            <span className="text-[12.5px] text-body">
-              {catalogo.margem}% de margem
-            </span>
           </div>
         </div>
         <div className="flex flex-shrink-0 items-start gap-1">
@@ -333,7 +303,7 @@ export default function ListaCatalogosPage() {
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
         <div>
           <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Meus Catálogos</h1>
-          <p className="mb-0 mt-1.5 text-[14.5px] text-muted">Organize seus produtos em catálogos com margem própria.</p>
+          <p className="mb-0 mt-1.5 text-[14.5px] text-muted">Organize seus produtos em catálogos personalizados.</p>
         </div>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/catalogos/novo')}>
           Novo Catálogo
@@ -374,13 +344,13 @@ export default function ListaCatalogosPage() {
         <EmptyState
           icon={<Files size={22} />}
           title={busca.trim() ? 'Nenhum catálogo encontrado' : 'Nenhum catálogo cadastrado ainda'}
-          description={busca.trim() ? 'Nenhum catálogo encontrado para essa busca.' : 'Crie seu primeiro catálogo para organizar produtos com uma margem própria.'}
+          description={busca.trim() ? 'Nenhum catálogo encontrado para essa busca.' : 'Crie seu primeiro catálogo para organizar seus produtos.'}
           action={!busca.trim() ? { label: 'Criar primeiro catálogo', icon: <Plus size={16} />, onClick: () => navigate('/catalogos/novo') } : undefined}
         />
       ) : (
         <>
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <div className="hidden grid-cols-[0.8fr_2.2fr_0.8fr_0.9fr_0.9fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
+            <div className="hidden grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
               {COLUNAS.map((col, k) => {
                 const ativa = col.campo != null && ordenarPor === col.campo
                 return (

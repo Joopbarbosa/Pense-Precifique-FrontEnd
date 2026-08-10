@@ -4,12 +4,14 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2, Calculator, Info } from 'lucide-react'
+import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
+import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
+import { EstoqueTags } from '../../components/ui/Badge'
 import type { CatalogoResponse } from '../../types/catalogo'
-import type { ItemCatalogoRequest, PreviewPrecoRequest } from '../../types/itemCatalogo'
+import type { ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 
@@ -26,6 +28,9 @@ interface ProdutoSelecionado {
   nome: string
   precoCusto: number
   ativo: boolean
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 interface CustomizacaoItem {
@@ -33,6 +38,9 @@ interface CustomizacaoItem {
   nome: string
   precoCusto: number
   quantidade: string
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
 }
 
 const inputClass = (hasError?: boolean) => clsx(
@@ -42,13 +50,24 @@ const inputClass = (hasError?: boolean) => clsx(
 
 // ---------- ProdutoSearch (busca de produtos tipo PRODUTO ou CUSTOMIZACAO) ----------
 
+interface ProdutoSearchResultado {
+  id: string
+  nome: string
+  precoCusto: number
+  precoVenda?: number
+  ativo: boolean
+  algumInsumoNaoFracionavel: boolean
+  permitirEstoqueNegativo: boolean
+  estoqueAtual: number
+}
+
 function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
   tipo: 'PRODUTO' | 'CUSTOMIZACAO'; placeholder: string; jaAdicionados: string[]
-  onSelect: (p: { id: string; nome: string; precoCusto: number; ativo: boolean }) => void
+  onSelect: (p: ProdutoSearchResultado) => void
 }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [resultados, setResultados] = useState<{ id: string; nome: string; precoCusto: number; ativo: boolean }[]>([])
+  const [resultados, setResultados] = useState<ProdutoSearchResultado[]>([])
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,23 +76,38 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  // Buscadores de seleção exibem no mínimo 6 registros ao focar/clicar sem digitar nada — mesmo
+  // padrão de "Registrar Compra" (Insumo, INS-008) e "Ficha Técnica" (Produto, PDT-010), ver
+  // DECISOES_GLOBAIS.md. `busca` vazia é aceita direto pelo backend (GET /produtos sem `busca`
+  // retorna os primeiros N por `sort=nome`), sem precisar de endpoint novo.
   useEffect(() => {
-    if (!q.trim()) { setResultados([]); return }
-    const qLower = q.trim().toLowerCase()
+    if (!open) return
+    const termo = q.trim()
+    const qLower = termo.toLowerCase()
+    const delay = termo ? 300 : 0
     const timer = setTimeout(async () => {
       try {
-        const data = await produtoService.listar(0, 20, tipo, q)
+        const data = await produtoService.listar(0, 20, tipo, termo)
         setResultados(
           data.content
             .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, precoCusto: p.precoCusto ?? 0, ativo: p.ativo }))
+            .map(p => ({
+              id: p.id,
+              nome: p.nome,
+              precoCusto: p.precoCusto ?? 0,
+              precoVenda: p.precoVenda ?? undefined,
+              ativo: p.ativo,
+              algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+              permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+              estoqueAtual: p.estoqueAtual,
+            }))
         )
       } catch {
         // silent
       }
-    }, 300)
+    }, delay)
     return () => clearTimeout(timer)
-  }, [q, tipo, jaAdicionados])
+  }, [q, open, tipo, jaAdicionados])
 
   return (
     <div ref={ref} className="group relative">
@@ -93,10 +127,20 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
             <button
               key={p.id}
               onClick={() => { onSelect(p); setQ(''); setOpen(false); setResultados([]) }}
-              className="flex w-full items-center justify-between gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
+              className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
-              <span className="flex-shrink-0 text-xs text-muted">{moeda(p.precoCusto)} custo</span>
+              <span className="flex w-full items-center justify-between gap-[11px]">
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
+                <span className="flex-shrink-0 text-xs text-muted">
+                  {moeda(p.precoCusto)} custo{p.precoVenda != null ? ` · ${moeda(p.precoVenda)} venda` : ''}
+                </span>
+              </span>
+              <EstoqueTags
+                fracionavel={!p.algumInsumoNaoFracionavel}
+                permitirEstoqueNegativo={p.permitirEstoqueNegativo}
+                estoqueAtual={p.estoqueAtual}
+                variant="busca"
+              />
             </button>
           ))}
         </div>
@@ -127,6 +171,7 @@ export default function NovoItemCatalogoPage() {
 
   const [precoVenda, setPrecoVenda] = useState('')
   const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
+  const [previewDetalhe, setPreviewDetalhe] = useState<PreviewPrecoResponse | null>(null)
   // true só quando o preço exibido reflete um ajuste manual real (edição do usuário
   // ou item carregado já com override) — evita sobrescrever o preço "por inércia" a cada
   // preview e também é a única fonte de verdade de "override" agora que o preview não
@@ -163,7 +208,12 @@ export default function NovoItemCatalogoPage() {
     if (produtoIdParam) {
       tarefas.push(
         produtoService.buscarPorId(produtoIdParam)
-          .then(p => setProduto({ id: p.id, nome: p.nome, precoCusto: p.precoCusto, ativo: p.ativo }))
+          .then(p => setProduto({
+            id: p.id, nome: p.nome, precoCusto: p.precoCusto, ativo: p.ativo,
+            algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+            permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+            estoqueAtual: p.estoqueAtual,
+          }))
           .catch(() => setErro('Não foi possível carregar o produto informado.'))
       )
     }
@@ -176,7 +226,12 @@ export default function NovoItemCatalogoPage() {
             if (!item) { setErro('Item não encontrado neste catálogo.'); return }
 
             const produtoDet = await produtoService.buscarPorId(item.produtoId)
-            setProduto({ id: produtoDet.id, nome: produtoDet.nome, precoCusto: produtoDet.precoCusto, ativo: produtoDet.ativo })
+            setProduto({
+              id: produtoDet.id, nome: produtoDet.nome, precoCusto: produtoDet.precoCusto, ativo: produtoDet.ativo,
+              algumInsumoNaoFracionavel: produtoDet.algumInsumoNaoFracionavel ?? false,
+              permitirEstoqueNegativo: produtoDet.permitirEstoqueNegativo,
+              estoqueAtual: produtoDet.estoqueAtual,
+            })
             setQuantidade(item.quantidadePacote.toString())
             setItemId(item.id)
             setPrecoSugerido(item.precoSugerido)
@@ -186,7 +241,12 @@ export default function NovoItemCatalogoPage() {
             if (item.customizacoesAnexadas.length > 0) {
               const custs = await Promise.all(item.customizacoesAnexadas.map(async c => {
                 const p = await produtoService.buscarPorId(c.produtoId)
-                return { produtoId: c.produtoId, nome: c.produtoNome, precoCusto: p.precoCusto, quantidade: c.quantidade.toString() }
+                return {
+                  produtoId: c.produtoId, nome: c.produtoNome, precoCusto: p.precoCusto, quantidade: c.quantidade.toString(),
+                  algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
+                  permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+                  estoqueAtual: p.estoqueAtual,
+                }
               }))
               setCustomizacoes(custs)
             }
@@ -237,6 +297,7 @@ export default function NovoItemCatalogoPage() {
     try {
       const resp = await itemCatalogoService.previewPreco(catalogoId, request)
       setPrecoSugerido(resp.precoSugerido)
+      setPreviewDetalhe(resp)
       // Sem override ativo, o preço de venda acompanha o sugerido ao vivo; com override,
       // o valor digitado pela usuária é preservado (preview não devolve precoVenda/override).
       if (!precoEditadoManualmente) {
@@ -266,8 +327,13 @@ export default function NovoItemCatalogoPage() {
 
   const jaAdicionadosCustom = customizacoes.map(c => c.produtoId)
 
-  const addCustomizacao = (p: { id: string; nome: string; precoCusto: number }) => {
-    setCustomizacoes(cs => [...cs, { produtoId: p.id, nome: p.nome, precoCusto: p.precoCusto, quantidade: '1' }])
+  const addCustomizacao = (p: ProdutoSearchResultado) => {
+    setCustomizacoes(cs => [...cs, {
+      produtoId: p.id, nome: p.nome, precoCusto: p.precoCusto, quantidade: '1',
+      algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel,
+      permitirEstoqueNegativo: p.permitirEstoqueNegativo,
+      estoqueAtual: p.estoqueAtual,
+    }])
   }
   const removeCustomizacao = (produtoId: string) => {
     setCustomizacoes(cs => cs.filter(c => c.produtoId !== produtoId))
@@ -383,7 +449,7 @@ export default function NovoItemCatalogoPage() {
                 >
                   <option value="" disabled>Selecione um catálogo</option>
                   {catalogos.map(c => (
-                    <option key={c.id} value={c.id}>{c.nome} ({c.margem}% de margem)</option>
+                    <option key={c.id} value={c.id}>{c.nome}</option>
                   ))}
                 </select>
               </Field>
@@ -398,6 +464,13 @@ export default function NovoItemCatalogoPage() {
                   <div className="min-w-0">
                     <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{produto.nome}</div>
                     <div className="text-xs text-muted">{moeda(produto.precoCusto)} de custo</div>
+                    <EstoqueTags
+                      className="mt-1.5"
+                      fracionavel={!produto.algumInsumoNaoFracionavel}
+                      permitirEstoqueNegativo={produto.permitirEstoqueNegativo}
+                      estoqueAtual={produto.estoqueAtual}
+                      variant="busca"
+                    />
                   </div>
                   <button
                     onClick={() => { setProduto(null); produtoBloqueadoRef.current = null; setProdutoErro(null) }}
@@ -493,61 +566,31 @@ export default function NovoItemCatalogoPage() {
 
         {/* COLUNA DIREITA — preço */}
         <div className="sticky top-6 max-[1040px]:static">
-          <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
-            <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
-              <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
-                <Calculator size={20} />
-              </span>
-              <div className="min-w-0">
-                <div className="whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] text-[#1F7A6F]">Preço do item</div>
-                <div className="mt-px flex items-center gap-1 text-[11.5px] text-teal">
-                  {calculandoPreview ? 'Calculando…' : 'Calculado pela API'}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-5 pb-5 pt-2.5">
-              <div className="rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-[18px] py-4">
-                <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">Preço sugerido</div>
-                <div className="mt-0.5 text-[28px] font-bold tracking-[-0.02em] text-teal [font-variant-numeric:tabular-nums]">
-                  {precoSugerido != null ? moeda(precoSugerido) : '—'}
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <span className="mb-[7px] block text-[13px] font-semibold text-body">Preço de venda</span>
-                <div className="relative">
-                  <span className={clsx(
-                    'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-                    overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-dim'
-                  )}>R$</span>
-                  <input
-                    value={precoVenda}
-                    onChange={e => {
-                      setPrecoVenda(e.target.value.replace(/[^\d.,]/g, ''))
-                      setPrecoEditadoManualmente(true)
-                    }}
-                    inputMode="decimal"
-                    disabled={!produto}
-                    className={clsx(
-                      'h-[50px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-[19px] font-bold outline-none [font-variant-numeric:tabular-nums]',
-                      overrideAtivo ? 'border-orange text-orange' : 'border-line text-dark',
-                      produto ? 'bg-white' : 'bg-cream'
-                    )}
-                  />
-                </div>
-              </div>
-
-              {diffOverride != null && (
-                <div className="mt-3 flex gap-2 rounded-[11px] border border-[#F6E4CE] bg-[#FFF8F0] px-[13px] py-[11px]">
-                  <Info size={15} className="mt-px flex-shrink-0 text-warning" />
-                  <p className="m-0 text-[12.3px] leading-[1.5] text-[#7A5A33]">
-                    Você ajustou o preço manualmente (<strong className="font-bold">{diffOverride > 0 ? '+' : '−'}{moeda(Math.abs(diffOverride))}</strong> {diffOverride > 0 ? 'acima' : 'abaixo'} do sugerido).
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <CalculadoraPreco
+            titulo="Preço do item"
+            calculando={calculandoPreview}
+            sugerido={precoSugerido}
+            precoFinalLabel="Preço de venda"
+            precoFinal={precoVenda}
+            onPrecoFinalChange={v => { setPrecoVenda(v); setPrecoEditadoManualmente(true) }}
+            overrideAtivo={overrideAtivo}
+            diffOverride={diffOverride}
+            disabledInput={!produto}
+          >
+            {previewDetalhe && (
+              <>
+                <LinhaCalculadora
+                  label={`Produto${produto ? ` (${produto.nome})` : ''} × ${previewDetalhe.quantidadePacote}`}
+                  value={moeda(previewDetalhe.precoVendaProduto * previewDetalhe.quantidadePacote)}
+                  sub={`${previewDetalhe.quantidadePacote}× ${moeda(previewDetalhe.precoVendaProduto)}`}
+                />
+                {previewDetalhe.precoVendaCustomizacoes > 0 && (
+                  <LinhaCalculadora label="Customizações anexadas" value={moeda(previewDetalhe.precoVendaCustomizacoes)} />
+                )}
+                <div className="my-1 h-px bg-line" />
+              </>
+            )}
+          </CalculadoraPreco>
         </div>
 
       </div>
