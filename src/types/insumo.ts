@@ -73,7 +73,7 @@ export interface SubstituicaoInsumoRequest {
 }
 
 export interface ResolverVinculosInsumoRequest {
-  acao: 'INATIVAR_VINCULADOS' | 'SUBSTITUIR'
+  acao: 'REMOVER_VINCULOS' | 'SUBSTITUIR'
   operacao: 'INATIVAR' | 'EXCLUIR'
   substituicoes?: SubstituicaoInsumoRequest[]
 }

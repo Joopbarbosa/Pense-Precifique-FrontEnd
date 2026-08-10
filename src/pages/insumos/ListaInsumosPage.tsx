@@ -606,7 +606,7 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, loading, onCl
 
   const podeConfirmarSubstituicao = produtos.length > 0 && produtos.every(p => substitutos[p.id])
 
-  const executar = async (acao: 'INATIVAR_VINCULADOS' | 'SUBSTITUIR') => {
+  const executar = async (acao: 'REMOVER_VINCULOS' | 'SUBSTITUIR') => {
     setProcessando(true)
     try {
       const substituicoes = acao === 'SUBSTITUIR'
@@ -641,7 +641,7 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, loading, onCl
             <Button variant="secondary" icon={<Repeat size={16} />} onClick={() => setPasso('substituir')} disabled={loading || processando}>
               Substituir insumo
             </Button>
-            <Button variant="danger" icon={processando ? undefined : <Power size={16} />} onClick={() => executar('INATIVAR_VINCULADOS')} disabled={loading || processando}>
+            <Button variant="danger" icon={processando ? undefined : <Power size={16} />} onClick={() => executar('REMOVER_VINCULOS')} disabled={loading || processando}>
               {processando
                 ? <span className="flex items-center gap-2"><Spinner size={16} color="#C0492B" trackColor="rgba(192,73,43,0.25)" /> Inativando…</span>
                 : 'Inativar produtos vinculados'}
