@@ -151,4 +151,26 @@ test.describe('Cenário 224 — Múltiplos do rendimento em produto com insumo n
     expect(resValido.status()).toBe(201)
     criadasProducaoIds.push((await resValido.json()).id)
   })
+
+  test('CEN-NOVO-8 (API) — todos os insumos não-fracionáveis permitem estoque negativo: sem limite de múltiplos', async ({ request }) => {
+    const token = await apiLogin(request)
+    const nomeInsumo = `QA224d-Insumo-${Date.now()}`
+    // estoque baixo (5) mas permitirEstoqueNegativo=true — não deve limitar o múltiplo mesmo assim.
+    const insumo = await criarInsumoComEstoque(request, token, nomeInsumo, 5, true)
+    criadosInsumoIds.push(insumo.id)
+    const nomeProduto = `QA224d-Produto-${Date.now()}`
+    const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 3 }], 2)
+    criadosProdutoIds.push(produto.id)
+
+    const dataTerminoPrevista = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+
+    // Múltiplo de 2 (rendimento), quantidade bem acima do que o estoque atual (5) comportaria sem
+    // permitir negativo — passa livremente porque permitirEstoqueNegativo=true no insumo.
+    const res = await request.post('http://localhost:8080/producoes', {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { dataTerminoPrevista, produtos: [{ produtoId: produto.id, quantidade: 1000 }] },
+    })
+    expect(res.status()).toBe(201)
+    criadasProducaoIds.push((await res.json()).id)
+  })
 })

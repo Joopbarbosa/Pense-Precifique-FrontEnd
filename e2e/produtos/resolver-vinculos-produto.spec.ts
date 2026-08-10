@@ -231,4 +231,27 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     await dialog.getByRole('button', { name: 'Confirmar' }).click()
     await expect(page.getByText('Produto excluído.')).toBeVisible()
   })
+
+  test('CEN-NOVO-16 — produto sem nenhum vínculo inativa direto, sem modal de bloqueio', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const ts = Date.now()
+
+    const insumoNome = `E2E237P InsSemVinculo ${ts}`
+    const insumo = await criarInsumoSimples(request, token, insumoNome)
+    const produtoNome = `E2E237P ProdSemVinculo ${ts}`
+    await criarProdutoComFicha(request, token, produtoNome, [{ insumoId: insumo.id, quantidade: 1 }])
+
+    await login(page)
+    await page.goto('/produtos')
+    await page.getByPlaceholder('Buscar por nome...').fill(produtoNome)
+    await expect(page.getByText(produtoNome, { exact: true })).toBeVisible()
+    await page.waitForTimeout(500)
+
+    const card = page.locator('.group').filter({ hasText: produtoNome })
+    await abrirAcaoNoCard(page, card, 'Desativar')
+    await page.getByRole('button', { name: 'Desativar produto' }).click()
+
+    await expect(page.getByText('Produto inativado.')).toBeVisible()
+    await expect(page.getByText('Não foi possível inativar')).toHaveCount(0)
+  })
 })
