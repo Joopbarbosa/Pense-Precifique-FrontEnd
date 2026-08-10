@@ -1,6 +1,6 @@
 # Pense & Precifique — Front-End
 
-> **V0.6** — Lido automaticamente pelo Claude Code.
+> **V0.7** — Lido automaticamente pelo Claude Code.
 > Caminho: `/home/joaobarbosa/Documentos/Projetos/Pense & Precifique/pense-precifique-frontend`
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
 > Atualizado em: 2026-07-28 — Módulo de Produção V0.6 (Kanban, cancelar Fluxo A/B, agrupar, dividir) confirmado **em `main`, mergeado e estável** — a nota de 2026-07-20 sobre a branch `feat/producao-criar-editar` ainda não mergeada estava desatualizada (confirmado via `git log`: `main` já tinha o módulo completo, 130+ commits à frente de `origin/master`, antes mesmo do início da Onda 1 de correções abaixo). Onda 1 de correções pontuais (P-FE-CORRIGE-001 a 011) aplicada nesta mesma retomada: declaração de perda ao finalizar produção (RN-NOVA-4), botão "Criar produção" para item de orçamento sem estoque (RN-NOVA-5), preview de preço de item de catálogo sem persistência prematura (RN-NOVA-8), drag-and-drop do Kanban via teclado (`KeyboardSensor`), coluna própria `NÃO_REALIZADA` no Kanban (oculta por padrão), identificador `ORC-N` corrigido na Listagem de Orçamentos, `@dnd-kit/sortable` removido (dependência não usada). Itens bloqueados por backend (numeração por `numero` real vez de nome, contagem de badges por categoria em Produtos, filtro de intervalo de data em `GET /orcamentos`) documentados nos relatórios de sessão, não implementados no frontend.
@@ -33,6 +33,7 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 - Toast: sempre via hook `useToast` — proibido estado boolean local
 - **Busca em listagens é sempre server-side**, via `?busca=` para a API, com debounce (~300ms) e reset de paginação para a página 0 a cada nova busca — nunca filtrar client-side sobre os itens já carregados na página. Padrão consolidado em Produtos, Insumos (#110/V0.5) e Orçamentos (#93/V0.5). Filtro client-side é bug, não atalho aceitável — ver histórico de `BUG-BUSCA-PRODUTO`/`BUG-BUSCA-ORCAMENTO` em Bugs conhecidos.
 - **Aba Conta (Configurações — alteração de senha):** validação client-side mínima antes de chamar a API (tamanho da nova senha ≥ 8, nova senha === confirmação); erro vindo da API (ex. senha atual incorreta) é lido de `err.response?.data?.message`. Ver `usuarioService.ts` e `ConfiguracoesPage.tsx`.
+- **Padrão "resolver vínculos" (V0.7, Produto e Insumo):** quando `POST /{id}/inativar` ou `DELETE /{id}` retorna 400 por vínculo pendente, o modal de resolução busca os vínculos estruturados via `GET` dedicado (`/produtos/{id}/catalogos-vinculados` + `/componentes-vinculados`; `/insumos/{id}/produtos-relacionados`) e oferece, por bloco de tipo de vínculo, `REMOVER_VINCULOS` ou `SUBSTITUIR` (seletor de item substituto), enviando tudo em `POST /{id}/resolver-vinculos` numa única chamada que já executa a operação original. Candidato a padrão de referência para qualquer módulo futuro com bloqueio de exclusão/inativação por vínculo — ver `ListaProdutosPage.tsx`/`ListaInsumosPage.tsx` para a UI de referência.
 
 ---
 
@@ -59,8 +60,8 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 - **Antes de criar um service novo, conferir `src/services/`** — todo módulo tem o seu (`authService`, `catalogoService`, `clienteService`, `dashboardService`, `empresaService`, `insumoService`, `itemCatalogoService`, `loteCompraService`, `orcamentoService`, `producaoService`, `produtoService`, `usuarioService`). `usuarioService.ts` existe desde o Épico 1 (dados do usuário) e ganhou `alterarSenha` na V0.5 (#111) — não recriar.
 - `npm run build` antes de qualquer commit
 - **"Compila limpo" nunca é validação suficiente** — toda tela precisa de verificação visual real (Playwright, se disponível no ambiente, ou navegador manual) antes de reportar como concluída. Recorrente no bloco Catálogo: C-003/004/005 foram inicialmente "validados" só por curl, sem checagem visual, até isso ser explicitamente exigido no corpo do prompt a partir do C-005.
-- Toda correção de bug ou tarefa de tech debt termina com commit + push antes de considerar o chat encerrado — mesmo sem fechamento de épico. Branch sempre `main`: `git push origin main`. Nunca deixar mudança sem commit entre chats.
-- **Decisão de fluxo (2026-07-29):** esta leva (V0.6.1.1) não usa branch por tarefa — todo trabalho vai direto em `main`, sem staging separado.
+- Toda correção de bug ou tarefa de tech debt termina com commit + push antes de considerar o chat encerrado — mesmo sem fechamento de épico. Nunca deixar mudança sem commit entre chats.
+- **GitFlow por versão, retomado em V0.7 (2026-08-06/07):** trabalho de uma versão (`V[X.Y]`) vai para a branch `feature/V[X.Y]`, criada no início da fase de Backend/Frontend da versão — não mais commit direto em `main`. PR de merge para `main` só no fechamento formal da versão (após a Retomada). **Substitui a decisão de fluxo de 2026-07-29** (V0.6.1.1, "sem branch por tarefa, tudo direto em `main`") — essa prática vigorou entre V0.6.1.1 e V0.6.3, revertida a partir de V0.7.
 - **Nota de backlog "decisão registrada"/"concluído" não é o mesmo que confirmado no código** — sempre conferir o código-fonte (ou curl na API) antes de escrever prompt/implementação em cima de uma anotação assim. Recorrente nesta leva: vários itens do backlog vivo ficaram marcados como pendentes (checkbox `[ ]` de Frontend/Teste) mesmo depois de implementados — a fonte de verdade é sempre o código e o `git log`, não o checkbox.
 - **Rastreamento migrou de ClickUp para OpenProject.** Padrão real confirmado em `git log --oneline -15`: `tipo(escopo): descrição — OpenProject #N` (ex. `fix(insumos): corrige busca de insumos para usar API server-side — OpenProject #110`) — número como **sufixo**, sempre com a palavra "OpenProject" antes do `#N`. Vários números na mesma tarefa: `— OpenProject #94,#95,#96,#97`. Commits antigos com `ClickUp <código> / <task-id>` são histórico, não o padrão atual. **Diferente do backend**, que usa o número como prefixo sem a palavra "OpenProject" (`#N tipo: descrição`) — cada repo segue o próprio `git log`.
 - **Todo prompt segue a estrutura fixa de `PADRAO_PROMPTS.md`** (ambiente, comando de commit pronto, conta de teste, checklist de validação) — decidido em 2026-07-09. Arquivo confirmado em `/home/joaobarbosa/Documentos/Projetos/Pense Software/Skills/PADRAO_PROMPTS.md` (fora deste projeto, pasta irmã "Pense Software").
@@ -70,24 +71,23 @@ React 18 + TypeScript | Vite | React Router v6 | Zustand | Axios
 ## Tipos principais
 
 ```ts
-type TipoProduto = 'PRODUTO' | 'PRODUTO_BASE' | 'CUSTOMIZACAO'
+type TipoProduto = 'PRODUTO' | 'CUSTOMIZACAO' // PRODUTO_BASE eliminado em V0.7 (#210+231+234)
 type StatusOrcamento = 'RASCUNHO'|'ENVIADO'|'APROVADO'|'AGUARDANDO_SINAL'|'SINAL_PAGO'|'EM_PRODUCAO'|'FINALIZADO'|'ENTREGUE'|'PAGO'|'CANCELADO'
 type MetodoPagamento = 'PIX'|'DINHEIRO'|'CREDITO'|'DEBITO'|'TRANSFERENCIA'|'BOLETO'|'OUTRO'
 ```
 
-**Nota (bloco Catálogo):** `Produto` tipo `PRODUTO` não tem mais `precoVenda`/`margemLucro` próprios no formulário (vêm do Catálogo, ou de `margemAplicada` ad-hoc na venda avulsa — RN-054). Ganhou `rendimento`, `custoTotalLote`, `custoUnitario`, `algumInsumoNaoFracionavel`. `CUSTOMIZACAO` manteve `precoVenda`/`margemLucro` normalmente.
+**Nota (V0.7, #210+231+234):** desde a eliminação de `PRODUTO_BASE`, `Produto` tipo `PRODUTO` voltou a ter `precoVenda`/`margemLucro` próprios no formulário (mesmo modelo calculado+override antes exclusivo de `CUSTOMIZACAO`), no lugar do modelo anterior (herdava do Catálogo ou de `margemAplicada` ad-hoc na venda avulsa — RN-054, que continua existindo só para venda avulsa sem catálogo). Mantém `rendimento`, `custoTotalLote`, `custoUnitario`, `algumInsumoNaoFracionavel`.
 
 ---
 
-## Cores de badge por tipo de produto (errata v6)
+## Cores de badge por tipo de produto
 
 | Tipo | Cor |
 |------|-----|
 | PRODUTO | Azul |
-| PRODUTO_BASE | Cinza |
 | CUSTOMIZACAO | Teal |
 
-Helper: `src/utils/badges.ts` — nunca reimplementar inline.
+`PRODUTO_BASE` (badge cinza) removido em V0.7 — tipo eliminado. Helper: `src/utils/badges.ts` — nunca reimplementar inline.
 
 ---
 
