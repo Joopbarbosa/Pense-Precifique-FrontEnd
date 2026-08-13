@@ -315,8 +315,11 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
         />
       </div>
 
-      {/* Lista de customizações */}
-      <div className="flex flex-col gap-2">
+      {/* Lista de customizações — RN-NOVA-7: até 8 itens visíveis por vez, resto via rolagem.
+          Altura calibrada para a linha de 72px + gap-2 (8px), medida via Playwright: 8*72 + 7*8 = 632px.
+          `flex-shrink-0` em cada linha é obrigatório: sem ele, um flex-col com max-height/overflow-y-auto
+          encolhe os itens para caber em vez de habilitar rolagem (gotcha clássico de flexbox). */}
+      <div className="flex max-h-[632px] flex-col gap-2 overflow-y-auto">
         {loadingCustom ? (
           <div className="p-8 text-center text-sm text-muted">
             Carregando customizações...
@@ -335,7 +338,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
 
           return (
             <div key={c.id} className={clsx(
-              'overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
+              'flex-shrink-0 overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
               on ? 'border-orange/40 bg-orange/[0.07]' : 'border-line bg-cream'
             )}>
               {/* Linha principal */}
@@ -821,7 +824,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
       setLoading(true)
       try {
         const tarefas: Promise<void>[] = [
-          orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined).then(data => {
+          orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, q || undefined).then(data => {
             if (!cancelled) setItensCatalogo(data)
           }).catch(() => { if (!cancelled) setItensCatalogo([]) }),
         ]
@@ -845,14 +848,20 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
 
   if (!open) return null
 
-  const qLower = q.trim().toLowerCase()
-  const itensCatalogoFiltrados = qLower
-    ? itensCatalogo.filter(i => i.nomeProduto.toLowerCase().includes(qLower))
-    : itensCatalogo
-  const semResultado = itensCatalogoFiltrados.length === 0 && produtos.length === 0 && !loading
+  const semResultado = itensCatalogo.length === 0 && produtos.length === 0 && !loading
+  // RN-NOVA-7 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calibrada para
+  // a busca de item de catálogo (linha de 78px, medida via Playwright): 8 linhas + cabeçalho fixo
+  // (barra de busca, 57px) + rótulo de categoria "Itens de catálogo" (25px), quando exibido (modo 'tudo').
+  const temRotuloCategoria = modo === 'tudo' && itensCatalogo.length > 0
 
   return (
-    <div ref={wrapRef} className="absolute inset-x-5 top-[62px] z-30 max-h-[360px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+    <div
+      ref={wrapRef}
+      className={clsx(
+        'absolute inset-x-5 top-[62px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]',
+        temRotuloCategoria ? 'max-h-[706px]' : 'max-h-[681px]'
+      )}
+    >
       <div className="sticky top-0 z-10 flex gap-1.5 bg-white px-1.5 pt-1.5">
         <input
           autoFocus
@@ -881,14 +890,14 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
         )}
       </div>
       <div className="mt-1.5">
-        {itensCatalogoFiltrados.length > 0 && (
+        {itensCatalogo.length > 0 && (
           <div>
             {modo === 'tudo' && (
               <div className="px-[11px] pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
                 Itens de catálogo
               </div>
             )}
-            {itensCatalogoFiltrados.map(item => (
+            {itensCatalogo.map(item => (
               <button
                 key={item.id}
                 onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }}

@@ -25,9 +25,10 @@ export const orcamentoService = {
     return response.data;
   },
 
-  buscarItensCatalogo: async (catalogoId?: string): Promise<ItemCatalogoBuscaResponse[]> => {
+  buscarItensCatalogo: async (catalogoId?: string, busca?: string): Promise<ItemCatalogoBuscaResponse[]> => {
     const params: Record<string, any> = {};
     if (catalogoId) params.catalogoId = catalogoId;
+    if (busca) params.busca = busca;
     const response = await api.get('/orcamentos/itens-catalogo', { params });
     return response.data;
   },

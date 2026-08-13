@@ -120,6 +120,74 @@ export async function criarOrcamentoComNumeroDeDoisDigitos(
   throw new Error(`Não foi possível alcançar número de 2 dígitos após 15 tentativas (último: ${ultimo?.numero})`)
 }
 
+/**
+ * RN-NOVA-6/RN-NOVA-7 (#217) — cria um catálogo ativo com N itens (1 produto cada), todos
+ * disponíveis para a busca de `ItemSearch` (`GET /orcamentos/itens-catalogo`). `nomesProdutos`
+ * define a quantidade e o nome de cada item.
+ */
+export async function criarCatalogoComItens(
+  request: APIRequestContext,
+  token: string,
+  nomeCatalogo: string,
+  nomesProdutos: string[]
+) {
+  const resCatalogo = await request.post(`${API_URL}/catalogos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome: nomeCatalogo },
+  })
+  if (!resCatalogo.ok()) {
+    throw new Error(`Falha ao criar catálogo de teste: ${resCatalogo.status()} ${await resCatalogo.text()}`)
+  }
+  const catalogo = await resCatalogo.json()
+
+  const itens: Array<{ id: string; [k: string]: unknown }> = []
+  const produtoIds: string[] = []
+  for (const nomeProduto of nomesProdutos) {
+    const resProduto = await request.post(`${API_URL}/produtos`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { nome: nomeProduto, tipo: 'PRODUTO', tempoProducao: 10, fichaTecnica: [] },
+    })
+    if (!resProduto.ok()) {
+      throw new Error(`Falha ao criar produto de teste: ${resProduto.status()} ${await resProduto.text()}`)
+    }
+    const produto = await resProduto.json()
+    produtoIds.push(produto.id)
+
+    const resItem = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { produtoId: produto.id, quantidadePacote: 1, precoVenda: 10 },
+    })
+    if (!resItem.ok()) {
+      throw new Error(`Falha ao criar item de catálogo de teste: ${resItem.status()} ${await resItem.text()}`)
+    }
+    itens.push(await resItem.json())
+  }
+
+  return { catalogo, itens, produtoIds }
+}
+
+/** RN-NOVA-7 (#217) — cria N produtos tipo CUSTOMIZACAO para a busca de `ModalCustomizacoes`. */
+export async function criarCustomizacoes(request: APIRequestContext, token: string, nomes: string[]) {
+  const criadas: Array<{ id: string; [k: string]: unknown }> = []
+  for (const nome of nomes) {
+    const res = await request.post(`${API_URL}/produtos`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { nome, tipo: 'CUSTOMIZACAO', tempoProducao: 5, precoVenda: 5, margemLucro: 50, fichaTecnica: [] },
+    })
+    if (!res.ok()) {
+      throw new Error(`Falha ao criar customização de teste: ${res.status()} ${await res.text()}`)
+    }
+    criadas.push(await res.json())
+  }
+  return criadas
+}
+
+export async function desativarCatalogo(request: APIRequestContext, token: string, id: string) {
+  await request
+    .post(`${API_URL}/catalogos/${id}/desativar`, { headers: { Authorization: `Bearer ${token}` } })
+    .catch(() => {})
+}
+
 export async function cancelarOrcamentoViaApi(
   request: APIRequestContext,
   token: string,
