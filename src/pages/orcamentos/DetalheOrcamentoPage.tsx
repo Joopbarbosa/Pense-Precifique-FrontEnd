@@ -5,6 +5,7 @@ import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
 import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
+import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory,
@@ -24,7 +25,9 @@ import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
+import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
+import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
@@ -834,9 +837,13 @@ function ModalCancelEstorno({
 function DownloadsCard({
   orcamento,
   onDownload,
+  pdfBloqueado,
+  pdfLabel,
 }: {
   orcamento: OrcamentoDetalheResponse;
   onDownload: (kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento") => void;
+  pdfBloqueado: boolean;
+  pdfLabel: string;
 }) {
   const status = orcamento.status as ApiStatus;
 
@@ -844,7 +851,7 @@ function DownloadsCard({
 
   // PDF do orçamento — qualquer status exceto CANCELADO
   if (status !== "CANCELADO") {
-    links.push({ label: "Baixar PDF do orçamento", kind: "pdf", icon: <FileText size={18} /> });
+    links.push({ label: pdfLabel, kind: "pdf", icon: <FileText size={18} /> });
   }
 
   // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
@@ -879,7 +886,13 @@ function DownloadsCard({
       </div>
       <div className="flex flex-wrap gap-2.5">
         {links.map((l) => (
-          <Button key={l.kind} variant="ghost" icon={l.icon} onClick={() => onDownload(l.kind)}>
+          <Button
+            key={l.kind}
+            variant="ghost"
+            icon={l.icon}
+            onClick={() => onDownload(l.kind)}
+            disabled={l.kind === "pdf" && pdfBloqueado}
+          >
             {l.label}
           </Button>
         ))}
@@ -906,6 +919,7 @@ export default function DetalheOrcamentoPage() {
   const [confirmandoAviso, setConfirmandoAviso] = useState(false);
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
   const { toast, setToast } = useToast();
+  const pdfRetry = useRetryCooldown();
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -999,19 +1013,29 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // "pdf" (orçamento) usa o serviço centralizado + retry com cooldown (RN-NOVA-3) — único
+  // documento migrado ao microsserviço neste MVP (épico #89). Os outros 4 tipos continuam no
+  // fluxo antigo (endpoint local inalterado, fora deste escopo) — mesma correção de padrão de
+  // erro (toast em vez de alert), mas sem gate/cooldown.
+  const handleDownloadPdf = () => {
+    if (!id || pdfRetry.executando || pdfRetry.cooldownRestante > 0) return;
+    pdfRetry.executar(async () => {
+      const blob = await orcamentoService.baixarPdf(id);
+      dispararDownloadBlob(blob, `orcamento-${orcamento?.numero || id}.pdf`);
+    }, "Erro ao baixar PDF do orçamento.");
+  };
+
   const handleDownload = async (
-    kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
+    kind: "reciboSinal" | "multa" | "estorno" | "pagamento",
   ) => {
     if (!id) return;
     const urlMap = {
-      pdf: orcamentoService.downloadPdf(id),
       reciboSinal: orcamentoService.downloadReciboSinal(id),
       multa: orcamentoService.downloadPdfMulta(id),
       estorno: orcamentoService.downloadReciboEstorno(id),
       pagamento: orcamentoService.downloadReciboPagamento(id),
     };
     const fileNames = {
-      pdf: `orcamento-${orcamento?.numero || id}.pdf`,
       reciboSinal: `recibo-sinal-${orcamento?.numero || id}.pdf`,
       multa: `multa-${orcamento?.numero || id}.pdf`,
       estorno: `recibo-estorno-${orcamento?.numero || id}.pdf`,
@@ -1023,16 +1047,21 @@ export default function DetalheOrcamentoPage() {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileNames[kind];
-      a.click();
-      URL.revokeObjectURL(url);
+      dispararDownloadBlob(blob, fileNames[kind]);
     } catch (err) {
       console.error("Erro ao baixar documento:", err);
-      alert("Erro ao baixar documento");
+      setToast(extractApiError(err, "Erro ao baixar documento."));
     }
+  };
+
+  const handleDownloadAny = (
+    kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
+  ) => {
+    if (kind === "pdf") {
+      handleDownloadPdf();
+      return;
+    }
+    handleDownload(kind);
   };
 
   if (loading) {
@@ -1356,7 +1385,27 @@ export default function DetalheOrcamentoPage() {
       </div>
 
       {/* SEÇÃO 3 — DOCUMENTOS */}
-      <DownloadsCard orcamento={orcamento} onDownload={handleDownload} />
+      <DownloadsCard
+        orcamento={orcamento}
+        onDownload={handleDownloadAny}
+        pdfBloqueado={pdfRetry.executando || pdfRetry.cooldownRestante > 0}
+        pdfLabel={
+          pdfRetry.executando
+            ? "Baixando..."
+            : pdfRetry.cooldownRestante > 0
+              ? `Aguarde ${pdfRetry.cooldownRestante}s`
+              : "Baixar PDF do orçamento"
+        }
+      />
+
+      <RetryCooldownModal
+        open={!!pdfRetry.erro}
+        mensagem={pdfRetry.erro ?? ""}
+        cooldownRestante={pdfRetry.cooldownRestante}
+        executando={pdfRetry.executando}
+        onTentarNovamente={pdfRetry.tentarNovamente}
+        onClose={pdfRetry.dispensarErro}
+      />
 
       {toast && (
         <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">

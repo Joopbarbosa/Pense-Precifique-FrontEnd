@@ -2,6 +2,7 @@ import api from './api';
 import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse } from '../types/producao';
 import type { PageResponse } from '../types/shared';
+import { normalizarErroBlob } from '../utils/apiError';
 
 export const orcamentoService = {
   listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string): Promise<PageResponse<OrcamentoResponse>> => {
@@ -46,7 +47,25 @@ export const orcamentoService = {
     return response.data;
   },
 
-  downloadPdf: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/pdf`,
+  baixarPdf: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/pdf`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  // Sem `responseType: 'text'` de propósito: com ele, o Axios também deixa de fazer o parse
+  // automático do corpo de erro (JSON), que chega como string crua e quebra `extractApiError`
+  // silenciosamente (mesma classe de bug do Blob em `baixarPdf`, achado ao validar o cenário de
+  // erro real). Sem `responseType` explícito, o Axios tenta `JSON.parse` sempre — falha (e cai
+  // no texto cru) para o HTML de sucesso, funciona normalmente para o JSON de erro.
+  buscarPreviewHtml: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/preview-html`);
+    return response.data;
+  },
+
   downloadReciboSinal: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-sinal`,
   downloadPdfMulta: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/pdf-multa`,
   downloadReciboEstorno: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-estorno`,

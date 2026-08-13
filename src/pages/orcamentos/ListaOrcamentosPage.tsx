@@ -5,10 +5,13 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
 import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
+import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
 import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
 import { STATUS_LABEL } from '../../constants'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
+import { useRetryCooldown } from '../../hooks/useRetryCooldown'
+import { dispararDownloadBlob } from '../../utils/download'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -138,6 +141,7 @@ export default function ListaOrcamentosPage() {
   const periodRef = useRef<HTMLDivElement>(null)
   const isFirstFiltro = useRef(true)
   const isFirstPeriodo = useRef(true)
+  const downloadRetry = useRetryCooldown()
 
   const {
     items: orcamentos,
@@ -182,6 +186,17 @@ export default function ListaOrcamentosPage() {
 
   const handleCarregarMais = async () => {
     await loadMore()
+  }
+
+  // Sem gate de preview aqui (RN-NOVA-2 não se aplica — não há preview nesta tela), mas com o
+  // mesmo serviço centralizado + retry/cooldown (RN-NOVA-3) das outras 2 entradas. Guard explícito
+  // contra cooldown porque ActionMenuItem não expõe estado "disabled" por item.
+  const handleBaixarPdf = (orc: OrcamentoResponse) => {
+    if (downloadRetry.executando || downloadRetry.cooldownRestante > 0) return
+    downloadRetry.executar(async () => {
+      const blob = await orcamentoService.baixarPdf(orc.id)
+      dispararDownloadBlob(blob, `orcamento-${orc.numero}.pdf`)
+    }, 'Erro ao baixar PDF do orçamento.')
   }
 
   const periodActive = !!(appliedDateFrom || appliedDateTo)
@@ -381,9 +396,8 @@ export default function ListaOrcamentosPage() {
                 </div>
 
                 {orcamentos.map((o, i) => {
-                  const pdfUrl = orcamentoService.downloadPdf(o.id)
                   const onBaixarPdf = o.status !== 'CANCELADO'
-                    ? () => window.open(pdfUrl, '_blank')
+                    ? () => handleBaixarPdf(o)
                     : null
                   return (
                     <React.Fragment key={o.id}>
@@ -425,6 +439,15 @@ export default function ListaOrcamentosPage() {
           )}
         </>
       )}
+
+      <RetryCooldownModal
+        open={!!downloadRetry.erro}
+        mensagem={downloadRetry.erro ?? ''}
+        cooldownRestante={downloadRetry.cooldownRestante}
+        executando={downloadRetry.executando}
+        onTentarNovamente={downloadRetry.tentarNovamente}
+        onClose={downloadRetry.dispensarErro}
+      />
 
     </AppLayout>
   )

@@ -73,9 +73,13 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
 
     await login(page)
 
+    // Épico #89 (V0.8) — preview passou a renderizar o HTML real do microsserviço dentro de um
+    // <iframe> (RN-NOVA-2/Fluxo E do PRD), não mais um componente Tailwind local no documento
+    // principal — o número do orçamento só existe dentro do iframe agora.
     await page.goto(`/orcamentos/${orcamentoPago.id}/preview`)
-    await expect(page.getByText(numeroPuro, { exact: true }).first()).toBeVisible()
-    await expect(page.getByText(numeroPadded, { exact: true })).toHaveCount(0)
+    const previewFrame = page.frameLocator('iframe[title="Preview do orçamento"]')
+    await expect(previewFrame.getByText(numeroPuro, { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(previewFrame.getByText(numeroPadded, { exact: true })).toHaveCount(0)
 
     await page.goto(`/orcamentos/${orcamentoPago.id}/recibo-sinal`)
     await expect(page.getByText(numeroPuro, { exact: true }).first()).toBeVisible()
