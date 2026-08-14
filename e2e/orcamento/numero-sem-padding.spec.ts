@@ -15,7 +15,7 @@ const API_URL = 'http://localhost:8080'
 /**
  * Homologação Onda 5 (Frente 6, Cenários 237-238) — RN-053: remoção do zero-padding artificial
  * (`String(numero).padStart(4,'0')`) do número do orçamento nas 4 telas de PDF/recibo
- * (`PreviewPdfPage`, `PreviewMultaPage`, `ReciboSinalPage`, `ReciboPagamentoPage`) e no Detalhe
+ * (`PreviewPdfOrcamentoPage`, `PreviewMultaPage`, `ReciboSinalPage`, `ReciboPagamentoPage`) e no Detalhe
  * (cabeçalho + modal de confirmar estorno). Confirmado via `git log` (commits `401d119`,
  * `c307262`, `e6b4e86`) e via grep (`padStart` não existe mais em `src/`).
  *
@@ -48,7 +48,7 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     const produto = await criarProdutoComEstoque(request, token, nomeProduto, 1000)
     criadosProdutoIds.push(produto.id)
 
-    // Orçamento levado até PAGO (com sinal) — cobre PreviewPdfPage, ReciboSinalPage e
+    // Orçamento levado até PAGO (com sinal) — cobre PreviewPdfOrcamentoPage, ReciboSinalPage e
     // ReciboPagamentoPage de uma vez, já que os três só exigem status/flags diferentes do mesmo
     // fluxo linear (SINAL_PAGO fica marcado para sempre, mesmo depois de avançar).
     const nomeClientePago = `QA237-ClientePago-${Date.now()}`

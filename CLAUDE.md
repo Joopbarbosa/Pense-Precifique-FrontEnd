@@ -102,7 +102,7 @@ type MetodoPagamento = 'PIX'|'DINHEIRO'|'CREDITO'|'DEBITO'|'TRANSFERENCIA'|'BOLE
 | Dashboard | DashboardPage | ✅ |
 | Clientes | ClientesPage | ✅ (identificador CLI-N desde V0.2D0) |
 | Criar Orçamento | CriarOrcamentoPage | ✅ (ganhou toggle Tudo/Catálogo, RN-054, V0.2D0) |
-| Preview PDF | PreviewPdfPage | ✅ |
+| Preview PDF | PreviewPdfOrcamentoPage | ✅ |
 | Detalhe Orçamento | DetalheOrcamentoPage | ✅ (badge de origem com nome do catálogo + nível "Customizações (N)" separado das pills individuais, desde v0.2.1 — ver Aprendizados críticos) |
 | Lista Orçamentos | ListaOrcamentosPage | ✅ (identificador `ORC-N`, **sem cedilha** — corrigido no backend em #93/V0.5; formato antigo `ORÇ-N` estava desatualizado. Busca por cliente ponta a ponta funcional desde #93.) |
 | Preview Multa | PreviewMultaPage | ✅ |
@@ -161,7 +161,7 @@ Nenhum dos dois é mais uma hipótese a descartar antes de investigar o frontend
 | Regra | Contexto |
 |-------|----------|
 | `overflow: hidden` corta dropdowns/modais | Recorrente em C-018, C-019, C-033 (v0) e novamente no C-006.1 (bloco Catálogo) |
-| Empresa: sempre `GET /empresa`, nunca hardcoded | Corrigido em PreviewPdfPage, PreviewMultaPage, ReciboSinalPage, ReciboPagamentoPage |
+| Empresa: sempre `GET /empresa`, nunca hardcoded | Corrigido em PreviewPdfOrcamentoPage, PreviewMultaPage, ReciboSinalPage, ReciboPagamentoPage |
 | `Button fullWidth` dentro de flex precisa `flexShrink` | C-018 |
 | **ActionMenu apenas na lista, não duplicar no detalhe** | C-033 (v0). Regredido no C-006 (Detalhe do Catálogo ganhou ActionMenu por engano), corrigido no C-006.1. **Prompt que descreve tela de Detalhe nunca deve incluir ActionMenu — checar este documento antes de escrever o prompt, não confiar na memória da sessão.** |
 | Empty state em filtro deve preservar layout da lista | Épico 7 |

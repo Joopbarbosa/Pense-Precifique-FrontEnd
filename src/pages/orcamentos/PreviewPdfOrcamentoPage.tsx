@@ -18,7 +18,7 @@ type StatusBadgeType =
   | 'Em Produção' | 'Finalizado'
   | 'Entregue' | 'Pago' | 'Cancelado'
 
-export default function PreviewPdfPage() {
+export default function PreviewPdfOrcamentoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
