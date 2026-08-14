@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -30,6 +30,13 @@ export const orcamentoService = {
     if (catalogoId) params.catalogoId = catalogoId;
     if (busca) params.busca = busca;
     const response = await api.get('/orcamentos/itens-catalogo', { params });
+    return response.data;
+  },
+
+  // #218 (RN-NOVA-8/9) — corpo é um array cru (`@RequestBody List<...>` no controller), não
+  // `{ itens: [...] }`.
+  simularEstoque: async (itens: SimularAlertasOrcamentoItemRequest[]): Promise<SimulacaoEstoqueProdutoResponse[]> => {
+    const response = await api.post('/orcamentos/simular-alertas', itens);
     return response.data;
   },
 

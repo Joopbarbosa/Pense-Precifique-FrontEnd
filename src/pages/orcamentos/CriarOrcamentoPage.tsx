@@ -5,7 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, ModalShell, Stepper } from '../../components/ui'
 import {
   Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
-  Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check,
+  Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check, Factory,
 } from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
@@ -14,12 +14,26 @@ import { catalogoService } from '../../services/catalogoService'
 import { empresaService } from '../../services/empresaService'
 import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
-import type { OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse, AvisoEstoque } from '../../types/orcamento'
+import type {
+  OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse, AvisoEstoque,
+  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
+} from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
 import { METODOS_PAGAMENTO } from '../../constants'
 import { EstoqueTags } from '../../components/ui/Badge'
+import { useToast } from '../../hooks/useToast'
+import { extractApiError } from '../../utils/apiError'
+import { formatQuantidade } from '../../utils/quantidade'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
+
+// #218 (RN-NOVA-8/9) — monta o corpo de POST /orcamentos/simular-alertas a partir dos itens em
+// construção na tela; XOR itemCatalogoId/produtoId, mesmo critério de handleSubmit.
+function toSimularItens(itens: Item[]): SimularAlertasOrcamentoItemRequest[] {
+  return itens.map(it => it.itemCatalogoId
+    ? { itemCatalogoId: it.itemCatalogoId, quantidade: it.qtd }
+    : { produtoId: it.produtoId, quantidade: it.qtd })
+}
 
 interface Item {
   id: number
@@ -154,9 +168,10 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
 }
 
 // ── ItemRow ────────────────────────────────────────────────────────────────
-function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
+function ItemRow({ item, index, simulacao, onQtd, onRemove, onOpenCustom }: {
   item: Item
   index: number
+  simulacao?: SimulacaoEstoqueProdutoResponse
   onQtd: (id: number, v: number) => void
   onRemove: (id: number) => void
   onOpenCustom: (item: Item) => void
@@ -167,6 +182,10 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
     : item.produtoId
       ? (item.produtoIdentificador ? `${item.produtoIdentificador} - Venda sem catálogo` : 'Venda sem catálogo')
       : null
+  // RN-NOVA-11 — estoque exibido sempre vem da simulação mais recente (nunca o snapshot
+  // congelado no momento da adição); valores monetários (preço, margem) continuam congelados.
+  const fracionavel = !item.algumInsumoNaoFracionavel
+  const estoqueExibido = simulacao?.estoqueAtual ?? item.estoqueAtual
 
   return (
     <div
@@ -189,11 +208,19 @@ function ItemRow({ item, index, onQtd, onRemove, onOpenCustom }: {
           <div className="mt-0.5 text-[13px] text-muted">{BRL(item.preco)} / unidade</div>
           <EstoqueTags
             className="mt-1.5"
-            fracionavel={!item.algumInsumoNaoFracionavel}
+            fracionavel={fracionavel}
             permitirEstoqueNegativo={item.permitirEstoqueNegativo}
-            estoqueAtual={item.estoqueAtual}
+            estoqueAtual={estoqueExibido}
             variant="busca"
           />
+          {simulacao?.situacao === 'AVISO' && (
+            <div className="mt-1.5 flex items-center gap-2 rounded-input border border-orange/30 bg-orange/[0.08] px-3 py-2">
+              <AlertTriangle size={14} className="flex-shrink-0 text-orange" />
+              <span className="text-[12px] leading-[1.4] text-warning-alt">
+                Estoque insuficiente para esta quantidade: disponível {formatQuantidade(simulacao.estoqueAtual, fracionavel)}, necessário {formatQuantidade(simulacao.quantidadeNecessaria, fracionavel)}. Vai ficar negativo — dá para criar uma produção ao avançar o orçamento.
+              </span>
+            </div>
+          )}
         </div>
         <Stepper value={item.qtd} onChange={v => onQtd(item.id, v)} />
         <div className="min-w-[108px] text-right">
@@ -1082,6 +1109,11 @@ export default function CriarOrcamentoPage() {
   const [margemPadrao, setMargemPadrao] = useState(0)
   const [produtoAvulsoModal, setProdutoAvulsoModal] = useState<ProdutoResponse | null>(null)
   const [avisoEstoque, setAvisoEstoque] = useState<{ orcamentoId: string; avisos: AvisoEstoque[] } | null>(null)
+  // #218 (RN-NOVA-8/9/11) — última simulação de estoque conhecida por produtoId (não por item da
+  // lista: o backend acumula quantidade quando o mesmo produto aparece em mais de um item).
+  const [simulacoes, setSimulacoes] = useState<Record<string, SimulacaoEstoqueProdutoResponse>>({})
+  const [pendentesAvanco, setPendentesAvanco] = useState<SimulacaoEstoqueProdutoResponse[] | null>(null)
+  const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1097,6 +1129,27 @@ export default function CriarOrcamentoPage() {
     empresaService.getConfiguracao().then(cfg => setMargemPadrao(cfg.margemPadrao ?? 0)).catch(() => {})
   }, [])
 
+  // RN-NOVA-11 — reconsulta estoque sempre que a lista de itens muda (adicionar/remover/alterar
+  // quantidade), para que `EstoqueTags`/aviso inline nunca fiquem presos ao snapshot da adição.
+  const itensAssinatura = items.map(it => `${it.id}:${it.qtd}`).join(',')
+  useEffect(() => {
+    if (items.length === 0) {
+      setSimulacoes({})
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      orcamentoService.simularEstoque(toSimularItens(items))
+        .then(data => {
+          if (cancelled) return
+          setSimulacoes(Object.fromEntries(data.map(d => [d.produtoId, d])))
+        })
+        .catch(() => {})
+    }, 300)
+    return () => { cancelled = true; clearTimeout(timer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itensAssinatura])
+
   const subtotal = items.reduce((s, it) => s + it.preco * it.qtd + it.customs.reduce((cs, c) => cs + c.valor * c.qtd * it.qtd, 0), 0)
   const descNum = parseFloat(descValor.replace(',', '.')) || 0
   const descontoAplicado = descTipo === '%' ? subtotal * descNum / 100 : Math.min(descNum, subtotal)
@@ -1105,7 +1158,41 @@ export default function CriarOrcamentoPage() {
   const sinalAplicado = sinalAtivo ? (sinalTipo === '%' ? total * sinalNum / 100 : Math.min(sinalNum, total)) : 0
   const restante = Math.max(0, total - sinalAplicado)
 
-  const handleAddCatalogoItem = (item: ItemCatalogoBuscaResponse) => {
+  // RN-NOVA-8 — consulta simular-alertas para o item prestes a entrar no orçamento (quantidade
+  // 1, ponto de partida sempre usado por handleAddCatalogoItem/handleConfirmAvulso), somado aos
+  // itens já na tela. Bloqueia (retorna false + toast) só quando BLOQUEIO_FUTURO
+  // (permitirEstoqueNegativo=false e estoque insuficiente); AVISO não bloqueia a adição
+  // (RN-NOVA-9 cobre esse caso via aviso inline depois de adicionado). Falha de rede no próprio
+  // simular-alertas não trava a tela — o backend ainda bloqueia via RN-NOVA-10 no POST final.
+  const verificarEstoqueAoAdicionar = async (
+    novoItem: SimularAlertasOrcamentoItemRequest,
+    produtoIdAlvo: string,
+    nomeExibicao: string,
+    fracionavel: boolean
+  ): Promise<boolean> => {
+    try {
+      const resultado = await orcamentoService.simularEstoque([...toSimularItens(items), novoItem])
+      setSimulacoes(prev => ({ ...prev, ...Object.fromEntries(resultado.map(r => [r.produtoId, r])) }))
+      const alerta = resultado.find(r => r.produtoId === produtoIdAlvo)
+      if (alerta?.situacao === 'BLOQUEIO_FUTURO') {
+        setToast(`Estoque insuficiente para adicionar "${nomeExibicao}": disponível ${formatQuantidade(alerta.estoqueAtual, fracionavel)}, necessário ${formatQuantidade(alerta.quantidadeNecessaria, fracionavel)}. Este produto não permite estoque negativo.`)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error('Erro ao simular estoque:', err)
+      return true
+    }
+  }
+
+  const handleAddCatalogoItem = async (item: ItemCatalogoBuscaResponse) => {
+    const permitido = await verificarEstoqueAoAdicionar(
+      { itemCatalogoId: item.id, quantidade: 1 },
+      item.produtoId,
+      item.nomeProduto,
+      !item.algumInsumoNaoFracionavel
+    )
+    if (!permitido) return
     setItems(arr => [...arr, {
       id: Date.now(),
       nome: item.nomeProduto,
@@ -1113,6 +1200,7 @@ export default function CriarOrcamentoPage() {
       preco: item.precoVenda,
       customs: [],
       itemCatalogoId: item.id,
+      produtoId: item.produtoId,
       catalogoNome: item.catalogoNome,
       algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
       permitirEstoqueNegativo: item.permitirEstoqueNegativo,
@@ -1126,8 +1214,15 @@ export default function CriarOrcamentoPage() {
     setProductOpen(false)
   }
 
-  const handleConfirmAvulso = (margemAplicada: number, precoUnitario: number) => {
+  const handleConfirmAvulso = async (margemAplicada: number, precoUnitario: number) => {
     if (!produtoAvulsoModal) return
+    const permitido = await verificarEstoqueAoAdicionar(
+      { produtoId: produtoAvulsoModal.id, quantidade: 1 },
+      produtoAvulsoModal.id,
+      produtoAvulsoModal.nome,
+      !(produtoAvulsoModal.algumInsumoNaoFracionavel ?? false)
+    )
+    if (!permitido) return
     setItems(arr => [...arr, {
       id: Date.now(),
       nome: produtoAvulsoModal.nome,
@@ -1144,7 +1239,25 @@ export default function CriarOrcamentoPage() {
     setProdutoAvulsoModal(null)
   }
 
-  const handleSubmit = async () => {
+  // RN-NOVA-9 — itens do orçamento em construção cujo produto está em AVISO (permite estoque
+  // negativo, mas insuficiente para a quantidade pedida), deduplicados por produtoId. Reaproveita
+  // `simulacoes` já obtido pelo Passo 1/2/efeito de estoque vivo — nenhuma chamada nova ao backend
+  // só para montar a modal de aviso ao avançar.
+  const calcularItensPendentesAvanco = (): SimulacaoEstoqueProdutoResponse[] => {
+    const vistos = new Set<string>()
+    const pendentes: SimulacaoEstoqueProdutoResponse[] = []
+    for (const it of items) {
+      if (!it.produtoId || vistos.has(it.produtoId)) continue
+      const sim = simulacoes[it.produtoId]
+      if (sim?.situacao === 'AVISO') {
+        vistos.add(it.produtoId)
+        pendentes.push(sim)
+      }
+    }
+    return pendentes
+  }
+
+  const handleSubmit = () => {
     setPrazoDiasError('')
 
     if (!cliente) {
@@ -1173,6 +1286,18 @@ export default function CriarOrcamentoPage() {
       return
     }
 
+    const pendentes = calcularItensPendentesAvanco()
+    if (pendentes.length > 0) {
+      setPendentesAvanco(pendentes)
+      return
+    }
+
+    criarOrcamento()
+  }
+
+  const criarOrcamento = async () => {
+    if (!cliente) return
+    const prazoDiasNum = parseInt(prazoDias)
     const payload: OrcamentoRequest = {
       clienteId: cliente.id,
       itens: items.map(it => ({
@@ -1208,8 +1333,11 @@ export default function CriarOrcamentoPage() {
         navigate(`/orcamentos/${result.id}`)
       }
     } catch (err) {
+      // Passo 5 (defesa em profundidade) — RN-NOVA-10 pode bloquear (400) mesmo depois do
+      // frontend já ter bloqueado no add (RN-NOVA-8), em corrida de estoque entre a simulação e o
+      // submit. Tratado no padrão do projeto (extractApiError + toast), nunca alert().
       console.error('Erro ao criar orçamento:', err)
-      alert('Erro ao criar orçamento')
+      setToast(extractApiError(err, 'Erro ao criar orçamento. Tente novamente.'))
     } finally {
       setLoading(false)
     }
@@ -1219,6 +1347,13 @@ export default function CriarOrcamentoPage() {
 
   return (
     <AppLayout active="orcamentos" compact>
+
+      {/* TOAST */}
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
+          {toast}
+        </div>
+      )}
 
       {/* Header */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
@@ -1261,6 +1396,7 @@ export default function CriarOrcamentoPage() {
                 items.map((it, i) => (
                   <ItemRow
                     key={it.id} item={it} index={i}
+                    simulacao={it.produtoId ? simulacoes[it.produtoId] : undefined}
                     onQtd={(id, v) => setItems(arr => arr.map(x => x.id === id ? { ...x, qtd: v } : x))}
                     onRemove={id => setItems(arr => arr.filter(x => x.id !== id))}
                     onOpenCustom={setModalItem}
@@ -1385,6 +1521,54 @@ export default function CriarOrcamentoPage() {
                 <span>{a.mensagem}</span>
               </div>
             ))}
+          </div>
+        </ModalShell>
+      )}
+
+      {/* Modal de aviso ao avançar/finalizar com item pendente (RN-NOVA-9) — não bloqueia, só
+          informa e oferece o atalho de criar produção; "Continuar mesmo assim" segue com a
+          criação normalmente. */}
+      {pendentesAvanco && (
+        <ModalShell
+          open
+          onClose={() => setPendentesAvanco(null)}
+          title="Itens com estoque insuficiente"
+          subtitle="Aviso antes de criar o orçamento"
+          icon={<AlertTriangle size={20} />}
+          iconBg="rgba(249,115,22,0.14)"
+          iconColor="#A35A26"
+          width={560}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
+              <Button variant="primary" onClick={() => { setPendentesAvanco(null); criarOrcamento() }}>
+                Continuar mesmo assim
+              </Button>
+            </>
+          }
+        >
+          <p className="m-0 mb-3.5 text-[13.5px] text-muted">
+            Estes produtos não têm estoque suficiente para a quantidade deste orçamento. Você pode
+            continuar mesmo assim ou criar uma produção agora para cobrir a diferença.
+          </p>
+          <div className="flex flex-col gap-2">
+            {pendentesAvanco.map(p => {
+              const falta = Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual))
+              return (
+                <div key={p.produtoId} className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3">
+                  <AlertTriangle size={16} className="flex-shrink-0 text-orange" />
+                  <span className="flex-1 text-[13px] leading-[1.4] text-warning-alt">
+                    <strong className="font-semibold">{p.nomeProduto}</strong> — faltam {falta} un. (disponível {p.estoqueAtual} de {p.quantidadeNecessaria} necessárias)
+                  </span>
+                  <button
+                    onClick={() => navigate(`/producao/nova?produtoId=${p.produtoId}&quantidade=${falta}`)}
+                    className="inline-flex h-7 flex-shrink-0 items-center gap-1.5 rounded-full border-none bg-orange px-3 font-[inherit] text-[11.5px] font-semibold text-white transition-colors duration-150 hover:bg-orange/90"
+                  >
+                    <Factory size={12} /> Criar produção
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </ModalShell>
       )}
