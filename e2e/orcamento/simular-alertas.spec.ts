@@ -39,7 +39,7 @@ test.describe('Cenários 232-233 — POST /orcamentos/simular-alertas', () => {
     const body = await res.json()
     expect(body).toHaveLength(1)
     expect(body[0]).toMatchObject({
-      nomeInsumo: nomeProduto,
+      nomeProduto: nomeProduto,
       estoqueAtual: 100,
       quantidadeNecessaria: 5,
       situacao: 'SUFICIENTE',
@@ -82,8 +82,8 @@ test.describe('Cenários 232-233 — POST /orcamentos/simular-alertas', () => {
     const body = await res.json()
     expect(body).toHaveLength(2)
 
-    const alertaAviso = body.find((a: { nomeInsumo: string }) => a.nomeInsumo === nomeAviso)
-    const alertaBloqueio = body.find((a: { nomeInsumo: string }) => a.nomeInsumo === nomeBloqueio)
+    const alertaAviso = body.find((a: { nomeProduto: string }) => a.nomeProduto === nomeAviso)
+    const alertaBloqueio = body.find((a: { nomeProduto: string }) => a.nomeProduto === nomeBloqueio)
     expect(alertaAviso).toMatchObject({ estoqueAtual: 3, quantidadeNecessaria: 10, situacao: 'AVISO' })
     expect(alertaBloqueio).toMatchObject({ estoqueAtual: 3, quantidadeNecessaria: 10, situacao: 'BLOQUEIO_FUTURO' })
   })
