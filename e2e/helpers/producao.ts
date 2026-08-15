@@ -431,6 +431,31 @@ export async function criarProdutoComEstoque(
   return res.json()
 }
 
+/** Mesma coisa de `criarProdutoComEstoque`, com `permitirEstoqueNegativo` explícito — #218 (RN-NOVA-8/9), onde o bloqueio/aviso depende diretamente dessa flag. */
+export async function criarProdutoComEstoqueEFlag(
+  request: APIRequestContext,
+  token: string,
+  nome: string,
+  estoqueAtual: number,
+  permitirEstoqueNegativo: boolean
+) {
+  const res = await request.post(`${API_URL}/produtos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      nome,
+      tipo: 'PRODUTO',
+      tempoProducao: 10,
+      estoqueAtual,
+      permitirEstoqueNegativo,
+      fichaTecnica: [],
+    },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produto com estoque de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 export async function agruparProducoesViaApi(
   request: APIRequestContext,
   token: string,

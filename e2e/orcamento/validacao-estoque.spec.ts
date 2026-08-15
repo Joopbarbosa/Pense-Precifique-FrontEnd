@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
-import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
+import { criarProdutoComEstoque, criarProdutoComEstoqueEFlag, inativarProduto } from '../helpers/producao'
 import { criarCliente, buscarOrcamento, selecionarCliente, adicionarItemAvulso, avancarStatusViaApi } from '../helpers/orcamento'
 
 const API_URL = 'http://localhost:8080'
@@ -48,6 +48,17 @@ const API_URL = 'http://localhost:8080'
  * do Gherkin, só que depois de salvar) em vez de replicar a asserção literal do Gherkin — mesmo
  * padrão já usado no achado "RN-052 ampliada" mais abaixo neste arquivo. Documenta o gap sem
  * corrigir o app e mantém a suíte verde; segue pendente de tarefa de Frontend (ver relatório final).
+ *
+ * #218 (V0.8, RN-NOVA-8/9/11) — gap fechado: o teste 207 foi reescrito de novo para refletir o
+ * aviso inline real (`CriarOrcamentoPage.tsx`, bloco `simulacao?.situacao === 'AVISO'` em
+ * `ItemRow`), que agora aparece assim que a quantidade do item ultrapassa o estoque, antes de
+ * qualquer submit. `POST /orcamentos` deixou de ser o único gatilho da modal de aviso — RN-NOVA-9
+ * intercepta o clique em "Criar orçamento" com uma modal própria (`pendentesAvanco`) quando existe
+ * item em `AVISO`; só depois de "Continuar mesmo assim" o POST de fato acontece e a modal
+ * pós-criação pré-existente (`avisosEstoque`) segue aparecendo normalmente, sem conflito entre as
+ * duas. Cenários novos de bloqueio (RN-NOVA-8, `permitirEstoqueNegativo=false`), da modal com link
+ * de produção e do erro 400 (RN-NOVA-10, defesa em profundidade) vivem em
+ * `bloqueio-aviso-estoque.spec.ts`.
  */
 
 test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo H) (#126)', () => {
@@ -75,14 +86,19 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await selecionarCliente(page, nomeCliente)
     await adicionarItemAvulso(page, nomeProduto, 10)
 
-    // Achado de homologação (gap real, sem correção — CriarOrcamentoPage.tsx:1172-1215): não existe
-    // aviso inline ao montar o item, diferente do "Dado"/"Então" do Cenário 207. A mensagem só existe
-    // depois de confirmar a criação (OrcamentoService.java:245-247 monta o texto exato do Gherkin,
-    // só que via avisosEstoque do POST /orcamentos, nunca antes disso).
-    await expect(page.getByText(/Estoque insuficiente para 10 unidades de/i)).toHaveCount(0)
+    // #218 (RN-NOVA-9) — gap fechado: agora existe aviso inline junto ao item assim que a
+    // quantidade (10) ultrapassa o estoque (5), antes de qualquer submit — reflete a simulação
+    // mais recente (RN-NOVA-11), disparada pelo próprio Stepper via `itensAssinatura`.
+    await expect(page.getByText(/Estoque insuficiente para esta quantidade: dispon[ií]vel 5, necess[áa]rio 10/i)).toBeVisible({ timeout: 5000 })
 
     await page.locator('input[type="number"][placeholder="10"]').fill('7')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
+
+    // #218 (RN-NOVA-9) — modal de aviso ao avançar intercepta o submit antes do POST (não
+    // bloqueia, só avisa); só depois de "Continuar mesmo assim" a criação de fato acontece.
+    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: 'Continuar mesmo assim', exact: true }).click()
+
     await expect(page.getByText('Orçamento criado com aviso de estoque')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText(new RegExp(`Estoque insuficiente para 10 unidades de ${nomeProduto}`))).toBeVisible()
   })
@@ -106,9 +122,18 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, nomeCliente)
     await adicionarItemAvulso(page, nomeProduto, 10)
+    // Espera a simulação ao vivo (debounce de 300ms disparado pelo Stepper, RN-NOVA-11) terminar
+    // antes de submeter — sem isso, `handleSubmit` pode rodar com `simulacoes` ainda desatualizado
+    // (ainda a resposta da quantidade inicial 1, não da 10 alcançada pelos cliques em "+").
+    await expect(page.getByText(/Estoque insuficiente para esta quantidade/i)).toBeVisible({ timeout: 5000 })
     await page.locator('input[type="number"][placeholder="10"]').fill('7')
 
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
+
+    // #218 (RN-NOVA-9) — modal de aviso ao avançar aparece primeiro (não bloqueia); "Continuar
+    // mesmo assim" segue com o POST normalmente.
+    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: 'Continuar mesmo assim', exact: true }).click()
 
     // Não bloqueado: a artesã é levada à tela de sucesso alternativa (com aviso), não a um erro.
     await expect(page.getByText('Orçamento criado com aviso de estoque')).toBeVisible({ timeout: 10_000 })

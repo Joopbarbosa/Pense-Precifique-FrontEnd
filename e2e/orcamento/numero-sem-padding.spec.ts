@@ -15,7 +15,7 @@ const API_URL = 'http://localhost:8080'
 /**
  * Homologação Onda 5 (Frente 6, Cenários 237-238) — RN-053: remoção do zero-padding artificial
  * (`String(numero).padStart(4,'0')`) do número do orçamento nas 4 telas de PDF/recibo
- * (`PreviewPdfPage`, `PreviewMultaPage`, `ReciboSinalPage`, `ReciboPagamentoPage`) e no Detalhe
+ * (`PreviewPdfOrcamentoPage`, `PreviewMultaPage`, `ReciboSinalPage`, `ReciboPagamentoPage`) e no Detalhe
  * (cabeçalho + modal de confirmar estorno). Confirmado via `git log` (commits `401d119`,
  * `c307262`, `e6b4e86`) e via grep (`padStart` não existe mais em `src/`).
  *
@@ -48,7 +48,7 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     const produto = await criarProdutoComEstoque(request, token, nomeProduto, 1000)
     criadosProdutoIds.push(produto.id)
 
-    // Orçamento levado até PAGO (com sinal) — cobre PreviewPdfPage, ReciboSinalPage e
+    // Orçamento levado até PAGO (com sinal) — cobre PreviewPdfOrcamentoPage, ReciboSinalPage e
     // ReciboPagamentoPage de uma vez, já que os três só exigem status/flags diferentes do mesmo
     // fluxo linear (SINAL_PAGO fica marcado para sempre, mesmo depois de avançar).
     const nomeClientePago = `QA237-ClientePago-${Date.now()}`
@@ -73,9 +73,13 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
 
     await login(page)
 
+    // Épico #89 (V0.8) — preview passou a renderizar o HTML real do microsserviço dentro de um
+    // <iframe> (RN-NOVA-2/Fluxo E do PRD), não mais um componente Tailwind local no documento
+    // principal — o número do orçamento só existe dentro do iframe agora.
     await page.goto(`/orcamentos/${orcamentoPago.id}/preview`)
-    await expect(page.getByText(numeroPuro, { exact: true }).first()).toBeVisible()
-    await expect(page.getByText(numeroPadded, { exact: true })).toHaveCount(0)
+    const previewFrame = page.frameLocator('iframe[title="Preview do orçamento"]')
+    await expect(previewFrame.getByText(numeroPuro, { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(previewFrame.getByText(numeroPadded, { exact: true })).toHaveCount(0)
 
     await page.goto(`/orcamentos/${orcamentoPago.id}/recibo-sinal`)
     await expect(page.getByText(numeroPuro, { exact: true }).first()).toBeVisible()

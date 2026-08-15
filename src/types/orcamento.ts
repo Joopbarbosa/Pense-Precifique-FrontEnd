@@ -21,6 +21,7 @@ export interface OrcamentoItemRequest {
 
 export interface ItemCatalogoBuscaResponse {
   id: string;
+  produtoId: string;
   nomeProduto: string;
   precoVenda: number;
   catalogoNome: string;
@@ -28,6 +29,25 @@ export interface ItemCatalogoBuscaResponse {
   algumInsumoNaoFracionavel: boolean;
   permitirEstoqueNegativo: boolean;
   estoqueAtual: number;
+}
+
+// #218 — POST /orcamentos/simular-alertas (RN-NOVA-8/9): simula situação de estoque por Produto
+// sem persistir, mesmo XOR itemCatalogoId/produtoId do item de orçamento (ORC-020).
+export interface SimularAlertasOrcamentoItemRequest {
+  itemCatalogoId?: string;
+  produtoId?: string;
+  quantidade: number;
+}
+
+export type SituacaoAlertaInsumo = 'SUFICIENTE' | 'AVISO' | 'BLOQUEIO_FUTURO';
+
+export interface SimulacaoEstoqueProdutoResponse {
+  produtoId: string;
+  nomeProduto: string;
+  estoqueAtual: number;
+  quantidadeNecessaria: number;
+  permitirEstoqueNegativo: boolean;
+  situacao: SituacaoAlertaInsumo;
 }
 
 export interface OrcamentoRequest {
