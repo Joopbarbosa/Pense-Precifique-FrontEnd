@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -80,7 +80,9 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [results, setResults] = useState<ClienteResponse[]>([])
+  const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -90,14 +92,13 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  // OpenProject #243 — paridade com ItemSearch (ORC-030): busca dispara ao focar o campo, mesmo
+  // sem digitar nada, trazendo a listagem completa (paginada, backend já correto).
   useEffect(() => {
-    if (!q.trim()) {
-      setResults([])
-      return
-    }
+    if (!open) return
     const load = async () => {
       try {
-        const data = await clienteService.listar(0, 20, q)
+        const data = await clienteService.listar(0, 20, q.trim() || undefined)
         setResults(data.content)
       } catch (err) {
         console.error('Erro ao buscar clientes:', err)
@@ -106,7 +107,24 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
     }
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [q])
+  }, [q, open])
+
+  // OpenProject #243 — mesma técnica de ItemSearch (ORC-030): altura do painel calculada a partir
+  // da posição real da 8ª linha, em vez de um max-height fixo (era max-h-[248px], cabiam só ~4).
+  // offsetTop/offsetHeight (não getBoundingClientRect) — imune ao scale(0.92→1) do animate-pop,
+  // que distorce a medição por clientRect durante o useLayoutEffect (ver ItemSearch).
+  useLayoutEffect(() => {
+    const el = panelRef.current
+    if (!el) return
+    el.scrollTop = 0
+    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
+    if (linhas.length <= 8) {
+      setMaxHeight(undefined)
+      return
+    }
+    const oitava = linhas[7]
+    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
+  }, [results])
 
   if (cliente) {
     return (
@@ -143,10 +161,15 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
           className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
         />
         {open && results.length > 0 && (
-          <div className="absolute inset-x-0 top-[54px] z-30 max-h-[248px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+          <div
+            ref={panelRef}
+            style={maxHeight != null ? { maxHeight } : undefined}
+            className="absolute inset-x-0 top-[54px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
+          >
             {results.map(c => (
               <button
                 key={c.id}
+                data-search-row
                 onClick={() => { onSelect(c); setOpen(false); setQ('') }}
                 className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
               >
@@ -831,6 +854,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
   const [itensCatalogo, setItensCatalogo] = useState<ItemCatalogoBuscaResponse[]>([])
   const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
   const [loading, setLoading] = useState(false)
+  const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -840,6 +864,29 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
+
+  // ORC-030 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calculada a partir
+  // da posição real da 8ª linha (medida via ref, não um px fixo assumido): cobre de uma vez tanto
+  // o caso de 2 rótulos de categoria coexistindo (modo "Tudo" com catálogo + avulso) quanto o caso
+  // de badges de estoque quebrando para 2 linhas (nomes longos) — os dois fazem a linha crescer de
+  // forma que um valor fixo em px não acompanha. Sem isso: bug original de #242, o painel só
+  // orçava espaço para 1 rótulo de categoria, cortando o 8º item quando os dois apareciam juntos.
+  useLayoutEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    el.scrollTop = 0
+    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
+    if (linhas.length <= 8) {
+      setMaxHeight(undefined)
+      return
+    }
+    // offsetTop/offsetHeight (não getBoundingClientRect) — o painel entra com animate-pop
+    // (scale(0.92)→1); medir via clientRect durante o useLayoutEffect (síncrono, antes do
+    // primeiro paint) captura o box ainda na escala inicial da animação, subestimando a altura
+    // necessária. offsetTop/offsetHeight refletem o layout box "real", imune a transform.
+    const oitava = linhas[7]
+    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
+  }, [itensCatalogo, produtos])
 
   useEffect(() => {
     if (!open) {
@@ -878,18 +925,12 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
   if (!open) return null
 
   const semResultado = itensCatalogo.length === 0 && produtos.length === 0 && !loading
-  // RN-NOVA-7 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calibrada para
-  // a busca de item de catálogo (linha de 78px, medida via Playwright): 8 linhas + cabeçalho fixo
-  // (barra de busca, 57px) + rótulo de categoria "Itens de catálogo" (25px), quando exibido (modo 'tudo').
-  const temRotuloCategoria = modo === 'tudo' && itensCatalogo.length > 0
 
   return (
     <div
       ref={wrapRef}
-      className={clsx(
-        'absolute inset-x-5 top-[62px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]',
-        temRotuloCategoria ? 'max-h-[706px]' : 'max-h-[681px]'
-      )}
+      style={maxHeight != null ? { maxHeight } : undefined}
+      className="absolute inset-x-5 top-[62px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
     >
       <div className="sticky top-0 z-10 flex gap-1.5 bg-white px-1.5 pt-1.5">
         <input
@@ -929,6 +970,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
             {itensCatalogo.map(item => (
               <button
                 key={item.id}
+                data-search-row
                 onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
@@ -959,6 +1001,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
             {produtos.map(p => (
               <button
                 key={p.id}
+                data-search-row
                 onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
