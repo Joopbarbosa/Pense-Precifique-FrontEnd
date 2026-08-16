@@ -18,6 +18,10 @@ const API_URL = 'http://localhost:8080'
  *
  * ORC-CEN-062 (bloqueio na adição) e ORC-CEN-066 (400 de corrida de estoque no POST /orcamentos)
  * deixaram de existir: nenhum dos dois é mais um comportamento real do sistema.
+ *
+ * P-F005/#251 (2026-08-16) — clicar no produto avulso agora adiciona direto ao orçamento, sem
+ * `ModalMargemAvulso` (removida). Os 4 testes abaixo tinham um passo extra de confirmar via botão
+ * "Adicionar ao orçamento" da modal — removido, sem outra mudança de fluxo.
  */
 test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçamento nunca bloqueia (#246, #245)', () => {
   let criadosProdutoIds: string[] = []
@@ -46,9 +50,6 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
-    const confirmar = page.getByRole('button', { name: 'Adicionar ao orçamento', exact: true })
-    await expect(confirmar).toBeEnabled({ timeout: 5000 })
-    await confirmar.click()
 
     // RN-NOVA-11 (revisada) — item entra na lista normalmente, sem toast de bloqueio, mesmo com
     // permitirEstoqueNegativo=false e estoque 0.
@@ -71,9 +72,6 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
-    const confirmar = page.getByRole('button', { name: 'Adicionar ao orçamento', exact: true })
-    await expect(confirmar).toBeEnabled({ timeout: 5000 })
-    await confirmar.click()
 
     // Qtd inicial 1 <= estoque 2 — sem aviso ainda.
     await expect(page.getByText(nomeProduto, { exact: true })).toBeVisible({ timeout: 5000 })
@@ -108,9 +106,6 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
-    const confirmar = page.getByRole('button', { name: 'Adicionar ao orçamento', exact: true })
-    await expect(confirmar).toBeEnabled({ timeout: 5000 })
-    await confirmar.click()
 
     // quantidade 5, estoque 2 -> falta 3.
     for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+', exact: true }).click()
@@ -154,9 +149,6 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
-    const confirmar = page.getByRole('button', { name: 'Adicionar ao orçamento', exact: true })
-    await expect(confirmar).toBeEnabled({ timeout: 5000 })
-    await confirmar.click()
 
     // Snapshot no momento da adição: 10 em estoque.
     await expect(page.getByText('10 em estoque')).toBeVisible({ timeout: 5000 })

@@ -18,7 +18,6 @@ import {
  * Escape tratado dentro do próprio `ModalShell` via keydown em `document`, não duplicado nos
  * consumidores). Modais cobertos:
  * - `ModalCustomizacoes` (CriarOrcamentoPage.tsx:240-394) — título = nome do item, subtitle fixo
- * - `ModalMargemAvulso` (CriarOrcamentoPage.tsx:940-1030) — título = nome do produto avulso
  * - `ModalSinal` (DetalheOrcamentoPage.tsx:180-303) — usa ModalShell direto
  * - `ModalCancelJustificativa` (DetalheOrcamentoPage.tsx:340-398) — usa ConfirmacaoModal,
  *   wrapper fino sobre ModalShell que repassa title/subtitle sem alterar a estrutura
@@ -30,6 +29,11 @@ import {
  * progresso (Dots) foi movida para dentro do slot `footer` (empilhada acima dos botões), já que o
  * `ModalShell` só expõe uma única região de rodapé. Antes da migração, cada um tinha seu próprio
  * `useEffect` de Escape (duplicando o que o `ModalShell` já faz) — removido nesta migração.
+ *
+ * P-F005/#251 (2026-08-16) — `ModalMargemAvulso` (cenário 239b) foi removida: item avulso passou
+ * a usar o preço do cadastro do produto direto, sem modal/pergunta de margem (RN-054 revisada).
+ * O cenário 239b (título do produto acima de "Adicionar produto avulso") não tem mais
+ * correspondência no sistema — removido deste arquivo, não substituído por outro cenário.
  */
 
 async function expectTituloAcimaDoSubtitle(dialog: Locator, titulo: string, subtitle: string) {
@@ -76,33 +80,6 @@ test.describe('Cenário 239 — ModalShell nos 4 modais de Orçamento (título a
 
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
-  })
-
-  test('239b — ModalMargemAvulso (CriarOrcamentoPage): título do produto acima de "Adicionar produto avulso", fecha com Escape sem adicionar o item', async ({ page, request }) => {
-    const token = await apiLogin(request)
-    const nomeCliente = `QA239b-Cliente-${Date.now()}`
-    await criarCliente(request, token, nomeCliente)
-    const nomeProduto = `QA239b-Produto-${Date.now()}`
-    const produto = await criarProdutoComEstoque(request, token, nomeProduto, 10)
-    criadosProdutoIds.push(produto.id)
-
-    await login(page)
-    await page.goto('/orcamentos/novo')
-    await selecionarCliente(page, nomeCliente)
-
-    // Abre o modal sem confirmar — só o início do fluxo de `adicionarItemAvulso`.
-    await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
-    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
-    await page.getByText(nomeProduto, { exact: true }).click()
-
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await expectTituloAcimaDoSubtitle(dialog, nomeProduto, 'Adicionar produto avulso')
-
-    await page.keyboard.press('Escape')
-    await expect(dialog).toHaveCount(0)
-    // Escape fecha sem adicionar o item ao orçamento (ModalMargemAvulso não foi confirmado).
-    await expect(page.getByText('Venda sem catálogo')).toHaveCount(0)
   })
 
   test('239c — ModalSinal (DetalheOrcamentoPage): "Confirmar recebimento do sinal" acima de "Aguardando Sinal", fecha com X e com Escape', async ({ page, request }) => {

@@ -13,7 +13,6 @@ export interface OrcamentoItemCustomizacaoRequest {
 export interface OrcamentoItemRequest {
   itemCatalogoId?: string;
   produtoId?: string;
-  margemAplicada?: number;
   precoUnitario?: number;
   quantidade: number;
   customizacoes: OrcamentoItemCustomizacaoRequest[];
