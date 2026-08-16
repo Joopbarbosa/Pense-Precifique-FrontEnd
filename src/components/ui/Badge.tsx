@@ -151,13 +151,16 @@ interface EstoqueTagsProps {
   unidade?: string
   variant?: 'cadastro' | 'busca'
   className?: string
+  /** V0.8.1 (RN-NOVA-11 revisada) — Orçamento esconde esta badge: produto nunca é fracionável no
+   *  domínio real (só insumo, na ficha técnica, é). Default true para os demais consumidores. */
+  showFracionavel?: boolean
 }
 
 /** #238 — tag global fracionável/estoque negativo/estoque atual, um bloco só, reusado por componente. */
-export function EstoqueTags({ fracionavel, permitirEstoqueNegativo, estoqueAtual, unidade, variant = 'busca', className }: EstoqueTagsProps) {
+export function EstoqueTags({ fracionavel, permitirEstoqueNegativo, estoqueAtual, unidade, variant = 'busca', className, showFracionavel = true }: EstoqueTagsProps) {
   return (
     <div className={clsx('flex flex-wrap items-center gap-1', className)}>
-      <FracionavelBadge fracionavel={fracionavel} variant={variant} />
+      {showFracionavel && <FracionavelBadge fracionavel={fracionavel} variant={variant} />}
       <EstoqueNegativoBadge permitir={permitirEstoqueNegativo} variant={variant} />
       <EstoqueAtualBadge estoqueAtual={estoqueAtual} fracionavel={fracionavel} unidade={unidade} variant={variant} />
     </div>
