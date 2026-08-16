@@ -1104,7 +1104,7 @@ export default function CriarOrcamentoPage() {
   // #218 (RN-NOVA-8/9/11) — última simulação de estoque conhecida por produtoId (não por item da
   // lista: o backend acumula quantidade quando o mesmo produto aparece em mais de um item).
   const [simulacoes, setSimulacoes] = useState<Record<string, SimulacaoEstoqueProdutoResponse>>({})
-  const [pendentesAvanco, setPendentesAvanco] = useState<SimulacaoEstoqueProdutoResponse[] | null>(null)
+  const [pendentesAvanco, setPendentesAvanco] = useState<(SimulacaoEstoqueProdutoResponse & { fracionavel: boolean })[] | null>(null)
   const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
@@ -1235,15 +1235,15 @@ export default function CriarOrcamentoPage() {
   // negativo, mas insuficiente para a quantidade pedida), deduplicados por produtoId. Reaproveita
   // `simulacoes` já obtido pelo Passo 1/2/efeito de estoque vivo — nenhuma chamada nova ao backend
   // só para montar a modal de aviso ao avançar.
-  const calcularItensPendentesAvanco = (): SimulacaoEstoqueProdutoResponse[] => {
+  const calcularItensPendentesAvanco = (): (SimulacaoEstoqueProdutoResponse & { fracionavel: boolean })[] => {
     const vistos = new Set<string>()
-    const pendentes: SimulacaoEstoqueProdutoResponse[] = []
+    const pendentes: (SimulacaoEstoqueProdutoResponse & { fracionavel: boolean })[] = []
     for (const it of items) {
       if (!it.produtoId || vistos.has(it.produtoId)) continue
       const sim = simulacoes[it.produtoId]
       if (sim?.situacao === 'AVISO') {
         vistos.add(it.produtoId)
-        pendentes.push(sim)
+        pendentes.push({ ...sim, fracionavel: !it.algumInsumoNaoFracionavel })
       }
     }
     return pendentes
@@ -1552,7 +1552,7 @@ export default function CriarOrcamentoPage() {
                 <div key={p.produtoId} className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3">
                   <AlertTriangle size={16} className="flex-shrink-0 text-orange" />
                   <span className="flex-1 text-[13px] leading-[1.4] text-warning-alt">
-                    <strong className="font-semibold">{p.nomeProduto}</strong> — disponível {p.estoqueAtual}, necessário {p.quantidadeNecessaria} (faltam {falta} un.)
+                    <strong className="font-semibold">{p.nomeProduto}</strong> — disponível {formatQuantidade(p.estoqueAtual, p.fracionavel)}, necessário {formatQuantidade(p.quantidadeNecessaria, p.fracionavel)} (faltam {formatQuantidade(falta, p.fracionavel)} un.)
                   </span>
                   <button
                     onClick={() => navigate(`/producao/nova?produtoId=${p.produtoId}&quantidade=${falta}`)}
