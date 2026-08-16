@@ -213,14 +213,6 @@ function ItemRow({ item, index, simulacao, onQtd, onRemove, onOpenCustom }: {
             estoqueAtual={estoqueExibido}
             variant="busca"
           />
-          {simulacao?.situacao === 'AVISO' && (
-            <div className="mt-1.5 flex items-center gap-2 rounded-input border border-orange/30 bg-orange/[0.08] px-3 py-2">
-              <AlertTriangle size={14} className="flex-shrink-0 text-orange" />
-              <span className="text-[12px] leading-[1.4] text-warning-alt">
-                Estoque insuficiente para esta quantidade: disponível {formatQuantidade(simulacao.estoqueAtual, fracionavel)}, necessário {formatQuantidade(simulacao.quantidadeNecessaria, fracionavel)}. Vai ficar negativo — dá para criar uma produção ao avançar o orçamento.
-              </span>
-            </div>
-          )}
         </div>
         <Stepper value={item.qtd} onChange={v => onQtd(item.id, v)} />
         <div className="min-w-[108px] text-right">
@@ -1525,9 +1517,11 @@ export default function CriarOrcamentoPage() {
         </ModalShell>
       )}
 
-      {/* Modal de aviso ao avançar/finalizar com item pendente (RN-NOVA-9) — não bloqueia, só
-          informa e oferece o atalho de criar produção; "Continuar mesmo assim" segue com a
-          criação normalmente. */}
+      {/* Modal de checkpoint único de aviso de estoque (RN-NOVA-11, OpenProject #246/#245) — ponto
+          único de aviso ao clicar "Criar orçamento" (substitui o aviso inline por item que existia
+          em ItemRow durante todo o preenchimento). Não bloqueia, só informa e oferece o atalho de
+          criar produção (RN-NOVA-5) por item; "Continuar mesmo assim" segue com a criação normalmente.
+          Texto candidato, pendente de validação humana (ver DECISOES_V0.8.1.md). */}
       {pendentesAvanco && (
         <ModalShell
           open
@@ -1548,8 +1542,8 @@ export default function CriarOrcamentoPage() {
           }
         >
           <p className="m-0 mb-3.5 text-[13.5px] text-muted">
-            Estes produtos não têm estoque suficiente para a quantidade deste orçamento. Você pode
-            continuar mesmo assim ou criar uma produção agora para cobrir a diferença.
+            Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode
+            continuar mesmo assim ou criar uma produção agora, por item, para cobrir a diferença.
           </p>
           <div className="flex flex-col gap-2">
             {pendentesAvanco.map(p => {
@@ -1558,7 +1552,7 @@ export default function CriarOrcamentoPage() {
                 <div key={p.produtoId} className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3">
                   <AlertTriangle size={16} className="flex-shrink-0 text-orange" />
                   <span className="flex-1 text-[13px] leading-[1.4] text-warning-alt">
-                    <strong className="font-semibold">{p.nomeProduto}</strong> — faltam {falta} un. (disponível {p.estoqueAtual} de {p.quantidadeNecessaria} necessárias)
+                    <strong className="font-semibold">{p.nomeProduto}</strong> — disponível {p.estoqueAtual}, necessário {p.quantidadeNecessaria} (faltam {falta} un.)
                   </span>
                   <button
                     onClick={() => navigate(`/producao/nova?produtoId=${p.produtoId}&quantidade=${falta}`)}

@@ -59,6 +59,13 @@ const API_URL = 'http://localhost:8080'
  * duas. Cenários novos de bloqueio (RN-NOVA-8, `permitirEstoqueNegativo=false`), da modal com link
  * de produção e do erro 400 (RN-NOVA-10, defesa em profundidade) vivem em
  * `bloqueio-aviso-estoque.spec.ts`.
+ *
+ * OpenProject #246/#245 (RN-NOVA-11) — o bloco de aviso inline em `ItemRow` citado acima foi
+ * removido: o aviso de estoque negativo (`permitirEstoqueNegativo=true`) passou a ser concentrado
+ * só na modal de checkpoint (`pendentesAvanco`) ao clicar "Criar orçamento", nunca mais durante o
+ * preenchimento. Testes 207/208 reescritos para não depender do marcador visual inline (removido)
+ * como sinal de fim do debounce — usam `page.waitForTimeout(600)`, mesmo padrão de
+ * `insumo-busca-server-side.spec.ts`.
  */
 
 test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo H) (#126)', () => {
@@ -73,7 +80,7 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     for (const id of criadosProdutoIds) await inativarProduto(request, token, id)
   })
 
-  test('207 (era 189) — aviso de estoque insuficiente ao adicionar item no orçamento (aviso inline)', async ({ page, request }) => {
+  test('207 (era 189) — aviso de estoque insuficiente ao adicionar item no orçamento (concentrado na modal de checkpoint, RN-NOVA-11)', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QA189-Produto-${Date.now()}`
     const produto = await criarProdutoComEstoque(request, token, nomeProduto, 5)
@@ -86,17 +93,20 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await selecionarCliente(page, nomeCliente)
     await adicionarItemAvulso(page, nomeProduto, 10)
 
-    // #218 (RN-NOVA-9) — gap fechado: agora existe aviso inline junto ao item assim que a
-    // quantidade (10) ultrapassa o estoque (5), antes de qualquer submit — reflete a simulação
-    // mais recente (RN-NOVA-11), disparada pelo próprio Stepper via `itensAssinatura`.
-    await expect(page.getByText(/Estoque insuficiente para esta quantidade: dispon[ií]vel 5, necess[áa]rio 10/i)).toBeVisible({ timeout: 5000 })
+    // RN-NOVA-11 (#246/#245) — nenhum aviso inline junto ao item, mesmo com a quantidade (10)
+    // ultrapassando o estoque (5). Espera o debounce de 300ms + round-trip da simulação ao vivo
+    // (mesmo padrão de `insumo-busca-server-side.spec.ts`) antes de seguir, já que não há mais
+    // marcador visual do fim do debounce nesta tela.
+    await page.waitForTimeout(600)
+    await expect(page.getByText('Itens com estoque insuficiente')).toHaveCount(0)
 
     await page.locator('input[type="number"][placeholder="10"]').fill('7')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
 
-    // #218 (RN-NOVA-9) — modal de aviso ao avançar intercepta o submit antes do POST (não
-    // bloqueia, só avisa); só depois de "Continuar mesmo assim" a criação de fato acontece.
+    // O aviso passa a ser concentrado na modal de checkpoint ao clicar "Criar orçamento" — não
+    // bloqueia, só avisa; só depois de "Continuar mesmo assim" a criação de fato acontece.
     await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/dispon[ií]vel 5, necess[áa]rio 10/i)).toBeVisible()
     await page.getByRole('button', { name: 'Continuar mesmo assim', exact: true }).click()
 
     await expect(page.getByText('Orçamento criado com aviso de estoque')).toBeVisible({ timeout: 10_000 })
@@ -124,8 +134,10 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await adicionarItemAvulso(page, nomeProduto, 10)
     // Espera a simulação ao vivo (debounce de 300ms disparado pelo Stepper, RN-NOVA-11) terminar
     // antes de submeter — sem isso, `handleSubmit` pode rodar com `simulacoes` ainda desatualizado
-    // (ainda a resposta da quantidade inicial 1, não da 10 alcançada pelos cliques em "+").
-    await expect(page.getByText(/Estoque insuficiente para esta quantidade/i)).toBeVisible({ timeout: 5000 })
+    // (ainda a resposta da quantidade inicial 1, não da 10 alcançada pelos cliques em "+"). Desde
+    // #246/#245 não há mais marcador visual (aviso inline removido), então espera o tempo fixo do
+    // debounce + round-trip, mesmo padrão de `insumo-busca-server-side.spec.ts`.
+    await page.waitForTimeout(600)
     await page.locator('input[type="number"][placeholder="10"]').fill('7')
 
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()

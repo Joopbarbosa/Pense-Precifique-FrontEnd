@@ -10,14 +10,20 @@ const API_URL = 'http://localhost:8080'
  * OpenProject #218 (V0.8, RN-NOVA-8/9/10/11) — bloqueio/aviso de estoque ao adicionar item em
  * Novo Orçamento, modal de aviso ao avançar com link de criação de produção, e estoque sempre
  * vivo (não mais snapshot congelado no momento da adição). Cenários oficiais em
- * `docs-pense-precifique/modulos/ORCAMENTO/cenarios-orcamento.md`, ORC-CEN-062 a 066.
+ * `docs-pense-precifique/modulos/ORCAMENTO/cenarios-orcamento.md`, ORC-CEN-062 a 066 — texto de
+ * ORC-CEN-063/064 desatualizado ali (ver DECISOES_V0.8.1.md), consolidação formal do doc fica
+ * para o fechamento de versão.
+ *
+ * OpenProject #246/#245 (RN-NOVA-11) — o aviso inline por item foi removido; ORC-CEN-063 passou a
+ * validar sua ausência (CEN-NOVO-15) e ORC-CEN-064 passou a validar o texto único concentrado na
+ * modal de checkpoint (CEN-NOVO-16).
  *
  * `adicionarItemAvulso` (e2e/helpers/orcamento.ts) não serve para os cenários de bloqueio: ela
  * assume que "Adicionar ao orçamento" sempre confirma e a item entra na lista — aqui o próprio
  * clique pode ficar bloqueado (RN-NOVA-8), então os testes deste arquivo montam o fluxo de
  * adição manualmente onde precisam checar o estado do modal/toast no meio do caminho.
  */
-test.describe('ORC-CEN-062 a 066 — Bloqueio/aviso de estoque em Novo Orçamento (#218)', () => {
+test.describe('ORC-CEN-062 a 066 — Bloqueio/aviso de estoque em Novo Orçamento (#218, #246, #245)', () => {
   let criadosProdutoIds: string[] = []
 
   test.beforeEach(() => {
@@ -58,7 +64,7 @@ test.describe('ORC-CEN-062 a 066 — Bloqueio/aviso de estoque em Novo Orçament
     await expect(page.getByText('Nenhum produto adicionado')).toBeVisible()
   })
 
-  test('ORC-CEN-063 — aviso inline sem bloquear quando permitirEstoqueNegativo=true', async ({ page, request }) => {
+  test('ORC-CEN-063 / CEN-NOVO-15 — sem aviso inline quando permitirEstoqueNegativo=true, mesmo com estoque insuficiente', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QA218-Aviso-${Date.now()}`
     const produto = await criarProdutoComEstoqueEFlag(request, token, nomeProduto, 2, true)
@@ -79,16 +85,22 @@ test.describe('ORC-CEN-062 a 066 — Bloqueio/aviso de estoque em Novo Orçament
 
     // Não bloqueado: item entra na lista normalmente (qtd inicial 1 <= estoque 2, sem aviso ainda).
     await expect(page.getByText(nomeProduto, { exact: true })).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(/Estoque insuficiente para esta quantidade/i)).toHaveCount(0)
 
-    // Sobe a quantidade além do estoque (2) via Stepper — aviso inline aparece, sem remover o item.
+    // RN-NOVA-11 — sobe a quantidade além do estoque (2) via Stepper: item fica com estoque
+    // insuficiente, mas nenhum aviso inline é exibido junto à linha (CEN-NOVO-15). O aviso passa a
+    // ser concentrado só na modal de checkpoint ao clicar "Criar orçamento" (ver ORC-CEN-064).
+    // Espera o debounce de 300ms + round-trip da simulação ao vivo (RN-NOVA-11) antes de checar a
+    // ausência — garante que a checagem cobre o estado já com `situacao: 'AVISO'` na resposta, não
+    // só o instante antes da simulação chegar.
     await page.getByRole('button', { name: '+', exact: true }).click()
     await page.getByRole('button', { name: '+', exact: true }).click()
-    await expect(page.getByText(/Estoque insuficiente para esta quantidade: dispon[ií]vel 2, necess[áa]rio 3/i)).toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(600)
     await expect(page.getByText(nomeProduto, { exact: true })).toBeVisible()
+    await expect(page.getByText(/dispon[ií]vel 2, necess[áa]rio 3/i)).toHaveCount(0)
+    await expect(page.getByText('Itens com estoque insuficiente')).toHaveCount(0)
   })
 
-  test('ORC-CEN-064 — modal ao avançar com link "Criar produção" para o produtoId/quantidade faltante corretos', async ({ page, request }) => {
+  test('ORC-CEN-064 / CEN-NOVO-16 — modal de checkpoint único ao criar orçamento, com disponível/necessário e link "Criar produção"', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QA218-Modal-${Date.now()}`
     const produto = await criarProdutoComEstoqueEFlag(request, token, nomeProduto, 2, true)
@@ -107,14 +119,19 @@ test.describe('ORC-CEN-062 a 066 — Bloqueio/aviso de estoque em Novo Orçament
     await expect(confirmar).toBeEnabled({ timeout: 5000 })
     await confirmar.click()
 
-    // quantidade 5, estoque 2 -> falta 3
+    // quantidade 5, estoque 2 -> falta 3. RN-NOVA-11: nenhum aviso inline aparece ao subir a
+    // quantidade — só a modal de checkpoint ao clicar "Criar orçamento", abaixo. Espera o debounce
+    // de 300ms + round-trip da simulação ao vivo antes de submeter — sem isso, `handleSubmit` pode
+    // rodar com `simulacoes` ainda desatualizado (mesmo risco documentado em validacao-estoque.spec.ts).
     for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+', exact: true }).click()
-    await expect(page.getByText(/Estoque insuficiente para esta quantidade: dispon[ií]vel 2, necess[áa]rio 5/i)).toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(600)
+    await expect(page.getByText('Itens com estoque insuficiente')).toHaveCount(0)
 
     await page.locator('input[type="number"][placeholder="10"]').fill('5')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
 
     await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/dispon[ií]vel 2, necess[áa]rio 5/i)).toBeVisible()
     await expect(page.getByText(/faltam 3 un\./i)).toBeVisible()
 
     const linkProducao = page.getByRole('button', { name: 'Criar produção', exact: true })
