@@ -5,12 +5,13 @@ import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
 
 export const orcamentoService = {
-  listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string): Promise<PageResponse<OrcamentoResponse>> => {
+  listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string, sort?: string): Promise<PageResponse<OrcamentoResponse>> => {
     const params: Record<string, any> = { page, size };
     if (status) params.status = status;
     if (busca) params.busca = busca;
     if (dataCriacaoDe) params.dataCriacaoDe = dataCriacaoDe;
     if (dataCriacaoAte) params.dataCriacaoAte = dataCriacaoAte;
+    if (sort) params.sort = sort;
     const response = await api.get('/orcamentos', { params });
     return response.data;
   },
