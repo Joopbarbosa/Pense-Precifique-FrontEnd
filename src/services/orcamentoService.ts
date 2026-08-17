@@ -79,4 +79,65 @@ export const orcamentoService = {
   downloadPdfMulta: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/pdf-multa`,
   downloadReciboEstorno: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-estorno`,
   downloadReciboPagamento: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-pagamento`,
+
+  // Mesmo padrão de baixarPdf — usados pelas 4 telas de preview migradas (épico #248, V0.8.1),
+  // que baixam via Axios (gate de preview + retry/cooldown) em vez do fetch cru usado pelo card
+  // de downloads de DetalheOrcamentoPage.tsx (downloadReciboSinal/downloadPdfMulta/... acima).
+  baixarReciboSinal: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/recibo-sinal`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  baixarPdfMulta: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/pdf-multa`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  baixarReciboEstorno: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/recibo-estorno`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  baixarReciboPagamento: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/recibo-pagamento`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  // Mesmo motivo de buscarPreviewHtml acima (sem responseType, para o Axios conseguir fazer
+  // JSON.parse do corpo de erro sem cair no bug de Blob/texto cru) — épico #248, V0.8.1.
+  buscarPreviewHtmlReciboSinal: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/recibo-sinal/preview-html`);
+    return response.data;
+  },
+
+  buscarPreviewHtmlPdfMulta: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/pdf-multa/preview-html`);
+    return response.data;
+  },
+
+  buscarPreviewHtmlReciboEstorno: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/recibo-estorno/preview-html`);
+    return response.data;
+  },
+
+  buscarPreviewHtmlReciboPagamento: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/recibo-pagamento/preview-html`);
+    return response.data;
+  },
 };
