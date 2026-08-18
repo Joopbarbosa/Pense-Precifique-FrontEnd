@@ -75,14 +75,11 @@ export const orcamentoService = {
     return response.data;
   },
 
-  downloadReciboSinal: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-sinal`,
-  downloadPdfMulta: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/pdf-multa`,
-  downloadReciboEstorno: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-estorno`,
-  downloadReciboPagamento: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-pagamento`,
-
   // Mesmo padrão de baixarPdf — usados pelas 4 telas de preview migradas (épico #248, V0.8.1),
-  // que baixam via Axios (gate de preview + retry/cooldown) em vez do fetch cru usado pelo card
-  // de downloads de DetalheOrcamentoPage.tsx (downloadReciboSinal/downloadPdfMulta/... acima).
+  // que baixam via Axios (gate de preview + retry/cooldown). P-F013 (V0.8.1) religou o card de
+  // downloads de DetalheOrcamentoPage.tsx a essas mesmas telas via navegação, em vez do fetch cru
+  // que usava as 4 funções irmãs (downloadReciboSinal/downloadPdfMulta/downloadReciboEstorno/
+  // downloadReciboPagamento) — removidas por ficarem sem consumidor.
   baixarReciboSinal: async (id: string): Promise<Blob> => {
     try {
       const response = await api.get(`/orcamentos/${id}/recibo-sinal`, { responseType: 'blob' });

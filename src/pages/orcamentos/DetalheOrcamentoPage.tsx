@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
-import { useAuthStore } from "../../store/authStore";
 import type {
   OrcamentoDetalheResponse,
   AvancaStatusRequest,
@@ -906,7 +905,6 @@ function DownloadsCard({
 export default function DetalheOrcamentoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const token = useAuthStore((s) => s.token);
 
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null);
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
@@ -1014,9 +1012,9 @@ export default function DetalheOrcamentoPage() {
   };
 
   // "pdf" (orçamento) usa o serviço centralizado + retry com cooldown (RN-NOVA-3) — único
-  // documento migrado ao microsserviço neste MVP (épico #89). Os outros 4 tipos continuam no
-  // fluxo antigo (endpoint local inalterado, fora deste escopo) — mesma correção de padrão de
-  // erro (toast em vez de alert), mas sem gate/cooldown.
+  // documento migrado ao microsserviço neste MVP (épico #89). Tem também botão de preview próprio
+  // no header ("Ver preview do PDF" → /orcamentos/{id}/preview), por isso o card mantém o download
+  // direto para este item.
   const handleDownloadPdf = () => {
     if (!id || pdfRetry.executando || pdfRetry.cooldownRestante > 0) return;
     pdfRetry.executar(async () => {
@@ -1025,43 +1023,24 @@ export default function DetalheOrcamentoPage() {
     }, "Erro ao baixar PDF do orçamento.");
   };
 
-  const handleDownload = async (
-    kind: "reciboSinal" | "multa" | "estorno" | "pagamento",
-  ) => {
-    if (!id) return;
-    const urlMap = {
-      reciboSinal: orcamentoService.downloadReciboSinal(id),
-      multa: orcamentoService.downloadPdfMulta(id),
-      estorno: orcamentoService.downloadReciboEstorno(id),
-      pagamento: orcamentoService.downloadReciboPagamento(id),
-    };
-    const fileNames = {
-      reciboSinal: `recibo-sinal-${orcamento?.numero || id}.pdf`,
-      multa: `multa-${orcamento?.numero || id}.pdf`,
-      estorno: `recibo-estorno-${orcamento?.numero || id}.pdf`,
-      pagamento: `recibo-pagamento-${orcamento?.numero || id}.pdf`,
-    };
-    try {
-      const response = await fetch(urlMap[kind], {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-      dispararDownloadBlob(blob, fileNames[kind]);
-    } catch (err) {
-      console.error("Erro ao baixar documento:", err);
-      setToast(extractApiError(err, "Erro ao baixar documento."));
-    }
+  // P-F013 — os outros 4 documentos (épico #248) navegam para a própria tela de preview em vez de
+  // baixar via fetch cru: essas telas já tratam gate de preview, retry/cooldown e erro sozinhas.
+  const PREVIEW_ROUTE: Record<"reciboSinal" | "multa" | "estorno" | "pagamento", string> = {
+    reciboSinal: "recibo-sinal",
+    multa: "multa",
+    estorno: "recibo-estorno",
+    pagamento: "recibo-pagamento",
   };
 
   const handleDownloadAny = (
     kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
   ) => {
+    if (!id) return;
     if (kind === "pdf") {
       handleDownloadPdf();
       return;
     }
-    handleDownload(kind);
+    navigate(`/orcamentos/${id}/${PREVIEW_ROUTE[kind]}`);
   };
 
   if (loading) {
