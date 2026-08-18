@@ -25,6 +25,10 @@ import { extractApiError } from '../../utils/apiError'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
+// Símbolo exibido na UI ('%' | 'R$') é conceito distinto do valor aceito pela API
+// (enum TipoDesconto do backend, ver TipoDesconto.java) — nunca enviar o símbolo direto.
+const TIPO_DESCONTO_API: Record<'%' | 'R$', 'PERCENTUAL' | 'VALOR'> = { '%': 'PERCENTUAL', 'R$': 'VALOR' }
+
 // #218 (RN-NOVA-8/9) — monta o corpo de POST /orcamentos/simular-alertas a partir dos itens em
 // construção na tela; XOR itemCatalogoId/produtoId, mesmo critério de handleSubmit.
 function toSimularItens(itens: Item[]): SimularAlertasOrcamentoItemRequest[] {
@@ -1259,7 +1263,7 @@ export default function CriarOrcamentoPage() {
       sinalAtivo,
       percentualSinal: sinalAtivo && sinalTipo === '%' ? sinalNum : undefined,
       valorSinal: sinalAtivo && sinalTipo === 'R$' ? sinalNum : undefined,
-      tipoDesconto: descNum > 0 ? descTipo : undefined,
+      tipoDesconto: descNum > 0 ? TIPO_DESCONTO_API[descTipo] : undefined,
       descontoValor: descNum > 0 ? descNum : undefined,
       observacoes: obs || undefined,
       dataValidade: validade ? `${validade}T00:00:00` : undefined,
