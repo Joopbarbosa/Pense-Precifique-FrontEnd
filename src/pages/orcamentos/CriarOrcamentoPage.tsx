@@ -546,6 +546,7 @@ function PagamentoSection({
   tipo, setTipo,
   valor, setValor,
   sinalAplicado, restante,
+  error,
 }: {
   metodoPagamento: string
   setMetodoPagamento: (v: string) => void
@@ -559,6 +560,7 @@ function PagamentoSection({
   setValor: (v: string) => void
   sinalAplicado: number
   restante: number
+  error?: string
 }) {
   const obsCharCount = metodoPagamentoObs.length
   const obsInvalido = obsCharCount > 0 && obsCharCount < 50
@@ -677,10 +679,20 @@ function PagamentoSection({
                 value={valor}
                 onChange={e => setValor(e.target.value.replace(/[^\d.,]/g, ''))}
                 inputMode="decimal"
+                min={0}
                 placeholder={tipo === '%' ? '50' : '0,00'}
-                className="h-[46px] min-w-0 flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className={clsx(
+                  'h-[46px] min-w-0 flex-1 rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                  error ? 'border-danger' : 'border-line'
+                )}
               />
             </div>
+            {error && (
+              <div className="mt-2 flex items-center gap-[5px] text-[13px] text-danger">
+                <AlertCircle size={13} />
+                {error}
+              </div>
+            )}
             <div className="mt-3.5 flex flex-col gap-2">
               <div className="flex items-center justify-between rounded-input border border-dashed border-teal/[0.35] bg-teal/[0.06] px-3.5 py-2.5">
                 <span className="flex items-center gap-[7px] text-[13.5px] font-semibold text-teal">
@@ -1064,6 +1076,7 @@ export default function CriarOrcamentoPage() {
   const [sinalAtivo, setSinalAtivo] = useState(false)
   const [sinalTipo, setSinalTipo] = useState<'%' | 'R$'>('%')
   const [sinalValor, setSinalValor] = useState('')
+  const [sinalError, setSinalError] = useState('')
   const [validade, setValidade] = useState('')
   const [obs, setObs] = useState('')
   const [productOpen, setProductOpen] = useState(false)
@@ -1180,6 +1193,7 @@ export default function CriarOrcamentoPage() {
 
   const handleSubmit = () => {
     setPrazoDiasError('')
+    setSinalError('')
 
     if (!cliente) {
       alert('Selecione um cliente')
@@ -1199,6 +1213,11 @@ export default function CriarOrcamentoPage() {
 
     if (!inicioImediato && !dataInicioEstimada) {
       alert('Informe a data estimada de início')
+      return
+    }
+
+    if (sinalAtivo && sinalNum <= 0) {
+      setSinalError('Informe um valor de sinal maior que zero')
       return
     }
 
@@ -1365,6 +1384,7 @@ export default function CriarOrcamentoPage() {
               tipo={sinalTipo} setTipo={setSinalTipo}
               valor={sinalValor} setValor={setSinalValor}
               sinalAplicado={sinalAplicado} restante={restante}
+              error={sinalError}
             />
           </QuoteCard>
 
