@@ -145,6 +145,7 @@ export interface OrcamentoDetalheResponse {
   observacoes?: string;
   dataValidade?: string;
   percentualMulta?: number;
+  valorMulta?: number;
   estornoSinal?: boolean;
   dataEstornoSinal?: string;
   itens: OrcamentoItemResponse[];

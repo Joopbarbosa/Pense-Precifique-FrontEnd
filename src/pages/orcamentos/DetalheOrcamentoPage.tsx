@@ -419,7 +419,9 @@ function ModalCancelMulta({
 
   const total = orcamento.total || 0;
   const percNum = parseFloat((multaPerc || "0").replace(",", ".")) || 0;
-  const multaAplicada = multaAtiva ? (total * percNum) / 100 : 0;
+  const sinalPago = orcamento.sinalAtivo && orcamento.valorSinal ? orcamento.valorSinal : 0;
+  const multaBruta = (total * percNum) / 100;
+  const multaAplicada = multaAtiva ? Math.max(multaBruta - sinalPago, 0) : 0;
 
   const tituloPasso =
     step === 1 ? "Itens deste pedido"
@@ -570,6 +572,11 @@ function ModalCancelMulta({
                   {BRL(multaAplicada)}
                 </span>
               </div>
+              {sinalPago > 0 && (
+                <div className="mt-2 text-xs text-muted">
+                  Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
+                </div>
+              )}
             </div>
           )}
         </>
@@ -579,13 +586,20 @@ function ModalCancelMulta({
       {step === 3 && (
         <div className="flex flex-col gap-4">
           {multaAtiva ? (
-            <div className="flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
-              <span className="text-sm font-semibold text-dark">
-                Multa <span className="font-medium text-muted">({percNum}%)</span>
-              </span>
-              <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
-                {BRL(multaAplicada)}
-              </span>
+            <div className="flex flex-col gap-1 rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-dark">
+                  Multa <span className="font-medium text-muted">({percNum}%)</span>
+                </span>
+                <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
+                  {BRL(multaAplicada)}
+                </span>
+              </div>
+              {sinalPago > 0 && (
+                <span className="text-xs text-muted">
+                  Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
+                </span>
+              )}
             </div>
           ) : (
             <div className="text-[13.5px] text-muted">
