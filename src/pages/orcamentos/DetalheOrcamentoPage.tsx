@@ -111,6 +111,14 @@ function cancelKind(status: ApiStatus): "simples" | "estorno" | "multa" | "justi
   return "simples";
 }
 
+// Antecipa qual wizard o botão "Cancelar orçamento" vai abrir, por status
+const CANCEL_KIND_HINT: Record<ReturnType<typeof cancelKind>, string | null> = {
+  simples: null,
+  estorno: "Este orçamento tem sinal pago — o cancelamento vai gerar recibo de estorno.",
+  multa: "Este orçamento já entrou em produção — o cancelamento vai calcular multa.",
+  justificativa: "Este orçamento já foi entregue — o cancelamento exige justificativa.",
+};
+
 // ─── Timeline ────────────────────────────────────────────────────────────────
 
 function Timeline({ current }: { current: ApiStatus }) {
@@ -705,7 +713,7 @@ function ModalCancelEstorno({
                   fullWidth
                   disabled={saving}
                   onClick={() =>
-                    onConfirm({ estornarSinal: true, dataEstornoSinal: dataEstorno })
+                    onConfirm({ estornarSinal: true, dataEstornoSinal: `${dataEstorno}T12:00:00` })
                   }
                 >
                   {saving ? "Processando..." : "Confirmar e gerar recibo de estorno"}
@@ -1141,12 +1149,17 @@ export default function DetalheOrcamentoPage() {
           {!finalizado && (
             <div className="mt-[30px] flex flex-wrap items-center justify-between gap-[18px] border-t border-line pt-[22px]">
               {cancelavel ? (
-                <button
-                  onClick={() => setModal("cancel")}
-                  className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger"
-                >
-                  <Ban size={15} /> Cancelar orçamento
-                </button>
+                <div className="flex flex-col items-start gap-1.5">
+                  <button
+                    onClick={() => setModal("cancel")}
+                    className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger"
+                  >
+                    <Ban size={15} /> Cancelar orçamento
+                  </button>
+                  {CANCEL_KIND_HINT[kind] && (
+                    <span className="text-xs text-muted">{CANCEL_KIND_HINT[kind]}</span>
+                  )}
+                </div>
               ) : (
                 <span />
               )}
