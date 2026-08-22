@@ -29,6 +29,19 @@ const API_URL = 'http://localhost:8080'
  * nenhuma delas gate no `status` do orçamento (só o botão que leva até elas em
  * `DetalheOrcamentoPage.tsx`'s `DownloadsCard` é condicional), então a automação navega direto
  * por URL depois de preparar o estado via API.
+ *
+ * P-T002 (V0.8.1, retomada da homologação do pocket) — spec corrigido: quando este arquivo foi
+ * escrito, só a rota de preview do orçamento (`/preview`) tinha migrado para o padrão de
+ * `<iframe srcDoc>` renderizado pelo microsserviço (Épico #89). `recibo-sinal`,
+ * `recibo-pagamento` e `multa` ainda eram componentes Tailwind locais, por isso o teste original
+ * lia o número via `page.getByText` direto, sem `frameLocator`. O Épico #248 (mesmo pocket
+ * V0.8.1) migrou os 3 para o mesmo padrão de iframe — `page.getByText` deixou de alcançar o
+ * conteúdo real (sempre vazio, teste ficaria "verde" só porque o "NÃO mostra zero-padding"
+ * também dava vazio, um falso-positivo). RN-053 em si continua correta — o gap era só na
+ * estratégia de seletor do teste, desatualizada pela migração do #248. Corrigido para usar
+ * `frameLocator` nos 3 (títulos confirmados em `ReciboSinalPage.tsx`/`ReciboPagamentoPage.tsx`/
+ * `PreviewMultaPage.tsx`), mesmo padrão já usado para `/preview`. Ver `DECISOES_V0.8.1.md`,
+ * entrada P-T002.
  */
 test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/recibos e Detalhe do Orçamento', () => {
   let criadosProdutoIds: string[] = []
@@ -82,18 +95,25 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     await expect(previewFrame.getByText(numeroPadded, { exact: true })).toHaveCount(0)
 
     await page.goto(`/orcamentos/${orcamentoPago.id}/recibo-sinal`)
-    await expect(page.getByText(numeroPuro, { exact: true }).first()).toBeVisible()
-    await expect(page.getByText(numeroPadded, { exact: true })).toHaveCount(0)
+    const reciboSinalFrame = page.frameLocator('iframe[title="Preview do recibo do sinal"]')
+    await expect(reciboSinalFrame.getByText(numeroPuro, { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(reciboSinalFrame.getByText(numeroPadded, { exact: true })).toHaveCount(0)
 
     await page.goto(`/orcamentos/${orcamentoPago.id}/recibo-pagamento`)
-    await expect(page.getByText(numeroPuro, { exact: true }).first()).toBeVisible()
-    await expect(page.getByText(numeroPadded, { exact: true })).toHaveCount(0)
-    // Regressão do rename GREEN -> SUCCESS_VARIANT_COLOR (tech debt puro, ReciboPagamentoPage.tsx):
-    // o ícone da seção "Detalhes financeiros" continua verde (bg-success/text-success), não teal.
-    const tituloFinanceiro = page.getByText('Detalhes financeiros', { exact: true })
-    await expect(tituloFinanceiro).toBeVisible()
-    const badgeIcone = tituloFinanceiro.locator('..').locator('span').first()
-    await expect(badgeIcone).toHaveClass(/text-success/)
+    const reciboPagamentoFrame = page.frameLocator('iframe[title="Preview do recibo de pagamento"]')
+    await expect(reciboPagamentoFrame.getByText(numeroPuro, { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(reciboPagamentoFrame.getByText(numeroPadded, { exact: true })).toHaveCount(0)
+    // P-T002 — achado adicional dentro do mesmo bug: esta asserção também estava morta, por um
+    // segundo motivo além da falta de frameLocator. A seção "Detalhes financeiros" não existe mais
+    // desde a migração #248 — o card de status hoje é `SecaoStatus` (ReciboPagamentoDoc.jsx),
+    // título "Pedido quitado". A classe Tailwind `text-success` também nunca poderia ter
+    // funcionado ali: o microsserviço de PDF usa CSS-in-JS puro (cor aplicada via `style` inline,
+    // ver `SecaoStatus.jsx`/`tokens.js`), sem Tailwind carregado. Corrigido para checar o valor
+    // real: `corDestaque: COLORS.success` (#1F8A5B = rgb(31, 138, 91)), não teal.
+    const tituloStatusPagamento = reciboPagamentoFrame.getByText('Pedido quitado', { exact: true })
+    await expect(tituloStatusPagamento).toBeVisible()
+    const iconeStatusPagamento = tituloStatusPagamento.locator('..').locator('span').first()
+    await expect(iconeStatusPagamento).toHaveCSS('color', 'rgb(31, 138, 91)')
 
     // Orçamento cancelado com multa — único jeito de popular percentualMulta e cobrir
     // PreviewMultaPage (não tem nenhuma relação com prazo/atraso, é sobre cancelamento).
@@ -111,8 +131,9 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     expect(orcamentoCancelado.numero).toBeGreaterThanOrEqual(10)
 
     await page.goto(`/orcamentos/${orcamentoCancelado.id}/multa`)
-    await expect(page.getByText(numeroPuroCancelado, { exact: true }).first()).toBeVisible()
-    await expect(page.getByText(numeroPaddedCancelado, { exact: true })).toHaveCount(0)
+    const multaFrame = page.frameLocator('iframe[title="Preview do PDF de multa"]')
+    await expect(multaFrame.getByText(numeroPuroCancelado, { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(multaFrame.getByText(numeroPaddedCancelado, { exact: true })).toHaveCount(0)
   })
 
   test('238 — cabeçalho e modal de confirmar estorno no Detalhe do Orçamento exibem número puro', async ({ page, request }) => {

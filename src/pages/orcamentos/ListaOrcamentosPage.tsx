@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
-import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-react'
+import { ExternalLink, Download, Plus, Filter, Search, Calendar, ArrowUp, ArrowDown } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
 import { orcamentoService } from '../../services/orcamentoService'
@@ -45,6 +45,45 @@ function isVencido(orc: OrcamentoResponse): boolean {
 function fmtData(iso: string): string {
   const [y, m, d] = iso.split('T')[0].split('-')
   return `${d}/${m}/${y}`
+}
+
+// #255 — campo aninhado (cliente.nome) e simples (numero/total/createdAt) vão via ?sort= do
+// backend (confirmado por curl no Passo 0); status ordena pelo ciclo de vida do pedido
+// (RASCUNHO→ENVIADO→...→PAGO/CANCELADO), que não existe como ordem alfabética no banco — por
+// isso é reordenado no cliente sobre os itens já carregados, nunca via ?sort=status.
+type SortField = 'numero' | 'cliente' | 'total' | 'createdAt' | 'status'
+
+const SORT_BACKEND_FIELD: Record<Exclude<SortField, 'status'>, string> = {
+  numero: 'numero',
+  cliente: 'cliente.nome',
+  total: 'total',
+  createdAt: 'createdAt',
+}
+
+// Mesmo componente/contrato visual de SortableHeader em ListaProducaoPage.tsx:150-171 — replicado
+// aqui em vez de extraído para components/shared: só 2 consumidores hoje, extrair sem um 3º caso
+// de uso real seria generalização especulativa.
+function SortableHeader({ label, field, activeField, dir, onSort }: {
+  label: string
+  field: SortField
+  activeField: SortField | null
+  dir: 'asc' | 'desc'
+  onSort: (field: SortField) => void
+}) {
+  const ativo = activeField === field
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className={clsx(
+        'flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[11.5px] font-semibold uppercase tracking-[0.04em] transition-colors duration-100',
+        ativo ? 'text-body' : 'text-faint hover:text-body'
+      )}
+    >
+      {label}
+      {ativo && (dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+    </button>
+  )
 }
 
 function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
@@ -141,7 +180,21 @@ export default function ListaOrcamentosPage() {
   const periodRef = useRef<HTMLDivElement>(null)
   const isFirstFiltro = useRef(true)
   const isFirstPeriodo = useRef(true)
+  const isFirstSort = useRef(true)
   const downloadRetry = useRetryCooldown()
+
+  // Default explícito por decisão de produto: a listagem deve abrir ordenada por Número, não
+  // depender da ordem natural (não garantida) que o Postgres devolve sem ORDER BY.
+  const [sortField, setSortField] = useState<SortField | null>('numero')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  // status não vai pro backend (ordena por ciclo de vida, não alfabético) — mantém numero,asc
+  // como ordem-base estável para o reordenamento no cliente não misturar com paginação.
+  const sortParam = sortField === 'status'
+    ? 'numero,asc'
+    : sortField
+      ? `${SORT_BACKEND_FIELD[sortField]},${sortDir}`
+      : undefined
 
   const {
     items: orcamentos,
@@ -154,7 +207,7 @@ export default function ListaOrcamentosPage() {
     reset,
     error,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => orcamentoService.listar(page, size, filtro || undefined, q, appliedDateFrom || undefined, appliedDateTo || undefined),
+    fetcher: (page, size, q) => orcamentoService.listar(page, size, filtro || undefined, q, appliedDateFrom || undefined, appliedDateTo || undefined, sortParam),
     errorMessage: 'Não foi possível carregar os orçamentos.',
   })
 
@@ -171,6 +224,12 @@ export default function ListaOrcamentosPage() {
   }, [appliedDateFrom, appliedDateTo])
 
   useEffect(() => {
+    if (isFirstSort.current) { isFirstSort.current = false; return }
+    reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortParam])
+
+  useEffect(() => {
     const h = (e: MouseEvent) => {
       if (periodRef.current && !periodRef.current.contains(e.target as Node)) {
         setPeriodOpen(false)
@@ -182,6 +241,15 @@ export default function ListaOrcamentosPage() {
 
   const handleFiltroChange = (value: StatusOrcamento | '') => {
     setFiltro(value)
+  }
+
+  const handleSortClick = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
   }
 
   const handleCarregarMais = async () => {
@@ -229,6 +297,18 @@ export default function ListaOrcamentosPage() {
   const searchActive = query.trim().length > 0
   const globalEmpty = !loading && orcamentos.length === 0 && filtro === '' && !searchActive && !periodActive
   const filtroEmpty = !loading && orcamentos.length === 0 && (filtro !== '' || searchActive || periodActive)
+
+  // Índice de posição de cada status no ciclo de vida real (mesma ordem de FILTERS, que já
+  // segue RASCUNHO→ENVIADO→APROVADO→...→PAGO/CANCELADO) — única fonte de verdade da ordem.
+  const statusOrdem: Record<string, number> = {}
+  FILTERS.forEach((f, i) => { if (f.value) statusOrdem[f.value] = i })
+
+  const orcamentosOrdenados = sortField === 'status'
+    ? [...orcamentos].sort((a, b) => {
+        const diff = statusOrdem[a.status] - statusOrdem[b.status]
+        return sortDir === 'asc' ? diff : -diff
+      })
+    : orcamentos
 
   return (
     <AppLayout active="orcamentos" compact>
@@ -321,13 +401,13 @@ export default function ListaOrcamentosPage() {
 
                     {/* Presets */}
                     <div className="mb-3.5 flex flex-wrap gap-[7px]">
-                      {([['7 dias', 7], ['30 dias', 30], ['90 dias', 90]] as [string, number][]).map(([lbl, d]) => (
+                      {([['Hoje', 0], ['7 dias', 7], ['30 dias', 30], ['90 dias', 90]] as [string, number][]).map(([lbl, d]) => (
                         <button
                           key={d}
                           onClick={() => setPreset(d)}
                           className="h-[30px] cursor-pointer rounded-full border border-line bg-cream px-3 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-100 hover:bg-teal/[0.08] hover:text-teal"
                         >
-                          Últimos {lbl}
+                          {d === 0 ? lbl : `Últimos ${lbl}`}
                         </button>
                       ))}
                     </div>
@@ -388,14 +468,15 @@ export default function ListaOrcamentosPage() {
               {/* TABELA */}
               <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
                 <div className="hidden grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-[18px] py-[13px] sm:grid">
-                  {['Número', 'Cliente', 'Total', 'Criação', 'Status', ''].map((h, k) => (
-                    <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">
-                      {h}
-                    </div>
-                  ))}
+                  <SortableHeader label="Número" field="numero" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Cliente" field="cliente" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Total" field="total" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Criação" field="createdAt" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <SortableHeader label="Status" field="status" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
+                  <div />
                 </div>
 
-                {orcamentos.map((o, i) => {
+                {orcamentosOrdenados.map((o, i) => {
                   const onBaixarPdf = o.status !== 'CANCELADO'
                     ? () => handleBaixarPdf(o)
                     : null

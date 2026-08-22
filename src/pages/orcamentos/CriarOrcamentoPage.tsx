@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -11,11 +11,10 @@ import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
 import { orcamentoService } from '../../services/orcamentoService'
 import { catalogoService } from '../../services/catalogoService'
-import { empresaService } from '../../services/empresaService'
 import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
 import type {
-  OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse, AvisoEstoque,
+  OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
   SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
 } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
@@ -23,9 +22,12 @@ import { METODOS_PAGAMENTO } from '../../constants'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
-import { formatQuantidade } from '../../utils/quantidade'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
+
+// Símbolo exibido na UI ('%' | 'R$') é conceito distinto do valor aceito pela API
+// (enum TipoDesconto do backend, ver TipoDesconto.java) — nunca enviar o símbolo direto.
+const TIPO_DESCONTO_API: Record<'%' | 'R$', 'PERCENTUAL' | 'VALOR'> = { '%': 'PERCENTUAL', 'R$': 'VALOR' }
 
 // #218 (RN-NOVA-8/9) — monta o corpo de POST /orcamentos/simular-alertas a partir dos itens em
 // construção na tela; XOR itemCatalogoId/produtoId, mesmo critério de handleSubmit.
@@ -45,7 +47,6 @@ interface Item {
   produtoIdentificador?: string
   itemCatalogoId?: string
   catalogoNome?: string
-  margemAplicada?: number
   algumInsumoNaoFracionavel: boolean
   permitirEstoqueNegativo: boolean
   estoqueAtual: number
@@ -81,7 +82,9 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [results, setResults] = useState<ClienteResponse[]>([])
+  const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -91,14 +94,13 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  // OpenProject #243 — paridade com ItemSearch (ORC-030): busca dispara ao focar o campo, mesmo
+  // sem digitar nada, trazendo a listagem completa (paginada, backend já correto).
   useEffect(() => {
-    if (!q.trim()) {
-      setResults([])
-      return
-    }
+    if (!open) return
     const load = async () => {
       try {
-        const data = await clienteService.listar(0, 20, q)
+        const data = await clienteService.listar(0, 20, q.trim() || undefined)
         setResults(data.content)
       } catch (err) {
         console.error('Erro ao buscar clientes:', err)
@@ -107,7 +109,24 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
     }
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [q])
+  }, [q, open])
+
+  // OpenProject #243 — mesma técnica de ItemSearch (ORC-030): altura do painel calculada a partir
+  // da posição real da 8ª linha, em vez de um max-height fixo (era max-h-[248px], cabiam só ~4).
+  // offsetTop/offsetHeight (não getBoundingClientRect) — imune ao scale(0.92→1) do animate-pop,
+  // que distorce a medição por clientRect durante o useLayoutEffect (ver ItemSearch).
+  useLayoutEffect(() => {
+    const el = panelRef.current
+    if (!el) return
+    el.scrollTop = 0
+    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
+    if (linhas.length <= 8) {
+      setMaxHeight(undefined)
+      return
+    }
+    const oitava = linhas[7]
+    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
+  }, [results])
 
   if (cliente) {
     return (
@@ -144,10 +163,15 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
           className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
         />
         {open && results.length > 0 && (
-          <div className="absolute inset-x-0 top-[54px] z-30 max-h-[248px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+          <div
+            ref={panelRef}
+            style={maxHeight != null ? { maxHeight } : undefined}
+            className="absolute inset-x-0 top-[54px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
+          >
             {results.map(c => (
               <button
                 key={c.id}
+                data-search-row
                 onClick={() => { onSelect(c); setOpen(false); setQ('') }}
                 className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
               >
@@ -182,10 +206,13 @@ function ItemRow({ item, index, simulacao, onQtd, onRemove, onOpenCustom }: {
     : item.produtoId
       ? (item.produtoIdentificador ? `${item.produtoIdentificador} - Venda sem catálogo` : 'Venda sem catálogo')
       : null
-  // RN-NOVA-11 — estoque exibido sempre vem da simulação mais recente (nunca o snapshot
-  // congelado no momento da adição); valores monetários (preço, margem) continuam congelados.
-  const fracionavel = !item.algumInsumoNaoFracionavel
+  // RN-NOVA-11 (revisada) — estoque exibido sempre vem da simulação mais recente (nunca o
+  // snapshot congelado no momento da adição); valores monetários (preço, margem) continuam
+  // congelados. Aviso inline aparece sempre que a situação não é SUFICIENTE, independente de
+  // permitirEstoqueNegativo — a adição/criação do orçamento nunca bloqueia, só a trava real vive
+  // no avanço para Finalizado (RN-059, backend).
   const estoqueExibido = simulacao?.estoqueAtual ?? item.estoqueAtual
+  const estoqueInsuficiente = simulacao != null && simulacao.situacao !== 'SUFICIENTE'
 
   return (
     <div
@@ -204,23 +231,22 @@ function ItemRow({ item, index, simulacao, onQtd, onRemove, onOpenCustom }: {
                 {origemLabel}
               </span>
             )}
+            {estoqueInsuficiente && (
+              <span className="inline-flex h-[22px] items-center gap-[5px] whitespace-nowrap rounded-full bg-orange/10 px-[9px] text-[11.5px] font-semibold text-orange">
+                <AlertTriangle size={11} />
+                Estoque insuficiente
+              </span>
+            )}
           </div>
           <div className="mt-0.5 text-[13px] text-muted">{BRL(item.preco)} / unidade</div>
           <EstoqueTags
             className="mt-1.5"
-            fracionavel={fracionavel}
+            fracionavel={false}
+            showFracionavel={false}
             permitirEstoqueNegativo={item.permitirEstoqueNegativo}
             estoqueAtual={estoqueExibido}
             variant="busca"
           />
-          {simulacao?.situacao === 'AVISO' && (
-            <div className="mt-1.5 flex items-center gap-2 rounded-input border border-orange/30 bg-orange/[0.08] px-3 py-2">
-              <AlertTriangle size={14} className="flex-shrink-0 text-orange" />
-              <span className="text-[12px] leading-[1.4] text-warning-alt">
-                Estoque insuficiente para esta quantidade: disponível {formatQuantidade(simulacao.estoqueAtual, fracionavel)}, necessário {formatQuantidade(simulacao.quantidadeNecessaria, fracionavel)}. Vai ficar negativo — dá para criar uma produção ao avançar o orçamento.
-              </span>
-            </div>
-          )}
         </div>
         <Stepper value={item.qtd} onChange={v => onQtd(item.id, v)} />
         <div className="min-w-[108px] text-right">
@@ -384,7 +410,8 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                     <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
                     <EstoqueTags
                       className="mt-1"
-                      fracionavel={!c.algumInsumoNaoFracionavel}
+                      fracionavel={false}
+                      showFracionavel={false}
                       permitirEstoqueNegativo={c.permitirEstoqueNegativo}
                       estoqueAtual={c.estoqueAtual}
                       variant="busca"
@@ -523,6 +550,7 @@ function PagamentoSection({
   tipo, setTipo,
   valor, setValor,
   sinalAplicado, restante,
+  error,
 }: {
   metodoPagamento: string
   setMetodoPagamento: (v: string) => void
@@ -536,6 +564,7 @@ function PagamentoSection({
   setValor: (v: string) => void
   sinalAplicado: number
   restante: number
+  error?: string
 }) {
   const obsCharCount = metodoPagamentoObs.length
   const obsInvalido = obsCharCount > 0 && obsCharCount < 50
@@ -654,10 +683,20 @@ function PagamentoSection({
                 value={valor}
                 onChange={e => setValor(e.target.value.replace(/[^\d.,]/g, ''))}
                 inputMode="decimal"
+                min={0}
                 placeholder={tipo === '%' ? '50' : '0,00'}
-                className="h-[46px] min-w-0 flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className={clsx(
+                  'h-[46px] min-w-0 flex-1 rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                  error ? 'border-danger' : 'border-line'
+                )}
               />
             </div>
+            {error && (
+              <div className="mt-2 flex items-center gap-[5px] text-[13px] text-danger">
+                <AlertCircle size={13} />
+                {error}
+              </div>
+            )}
             <div className="mt-3.5 flex flex-col gap-2">
               <div className="flex items-center justify-between rounded-input border border-dashed border-teal/[0.35] bg-teal/[0.06] px-3.5 py-2.5">
                 <span className="flex items-center gap-[7px] text-[13.5px] font-semibold text-teal">
@@ -792,10 +831,10 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
 }
 
 // ── ModoToggle ─────────────────────────────────────────────────────────────
-function ModoToggle({ modo, onChange }: { modo: 'tudo' | 'catalogo'; onChange: (m: 'tudo' | 'catalogo') => void }) {
+function ModoToggle({ modo, onChange }: { modo: 'tudo' | 'catalogo' | 'produto'; onChange: (m: 'tudo' | 'catalogo' | 'produto') => void }) {
   return (
     <div className="inline-flex flex-shrink-0 overflow-hidden rounded-input border border-line">
-      {([['tudo', 'Tudo'], ['catalogo', 'Catálogo']] as const).map(([val, label]) => {
+      {([['tudo', 'Tudo'], ['catalogo', 'Catálogo'], ['produto', 'Produto']] as const).map(([val, label]) => {
         const on = modo === val
         return (
           <button
@@ -818,7 +857,7 @@ function ModoToggle({ modo, onChange }: { modo: 'tudo' | 'catalogo'; onChange: (
 function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCatalogoFiltro, onSelectCatalogoItem, onSelectProdutoAvulso }: {
   open: boolean
   onClose: () => void
-  modo: 'tudo' | 'catalogo'
+  modo: 'tudo' | 'catalogo' | 'produto'
   catalogos: CatalogoResponse[]
   catalogoFiltro: string
   onSelectCatalogoFiltro: (id: string) => void
@@ -829,6 +868,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
   const [itensCatalogo, setItensCatalogo] = useState<ItemCatalogoBuscaResponse[]>([])
   const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
   const [loading, setLoading] = useState(false)
+  const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -838,6 +878,29 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
+
+  // ORC-030 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calculada a partir
+  // da posição real da 8ª linha (medida via ref, não um px fixo assumido): cobre de uma vez tanto
+  // o caso de 2 rótulos de categoria coexistindo (modo "Tudo" com catálogo + avulso) quanto o caso
+  // de badges de estoque quebrando para 2 linhas (nomes longos) — os dois fazem a linha crescer de
+  // forma que um valor fixo em px não acompanha. Sem isso: bug original de #242, o painel só
+  // orçava espaço para 1 rótulo de categoria, cortando o 8º item quando os dois apareciam juntos.
+  useLayoutEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    el.scrollTop = 0
+    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
+    if (linhas.length <= 8) {
+      setMaxHeight(undefined)
+      return
+    }
+    // offsetTop/offsetHeight (não getBoundingClientRect) — o painel entra com animate-pop
+    // (scale(0.92)→1); medir via clientRect durante o useLayoutEffect (síncrono, antes do
+    // primeiro paint) captura o box ainda na escala inicial da animação, subestimando a altura
+    // necessária. offsetTop/offsetHeight refletem o layout box "real", imune a transform.
+    const oitava = linhas[7]
+    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
+  }, [itensCatalogo, produtos])
 
   useEffect(() => {
     if (!open) {
@@ -850,14 +913,19 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
     const load = async () => {
       setLoading(true)
       try {
-        const tarefas: Promise<void>[] = [
-          orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, q || undefined).then(data => {
-            if (!cancelled) setItensCatalogo(data)
-          }).catch(() => { if (!cancelled) setItensCatalogo([]) }),
-        ]
-        if (modo === 'tudo') {
+        const tarefas: Promise<void>[] = []
+        if (modo !== 'produto') {
           tarefas.push(
-            produtoService.listar(0, 20, 'PRODUTO', q || undefined).then(data => {
+            orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, q || undefined).then(data => {
+              if (!cancelled) setItensCatalogo(data)
+            }).catch(() => { if (!cancelled) setItensCatalogo([]) })
+          )
+        } else if (!cancelled) {
+          setItensCatalogo([])
+        }
+        if (modo === 'tudo' || modo === 'produto') {
+          tarefas.push(
+            produtoService.listar(0, 20, 'PRODUTO', q || undefined, modo === 'produto').then(data => {
               if (!cancelled) setProdutos(data.content)
             }).catch(() => { if (!cancelled) setProdutos([]) })
           )
@@ -876,18 +944,12 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
   if (!open) return null
 
   const semResultado = itensCatalogo.length === 0 && produtos.length === 0 && !loading
-  // RN-NOVA-7 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calibrada para
-  // a busca de item de catálogo (linha de 78px, medida via Playwright): 8 linhas + cabeçalho fixo
-  // (barra de busca, 57px) + rótulo de categoria "Itens de catálogo" (25px), quando exibido (modo 'tudo').
-  const temRotuloCategoria = modo === 'tudo' && itensCatalogo.length > 0
 
   return (
     <div
       ref={wrapRef}
-      className={clsx(
-        'absolute inset-x-5 top-[62px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]',
-        temRotuloCategoria ? 'max-h-[706px]' : 'max-h-[681px]'
-      )}
+      style={maxHeight != null ? { maxHeight } : undefined}
+      className="absolute inset-x-5 top-[62px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
     >
       <div className="sticky top-0 z-10 flex gap-1.5 bg-white px-1.5 pt-1.5">
         <input
@@ -895,7 +957,11 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
           type="text"
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder={modo === 'catalogo' ? 'Buscar item de catálogo...' : 'Buscar produto ou item de catálogo...'}
+          placeholder={
+            modo === 'catalogo' ? 'Buscar item de catálogo...' :
+            modo === 'produto' ? 'Buscar produto...' :
+            'Buscar produto ou item de catálogo...'
+          }
           className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[1.5px] border-line bg-cream px-3 font-[inherit] text-sm text-dark outline-none"
         />
         {modo === 'catalogo' && catalogos.length > 0 && (
@@ -927,6 +993,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
             {itensCatalogo.map(item => (
               <button
                 key={item.id}
+                data-search-row
                 onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
@@ -938,7 +1005,8 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                   <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
                   <EstoqueTags
                     className="mt-1"
-                    fracionavel={!item.algumInsumoNaoFracionavel}
+                    fracionavel={false}
+                    showFracionavel={false}
                     permitirEstoqueNegativo={item.permitirEstoqueNegativo}
                     estoqueAtual={item.estoqueAtual}
                     variant="busca"
@@ -948,14 +1016,17 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
             ))}
           </div>
         )}
-        {modo === 'tudo' && produtos.length > 0 && (
+        {produtos.length > 0 && (
           <div>
-            <div className="px-[11px] pb-0.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-              Produtos avulsos
-            </div>
+            {modo === 'tudo' && (
+              <div className="px-[11px] pb-0.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
+                Produtos
+              </div>
+            )}
             {produtos.map(p => (
               <button
                 key={p.id}
+                data-search-row
                 onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
@@ -964,10 +1035,11 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{p.nome}</div>
-                  <div className="text-xs text-muted">Avulso · margem editável</div>
+                  <div className="text-xs text-muted">{BRL(p.precoVenda ?? 0)} / unidade</div>
                   <EstoqueTags
                     className="mt-1"
-                    fracionavel={!p.algumInsumoNaoFracionavel}
+                    fracionavel={false}
+                    showFracionavel={false}
                     permitirEstoqueNegativo={p.permitirEstoqueNegativo}
                     estoqueAtual={p.estoqueAtual}
                     variant="busca"
@@ -981,104 +1053,13 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
           <div className="p-5 text-center text-sm text-muted">
             {modo === 'catalogo'
               ? 'Nenhum item de catálogo encontrado. Cadastre um item de catálogo primeiro.'
-              : 'Nenhum resultado encontrado.'}
+              : modo === 'produto'
+                ? 'Nenhum produto fora de catálogo encontrado.'
+                : 'Nenhum resultado encontrado.'}
           </div>
         )}
       </div>
     </div>
-  )
-}
-
-// ── ModalMargemAvulso ──────────────────────────────────────────────────────
-function ModalMargemAvulso({ produto, margemPadrao, onClose, onConfirm }: {
-  produto: ProdutoResponse
-  margemPadrao: number
-  onClose: () => void
-  onConfirm: (margemAplicada: number, precoUnitario: number) => void
-}) {
-  const [margem, setMargem] = useState(margemPadrao.toString())
-  const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
-  const [precoFinal, setPrecoFinal] = useState('')
-  const [precoFinalEditado, setPrecoFinalEditado] = useState(false)
-  const [calculando, setCalculando] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
-
-  useEffect(() => {
-    const margemNum = parseFloat(margem.replace(',', '.'))
-    if (!Number.isFinite(margemNum) || margemNum < 0) return
-    setCalculando(true)
-    setErro(null)
-    const timer = setTimeout(() => {
-      produtoService.buscarPrecoSugerido(produto.id, margemNum)
-        .then(resp => {
-          setPrecoSugerido(resp.precoSugerido)
-          if (!precoFinalEditado) {
-            setPrecoFinal(resp.precoSugerido.toFixed(2).replace('.', ','))
-          }
-        })
-        .catch(() => setErro('Não foi possível calcular o preço sugerido.'))
-        .finally(() => setCalculando(false))
-    }, 350)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [margem, produto.id])
-
-  const precoFinalNum = parseFloat(precoFinal.replace(',', '.')) || 0
-  const podeConfirmar = precoFinalNum > 0 && !calculando
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title={produto.nome}
-      subtitle="Adicionar produto avulso"
-      icon={<Box size={20} />}
-      iconBg="rgba(42,157,143,0.10)"
-      iconColor="#2A9D8F"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" disabled={!podeConfirmar} onClick={() => onConfirm(parseFloat(margem.replace(',', '.')) || 0, precoFinalNum)}>
-            Adicionar ao orçamento
-          </Button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <label className="block">
-          <span className="mb-[7px] block text-[13px] font-semibold text-body">Margem (%)</span>
-          <input
-            value={margem}
-            onChange={e => setMargem(e.target.value.replace(/[^\d.,]/g, ''))}
-            inputMode="decimal"
-            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none"
-          />
-        </label>
-
-        <div className="rounded-xl border border-teal/20 bg-teal/[0.08] px-4 py-3.5">
-          <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">Preço sugerido</div>
-          <div className="mt-0.5 text-2xl font-bold text-teal">
-            {calculando ? 'Calculando…' : precoSugerido != null ? BRL(precoSugerido) : '—'}
-          </div>
-        </div>
-
-        {erro && (
-          <div className="flex items-center gap-[5px] text-[13px] text-danger">
-            <AlertCircle size={13} /> {erro}
-          </div>
-        )}
-
-        <label className="block">
-          <span className="mb-[7px] block text-[13px] font-semibold text-body">Preço final</span>
-          <input
-            value={precoFinal}
-            onChange={e => { setPrecoFinal(e.target.value.replace(/[^\d.,]/g, '')); setPrecoFinalEditado(true) }}
-            inputMode="decimal"
-            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none"
-          />
-        </label>
-      </div>
-    </ModalShell>
   )
 }
 
@@ -1099,20 +1080,21 @@ export default function CriarOrcamentoPage() {
   const [sinalAtivo, setSinalAtivo] = useState(false)
   const [sinalTipo, setSinalTipo] = useState<'%' | 'R$'>('%')
   const [sinalValor, setSinalValor] = useState('')
+  const [sinalError, setSinalError] = useState('')
   const [validade, setValidade] = useState('')
   const [obs, setObs] = useState('')
   const [productOpen, setProductOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [modoItens, setModoItens] = useState<'tudo' | 'catalogo'>('tudo')
+  const [modoItens, setModoItens] = useState<'tudo' | 'catalogo' | 'produto'>('tudo')
   const [catalogos, setCatalogos] = useState<CatalogoResponse[]>([])
   const [catalogoFiltro, setCatalogoFiltro] = useState('')
-  const [margemPadrao, setMargemPadrao] = useState(0)
-  const [produtoAvulsoModal, setProdutoAvulsoModal] = useState<ProdutoResponse | null>(null)
-  const [avisoEstoque, setAvisoEstoque] = useState<{ orcamentoId: string; avisos: AvisoEstoque[] } | null>(null)
   // #218 (RN-NOVA-8/9/11) — última simulação de estoque conhecida por produtoId (não por item da
   // lista: o backend acumula quantidade quando o mesmo produto aparece em mais de um item).
   const [simulacoes, setSimulacoes] = useState<Record<string, SimulacaoEstoqueProdutoResponse>>({})
   const [pendentesAvanco, setPendentesAvanco] = useState<SimulacaoEstoqueProdutoResponse[] | null>(null)
+  // RN-NOVA-11 (revisada, checkpoint em lote) — seleção de itens por checkbox na modal de
+  // checkpoint, para acionar "Criar produção" uma única vez cobrindo todos os selecionados.
+  const [selecionadosProducao, setSelecionadosProducao] = useState<Set<string>>(new Set())
   const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
@@ -1126,7 +1108,6 @@ export default function CriarOrcamentoPage() {
 
   useEffect(() => {
     catalogoService.listar({ size: 100 }).then(data => setCatalogos(data.content)).catch(() => setCatalogos([]))
-    empresaService.getConfiguracao().then(cfg => setMargemPadrao(cfg.margemPadrao ?? 0)).catch(() => {})
   }, [])
 
   // RN-NOVA-11 — reconsulta estoque sempre que a lista de itens muda (adicionar/remover/alterar
@@ -1158,41 +1139,10 @@ export default function CriarOrcamentoPage() {
   const sinalAplicado = sinalAtivo ? (sinalTipo === '%' ? total * sinalNum / 100 : Math.min(sinalNum, total)) : 0
   const restante = Math.max(0, total - sinalAplicado)
 
-  // RN-NOVA-8 — consulta simular-alertas para o item prestes a entrar no orçamento (quantidade
-  // 1, ponto de partida sempre usado por handleAddCatalogoItem/handleConfirmAvulso), somado aos
-  // itens já na tela. Bloqueia (retorna false + toast) só quando BLOQUEIO_FUTURO
-  // (permitirEstoqueNegativo=false e estoque insuficiente); AVISO não bloqueia a adição
-  // (RN-NOVA-9 cobre esse caso via aviso inline depois de adicionado). Falha de rede no próprio
-  // simular-alertas não trava a tela — o backend ainda bloqueia via RN-NOVA-10 no POST final.
-  const verificarEstoqueAoAdicionar = async (
-    novoItem: SimularAlertasOrcamentoItemRequest,
-    produtoIdAlvo: string,
-    nomeExibicao: string,
-    fracionavel: boolean
-  ): Promise<boolean> => {
-    try {
-      const resultado = await orcamentoService.simularEstoque([...toSimularItens(items), novoItem])
-      setSimulacoes(prev => ({ ...prev, ...Object.fromEntries(resultado.map(r => [r.produtoId, r])) }))
-      const alerta = resultado.find(r => r.produtoId === produtoIdAlvo)
-      if (alerta?.situacao === 'BLOQUEIO_FUTURO') {
-        setToast(`Estoque insuficiente para adicionar "${nomeExibicao}": disponível ${formatQuantidade(alerta.estoqueAtual, fracionavel)}, necessário ${formatQuantidade(alerta.quantidadeNecessaria, fracionavel)}. Este produto não permite estoque negativo.`)
-        return false
-      }
-      return true
-    } catch (err) {
-      console.error('Erro ao simular estoque:', err)
-      return true
-    }
-  }
-
-  const handleAddCatalogoItem = async (item: ItemCatalogoBuscaResponse) => {
-    const permitido = await verificarEstoqueAoAdicionar(
-      { itemCatalogoId: item.id, quantidade: 1 },
-      item.produtoId,
-      item.nomeProduto,
-      !item.algumInsumoNaoFracionavel
-    )
-    if (!permitido) return
+  // RN-NOVA-11 (revisada) — adicionar item nunca bloqueia, independente de
+  // permitirEstoqueNegativo; o estoque exibido (EstoqueTags/aviso inline) vem sempre da simulação
+  // ao vivo do efeito de debounce acima, nunca de uma checagem síncrona no momento da adição.
+  const handleAddCatalogoItem = (item: ItemCatalogoBuscaResponse) => {
     setItems(arr => [...arr, {
       id: Date.now(),
       nome: item.nomeProduto,
@@ -1209,47 +1159,35 @@ export default function CriarOrcamentoPage() {
     setProductOpen(false)
   }
 
+  // P-F005/#251 — preço vem direto do cadastro do produto (RN-054 revisada, 2026-08-16):
+  // nenhum item, catálogo ou avulso, pergunta margem/preço dentro do orçamento.
   const handleSelectProdutoAvulso = (produto: ProdutoResponse) => {
-    setProdutoAvulsoModal(produto)
+    setItems(arr => [...arr, {
+      id: Date.now(),
+      nome: produto.nome,
+      qtd: 1,
+      preco: produto.precoVenda ?? 0,
+      customs: [],
+      produtoId: produto.id,
+      produtoIdentificador: produto.identificador,
+      algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
+      permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
+      estoqueAtual: produto.estoqueAtual,
+    }])
     setProductOpen(false)
   }
 
-  const handleConfirmAvulso = async (margemAplicada: number, precoUnitario: number) => {
-    if (!produtoAvulsoModal) return
-    const permitido = await verificarEstoqueAoAdicionar(
-      { produtoId: produtoAvulsoModal.id, quantidade: 1 },
-      produtoAvulsoModal.id,
-      produtoAvulsoModal.nome,
-      !(produtoAvulsoModal.algumInsumoNaoFracionavel ?? false)
-    )
-    if (!permitido) return
-    setItems(arr => [...arr, {
-      id: Date.now(),
-      nome: produtoAvulsoModal.nome,
-      qtd: 1,
-      preco: precoUnitario,
-      customs: [],
-      produtoId: produtoAvulsoModal.id,
-      produtoIdentificador: produtoAvulsoModal.identificador,
-      margemAplicada,
-      algumInsumoNaoFracionavel: produtoAvulsoModal.algumInsumoNaoFracionavel ?? false,
-      permitirEstoqueNegativo: produtoAvulsoModal.permitirEstoqueNegativo,
-      estoqueAtual: produtoAvulsoModal.estoqueAtual,
-    }])
-    setProdutoAvulsoModal(null)
-  }
-
-  // RN-NOVA-9 — itens do orçamento em construção cujo produto está em AVISO (permite estoque
-  // negativo, mas insuficiente para a quantidade pedida), deduplicados por produtoId. Reaproveita
-  // `simulacoes` já obtido pelo Passo 1/2/efeito de estoque vivo — nenhuma chamada nova ao backend
-  // só para montar a modal de aviso ao avançar.
+  // RN-NOVA-11 (revisada) — itens do orçamento em construção com estoque insuficiente
+  // (qualquer situação != SUFICIENTE, independente de permitirEstoqueNegativo — a criação nunca
+  // bloqueia), deduplicados por produtoId. Reaproveita `simulacoes` já obtido pelo efeito de
+  // estoque vivo — nenhuma chamada nova ao backend só para montar o checkpoint.
   const calcularItensPendentesAvanco = (): SimulacaoEstoqueProdutoResponse[] => {
     const vistos = new Set<string>()
     const pendentes: SimulacaoEstoqueProdutoResponse[] = []
     for (const it of items) {
       if (!it.produtoId || vistos.has(it.produtoId)) continue
       const sim = simulacoes[it.produtoId]
-      if (sim?.situacao === 'AVISO') {
+      if (sim && sim.situacao !== 'SUFICIENTE') {
         vistos.add(it.produtoId)
         pendentes.push(sim)
       }
@@ -1259,6 +1197,7 @@ export default function CriarOrcamentoPage() {
 
   const handleSubmit = () => {
     setPrazoDiasError('')
+    setSinalError('')
 
     if (!cliente) {
       alert('Selecione um cliente')
@@ -1281,6 +1220,11 @@ export default function CriarOrcamentoPage() {
       return
     }
 
+    if (sinalAtivo && sinalNum <= 0) {
+      setSinalError('Informe um valor de sinal maior que zero')
+      return
+    }
+
     if (metodoPagamento === 'OUTRO' && metodoPagamentoObs.length < 50) {
       alert('Descreva o método de pagamento com ao menos 50 caracteres')
       return
@@ -1288,6 +1232,7 @@ export default function CriarOrcamentoPage() {
 
     const pendentes = calcularItensPendentesAvanco()
     if (pendentes.length > 0) {
+      setSelecionadosProducao(new Set())
       setPendentesAvanco(pendentes)
       return
     }
@@ -1303,7 +1248,7 @@ export default function CriarOrcamentoPage() {
       itens: items.map(it => ({
         ...(it.itemCatalogoId
           ? { itemCatalogoId: it.itemCatalogoId }
-          : { produtoId: it.produtoId, margemAplicada: it.margemAplicada, precoUnitario: it.preco }),
+          : { produtoId: it.produtoId, precoUnitario: it.preco }),
         quantidade: it.qtd,
         customizacoes: it.customs.map(c => ({
           produtoId: c.id,
@@ -1318,7 +1263,7 @@ export default function CriarOrcamentoPage() {
       sinalAtivo,
       percentualSinal: sinalAtivo && sinalTipo === '%' ? sinalNum : undefined,
       valorSinal: sinalAtivo && sinalTipo === 'R$' ? sinalNum : undefined,
-      tipoDesconto: descNum > 0 ? descTipo : undefined,
+      tipoDesconto: descNum > 0 ? TIPO_DESCONTO_API[descTipo] : undefined,
       descontoValor: descNum > 0 ? descNum : undefined,
       observacoes: obs || undefined,
       dataValidade: validade ? `${validade}T00:00:00` : undefined,
@@ -1326,16 +1271,12 @@ export default function CriarOrcamentoPage() {
 
     setLoading(true)
     try {
+      // RN-NOVA-11 (revisada) — criação nunca é bloqueada por estoque insuficiente; o checkpoint
+      // acima (pendentesAvanco) já cumpriu o papel de aviso antes deste POST. `avisosEstoque` na
+      // resposta não tem mais consumidor nesta tela (a modal pós-criação foi removida).
       const result = await orcamentoService.criar(payload)
-      if (result.avisosEstoque && result.avisosEstoque.length > 0) {
-        setAvisoEstoque({ orcamentoId: result.id, avisos: result.avisosEstoque })
-      } else {
-        navigate(`/orcamentos/${result.id}`)
-      }
+      navigate(`/orcamentos/${result.id}`)
     } catch (err) {
-      // Passo 5 (defesa em profundidade) — RN-NOVA-10 pode bloquear (400) mesmo depois do
-      // frontend já ter bloqueado no add (RN-NOVA-8), em corrida de estoque entre a simulação e o
-      // submit. Tratado no padrão do projeto (extractApiError + toast), nunca alert().
       console.error('Erro ao criar orçamento:', err)
       setToast(extractApiError(err, 'Erro ao criar orçamento. Tente novamente.'))
     } finally {
@@ -1447,6 +1388,7 @@ export default function CriarOrcamentoPage() {
               tipo={sinalTipo} setTipo={setSinalTipo}
               valor={sinalValor} setValor={setSinalValor}
               sinalAplicado={sinalAplicado} restante={restante}
+              error={sinalError}
             />
           </QuoteCard>
 
@@ -1485,49 +1427,14 @@ export default function CriarOrcamentoPage() {
         />
       )}
 
-      {/* Modal margem produto avulso */}
-      {produtoAvulsoModal && (
-        <ModalMargemAvulso
-          produto={produtoAvulsoModal}
-          margemPadrao={margemPadrao}
-          onClose={() => setProdutoAvulsoModal(null)}
-          onConfirm={handleConfirmAvulso}
-        />
-      )}
 
-      {/* Modal aviso de estoque insuficiente (pós-criação do orçamento) */}
-      {avisoEstoque && (
-        <ModalShell
-          open
-          onClose={() => navigate(`/orcamentos/${avisoEstoque.orcamentoId}`)}
-          title="Orçamento criado com aviso de estoque"
-          icon={<AlertTriangle size={20} />}
-          iconBg="rgba(249,115,22,0.14)"
-          iconColor="#A35A26"
-          width={560}
-          footer={
-            <Button variant="primary" onClick={() => navigate(`/orcamentos/${avisoEstoque.orcamentoId}`)}>
-              Ver orçamento
-            </Button>
-          }
-        >
-          <p className="m-0 mb-3.5 text-[13.5px] text-muted">
-            Alguns produtos deste orçamento podem não ter estoque suficiente no momento da produção:
-          </p>
-          <div className="flex flex-col gap-2">
-            {avisoEstoque.avisos.map((a, i) => (
-              <div key={i} className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 text-[13.5px] text-warning-alt">
-                <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                <span>{a.mensagem}</span>
-              </div>
-            ))}
-          </div>
-        </ModalShell>
-      )}
-
-      {/* Modal de aviso ao avançar/finalizar com item pendente (RN-NOVA-9) — não bloqueia, só
-          informa e oferece o atalho de criar produção; "Continuar mesmo assim" segue com a
-          criação normalmente. */}
+      {/* Modal de checkpoint único de aviso de estoque (RN-NOVA-11 revisada, OpenProject #246/#245)
+          — ponto único de aviso ao clicar "Criar orçamento". Nunca bloqueia a criação, independente
+          de permitirEstoqueNegativo (a única trava real de negócio é o avanço para Finalizado,
+          backend). Cada item tem um checkbox; "Criar produção" cobre os selecionados numa única
+          ação (RN-NOVA-5), sem exigir seleção para prosseguir com "Continuar mesmo assim". A modal
+          "Orçamento criado com aviso de estoque" (pós-criação) foi removida — este checkpoint já
+          cumpre o papel de aviso antes da criação. */}
       {pendentesAvanco && (
         <ModalShell
           open
@@ -1541,6 +1448,22 @@ export default function CriarOrcamentoPage() {
           footer={
             <>
               <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
+              <Button
+                variant="secondary"
+                disabled={selecionadosProducao.size === 0}
+                onClick={() => {
+                  const produtos = pendentesAvanco
+                    .filter(p => selecionadosProducao.has(p.produtoId))
+                    .map(p => ({
+                      produtoId: p.produtoId,
+                      nome: p.nomeProduto,
+                      quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
+                    }))
+                  navigate('/producao/nova', { state: { produtos } })
+                }}
+              >
+                <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
+              </Button>
               <Button variant="primary" onClick={() => { setPendentesAvanco(null); criarOrcamento() }}>
                 Continuar mesmo assim
               </Button>
@@ -1548,25 +1471,35 @@ export default function CriarOrcamentoPage() {
           }
         >
           <p className="m-0 mb-3.5 text-[13.5px] text-muted">
-            Estes produtos não têm estoque suficiente para a quantidade deste orçamento. Você pode
-            continuar mesmo assim ou criar uma produção agora para cobrir a diferença.
+            Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode
+            continuar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a
+            diferença.
           </p>
           <div className="flex flex-col gap-2">
             {pendentesAvanco.map(p => {
               const falta = Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual))
+              const selecionado = selecionadosProducao.has(p.produtoId)
               return (
-                <div key={p.produtoId} className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3">
+                <label
+                  key={p.produtoId}
+                  className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selecionado}
+                    onChange={() => setSelecionadosProducao(prev => {
+                      const next = new Set(prev)
+                      if (next.has(p.produtoId)) next.delete(p.produtoId)
+                      else next.add(p.produtoId)
+                      return next
+                    })}
+                    className="h-4 w-4 flex-shrink-0 accent-orange"
+                  />
                   <AlertTriangle size={16} className="flex-shrink-0 text-orange" />
                   <span className="flex-1 text-[13px] leading-[1.4] text-warning-alt">
-                    <strong className="font-semibold">{p.nomeProduto}</strong> — faltam {falta} un. (disponível {p.estoqueAtual} de {p.quantidadeNecessaria} necessárias)
+                    <strong className="font-semibold">{p.nomeProduto}</strong> — disponível {p.estoqueAtual}, necessário {p.quantidadeNecessaria} (faltam {falta} un.)
                   </span>
-                  <button
-                    onClick={() => navigate(`/producao/nova?produtoId=${p.produtoId}&quantidade=${falta}`)}
-                    className="inline-flex h-7 flex-shrink-0 items-center gap-1.5 rounded-full border-none bg-orange px-3 font-[inherit] text-[11.5px] font-semibold text-white transition-colors duration-150 hover:bg-orange/90"
-                  >
-                    <Factory size={12} /> Criar produção
-                  </button>
-                </div>
+                </label>
               )
             })}
           </div>

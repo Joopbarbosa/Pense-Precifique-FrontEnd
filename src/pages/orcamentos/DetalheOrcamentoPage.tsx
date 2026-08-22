@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
-import { useAuthStore } from "../../store/authStore";
 import type {
   OrcamentoDetalheResponse,
   AvancaStatusRequest,
@@ -111,6 +110,14 @@ function cancelKind(status: ApiStatus): "simples" | "estorno" | "multa" | "justi
   if (status === "ENTREGUE" || status === "PAGO") return "justificativa";
   return "simples";
 }
+
+// Antecipa qual wizard o botão "Cancelar orçamento" vai abrir, por status
+const CANCEL_KIND_HINT: Record<ReturnType<typeof cancelKind>, string | null> = {
+  simples: null,
+  estorno: "Este orçamento tem sinal pago — o cancelamento vai gerar recibo de estorno.",
+  multa: "Este orçamento já entrou em produção — o cancelamento vai calcular multa.",
+  justificativa: "Este orçamento já foi entregue — o cancelamento exige justificativa.",
+};
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
 
@@ -420,7 +427,9 @@ function ModalCancelMulta({
 
   const total = orcamento.total || 0;
   const percNum = parseFloat((multaPerc || "0").replace(",", ".")) || 0;
-  const multaAplicada = multaAtiva ? (total * percNum) / 100 : 0;
+  const sinalPago = orcamento.sinalAtivo && orcamento.valorSinal ? orcamento.valorSinal : 0;
+  const multaBruta = (total * percNum) / 100;
+  const multaAplicada = multaAtiva ? Math.max(multaBruta - sinalPago, 0) : 0;
 
   const tituloPasso =
     step === 1 ? "Itens deste pedido"
@@ -571,6 +580,11 @@ function ModalCancelMulta({
                   {BRL(multaAplicada)}
                 </span>
               </div>
+              {sinalPago > 0 && (
+                <div className="mt-2 text-xs text-muted">
+                  Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
+                </div>
+              )}
             </div>
           )}
         </>
@@ -580,13 +594,20 @@ function ModalCancelMulta({
       {step === 3 && (
         <div className="flex flex-col gap-4">
           {multaAtiva ? (
-            <div className="flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
-              <span className="text-sm font-semibold text-dark">
-                Multa <span className="font-medium text-muted">({percNum}%)</span>
-              </span>
-              <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
-                {BRL(multaAplicada)}
-              </span>
+            <div className="flex flex-col gap-1 rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-dark">
+                  Multa <span className="font-medium text-muted">({percNum}%)</span>
+                </span>
+                <span className="text-lg font-bold text-orange [font-variant-numeric:tabular-nums]">
+                  {BRL(multaAplicada)}
+                </span>
+              </div>
+              {sinalPago > 0 && (
+                <span className="text-xs text-muted">
+                  Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
+                </span>
+              )}
             </div>
           ) : (
             <div className="text-[13.5px] text-muted">
@@ -692,7 +713,7 @@ function ModalCancelEstorno({
                   fullWidth
                   disabled={saving}
                   onClick={() =>
-                    onConfirm({ estornarSinal: true, dataEstornoSinal: dataEstorno })
+                    onConfirm({ estornarSinal: true, dataEstornoSinal: `${dataEstorno}T12:00:00` })
                   }
                 >
                   {saving ? "Processando..." : "Confirmar e gerar recibo de estorno"}
@@ -906,7 +927,6 @@ function DownloadsCard({
 export default function DetalheOrcamentoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const token = useAuthStore((s) => s.token);
 
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null);
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
@@ -1014,9 +1034,9 @@ export default function DetalheOrcamentoPage() {
   };
 
   // "pdf" (orçamento) usa o serviço centralizado + retry com cooldown (RN-NOVA-3) — único
-  // documento migrado ao microsserviço neste MVP (épico #89). Os outros 4 tipos continuam no
-  // fluxo antigo (endpoint local inalterado, fora deste escopo) — mesma correção de padrão de
-  // erro (toast em vez de alert), mas sem gate/cooldown.
+  // documento migrado ao microsserviço neste MVP (épico #89). Tem também botão de preview próprio
+  // no header ("Ver preview do PDF" → /orcamentos/{id}/preview), por isso o card mantém o download
+  // direto para este item.
   const handleDownloadPdf = () => {
     if (!id || pdfRetry.executando || pdfRetry.cooldownRestante > 0) return;
     pdfRetry.executar(async () => {
@@ -1025,43 +1045,24 @@ export default function DetalheOrcamentoPage() {
     }, "Erro ao baixar PDF do orçamento.");
   };
 
-  const handleDownload = async (
-    kind: "reciboSinal" | "multa" | "estorno" | "pagamento",
-  ) => {
-    if (!id) return;
-    const urlMap = {
-      reciboSinal: orcamentoService.downloadReciboSinal(id),
-      multa: orcamentoService.downloadPdfMulta(id),
-      estorno: orcamentoService.downloadReciboEstorno(id),
-      pagamento: orcamentoService.downloadReciboPagamento(id),
-    };
-    const fileNames = {
-      reciboSinal: `recibo-sinal-${orcamento?.numero || id}.pdf`,
-      multa: `multa-${orcamento?.numero || id}.pdf`,
-      estorno: `recibo-estorno-${orcamento?.numero || id}.pdf`,
-      pagamento: `recibo-pagamento-${orcamento?.numero || id}.pdf`,
-    };
-    try {
-      const response = await fetch(urlMap[kind], {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-      dispararDownloadBlob(blob, fileNames[kind]);
-    } catch (err) {
-      console.error("Erro ao baixar documento:", err);
-      setToast(extractApiError(err, "Erro ao baixar documento."));
-    }
+  // P-F013 — os outros 4 documentos (épico #248) navegam para a própria tela de preview em vez de
+  // baixar via fetch cru: essas telas já tratam gate de preview, retry/cooldown e erro sozinhas.
+  const PREVIEW_ROUTE: Record<"reciboSinal" | "multa" | "estorno" | "pagamento", string> = {
+    reciboSinal: "recibo-sinal",
+    multa: "multa",
+    estorno: "recibo-estorno",
+    pagamento: "recibo-pagamento",
   };
 
   const handleDownloadAny = (
     kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
   ) => {
+    if (!id) return;
     if (kind === "pdf") {
       handleDownloadPdf();
       return;
     }
-    handleDownload(kind);
+    navigate(`/orcamentos/${id}/${PREVIEW_ROUTE[kind]}`);
   };
 
   if (loading) {
@@ -1148,12 +1149,17 @@ export default function DetalheOrcamentoPage() {
           {!finalizado && (
             <div className="mt-[30px] flex flex-wrap items-center justify-between gap-[18px] border-t border-line pt-[22px]">
               {cancelavel ? (
-                <button
-                  onClick={() => setModal("cancel")}
-                  className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger"
-                >
-                  <Ban size={15} /> Cancelar orçamento
-                </button>
+                <div className="flex flex-col items-start gap-1.5">
+                  <button
+                    onClick={() => setModal("cancel")}
+                    className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger"
+                  >
+                    <Ban size={15} /> Cancelar orçamento
+                  </button>
+                  {CANCEL_KIND_HINT[kind] && (
+                    <span className="text-xs text-muted">{CANCEL_KIND_HINT[kind]}</span>
+                  )}
+                </div>
               ) : (
                 <span />
               )}

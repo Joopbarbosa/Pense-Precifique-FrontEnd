@@ -5,12 +5,13 @@ import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
 
 export const orcamentoService = {
-  listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string): Promise<PageResponse<OrcamentoResponse>> => {
+  listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string, sort?: string): Promise<PageResponse<OrcamentoResponse>> => {
     const params: Record<string, any> = { page, size };
     if (status) params.status = status;
     if (busca) params.busca = busca;
     if (dataCriacaoDe) params.dataCriacaoDe = dataCriacaoDe;
     if (dataCriacaoAte) params.dataCriacaoAte = dataCriacaoAte;
+    if (sort) params.sort = sort;
     const response = await api.get('/orcamentos', { params });
     return response.data;
   },
@@ -74,8 +75,66 @@ export const orcamentoService = {
     return response.data;
   },
 
-  downloadReciboSinal: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-sinal`,
-  downloadPdfMulta: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/pdf-multa`,
-  downloadReciboEstorno: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-estorno`,
-  downloadReciboPagamento: (id: string) => `${api.defaults.baseURL}/orcamentos/${id}/recibo-pagamento`,
+  // Mesmo padrão de baixarPdf — usados pelas 4 telas de preview migradas (épico #248, V0.8.1),
+  // que baixam via Axios (gate de preview + retry/cooldown). P-F013 (V0.8.1) religou o card de
+  // downloads de DetalheOrcamentoPage.tsx a essas mesmas telas via navegação, em vez do fetch cru
+  // que usava as 4 funções irmãs (downloadReciboSinal/downloadPdfMulta/downloadReciboEstorno/
+  // downloadReciboPagamento) — removidas por ficarem sem consumidor.
+  baixarReciboSinal: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/recibo-sinal`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  baixarPdfMulta: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/pdf-multa`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  baixarReciboEstorno: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/recibo-estorno`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  baixarReciboPagamento: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/orcamentos/${id}/recibo-pagamento`, { responseType: 'blob' });
+      return response.data;
+    } catch (err) {
+      throw await normalizarErroBlob(err);
+    }
+  },
+
+  // Mesmo motivo de buscarPreviewHtml acima (sem responseType, para o Axios conseguir fazer
+  // JSON.parse do corpo de erro sem cair no bug de Blob/texto cru) — épico #248, V0.8.1.
+  buscarPreviewHtmlReciboSinal: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/recibo-sinal/preview-html`);
+    return response.data;
+  },
+
+  buscarPreviewHtmlPdfMulta: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/pdf-multa/preview-html`);
+    return response.data;
+  },
+
+  buscarPreviewHtmlReciboEstorno: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/recibo-estorno/preview-html`);
+    return response.data;
+  },
+
+  buscarPreviewHtmlReciboPagamento: async (id: string): Promise<string> => {
+    const response = await api.get(`/orcamentos/${id}/recibo-pagamento/preview-html`);
+    return response.data;
+  },
 };

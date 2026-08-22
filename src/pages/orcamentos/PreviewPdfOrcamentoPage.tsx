@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, StatusBadge, Spinner, EmptyState } from '../../components/ui'
 import { RetryCooldownModal } from '../../components/shared'
-import { ChevronRight, Download, FileWarning } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Download, FileWarning } from 'lucide-react'
 import { orcamentoService } from '../../services/orcamentoService'
 import { useToast } from '../../hooks/useToast'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
@@ -23,6 +23,7 @@ export default function PreviewPdfOrcamentoPage() {
   const { id } = useParams<{ id: string }>()
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [enviando, setEnviando] = useState(false)
   const { toast, setToast } = useToast()
 
   const [html, setHtml] = useState<string | null>(null)
@@ -91,6 +92,22 @@ export default function PreviewPdfOrcamentoPage() {
     }, 'Erro ao baixar PDF do orçamento.')
   }
 
+  // #247 — RASCUNHO→ENVIADO não exige body (OrcamentoService.avancarStatus, case RASCUNHO,
+  // confirmado via curl no Passo 0); `enviando` evita disparo duplo em clique repetido.
+  const handleMarcarComoEnviado = async () => {
+    if (!id || enviando) return
+    setEnviando(true)
+    try {
+      const result = await orcamentoService.avancarStatus(id)
+      setOrcamento(result as OrcamentoDetalheResponse)
+    } catch (err) {
+      console.error('Erro ao marcar orçamento como enviado:', err)
+      setToast(extractApiError(err, 'Erro ao marcar orçamento como enviado.'))
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   if (loading) {
     return (
       <AppLayout active="orcamentos" compact>
@@ -145,6 +162,9 @@ export default function PreviewPdfOrcamentoPage() {
 
           {/* Botões de ação */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <Button variant="ghost" icon={<ArrowLeft size={17} />} onClick={() => navigate(`/orcamentos/${orcamento.id}`)}>
+              Voltar ao orçamento
+            </Button>
             <Button
               variant="secondary"
               icon={downloadRetry.executando ? <Spinner size={15} /> : <Download size={17} />}
@@ -157,6 +177,16 @@ export default function PreviewPdfOrcamentoPage() {
                   ? `Aguarde ${downloadRetry.cooldownRestante}s`
                   : 'Baixar PDF'}
             </Button>
+            {orcamento.status === 'RASCUNHO' && (
+              <Button
+                variant="primary"
+                iconRight={enviando ? <Spinner size={15} /> : <ArrowRight size={17} />}
+                onClick={handleMarcarComoEnviado}
+                disabled={enviando}
+              >
+                {enviando ? 'Enviando...' : 'Enviar orçamento'}
+              </Button>
+            )}
           </div>
         </div>
       </div>

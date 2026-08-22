@@ -4,10 +4,11 @@ import type { InsumoResponse } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const produtoService = {
-  listar: async (page: number, size = 20, tipo?: string, busca?: string): Promise<PageResponse<ProdutoResponse>> => {
+  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
     if (tipo) params.tipo = tipo
     if (busca) params.busca = busca
+    if (semCatalogo) params.semCatalogo = true
     const response = await api.get('/produtos', { params })
     return response.data
   },

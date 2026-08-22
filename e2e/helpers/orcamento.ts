@@ -1,4 +1,4 @@
-import { APIRequestContext, Page, expect } from '@playwright/test'
+import { APIRequestContext, Page } from '@playwright/test'
 import { API_URL } from './auth'
 
 export async function criarCliente(request: APIRequestContext, token: string, nome: string) {
@@ -43,15 +43,13 @@ export async function selecionarCliente(page: Page, nomeCliente: string) {
  * a quantidade via Stepper (só +/-, sem input numérico direto — CriarOrcamentoPage.tsx:153-169).
  * Assume que a página já está em `/orcamentos/novo` e que `nomeProduto` é único o bastante para
  * não colidir com outro resultado de busca (nome com timestamp, como nos demais specs QA).
+ * P-F005/#251 (2026-08-16) — clicar no produto adiciona direto, sem modal de margem/preço: o
+ * preço vem do cadastro do produto (RN-054 revisada). `ModalMargemAvulso` foi removida.
  */
 export async function adicionarItemAvulso(page: Page, nomeProduto: string, quantidade: number) {
   await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
   await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
   await page.getByText(nomeProduto, { exact: true }).click()
-
-  const confirmar = page.getByRole('button', { name: 'Adicionar ao orçamento', exact: true })
-  await expect(confirmar).toBeEnabled({ timeout: 5000 })
-  await confirmar.click()
 
   // Stepper começa em 1 — clica em "+" (quantidade - 1) vezes. Único +/- na tela nesse ponto
   // (um só item na lista), então o botão "+" é inequívoco.

@@ -18,7 +18,11 @@ type StatusBadgeType =
   | 'Em Produção' | 'Finalizado'
   | 'Entregue' | 'Pago' | 'Cancelado'
 
-export default function ReciboPagamentoPage() {
+// Sem Design próprio no épico #248 — segue o mesmo padrão estrutural dos outros 3 documentos
+// (iframe srcDoc + gate + useRetryCooldown). Sem "Próximos passos"/"Instrução de pagamento":
+// reciboEstornoSchema (contrato-pdf.md, seção 8) não tem prazoProducao/inicioProducao/
+// dataAprovacao, e um recibo de estorno não tem "próximo pagamento" a instruir.
+export default function ReciboEstornoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
@@ -49,16 +53,13 @@ export default function ReciboPagamentoPage() {
     load()
   }, [id, setToast])
 
-  // Épico #248 (V0.8.1) — preview via microsserviço (GET .../recibo-pagamento/preview-html),
-  // mesmo padrão de PreviewPdfOrcamentoPage.tsx: o botão de download só habilita quando esta
-  // chamada (a mesma fonte usada pelo download em si) tiver sucesso.
   const carregarPreview = useCallback(async () => {
     if (!id) return
     setHtml(null)
     await previewRetry.executar(async () => {
-      const conteudo = await orcamentoService.buscarPreviewHtmlReciboPagamento(id)
+      const conteudo = await orcamentoService.buscarPreviewHtmlReciboEstorno(id)
       setHtml(conteudo)
-    }, 'Não foi possível carregar o preview do recibo de pagamento.')
+    }, 'Não foi possível carregar o preview do recibo de estorno.')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
@@ -84,9 +85,9 @@ export default function ReciboPagamentoPage() {
   const handleDownloadPdf = () => {
     if (!id || downloadBloqueado) return
     downloadRetry.executar(async () => {
-      const blob = await orcamentoService.baixarReciboPagamento(id)
-      dispararDownloadBlob(blob, `recibo-pagamento-${orcamento?.numero || id}.pdf`)
-    }, 'Erro ao baixar recibo de pagamento.')
+      const blob = await orcamentoService.baixarReciboEstorno(id)
+      dispararDownloadBlob(blob, `recibo-estorno-${orcamento?.numero || id}.pdf`)
+    }, 'Erro ao baixar recibo de estorno.')
   }
 
   if (loading) {
@@ -135,9 +136,9 @@ export default function ReciboPagamentoPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="m-0 text-xl font-bold tracking-[-0.02em] text-dark">
-                Recibo de Pagamento
+                Recibo de Estorno
               </h1>
-              <StatusBadge status={(STATUS_LABEL[orcamento.status] || 'Pago') as StatusBadgeType} size="sm" />
+              <StatusBadge status={(STATUS_LABEL[orcamento.status] || 'Cancelado') as StatusBadgeType} size="sm" />
             </div>
           </div>
 
@@ -189,7 +190,7 @@ export default function ReciboPagamentoPage() {
               srcDoc={html ?? ''}
               onLoad={handleIframeLoad}
               sandbox=""
-              title="Preview do recibo de pagamento"
+              title="Preview do recibo de estorno"
               style={{ height: iframeHeight }}
               className="w-full rounded-[4px] border border-line bg-white shadow-[0_10px_40px_-8px_rgba(31,38,52,0.18),0_2px_8px_rgba(0,0,0,0.06)]"
             />
