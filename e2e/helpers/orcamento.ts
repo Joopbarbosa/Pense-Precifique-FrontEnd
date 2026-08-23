@@ -77,6 +77,7 @@ export async function criarOrcamentoViaApi(
       clienteId,
       itens,
       metodoPagamento: 'PIX',
+      temPrazoProducao: true,
       prazoProducaoDias: 5,
       sinalAtivo: false,
       ...overrides,
