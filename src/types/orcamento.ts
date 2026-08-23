@@ -1,3 +1,5 @@
+import type { AvisoEstoqueNegativo } from './producao';
+
 export type StatusOrcamento =
   'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'AGUARDANDO_SINAL' |
   'SINAL_PAGO' | 'EM_PRODUCAO' | 'FINALIZADO' | 'ENTREGUE' | 'PAGO' | 'CANCELADO';
@@ -165,5 +167,20 @@ export interface AvancaStatusRequest {
   dataEstornoSinal?: string;
   justificativa?: string;
   confirmarEstoqueNegativoProdutoIds?: string[];
+  // RN-NOVA-2 (revisada, P-B012) — true força o case ENVIADO a ignorar o atalho de aprovação
+  // direta mesmo elegível, seguindo o fluxo normal (status vai para APROVADO).
+  ignorarAtalhoAprovacaoDireta?: boolean;
+}
+
+// RN-NOVA-2 (revisada, P-B012) — resultado de simular POST /orcamentos/{id}/avancar-status sem
+// persistir nada. statusResultante é o que a chamada real produziria: FINALIZADO (atalho aplicável)
+// ou APROVADO (fluxo normal). avisosEstoque só vem preenchido quando o atalho aplicaria mas a baixa
+// deixaria algum produto negativo ainda não confirmado (mesmo shape de AvisoEstoqueNegativo/
+// ConfirmacaoEstoqueNegativoResponse já usado em EM_PRODUCAO→FINALIZADO).
+export interface SimulacaoAvancoStatusResponse {
+  statusAtual: StatusOrcamento;
+  statusResultante: StatusOrcamento;
+  atalhoAplicavel: boolean;
+  avisosEstoque: AvisoEstoqueNegativo[];
 }
 

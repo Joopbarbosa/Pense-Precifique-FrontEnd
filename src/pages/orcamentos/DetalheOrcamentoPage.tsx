@@ -8,7 +8,7 @@ import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
-  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory,
+  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -17,6 +17,7 @@ import type {
   AvancaStatusRequest,
   MetodoPagamento,
   ItemSemEstoque,
+  SimulacaoAvancoStatusResponse,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
@@ -309,6 +310,78 @@ function ModalSinal({
           sinal com a forma de pagamento registrada.
         </p>
       </div>
+    </ModalShell>
+  );
+}
+
+// ─── ModalConfirmarAtalho — RN-NOVA-2 revisada (P-F002.2) ────────────────────
+// Uma modal só: quando há avisosEstoque, o aviso aparece embutido aqui (mesmo texto que a API já
+// devolve), não abre ConfirmarEstoqueNegativoModal por cima — decisão de UX travada no prompt.
+
+function ModalConfirmarAtalho({
+  avisosEstoque,
+  onClose,
+  onConfirmarAtalho,
+  onSeguirFluxoNormal,
+  confirming,
+}: {
+  avisosEstoque: AvisoEstoqueNegativo[];
+  onClose: () => void;
+  onConfirmarAtalho: () => void;
+  onSeguirFluxoNormal: () => void;
+  confirming: boolean;
+}) {
+  const temAviso = avisosEstoque.length > 0;
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Pular direto para Finalizado?"
+      subtitle="Enviado"
+      icon={<Zap size={18} />}
+      iconBg="#FFF4E8"
+      iconColor="#B5701F"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onSeguirFluxoNormal} disabled={confirming}>
+            Seguir fluxo normal
+          </Button>
+          <Button variant="primary" onClick={onConfirmarAtalho} disabled={confirming}>
+            {confirming ? "Confirmando..." : "Confirmar atalho"}
+          </Button>
+        </>
+      }
+    >
+      <p className="m-0 text-sm leading-[1.6] text-body">
+        {temAviso ? (
+          <>
+            Este orçamento não tem sinal nem prazo de produção — por isso pode ser aprovado e
+            finalizado de uma vez. Só que dar baixa no estoque vai deixar algum item negativo, como
+            mostrado abaixo.
+          </>
+        ) : (
+          <>
+            Este orçamento não tem sinal nem prazo de produção, e todos os itens têm estoque
+            disponível — por isso pode ser aprovado e finalizado de uma vez, sem passar pelas etapas
+            intermediárias.
+          </>
+        )}
+      </p>
+
+      {temAviso && (
+        <div className="mt-4 flex flex-col gap-2">
+          {avisosEstoque.map((a) => (
+            <div
+              key={a.componenteId}
+              className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3 text-[13.5px] text-warning-alt"
+            >
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <span>{a.mensagem}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </ModalShell>
   );
 }
@@ -932,11 +1005,13 @@ export default function DetalheOrcamentoPage() {
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [modal, setModal] = useState<null | "sinal" | "cancel">(null);
+  const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho">(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
   const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
   const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
   const [confirmandoAviso, setConfirmandoAviso] = useState(false);
+  const [simulacaoAtalho, setSimulacaoAtalho] = useState<SimulacaoAvancoStatusResponse | null>(null);
+  const [confirmandoAtalho, setConfirmandoAtalho] = useState(false);
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
@@ -1015,6 +1090,80 @@ export default function DetalheOrcamentoPage() {
       setErroAvanco(msg);
     } finally {
       setConfirmandoAviso(false);
+    }
+  };
+
+  // RN-NOVA-2 (revisada, P-F002.2) — clique em "Aprovar" com status ENVIADO: simula antes de
+  // aplicar, para o usuário poder recusar o atalho. Decisão travada: erro na simulação NUNCA cai
+  // no fluxo normal automaticamente — evita aplicar o atalho de verdade sem o usuário ter visto a
+  // modal de confirmação.
+  const handleClicarAprovar = async () => {
+    if (!id) return;
+    setSaving(true);
+    setErroAvanco(null);
+    let resultado: SimulacaoAvancoStatusResponse;
+    try {
+      resultado = await orcamentoService.simularAvancarStatus(id);
+    } catch (err) {
+      console.error("Erro ao simular avanço de status:", err);
+      setErroAvanco(extractApiError(err, "Não foi possível verificar o atalho de aprovação. Tente novamente."));
+      setSaving(false);
+      return;
+    }
+    if (resultado.atalhoAplicavel) {
+      setSimulacaoAtalho(resultado);
+      setModal("confirmarAtalho");
+      setSaving(false);
+      return;
+    }
+    await handleAvancar();
+  };
+
+  const handleConfirmarAtalho = async () => {
+    if (!id) return;
+    setConfirmandoAtalho(true);
+    setErroAvanco(null);
+    try {
+      const avisos = simulacaoAtalho?.avisosEstoque ?? [];
+      const result = await orcamentoService.avancarStatus(id, {
+        confirmarEstoqueNegativoProdutoIds: avisos.length > 0 ? avisos.map((a) => a.componenteId) : undefined,
+      });
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        // estoque mudou entre a simulação e a confirmação — atualiza a mesma modal com os avisos novos
+        setSimulacaoAtalho((prev) => (prev ? { ...prev, avisosEstoque: result.avisos } : prev));
+      } else {
+        setOrcamento(result);
+        setModal(null);
+        setSimulacaoAtalho(null);
+      }
+    } catch (err) {
+      console.error("Erro ao confirmar atalho:", err);
+      setErroAvanco(extractApiError(err, "Erro ao avançar status do orçamento."));
+      setModal(null);
+      setSimulacaoAtalho(null);
+    } finally {
+      setConfirmandoAtalho(false);
+    }
+  };
+
+  const handleSeguirFluxoNormal = async () => {
+    if (!id) return;
+    setConfirmandoAtalho(true);
+    setErroAvanco(null);
+    try {
+      const result = await orcamentoService.avancarStatus(id, { ignorarAtalhoAprovacaoDireta: true });
+      if (!isConfirmacaoEstoqueNegativoResponse(result)) {
+        setOrcamento(result);
+      }
+      setModal(null);
+      setSimulacaoAtalho(null);
+    } catch (err) {
+      console.error("Erro ao seguir fluxo normal:", err);
+      setErroAvanco(extractApiError(err, "Erro ao avançar status do orçamento."));
+      setModal(null);
+      setSimulacaoAtalho(null);
+    } finally {
+      setConfirmandoAtalho(false);
     }
   };
 
@@ -1098,6 +1247,8 @@ export default function DetalheOrcamentoPage() {
   const onPrimaryAction = () => {
     if (status === "AGUARDANDO_SINAL") {
       setModal("sinal");
+    } else if (status === "ENVIADO") {
+      handleClicarAprovar();
     } else {
       handleAvancar();
     }
@@ -1426,6 +1577,19 @@ export default function DetalheOrcamentoPage() {
           saving={saving}
           onClose={() => setModal(null)}
           onConfirm={(data) => handleAvancar(data)}
+        />
+      )}
+
+      {modal === "confirmarAtalho" && simulacaoAtalho && (
+        <ModalConfirmarAtalho
+          avisosEstoque={simulacaoAtalho.avisosEstoque}
+          confirming={confirmandoAtalho}
+          onClose={() => {
+            setModal(null);
+            setSimulacaoAtalho(null);
+          }}
+          onConfirmarAtalho={handleConfirmarAtalho}
+          onSeguirFluxoNormal={handleSeguirFluxoNormal}
         />
       )}
 

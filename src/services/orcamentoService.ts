@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -43,6 +43,13 @@ export const orcamentoService = {
 
   avancarStatus: async (id: string, data?: AvancaStatusRequest): Promise<OrcamentoDetalheResponse | ConfirmacaoEstoqueNegativoResponse> => {
     const response = await api.post(`/orcamentos/${id}/avancar-status`, data || {});
+    return response.data;
+  },
+
+  // RN-NOVA-2 (revisada, P-B012) — simula avancarStatus sem persistir, só aceita orçamento em
+  // ENVIADO (único status onde o atalho de aprovação direta se aplica).
+  simularAvancarStatus: async (id: string, data?: AvancaStatusRequest): Promise<SimulacaoAvancoStatusResponse> => {
+    const response = await api.post(`/orcamentos/${id}/simular-avancar-status`, data || {});
     return response.data;
   },
 
