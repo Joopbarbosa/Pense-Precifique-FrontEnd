@@ -459,11 +459,14 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
 
 // ── PrazoSection ───────────────────────────────────────────────────────────
 function PrazoSection({
+  temPrazoProducao, setTemPrazoProducao,
   prazoDias, setPrazoDias,
   inicioImediato, setInicioImediato,
   dataInicioEstimada, setDataInicioEstimada,
   error,
 }: {
+  temPrazoProducao: boolean
+  setTemPrazoProducao: (v: boolean) => void
   prazoDias: string
   setPrazoDias: (v: string) => void
   inicioImediato: boolean
@@ -475,66 +478,101 @@ function PrazoSection({
   return (
     <div className="flex flex-col gap-4 px-5 pb-5 pt-4">
 
-      {/* Campo de dias */}
-      <div className="flex items-center gap-3">
-        <input
-          type="number"
-          min={1}
-          value={prazoDias}
-          onChange={e => setPrazoDias(e.target.value.replace(/[^0-9]/g, ''))}
-          placeholder="10"
-          className={clsx(
-            'h-[46px] w-[100px] rounded-input border-[1.5px] px-3.5 text-center font-[inherit] text-lg font-bold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
-            error ? 'border-danger' : 'border-line'
-          )}
-        />
-        <span className="text-[15px] font-medium text-body">dias úteis</span>
+      {/* Toggle Vai ter prazo de produção? */}
+      <div className="flex flex-wrap items-center justify-between gap-3.5">
+        <div className="flex items-center gap-3">
+          <span className="grid h-[38px] w-[38px] place-items-center rounded-[11px] bg-teal/10 text-teal">
+            <Calendar size={18} />
+          </span>
+          <div>
+            <div className="text-[14.5px] font-semibold text-dark">Vai ter prazo de produção?</div>
+            <div className="mt-px text-[12.5px] text-muted">Define se este pedido tem data prevista de entrega.</div>
+          </div>
+        </div>
+        <div className="flex flex-shrink-0 overflow-hidden rounded-input border border-line">
+          {(['Não', 'Sim'] as const).map((lbl, i) => {
+            const val = i === 1
+            const on = temPrazoProducao === val
+            return (
+              <button
+                key={lbl}
+                onClick={() => setTemPrazoProducao(val)}
+                className={clsx(
+                  'h-10 w-[60px] border-none font-[inherit] text-sm font-semibold transition-colors duration-150',
+                  on ? (val ? 'bg-teal text-white' : 'bg-line-soft text-body') : 'bg-white text-dim'
+                )}
+              >{lbl}</button>
+            )
+          })}
+        </div>
       </div>
-      {error && (
-        <div className="flex items-center gap-[5px] text-[13px] text-danger">
-          <AlertCircle size={13} />
-          {error}
-        </div>
-      )}
 
-      {/* Checkbox início */}
-      <button
-        type="button"
-        onClick={() => setInicioImediato(!inicioImediato)}
-        className={clsx(
-          'flex items-start gap-2.5 rounded-xl border-[1.5px] px-[15px] py-[13px] text-left font-[inherit] transition-all duration-150',
-          inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-cream'
-        )}
-      >
-        <span className={clsx(
-          'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
-          inicioImediato ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
-        )}>
-          {inicioImediato && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
-        </span>
-        <div>
-          <div className="text-[14.5px] font-semibold text-dark">Início assim que aprovado</div>
-          <div className="mt-0.5 text-[12.5px] text-muted">A produção começa logo após a aprovação do cliente.</div>
-        </div>
-      </button>
+      {temPrazoProducao && (
+        <div className="flex flex-col gap-4 animate-[fadeUp_.2s_ease_both]">
 
-      {/* Data estimada */}
-      {!inicioImediato && (
-        <div className="animate-[fadeUp_.2s_ease_both]">
-          <label className="block">
-            <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-              <Calendar size={16} className="text-teal" /> Data estimada de início
-            </span>
+          {/* Campo de dias */}
+          <div className="flex items-center gap-3">
             <input
-              type="date"
-              value={dataInicioEstimada}
-              onChange={e => setDataInicioEstimada(e.target.value)}
-              className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              type="number"
+              min={1}
+              value={prazoDias}
+              onChange={e => setPrazoDias(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="10"
+              className={clsx(
+                'h-[46px] w-[100px] rounded-input border-[1.5px] px-3.5 text-center font-[inherit] text-lg font-bold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                error ? 'border-danger' : 'border-line'
+              )}
             />
-          </label>
-          <p className="mb-0 mt-1.5 text-[12.5px] text-muted">
-            Informe quando você estima começar a produção deste pedido.
-          </p>
+            <span className="text-[15px] font-medium text-body">dias úteis</span>
+          </div>
+          {error && (
+            <div className="flex items-center gap-[5px] text-[13px] text-danger">
+              <AlertCircle size={13} />
+              {error}
+            </div>
+          )}
+
+          {/* Checkbox início */}
+          <button
+            type="button"
+            onClick={() => setInicioImediato(!inicioImediato)}
+            className={clsx(
+              'flex items-start gap-2.5 rounded-xl border-[1.5px] px-[15px] py-[13px] text-left font-[inherit] transition-all duration-150',
+              inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-cream'
+            )}
+          >
+            <span className={clsx(
+              'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
+              inicioImediato ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
+            )}>
+              {inicioImediato && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
+            </span>
+            <div>
+              <div className="text-[14.5px] font-semibold text-dark">Início assim que aprovado</div>
+              <div className="mt-0.5 text-[12.5px] text-muted">A produção começa logo após a aprovação do cliente.</div>
+            </div>
+          </button>
+
+          {/* Data estimada */}
+          {!inicioImediato && (
+            <div className="animate-[fadeUp_.2s_ease_both]">
+              <label className="block">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={16} className="text-teal" /> Data estimada de início
+                </span>
+                <input
+                  type="date"
+                  value={dataInicioEstimada}
+                  onChange={e => setDataInicioEstimada(e.target.value)}
+                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+              </label>
+              <p className="mb-0 mt-1.5 text-[12.5px] text-muted">
+                Informe quando você estima começar a produção deste pedido.
+              </p>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -1073,6 +1111,7 @@ export default function CriarOrcamentoPage() {
   const [descValor, setDescValor] = useState('')
   const [metodoPagamento, setMetodoPagamento] = useState('PIX')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
+  const [temPrazoProducao, setTemPrazoProducao] = useState(true)
   const [prazoDias, setPrazoDias] = useState('')
   const [prazoDiasError, setPrazoDiasError] = useState('')
   const [inicioImediato, setInicioImediato] = useState(true)
@@ -1209,15 +1248,17 @@ export default function CriarOrcamentoPage() {
       return
     }
 
-    const prazoDiasNum = parseInt(prazoDias)
-    if (!prazoDiasNum || prazoDiasNum < 1) {
-      setPrazoDiasError('Prazo obrigatório, mínimo 1 dia')
-      return
-    }
+    if (temPrazoProducao) {
+      const prazoDiasNum = parseInt(prazoDias)
+      if (!prazoDiasNum || prazoDiasNum < 1) {
+        setPrazoDiasError('Prazo obrigatório, mínimo 1 dia')
+        return
+      }
 
-    if (!inicioImediato && !dataInicioEstimada) {
-      alert('Informe a data estimada de início')
-      return
+      if (!inicioImediato && !dataInicioEstimada) {
+        alert('Informe a data estimada de início')
+        return
+      }
     }
 
     if (sinalAtivo && sinalNum <= 0) {
@@ -1257,9 +1298,10 @@ export default function CriarOrcamentoPage() {
       })),
       metodoPagamento: metodoPagamento as MetodoPagamento,
       metodoPagamentoObs: metodoPagamento === 'OUTRO' ? metodoPagamentoObs : undefined,
-      prazoProducaoDias: prazoDiasNum,
-      inicioAssimQueAprovado: inicioImediato,
-      dataInicioEstimada: !inicioImediato ? dataInicioEstimada : undefined,
+      temPrazoProducao,
+      prazoProducaoDias: temPrazoProducao ? prazoDiasNum : undefined,
+      inicioAssimQueAprovado: temPrazoProducao ? inicioImediato : true,
+      dataInicioEstimada: temPrazoProducao && !inicioImediato ? dataInicioEstimada : undefined,
       sinalAtivo,
       percentualSinal: sinalAtivo && sinalTipo === '%' ? sinalNum : undefined,
       valorSinal: sinalAtivo && sinalTipo === 'R$' ? sinalNum : undefined,
@@ -1370,6 +1412,7 @@ export default function CriarOrcamentoPage() {
           {/* Seção 3: Prazo de produção */}
           <QuoteCard step="3" label="Prazo de produção" hint="Quantos dias úteis para finalizar este pedido.">
             <PrazoSection
+              temPrazoProducao={temPrazoProducao} setTemPrazoProducao={setTemPrazoProducao}
               prazoDias={prazoDias} setPrazoDias={setPrazoDias}
               inicioImediato={inicioImediato} setInicioImediato={setInicioImediato}
               dataInicioEstimada={dataInicioEstimada} setDataInicioEstimada={setDataInicioEstimada}

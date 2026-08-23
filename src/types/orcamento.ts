@@ -54,7 +54,8 @@ export interface OrcamentoRequest {
   itens: OrcamentoItemRequest[];
   metodoPagamento: MetodoPagamento;
   metodoPagamentoObs?: string;
-  prazoProducaoDias: number;
+  temPrazoProducao: boolean;
+  prazoProducaoDias?: number;
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   sinalAtivo: boolean;
@@ -129,7 +130,7 @@ export interface OrcamentoDetalheResponse {
   status: StatusOrcamento;
   metodoPagamento: MetodoPagamento;
   metodoPagamentoObs?: string;
-  prazoProducaoDias: number;
+  prazoProducaoDias?: number;
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   dataAprovacao?: string;
