@@ -124,6 +124,16 @@ export interface ItemSemEstoque {
   quantidadeFaltante: number;
 }
 
+// #320 (RN-NOVA-6) — resposta de POST /orcamentos/{id}/vincular-producao. GET /orcamentos/{id}
+// ainda não devolve os vínculos já existentes (achado de P-F003, backend fica para um próximo
+// prompt) — por ora a lista vinculada só existe em estado local, populada pela resposta deste POST.
+export interface OrcamentoProducaoResponse {
+  id: string;
+  producaoId: string;
+  identificadorProducao: string;
+  createdAt: string;
+}
+
 export interface OrcamentoDetalheResponse {
   id: string;
   numero: number;

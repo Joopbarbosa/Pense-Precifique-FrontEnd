@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -60,6 +60,13 @@ export const orcamentoService = {
 
   buscarItensSemEstoque: async (id: string): Promise<ItemSemEstoque[]> => {
     const response = await api.get(`/orcamentos/${id}/itens-sem-estoque`);
+    return response.data;
+  },
+
+  // RN-NOVA-6/#320 — idempotente (vincular a mesma produção 2x não duplica), devolve a lista
+  // completa de vínculos do orçamento após a operação.
+  vincularProducao: async (id: string, producaoId: string): Promise<OrcamentoProducaoResponse[]> => {
+    const response = await api.post(`/orcamentos/${id}/vincular-producao`, { producaoId });
     return response.data;
   },
 
