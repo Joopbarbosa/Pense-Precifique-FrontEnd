@@ -14,6 +14,7 @@ import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
 import type {
   OrcamentoDetalheResponse,
+  OrcamentoItemResponse,
   AvancaStatusRequest,
   MetodoPagamento,
   ItemSemEstoque,
@@ -319,12 +320,14 @@ function ModalSinal({
 // devolve), não abre ConfirmarEstoqueNegativoModal por cima — decisão de UX travada no prompt.
 
 function ModalConfirmarAtalho({
+  itens,
   avisosEstoque,
   onClose,
   onConfirmarAtalho,
   onSeguirFluxoNormal,
   confirming,
 }: {
+  itens: OrcamentoItemResponse[];
   avisosEstoque: AvisoEstoqueNegativo[];
   onClose: () => void;
   onConfirmarAtalho: () => void;
@@ -356,18 +359,37 @@ function ModalConfirmarAtalho({
       <p className="m-0 text-sm leading-[1.6] text-body">
         {temAviso ? (
           <>
-            Este orçamento não tem sinal nem prazo de produção — por isso pode ser aprovado e
-            finalizado de uma vez. Só que dar baixa no estoque vai deixar algum item negativo, como
-            mostrado abaixo.
+            Neste orçamento o cliente não vai pagar entrada e você disse que não precisa de prazo
+            de produção, então dá pra deixar pronto pra entrega agora. Mas dar baixa no estoque vai
+            deixar algum item negativo, como mostrado abaixo — quer confirmar assim mesmo?
           </>
         ) : (
           <>
-            Este orçamento não tem sinal nem prazo de produção, e todos os itens têm estoque
-            disponível — por isso pode ser aprovado e finalizado de uma vez, sem passar pelas etapas
-            intermediárias.
+            Neste orçamento o cliente não vai pagar entrada e você disse que não precisa de prazo
+            de produção. Como todos os itens já têm estoque, podemos deixar esse orçamento pronto
+            pra entrega agora mesmo?
           </>
         )}
       </p>
+
+      {itens.length > 0 && (
+        <div className="mt-4 flex max-h-[180px] flex-col gap-1.5 overflow-y-auto rounded-input border border-line bg-app/60 px-3.5 py-3">
+          {itens.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3 text-[13.5px] text-body"
+            >
+              <span className="flex items-center gap-2 truncate">
+                <Box size={14} className="flex-shrink-0 text-muted" />
+                <span className="truncate">{item.nomeProduto}</span>
+              </span>
+              <span className="flex-shrink-0 text-muted">
+                estoque: {item.estoqueAtual}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {temAviso && (
         <div className="mt-4 flex flex-col gap-2">
@@ -1582,6 +1604,7 @@ export default function DetalheOrcamentoPage() {
 
       {modal === "confirmarAtalho" && simulacaoAtalho && (
         <ModalConfirmarAtalho
+          itens={orcamento.itens}
           avisosEstoque={simulacaoAtalho.avisosEstoque}
           confirming={confirmandoAtalho}
           onClose={() => {
