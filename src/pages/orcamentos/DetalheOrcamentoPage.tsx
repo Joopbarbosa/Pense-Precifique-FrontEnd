@@ -21,7 +21,6 @@ import type {
   MetodoPagamento,
   ItemSemEstoque,
   SimulacaoAvancoStatusResponse,
-  OrcamentoProducaoResponse,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
@@ -415,9 +414,6 @@ function ModalConfirmarAtalho({
 }
 
 // ─── ModalVincularProducao — RN-NOVA-6/#320 ──────────────────────────────────
-// GET /orcamentos/{id} ainda não devolve as produções já vinculadas (achado de P-F003, backend
-// fica para um próximo prompt) — a modal só sabe evitar vincular de novo a produção que já foi
-// vinculada NESTA sessão (via `jaVinculadasIds`, alimentado pela resposta do próprio POST).
 
 function ModalVincularProducao({
   onClose,
@@ -1191,9 +1187,6 @@ export default function DetalheOrcamentoPage() {
   const [simulacaoAtalho, setSimulacaoAtalho] = useState<SimulacaoAvancoStatusResponse | null>(null);
   const [confirmandoAtalho, setConfirmandoAtalho] = useState(false);
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
-  // RN-NOVA-6/#320 — GET /orcamentos/{id} ainda não devolve vínculos existentes (ver nota em
-  // ModalVincularProducao), então esta lista só reflete vínculos feitos NESTA sessão da tela.
-  const [producoesVinculadas, setProducoesVinculadas] = useState<OrcamentoProducaoResponse[]>([]);
   const [vinculandoProducao, setVinculandoProducao] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
@@ -1201,7 +1194,6 @@ export default function DetalheOrcamentoPage() {
   const carregar = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    setProducoesVinculadas([]);
     try {
       const data = await orcamentoService.buscarPorId(id);
       setOrcamento(data);
@@ -1355,7 +1347,7 @@ export default function DetalheOrcamentoPage() {
     setVinculandoProducao(true);
     try {
       const vinculos = await orcamentoService.vincularProducao(id, producaoId);
-      setProducoesVinculadas(vinculos);
+      setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
       setToast("Produção vinculada a este orçamento.");
       setModal(null);
     } catch (err) {
@@ -1446,6 +1438,7 @@ export default function DetalheOrcamentoPage() {
   // RN-NOVA-6/ORC-040/#320 — os 2 únicos caminhos que persistem EM_PRODUCAO exigem vínculo.
   const precisaVincularProducao =
     (status === "APROVADO" && !orcamento.sinalAtivo) || status === "SINAL_PAGO";
+  const producoesVinculadas = orcamento.producoesVinculadas;
 
   const onPrimaryAction = () => {
     if (status === "AGUARDANDO_SINAL") {

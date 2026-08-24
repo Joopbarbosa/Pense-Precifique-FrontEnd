@@ -124,9 +124,9 @@ export interface ItemSemEstoque {
   quantidadeFaltante: number;
 }
 
-// #320 (RN-NOVA-6) — resposta de POST /orcamentos/{id}/vincular-producao. GET /orcamentos/{id}
-// ainda não devolve os vínculos já existentes (achado de P-F003, backend fica para um próximo
-// prompt) — por ora a lista vinculada só existe em estado local, populada pela resposta deste POST.
+// #320 (RN-NOVA-6) — vínculo de orçamento com produção (orcamento_producoes). Mesmo shape devolvido
+// por POST /orcamentos/{id}/vincular-producao e pelo campo producoesVinculadas de
+// OrcamentoDetalheResponse (P-B013).
 export interface OrcamentoProducaoResponse {
   id: string;
   producaoId: string;
@@ -165,6 +165,7 @@ export interface OrcamentoDetalheResponse {
   createdAt: string;
   updatedAt: string;
   avisosEstoque?: AvisoEstoque[];
+  producoesVinculadas: OrcamentoProducaoResponse[];
 }
 
 export interface AvancaStatusRequest {
