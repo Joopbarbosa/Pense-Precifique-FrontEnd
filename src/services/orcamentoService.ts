@@ -1,6 +1,6 @@
 import api from './api';
 import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse } from '../types/orcamento';
-import type { ConfirmacaoEstoqueNegativoResponse } from '../types/producao';
+import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
 
@@ -63,11 +63,27 @@ export const orcamentoService = {
     return response.data;
   },
 
-  // RN-NOVA-6/#320 — idempotente (vincular a mesma produção 2x não duplica), devolve a lista
-  // completa de vínculos do orçamento após a operação.
+  // RN-PROD-VINC-01/02 (revisão #320, P-B015) — efeito real: soma os produtos do orçamento aos já
+  // lançados na produção (nunca duplica linha), só aceita produção AGUARDANDO_INICIO. Devolve a
+  // lista completa de vínculos do orçamento após a operação.
   vincularProducao: async (id: string, producaoId: string): Promise<OrcamentoProducaoResponse[]> => {
     const response = await api.post(`/orcamentos/${id}/vincular-producao`, { producaoId });
     return response.data;
+  },
+
+  // RN-PROD-VINC-03 (P-B016) — alerta de insumo combinando os produtos já persistidos na produção
+  // com os produtos vindos do orçamento, sem persistir nada. Consumido antes de vincularProducao,
+  // nunca só a partir da mensagem de erro.
+  simularVincularProducao: async (id: string, producaoId: string): Promise<AlertaInsumo[]> => {
+    const response = await api.post(`/orcamentos/${id}/simular-vincular-producao`, { producaoId });
+    return response.data;
+  },
+
+  // RN-ORC-VINC-03 (P-B017) — reverte as quantidades adicionadas por vincularProducao (histórico
+  // ITEM_ADICIONADO daquele orçamento nessa produção). Sem consumidor de UI ainda nesta tarefa
+  // (P-F004) — confirmado existente via curl para o ponto 2 de RN-ORC-VINC-02 (prompt seguinte).
+  desvincularProducao: async (id: string, producaoId: string): Promise<void> => {
+    await api.delete(`/orcamentos/${id}/vincular-producao/${producaoId}`);
   },
 
   baixarPdf: async (id: string): Promise<Blob> => {

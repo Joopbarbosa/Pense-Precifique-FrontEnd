@@ -9,11 +9,9 @@ import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
-  Search, X,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
-import { producaoService } from "../../services/producaoService";
 import type {
   OrcamentoDetalheResponse,
   OrcamentoItemResponse,
@@ -24,17 +22,15 @@ import type {
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
-import type { AvisoEstoqueNegativo, ProducaoResumo } from "../../types/producao";
-import { getBadgeEstado } from "../../utils/badges";
+import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
+import ModalVincularProducao from "../../components/orcamento/ModalVincularProducao";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
 import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
-import EmptyState from "../../components/ui/EmptyState";
-import Spinner from "../../components/ui/Spinner";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -407,153 +403,6 @@ function ModalConfirmarAtalho({
               <span>{a.mensagem}</span>
             </div>
           ))}
-        </div>
-      )}
-    </ModalShell>
-  );
-}
-
-// ─── ModalVincularProducao — RN-NOVA-6/#320 ──────────────────────────────────
-
-function ModalVincularProducao({
-  onClose,
-  onVincular,
-  vinculando,
-  jaVinculadasIds,
-}: {
-  onClose: () => void;
-  onVincular: (producaoId: string) => void;
-  vinculando: boolean;
-  jaVinculadasIds: string[];
-}) {
-  const [busca, setBusca] = useState("");
-  const [producoes, setProducoes] = useState<ProducaoResumo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setErro(null);
-    const timer = setTimeout(async () => {
-      try {
-        const data = await producaoService.listar({ busca: busca || undefined, size: 20, sort: "numero,desc" });
-        if (!cancelled) setProducoes(data.content);
-      } catch {
-        if (!cancelled) setErro("Não deu pra carregar as produções. Tente de novo.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, busca ? 300 : 0);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [busca]);
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title="Vincular produção"
-      subtitle="Escolha uma produção já lançada"
-      icon={<Factory size={18} />}
-      iconBg="#EAF1FB"
-      iconColor="#2A6FB0"
-      footer={
-        <Button variant="ghost" onClick={onClose} disabled={vinculando}>
-          Fechar
-        </Button>
-      }
-    >
-      <div className="relative mb-3.5">
-        <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-        <input
-          autoFocus
-          type="text"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar por produto ou número da produção..."
-          className="w-full rounded-input border-[1.5px] border-line bg-white py-2.5 pl-9 pr-3.5 font-[inherit] text-[13.5px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-        />
-        {busca && (
-          <button
-            onClick={() => setBusca("")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted hover:text-body"
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {loading && (
-        <div className="flex items-center justify-center gap-2 py-10 text-[13px] text-muted">
-          <Spinner size={16} color="#2A9D8F" trackColor="rgba(42,157,143,0.18)" />
-          Carregando produções...
-        </div>
-      )}
-
-      {!loading && erro && (
-        <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-          <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-          <span>{erro}</span>
-        </div>
-      )}
-
-      {!loading && !erro && producoes.length === 0 && (
-        <EmptyState
-          compact
-          icon={<Factory size={26} />}
-          title="Nenhuma produção encontrada"
-          description={
-            busca
-              ? "Tente buscar por outro nome de produto ou número."
-              : "Você ainda não lançou nenhuma produção. Lance uma em Produção antes de vincular aqui."
-          }
-        />
-      )}
-
-      {!loading && !erro && producoes.length > 0 && (
-        <div className="-mx-1 flex max-h-[320px] flex-col gap-1.5 overflow-y-auto px-1 py-0.5">
-          {producoes.map((p) => {
-            const jaVinculada = jaVinculadasIds.includes(p.id);
-            const badge = getBadgeEstado(p.estado, p.historicoStatus);
-            return (
-              <button
-                key={p.id}
-                onClick={() => onVincular(p.id)}
-                disabled={vinculando || jaVinculada}
-                className={clsx(
-                  "flex items-center justify-between gap-3 rounded-input border px-3.5 py-3 text-left transition-colors duration-150",
-                  jaVinculada
-                    ? "cursor-default border-line bg-app/60"
-                    : "border-line bg-white hover:border-teal/40 hover:bg-teal/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
-                )}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13.5px] font-semibold text-dark">{p.identificador}</span>
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                      style={{ background: badge.bg, color: badge.fg }}
-                    >
-                      {badge.label}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 truncate text-[12.5px] text-muted">
-                    {p.produtos.map((prod) => `${prod.nomeProduto} (${prod.quantidade})`).join(", ")}
-                  </div>
-                </div>
-                {jaVinculada ? (
-                  <span className="flex flex-shrink-0 items-center gap-1 text-[12px] font-semibold text-teal">
-                    <Check size={14} /> Vinculada
-                  </span>
-                ) : (
-                  <span className="flex-shrink-0 text-[12px] font-semibold text-teal">Vincular</span>
-                )}
-              </button>
-            );
-          })}
         </div>
       )}
     </ModalShell>
@@ -1342,6 +1191,13 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // RN-PROD-VINC-03 (P-B016) — alerta combinado antes de confirmar, chamado pelo ModalVincularProducao
+  // ao selecionar uma produção da lista, nunca pulado.
+  const handleSimularVincularProducao = (producaoId: string) => {
+    if (!id) return Promise.reject(new Error("Orçamento sem id"));
+    return orcamentoService.simularVincularProducao(id, producaoId);
+  };
+
   const handleVincularProducao = async (producaoId: string) => {
     if (!id) return;
     setVinculandoProducao(true);
@@ -1435,7 +1291,11 @@ export default function DetalheOrcamentoPage() {
   const sinalRecebido = ["SINAL_PAGO", "EM_PRODUCAO", "FINALIZADO", "ENTREGUE", "PAGO"].includes(status);
   const restante = (orcamento.total || 0) - (orcamento.valorSinal || 0);
 
-  // RN-NOVA-6/ORC-040/#320 — os 2 únicos caminhos que persistem EM_PRODUCAO exigem vínculo.
+  // RN-ORC-VINC-02 ponto 2 (revisão #320) — vínculo é opcional em qualquer status (RN-ORC-VINC-01
+  // removeu o bloqueio antigo), mas o convite proativo ("Vincular produção", card abaixo quando
+  // ainda não há vínculo) só faz sentido nesses 2 caminhos, às vésperas de EM_PRODUCAO. O card de
+  // "já vinculado" (abaixo) não usa mais essa condição — mostra sempre que houver vínculo, mesmo em
+  // RASCUNHO/ENVIADO, já que o ponto 1 (P-F004, CriarOrcamentoPage) pode vincular bem antes disso.
   const precisaVincularProducao =
     (status === "APROVADO" && !orcamento.sinalAtivo) || status === "SINAL_PAGO";
   const producoesVinculadas = orcamento.producoesVinculadas;
@@ -1542,7 +1402,7 @@ export default function DetalheOrcamentoPage() {
             </div>
           )}
 
-          {precisaVincularProducao && producoesVinculadas.length > 0 && (
+          {producoesVinculadas.length > 0 && (
             <div className="mt-[18px] flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/[0.06] px-3.5 py-3">
               <div className="flex items-start gap-2.5">
                 <span className="mt-0.5 flex flex-shrink-0 text-teal">
@@ -1830,8 +1690,9 @@ export default function DetalheOrcamentoPage() {
       {modal === "vincularProducao" && (
         <ModalVincularProducao
           onClose={() => setModal(null)}
-          onVincular={handleVincularProducao}
-          vinculando={vinculandoProducao}
+          onSimular={handleSimularVincularProducao}
+          onConfirmar={handleVincularProducao}
+          confirmando={vinculandoProducao}
           jaVinculadasIds={producoesVinculadas.map((v) => v.producaoId)}
         />
       )}

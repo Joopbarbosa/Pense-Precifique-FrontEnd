@@ -18,10 +18,12 @@ import type {
   SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
 } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
+import type { AlertaInsumo } from '../../types/producao'
 import { METODOS_PAGAMENTO } from '../../constants'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
+import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
@@ -1134,6 +1136,12 @@ export default function CriarOrcamentoPage() {
   // RN-NOVA-11 (revisada, checkpoint em lote) — seleção de itens por checkbox na modal de
   // checkpoint, para acionar "Criar produção" uma única vez cobrindo todos os selecionados.
   const [selecionadosProducao, setSelecionadosProducao] = useState<Set<string>>(new Set())
+  // RN-ORC-VINC-02 ponto 1 (P-F004) — sub-modal de "vincular a produção existente", embutida no
+  // mesmo checkpoint acima. orcamentoCriadoId != null indica que o orçamento já foi persistido como
+  // efeito da pré-visualização do vínculo (ver handleSimularVinculo).
+  const [modalVincular, setModalVincular] = useState(false)
+  const [orcamentoCriadoId, setOrcamentoCriadoId] = useState<string | null>(null)
+  const [confirmandoVinculo, setConfirmandoVinculo] = useState(false)
   const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
@@ -1281,11 +1289,13 @@ export default function CriarOrcamentoPage() {
     criarOrcamento()
   }
 
-  const criarOrcamento = async () => {
-    if (!cliente) return
+  // Extraído de criarOrcamento (RN-ORC-VINC-02, P-F004) — reaproveitado também pelo fluxo de
+  // vincular produção embutido, que precisa criar o orçamento de verdade (obter um id real) antes
+  // de poder chamar simular-vincular-producao/vincular-producao (ambos escopados a /orcamentos/{id}).
+  const montarPayload = (): OrcamentoRequest => {
     const prazoDiasNum = parseInt(prazoDias)
-    const payload: OrcamentoRequest = {
-      clienteId: cliente.id,
+    return {
+      clienteId: cliente!.id,
       itens: items.map(it => ({
         ...(it.itemCatalogoId
           ? { itemCatalogoId: it.itemCatalogoId }
@@ -1310,13 +1320,16 @@ export default function CriarOrcamentoPage() {
       observacoes: obs || undefined,
       dataValidade: validade ? `${validade}T00:00:00` : undefined,
     }
+  }
 
+  const criarOrcamento = async () => {
+    if (!cliente) return
     setLoading(true)
     try {
       // RN-NOVA-11 (revisada) — criação nunca é bloqueada por estoque insuficiente; o checkpoint
       // acima (pendentesAvanco) já cumpriu o papel de aviso antes deste POST. `avisosEstoque` na
       // resposta não tem mais consumidor nesta tela (a modal pós-criação foi removida).
-      const result = await orcamentoService.criar(payload)
+      const result = await orcamentoService.criar(montarPayload())
       navigate(`/orcamentos/${result.id}`)
     } catch (err) {
       console.error('Erro ao criar orçamento:', err)
@@ -1324,6 +1337,46 @@ export default function CriarOrcamentoPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // RN-ORC-VINC-02 ponto 1 (P-F004) — orçamento ainda não existe neste checkpoint; ao escolher
+  // vincular a uma produção existente, o orçamento é criado (uma única vez, id guardado em
+  // orcamentoCriadoId) na primeira simulação, para então usar os endpoints reais de
+  // simular-vincular-producao/vincular-producao. Continua "embutido" (sem trocar de tela) — só a
+  // persistência acontece um pouco antes da confirmação final, não é uma escolha de UX, é
+  // consequência de os dois endpoints serem escopados a /orcamentos/{id}.
+  const handleSimularVinculo = async (producaoId: string): Promise<AlertaInsumo[]> => {
+    let orcId = orcamentoCriadoId
+    if (!orcId) {
+      const created = await orcamentoService.criar(montarPayload())
+      orcId = created.id
+      setOrcamentoCriadoId(orcId)
+    }
+    return orcamentoService.simularVincularProducao(orcId, producaoId)
+  }
+
+  const handleConfirmarVinculo = async (producaoId: string) => {
+    if (!orcamentoCriadoId) return
+    setConfirmandoVinculo(true)
+    try {
+      await orcamentoService.vincularProducao(orcamentoCriadoId, producaoId)
+    } catch (err) {
+      console.error('Erro ao vincular produção ao orçamento recém-criado:', err)
+    } finally {
+      setConfirmandoVinculo(false)
+      navigate(`/orcamentos/${orcamentoCriadoId}`)
+    }
+  }
+
+  // Uma vez que o orçamento já foi criado como efeito da pré-visualização acima, não faz sentido
+  // continuar no formulário de criação (evita duplicar orçamento se a artesã clicar em "Criar
+  // orçamento" de novo) — fechar a modal navega direto para o orçamento já existente.
+  const handleFecharModalVincular = () => {
+    if (orcamentoCriadoId) {
+      navigate(`/orcamentos/${orcamentoCriadoId}`)
+      return
+    }
+    setModalVincular(false)
   }
 
   const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
@@ -1478,7 +1531,7 @@ export default function CriarOrcamentoPage() {
           ação (RN-NOVA-5), sem exigir seleção para prosseguir com "Continuar mesmo assim". A modal
           "Orçamento criado com aviso de estoque" (pós-criação) foi removida — este checkpoint já
           cumpre o papel de aviso antes da criação. */}
-      {pendentesAvanco && (
+      {pendentesAvanco && !modalVincular && (
         <ModalShell
           open
           onClose={() => setPendentesAvanco(null)}
@@ -1489,34 +1542,41 @@ export default function CriarOrcamentoPage() {
           iconColor="#A35A26"
           width={560}
           footer={
-            <>
-              <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
-              <Button
-                variant="secondary"
-                disabled={selecionadosProducao.size === 0}
-                onClick={() => {
-                  const produtos = pendentesAvanco
-                    .filter(p => selecionadosProducao.has(p.produtoId))
-                    .map(p => ({
-                      produtoId: p.produtoId,
-                      nome: p.nomeProduto,
-                      quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
-                    }))
-                  navigate('/producao/nova', { state: { produtos } })
-                }}
-              >
-                <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
-              </Button>
-              <Button variant="primary" onClick={() => { setPendentesAvanco(null); criarOrcamento() }}>
-                Continuar mesmo assim
-              </Button>
-            </>
+            <div className="flex w-full flex-col gap-2.5">
+              <div className="flex justify-between gap-2.5">
+                <Button variant="secondary" onClick={() => setModalVincular(true)}>
+                  <Factory size={14} /> Vincular produção existente
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={selecionadosProducao.size === 0}
+                  onClick={() => {
+                    const produtos = pendentesAvanco
+                      .filter(p => selecionadosProducao.has(p.produtoId))
+                      .map(p => ({
+                        produtoId: p.produtoId,
+                        nome: p.nomeProduto,
+                        quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
+                      }))
+                    navigate('/producao/nova', { state: { produtos } })
+                  }}
+                >
+                  <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
+                </Button>
+              </div>
+              <div className="flex justify-between gap-2.5">
+                <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
+                <Button variant="primary" onClick={() => { setPendentesAvanco(null); criarOrcamento() }}>
+                  Continuar mesmo assim
+                </Button>
+              </div>
+            </div>
           }
         >
           <p className="m-0 mb-3.5 text-[13.5px] text-muted">
             Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode
-            continuar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a
-            diferença.
+            continuar mesmo assim, vincular a uma produção que já está aguardando início, ou
+            selecionar itens para criar uma produção agora, cobrindo a diferença.
           </p>
           <div className="flex flex-col gap-2">
             {pendentesAvanco.map(p => {
@@ -1547,6 +1607,28 @@ export default function CriarOrcamentoPage() {
             })}
           </div>
         </ModalShell>
+      )}
+
+      {modalVincular && pendentesAvanco && (
+        <ModalVincularProducao
+          onClose={handleFecharModalVincular}
+          jaVinculadasIds={[]}
+          onSimular={handleSimularVinculo}
+          onConfirmar={handleConfirmarVinculo}
+          confirmando={confirmandoVinculo}
+          onCriarNova={
+            orcamentoCriadoId
+              ? undefined
+              : () => {
+                  const produtos = pendentesAvanco.map(p => ({
+                    produtoId: p.produtoId,
+                    nome: p.nomeProduto,
+                    quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
+                  }))
+                  navigate('/producao/nova', { state: { produtos } })
+                }
+          }
+        />
       )}
 
     </AppLayout>
