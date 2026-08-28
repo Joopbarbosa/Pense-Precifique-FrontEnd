@@ -529,6 +529,11 @@ function ModalCancelMulta({
   const sinalPago = orcamento.sinalAtivo && orcamento.valorSinal ? orcamento.valorSinal : 0;
   const multaBruta = (total * percNum) / 100;
   const multaAplicada = multaAtiva ? Math.max(multaBruta - sinalPago, 0) : 0;
+  // RN-NOVA-1/ORC-036 (mini-estorno) — o valor exato a devolver só existe depois de confirmar (o
+  // servidor recalcula com BigDecimal/arredondamento próprios, ver OrcamentoService.calcularResultadoMulta).
+  // Mostrar só um aviso qualitativo aqui evita duplicar a fórmula de negócio no cliente — reaproveita
+  // sinalPago/multaBruta só para decidir SE mostra o aviso, nunca para exibir um valor calculado.
+  const possivelMiniEstorno = multaAtiva && sinalPago > multaBruta;
 
   const tituloPasso =
     step === 1 ? "Itens deste pedido"
@@ -684,6 +689,12 @@ function ModalCancelMulta({
                   Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
                 </div>
               )}
+              {possivelMiniEstorno && (
+                <div className="mt-2 text-xs font-medium text-teal">
+                  O sinal pago é maior que a multa — a cliente vai receber a diferença de volta. O
+                  valor exato será calculado ao confirmar.
+                </div>
+              )}
             </div>
           )}
         </>
@@ -705,6 +716,12 @@ function ModalCancelMulta({
               {sinalPago > 0 && (
                 <span className="text-xs text-muted">
                   Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
+                </span>
+              )}
+              {possivelMiniEstorno && (
+                <span className="text-xs font-medium text-teal">
+                  O sinal pago é maior que a multa — a cliente vai receber a diferença de volta. O
+                  valor exato será calculado ao confirmar.
                 </span>
               )}
             </div>
@@ -1503,18 +1520,32 @@ export default function DetalheOrcamentoPage() {
 
       {/* Banner cancelado */}
       {status === "CANCELADO" && (
-        <section className="flex animate-fade-up items-center gap-3.5 rounded-card border border-danger/30 bg-[#FCF0EC] px-6 py-5">
-          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-white text-danger">
-            <Ban size={16} />
-          </span>
-          <div>
-            <div className="text-[15.5px] font-bold text-dark">
-              Orçamento cancelado
-            </div>
-            <div className="mt-0.5 text-[13px] text-[#8A5A4E]">
-              Este orçamento foi cancelado e não pode mais avançar de status.
+        <section className="flex flex-col gap-3.5 animate-fade-up rounded-card border border-danger/30 bg-[#FCF0EC] px-6 py-5">
+          <div className="flex items-center gap-3.5">
+            <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-white text-danger">
+              <Ban size={16} />
+            </span>
+            <div>
+              <div className="text-[15.5px] font-bold text-dark">
+                Orçamento cancelado
+              </div>
+              <div className="mt-0.5 text-[13px] text-[#8A5A4E]">
+                Este orçamento foi cancelado e não pode mais avançar de status.
+              </div>
             </div>
           </div>
+          {/* RN-NOVA-1/ORC-036 (mini-estorno, V0.8.2) — sinal pago excedeu o valor bruto da multa,
+              a diferença é devolvida à cliente em vez de simplesmente zerar a multa sem explicação. */}
+          {orcamento.valorDevolvidoMulta != null && orcamento.valorDevolvidoMulta > 0 && (
+            <div className="flex items-center gap-2.5 rounded-xl border border-danger/25 bg-white px-4 py-3.5">
+              <Wallet size={16} className="flex-shrink-0 text-danger" />
+              <p className="m-0 text-[13px] leading-[1.5] text-[#8A5A4E]">
+                Você recebeu de volta{" "}
+                <strong className="font-bold text-dark">{BRL(orcamento.valorDevolvidoMulta)}</strong>{" "}
+                — o sinal pago era maior que a multa.
+              </p>
+            </div>
+          )}
         </section>
       )}
 

@@ -176,6 +176,9 @@ export interface OrcamentoDetalheResponse {
   dataValidade?: string;
   percentualMulta?: number;
   valorMulta?: number;
+  // RN-NOVA-1/ORC-036 (V0.8.2, P-B002) — populado só quando o sinal pago excedeu o valor bruto da
+  // multa (mini-estorno); nesse caso valorMulta vem sempre 0. Null nos outros 3 casos.
+  valorDevolvidoMulta?: number | null;
   estornoSinal?: boolean;
   dataEstornoSinal?: string;
   itens: OrcamentoItemResponse[];
