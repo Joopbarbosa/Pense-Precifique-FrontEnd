@@ -125,13 +125,26 @@ export interface ItemSemEstoque {
 }
 
 // #320 (RN-NOVA-6) — vínculo de orçamento com produção (orcamento_producoes). Mesmo shape devolvido
-// por POST /orcamentos/{id}/vincular-producao e pelo campo producoesVinculadas de
-// OrcamentoDetalheResponse (P-B013).
+// por POST /orcamentos/{id}/vincular-producao, POST /orcamentos/{id}/criar-producao-vinculada e pelo
+// campo producoesVinculadas de OrcamentoDetalheResponse (P-B013).
 export interface OrcamentoProducaoResponse {
   id: string;
   producaoId: string;
   identificadorProducao: string;
+  // RN-ORC-VINC-04 (P-F005) — cópia de Producao.dataTerminoPrevista (nulo se a produção ainda não
+  // tiver essa data) e aviso de estouro comparado contra dataEntregaEstimada do orçamento. Por
+  // vínculo, não agregado — um orçamento com várias produções pode ter estouro só numa delas.
+  dataTerminoPrevista: string | null;
+  estouroPrazo: boolean;
   createdAt: string;
+}
+
+// P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Sem campo produtos (vêm
+// do próprio orçamento, mesmo motivo de VincularProducaoRequest não carregar produtos).
+export interface CriarProducaoVinculadaRequest {
+  dataInicio?: string;
+  dataTerminoPrevista: string;
+  observacoes?: string;
 }
 
 export interface OrcamentoDetalheResponse {
@@ -146,6 +159,10 @@ export interface OrcamentoDetalheResponse {
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   dataAprovacao?: string;
+  // RN-ORC-VINC-04 (P-F005) — dataAprovacao + prazoProducaoDias, dias corridos. Nula quando falta um
+  // dos dois. Exposta isolada mesmo sem produção vinculada; usada para comparar com
+  // OrcamentoProducaoResponse.dataTerminoPrevista no aviso de estouro de prazo.
+  dataEntregaEstimada?: string | null;
   sinalAtivo: boolean;
   percentualSinal?: number;
   valorSinal?: number;

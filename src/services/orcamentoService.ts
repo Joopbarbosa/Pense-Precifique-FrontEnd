@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -84,6 +84,15 @@ export const orcamentoService = {
   // (P-F004) — confirmado existente via curl para o ponto 2 de RN-ORC-VINC-02 (prompt seguinte).
   desvincularProducao: async (id: string, producaoId: string): Promise<void> => {
     await api.delete(`/orcamentos/${id}/vincular-producao/${producaoId}`);
+  },
+
+  // RN-ORC-VINC-05 (P-B020) — cria uma produção nova já vinculada, produtos vindos do próprio
+  // orçamento. Não idempotente — cada chamada cria uma produção distinta, mesmo com o mesmo body
+  // (confirmado via curl, Passo 0 de P-F005). Proteção contra double-submit é responsabilidade do
+  // consumidor (desabilitar o botão de confirmação enquanto a Promise não resolve).
+  criarProducaoVinculada: async (id: string, data: CriarProducaoVinculadaRequest): Promise<OrcamentoProducaoResponse[]> => {
+    const response = await api.post(`/orcamentos/${id}/criar-producao-vinculada`, data);
+    return response.data;
   },
 
   baixarPdf: async (id: string): Promise<Blob> => {

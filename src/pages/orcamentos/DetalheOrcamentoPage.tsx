@@ -9,6 +9,7 @@ import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
+  AlertTriangle,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -19,6 +20,8 @@ import type {
   MetodoPagamento,
   ItemSemEstoque,
   SimulacaoAvancoStatusResponse,
+  OrcamentoProducaoResponse,
+  CriarProducaoVinculadaRequest,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
@@ -1037,6 +1040,12 @@ export default function DetalheOrcamentoPage() {
   const [confirmandoAtalho, setConfirmandoAtalho] = useState(false);
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
   const [vinculandoProducao, setVinculandoProducao] = useState(false);
+  // RN-ORC-VINC-02 ponto 2 (P-F005) — true quando a modal de vínculo foi aberta por interceptar o
+  // clique em "avançar para Em produção" (não pelo card/atalho "Vincular produção"), para os
+  // handlers de sucesso/fechamento saberem que devem completar a transição em seguida. Nunca
+  // bloqueia: mesmo fechando/ignorando a modal, a transição segue (RN-ORC-VINC-01, bloqueio já
+  // removido no Backend por P-B017).
+  const [vinculoViaTransicao, setVinculoViaTransicao] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
 
@@ -1198,20 +1207,42 @@ export default function DetalheOrcamentoPage() {
     return orcamentoService.simularVincularProducao(id, producaoId);
   };
 
+  // Único ponto de "sucesso de vínculo" para os dois caminhos (existente/nova) e os dois pontos de
+  // entrada (card/atalho vs. interceptação da transição) — via `vinculoViaTransicao`, capturado
+  // antes de resetar o estado, decide se completa a transição para EM_PRODUCAO em seguida.
+  const finalizarVinculo = (vinculos: OrcamentoProducaoResponse[]) => {
+    const viaTransicao = vinculoViaTransicao;
+    setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
+    setModal(null);
+    setVinculoViaTransicao(false);
+    if (viaTransicao) {
+      handleAvancar();
+    } else {
+      setToast("Produção vinculada a este orçamento.");
+    }
+  };
+
   const handleVincularProducao = async (producaoId: string) => {
     if (!id) return;
     setVinculandoProducao(true);
     try {
       const vinculos = await orcamentoService.vincularProducao(id, producaoId);
-      setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
-      setToast("Produção vinculada a este orçamento.");
-      setModal(null);
+      finalizarVinculo(vinculos);
     } catch (err) {
       console.error("Erro ao vincular produção:", err);
       setToast(extractApiError(err, "Não foi possível vincular a produção."));
     } finally {
       setVinculandoProducao(false);
     }
+  };
+
+  // RN-ORC-VINC-02 ponto 1/2 (P-F005) — "criar produção nova" embutida, reaproveitando o mesmo
+  // mini-formulário de CriarOrcamentoPage via ModalVincularProducao. Orçamento já existe neste
+  // ponto (Detalhe), então não há criação silenciosa a fazer antes — diferente do ponto 1.
+  const handleCriarProducaoNova = async (dados: CriarProducaoVinculadaRequest) => {
+    if (!id) return;
+    const vinculos = await orcamentoService.criarProducaoVinculada(id, dados);
+    finalizarVinculo(vinculos);
   };
 
   const handleCancelar = async (data?: AvancaStatusRequest) => {
@@ -1300,11 +1331,19 @@ export default function DetalheOrcamentoPage() {
     (status === "APROVADO" && !orcamento.sinalAtivo) || status === "SINAL_PAGO";
   const producoesVinculadas = orcamento.producoesVinculadas;
 
+  // RN-ORC-VINC-02 ponto 2 (P-F005) — intercepta só a transição real para EM_PRODUCAO
+  // (precisaVincularProducao já restringe aos 2 caminhos que levam direto pra lá) e só quando ainda
+  // não há vínculo algum; com vínculo já feito, avança direto como antes. Nunca bloqueia: a modal
+  // sempre tem como fechar/ignorar, e fechar completa a transição do mesmo jeito (ver
+  // finalizarVinculo/onClose da modal abaixo).
   const onPrimaryAction = () => {
     if (status === "AGUARDANDO_SINAL") {
       setModal("sinal");
     } else if (status === "ENVIADO") {
       handleClicarAprovar();
+    } else if (precisaVincularProducao && producoesVinculadas.length === 0) {
+      setVinculoViaTransicao(true);
+      setModal("vincularProducao");
     } else {
       handleAvancar();
     }
@@ -1396,29 +1435,56 @@ export default function DetalheOrcamentoPage() {
                   dá pra saber o que está sendo feito pra esse pedido.
                 </p>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setModal("vincularProducao")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setVinculoViaTransicao(false);
+                  setModal("vincularProducao");
+                }}
+              >
                 Vincular produção
               </Button>
             </div>
           )}
 
           {producoesVinculadas.length > 0 && (
-            <div className="mt-[18px] flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/[0.06] px-3.5 py-3">
-              <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex flex-shrink-0 text-teal">
-                  <Check size={16} />
-                </span>
-                <p className="m-0 text-[13px] leading-[1.5] text-body">
-                  Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:{" "}
-                  <strong>{producoesVinculadas.map((v) => v.identificadorProducao).join(", ")}</strong>
-                </p>
+            <div className="mt-[18px] flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/[0.06] px-3.5 py-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex flex-shrink-0 text-teal">
+                    <Check size={16} />
+                  </span>
+                  <p className="m-0 text-[13px] leading-[1.5] text-body">
+                    Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:{" "}
+                    <strong>{producoesVinculadas.map((v) => v.identificadorProducao).join(", ")}</strong>
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setVinculoViaTransicao(false);
+                    setModal("vincularProducao");
+                  }}
+                  className="border-none bg-transparent p-0 font-[inherit] text-[12.5px] font-semibold text-teal transition-colors duration-150 hover:text-teal/80"
+                >
+                  Vincular outra
+                </button>
               </div>
-              <button
-                onClick={() => setModal("vincularProducao")}
-                className="border-none bg-transparent p-0 font-[inherit] text-[12.5px] font-semibold text-teal transition-colors duration-150 hover:text-teal/80"
-              >
-                Vincular outra
-              </button>
+
+              {/* RN-ORC-VINC-04 (P-F005) — aviso de estouro é por vínculo, não agregado: uma
+                  produção pode passar do prazo prometido ao cliente enquanto outra não. */}
+              {producoesVinculadas.filter((v) => v.estouroPrazo).map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3"
+                >
+                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-orange" />
+                  <p className="m-0 text-[13px] leading-[1.5] text-warning-alt">
+                    <strong>{v.identificadorProducao}</strong> deve terminar depois do prazo
+                    prometido ao cliente — vale avisar ou ajustar a data combinada.
+                  </p>
+                </div>
+              ))}
             </div>
           )}
 
@@ -1689,9 +1755,18 @@ export default function DetalheOrcamentoPage() {
 
       {modal === "vincularProducao" && (
         <ModalVincularProducao
-          onClose={() => setModal(null)}
+          onClose={() => {
+            const viaTransicao = vinculoViaTransicao;
+            setModal(null);
+            setVinculoViaTransicao(false);
+            // RN-ORC-VINC-02 ponto 2 — ignorar/fechar a modal nunca bloqueia a transição: se ela foi
+            // aberta interceptando o clique em "avançar", fechar sem vincular completa a transição
+            // do mesmo jeito.
+            if (viaTransicao) handleAvancar();
+          }}
           onSimular={handleSimularVincularProducao}
           onConfirmar={handleVincularProducao}
+          onCriarNova={handleCriarProducaoNova}
           confirmando={vinculandoProducao}
           jaVinculadasIds={producoesVinculadas.map((v) => v.producaoId)}
         />

@@ -15,7 +15,7 @@ import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
 import type {
   OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
-  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
+  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, CriarProducaoVinculadaRequest,
 } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { AlertaInsumo } from '../../types/producao'
@@ -1355,6 +1355,22 @@ export default function CriarOrcamentoPage() {
     return orcamentoService.simularVincularProducao(orcId, producaoId)
   }
 
+  // RN-ORC-VINC-02 ponto 1 (P-F005) — mesma criação silenciosa do orçamento de handleSimularVinculo
+  // acima: "criar produção nova" e "vincular existente" convergem no mesmo ponto de persistência do
+  // orçamento, só o passo seguinte diverge (criar-producao-vinculada em vez de
+  // simular/vincular-producao). Sem etapa de simulação — o endpoint não tem variante `simular-`,
+  // confirmar já é o único passo (ver ModalVincularProducao).
+  const handleCriarProducaoNova = async (dados: CriarProducaoVinculadaRequest) => {
+    let orcId = orcamentoCriadoId
+    if (!orcId) {
+      const created = await orcamentoService.criar(montarPayload())
+      orcId = created.id
+      setOrcamentoCriadoId(orcId)
+    }
+    await orcamentoService.criarProducaoVinculada(orcId, dados)
+    navigate(`/orcamentos/${orcId}`)
+  }
+
   const handleConfirmarVinculo = async (producaoId: string) => {
     if (!orcamentoCriadoId) return
     setConfirmandoVinculo(true)
@@ -1616,18 +1632,7 @@ export default function CriarOrcamentoPage() {
           onSimular={handleSimularVinculo}
           onConfirmar={handleConfirmarVinculo}
           confirmando={confirmandoVinculo}
-          onCriarNova={
-            orcamentoCriadoId
-              ? undefined
-              : () => {
-                  const produtos = pendentesAvanco.map(p => ({
-                    produtoId: p.produtoId,
-                    nome: p.nomeProduto,
-                    quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
-                  }))
-                  navigate('/producao/nova', { state: { produtos } })
-                }
-          }
+          onCriarNova={handleCriarProducaoNova}
         />
       )}
 
