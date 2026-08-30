@@ -187,6 +187,19 @@ export async function desativarCatalogo(request: APIRequestContext, token: strin
     .catch(() => {})
 }
 
+/** Resposta crua (sem checar ok()) — quem chama decide (ex. CEN-NOVO-E: bloqueio de edição fora de RASCUNHO espera 400). */
+export async function editarOrcamentoViaApi(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  body: Record<string, unknown>
+) {
+  return request.put(`${API_URL}/orcamentos/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: body,
+  })
+}
+
 export async function cancelarOrcamentoViaApi(
   request: APIRequestContext,
   token: string,
