@@ -9,7 +9,7 @@ import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
-  AlertTriangle, Pencil,
+  AlertTriangle, Pencil, Copy,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -1048,6 +1048,7 @@ export default function DetalheOrcamentoPage() {
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [duplicando, setDuplicando] = useState(false);
   const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho" | "vincularProducao">(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
   const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
@@ -1277,6 +1278,25 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // P-F008 (#314) — RN-NOVA-5/ORC-039: disponível em qualquer status (sem restrição, diferente do
+  // botão "Editar"), sem modal de confirmação prévia (ação não-destrutiva) — mesmo padrão de
+  // navegação direta usado por criar()/editar() nesta mesma página: sucesso navega direto para o
+  // recurso novo, sem toast intermediário; erro (herdado de criar(), ex. cliente excluído) mostra
+  // toast com a mensagem real do backend.
+  const handleDuplicar = async () => {
+    if (!id) return;
+    setDuplicando(true);
+    try {
+      const novo = await orcamentoService.duplicar(id);
+      navigate(`/orcamentos/${novo.id}`);
+    } catch (err) {
+      console.error("Erro ao duplicar orçamento:", err);
+      setToast(extractApiError(err, "Erro ao duplicar orçamento. Tente novamente."));
+    } finally {
+      setDuplicando(false);
+    }
+  };
+
   // "pdf" (orçamento) usa o serviço centralizado + retry com cooldown (RN-NOVA-3) — único
   // documento migrado ao microsserviço neste MVP (épico #89). Tem também botão de preview próprio
   // no header ("Ver preview do PDF" → /orcamentos/{id}/preview), por isso o card mantém o download
@@ -1404,6 +1424,15 @@ export default function DetalheOrcamentoPage() {
               Editar
             </Button>
           )}
+          {/* P-F008 (#314) — RN-NOVA-5/ORC-039: disponível em qualquer status, diferente de Editar. */}
+          <Button
+            variant="ghost"
+            icon={<Copy size={18} />}
+            onClick={handleDuplicar}
+            disabled={duplicando || saving}
+          >
+            {duplicando ? "Duplicando..." : "Duplicar"}
+          </Button>
           <Button
             variant="ghost"
             icon={<FileText size={18} />}

@@ -33,6 +33,13 @@ export const orcamentoService = {
     return response.data;
   },
 
+  // RN-NOVA-5/ORC-039 (V0.8.2, P-B004, sinal por valor direto corrigido em P-B021) — aceita o
+  // orçamento original em qualquer status, sem body; sempre cria um RASCUNHO novo e independente.
+  duplicar: async (id: string): Promise<OrcamentoDetalheResponse> => {
+    const response = await api.post(`/orcamentos/${id}/duplicar`);
+    return response.data;
+  },
+
   buscarItensCatalogo: async (catalogoId?: string, busca?: string): Promise<ItemCatalogoBuscaResponse[]> => {
     const params: Record<string, any> = {};
     if (catalogoId) params.catalogoId = catalogoId;
