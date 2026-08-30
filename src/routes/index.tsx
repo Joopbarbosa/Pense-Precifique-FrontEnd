@@ -46,6 +46,7 @@ export const router = createBrowserRouter([
 
       { path: '/orcamentos',                          element: <ListaOrcamentosPage /> },
       { path: '/orcamentos/novo',                     element: <CriarOrcamentoPage /> },
+      { path: '/orcamentos/:id/editar',               element: <CriarOrcamentoPage /> },
       { path: '/orcamentos/:id',                      element: <DetalheOrcamentoPage /> },
       { path: '/orcamentos/:id/preview',              element: <PreviewPdfOrcamentoPage /> },
       { path: '/orcamentos/:id/recibo-sinal',         element: <ReciboSinalPage /> },

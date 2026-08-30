@@ -9,7 +9,7 @@ import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
-  AlertTriangle,
+  AlertTriangle, Pencil,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -1392,13 +1392,26 @@ export default function DetalheOrcamentoPage() {
             </span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          icon={<FileText size={18} />}
-          onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
-        >
-          Ver preview do PDF
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* P-F007 (#312+318) — RN-NOVA-4/ORC-038: PUT /orcamentos/{id} só aceita RASCUNHO, então o
+              botão só aparece nesse status (defesa em profundidade — o backend também bloqueia). */}
+          {status === "RASCUNHO" && (
+            <Button
+              variant="ghost"
+              icon={<Pencil size={18} />}
+              onClick={() => navigate(`/orcamentos/${orcamento.id}/editar`)}
+            >
+              Editar
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            icon={<FileText size={18} />}
+            onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
+          >
+            Ver preview do PDF
+          </Button>
+        </div>
       </div>
 
       {/* SEÇÃO 1 — TIMELINE */}

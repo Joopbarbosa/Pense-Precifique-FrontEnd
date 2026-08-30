@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, ModalShell, Stepper } from '../../components/ui'
@@ -761,7 +761,7 @@ function PagamentoSection({
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────
-function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit, loading }: {
+function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit, loading, submitLabel, submitLabelLoading }: {
   subtotal: number
   descTipo: '%' | 'R$'
   descValor: string
@@ -778,6 +778,8 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
   restante: number
   onSubmit: () => void
   loading: boolean
+  submitLabel: string
+  submitLabelLoading: string
 }) {
   return (
     <div className="overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -863,7 +865,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
         </label>
 
         <Button variant="primary" fullWidth size="lg" onClick={onSubmit} disabled={loading}>
-          {loading ? 'Criando orçamento...' : 'Criar orçamento'}
+          {loading ? submitLabelLoading : submitLabel}
         </Button>
       </div>
     </div>
@@ -1106,6 +1108,10 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
 // ── CriarOrcamentoPage ─────────────────────────────────────────────────────
 export default function CriarOrcamentoPage() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const editando = !!id
+  const [carregandoEdicao, setCarregandoEdicao] = useState(editando)
+  const [erroCarregarEdicao, setErroCarregarEdicao] = useState(false)
   const [cliente, setCliente] = useState<ClienteResponse | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [modalItem, setModalItem] = useState<Item | null>(null)
@@ -1156,6 +1162,60 @@ export default function CriarOrcamentoPage() {
   useEffect(() => {
     catalogoService.listar({ size: 100 }).then(data => setCatalogos(data.content)).catch(() => setCatalogos([]))
   }, [])
+
+  // P-F007 (#312+318) — modo edição: carrega o orçamento existente (RN-NOVA-4/ORC-038) e
+  // pré-preenche todo o formulário. `Item.id` local é sempre gerado de novo aqui (Date.now() + índice)
+  // — nunca reaproveita o id do OrcamentoItemResponse, porque esse id é só chave de React local,
+  // nunca enviada no payload (ver montarPayload) e nunca usada pra casar com a resposta da API; a
+  // troca de produto de um item vira remover+adicionar no backend (id novo na resposta), mas isso é
+  // transparente porque salvarOrcamento sempre navega para /orcamentos/{id} e a tela de Detalhe
+  // busca os itens frescos da API.
+  useEffect(() => {
+    if (!editando || !id) return
+    let cancelled = false
+    setCarregandoEdicao(true)
+    setErroCarregarEdicao(false)
+    ;(async () => {
+      try {
+        const orc = await orcamentoService.buscarPorId(id)
+        const cli = await clienteService.buscarPorId(orc.clienteId)
+        if (cancelled) return
+        setCliente(cli)
+        setItems(orc.itens.map((it, i) => ({
+          id: Date.now() + i,
+          nome: it.nomeProduto,
+          qtd: it.quantidade,
+          preco: it.precoUnitario,
+          customs: it.customizacoes.map(c => ({ id: c.produtoId, nome: c.nomeProduto, valor: c.precoUnitario, qtd: c.quantidade })),
+          produtoId: it.produtoId,
+          itemCatalogoId: it.itemCatalogoId,
+          catalogoNome: it.catalogoNome,
+          algumInsumoNaoFracionavel: it.algumInsumoNaoFracionavel,
+          permitirEstoqueNegativo: it.permitirEstoqueNegativo,
+          estoqueAtual: it.estoqueAtual,
+        })))
+        setMetodoPagamento(orc.metodoPagamento)
+        setMetodoPagamentoObs(orc.metodoPagamentoObs || '')
+        setTemPrazoProducao(orc.prazoProducaoDias != null)
+        setPrazoDias(orc.prazoProducaoDias != null ? String(orc.prazoProducaoDias) : '')
+        setInicioImediato(orc.inicioAssimQueAprovado)
+        setDataInicioEstimada(orc.dataInicioEstimada || '')
+        setSinalAtivo(orc.sinalAtivo)
+        setSinalTipo(orc.percentualSinal != null ? '%' : 'R$')
+        setSinalValor(orc.percentualSinal != null ? String(orc.percentualSinal) : orc.valorSinal != null ? String(orc.valorSinal) : '')
+        setDescTipo(orc.tipoDesconto === 'VALOR' ? 'R$' : '%')
+        setDescValor(orc.descontoValor ? String(orc.descontoValor) : '')
+        setValidade(orc.dataValidade ? orc.dataValidade.slice(0, 10) : '')
+        setObs(orc.observacoes || '')
+      } catch (err) {
+        console.error('Erro ao carregar orçamento para edição:', err)
+        if (!cancelled) setErroCarregarEdicao(true)
+      } finally {
+        if (!cancelled) setCarregandoEdicao(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [editando, id])
 
   // RN-NOVA-11 — reconsulta estoque sempre que a lista de itens muda (adicionar/remover/alterar
   // quantidade), para que `EstoqueTags`/aviso inline nunca fiquem presos ao snapshot da adição.
@@ -1286,12 +1346,13 @@ export default function CriarOrcamentoPage() {
       return
     }
 
-    criarOrcamento()
+    salvarOrcamento()
   }
 
-  // Extraído de criarOrcamento (RN-ORC-VINC-02, P-F004) — reaproveitado também pelo fluxo de
-  // vincular produção embutido, que precisa criar o orçamento de verdade (obter um id real) antes
-  // de poder chamar simular-vincular-producao/vincular-producao (ambos escopados a /orcamentos/{id}).
+  // Extraído de salvarOrcamento (RN-ORC-VINC-02, P-F004) — reaproveitado também pelo fluxo de
+  // vincular produção embutido (só em modo criação, ver P-F007), que precisa criar o orçamento de
+  // verdade (obter um id real) antes de poder chamar simular-vincular-producao/vincular-producao
+  // (ambos escopados a /orcamentos/{id}).
   const montarPayload = (): OrcamentoRequest => {
     const prazoDiasNum = parseInt(prazoDias)
     return {
@@ -1322,18 +1383,22 @@ export default function CriarOrcamentoPage() {
     }
   }
 
-  const criarOrcamento = async () => {
+  // P-F007 (#312+318) — modo edição chama PUT (RN-NOVA-4/ORC-038) em vez de POST; mesmo payload
+  // completo dos dois casos (montarPayload não muda). RN-NOVA-11 continua valendo para criação:
+  // nunca bloqueada por estoque insuficiente, o checkpoint acima (pendentesAvanco) já cumpriu o
+  // papel de aviso antes deste request.
+  const salvarOrcamento = async () => {
     if (!cliente) return
     setLoading(true)
     try {
-      // RN-NOVA-11 (revisada) — criação nunca é bloqueada por estoque insuficiente; o checkpoint
-      // acima (pendentesAvanco) já cumpriu o papel de aviso antes deste POST. `avisosEstoque` na
-      // resposta não tem mais consumidor nesta tela (a modal pós-criação foi removida).
-      const result = await orcamentoService.criar(montarPayload())
+      const payload = montarPayload()
+      const result = editando && id
+        ? await orcamentoService.editar(id, payload)
+        : await orcamentoService.criar(payload)
       navigate(`/orcamentos/${result.id}`)
     } catch (err) {
-      console.error('Erro ao criar orçamento:', err)
-      setToast(extractApiError(err, 'Erro ao criar orçamento. Tente novamente.'))
+      console.error(editando ? 'Erro ao editar orçamento:' : 'Erro ao criar orçamento:', err)
+      setToast(extractApiError(err, editando ? 'Erro ao salvar alterações. Tente novamente.' : 'Erro ao criar orçamento. Tente novamente.'))
     } finally {
       setLoading(false)
     }
@@ -1395,7 +1460,33 @@ export default function CriarOrcamentoPage() {
     setModalVincular(false)
   }
 
-  const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
+  const summaryProps = {
+    subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading,
+    submitLabel: editando ? 'Salvar alterações' : 'Criar orçamento',
+    submitLabelLoading: editando ? 'Salvando alterações...' : 'Criando orçamento...',
+  }
+
+  // Estado de carregamento — modo edição, buscando o orçamento existente.
+  if (carregandoEdicao) {
+    return (
+      <AppLayout active="orcamentos" compact>
+        <div className="px-5 py-10 text-center text-muted">
+          Carregando orçamento...
+        </div>
+      </AppLayout>
+    )
+  }
+
+  // Estado de erro — modo edição, falha ao buscar o orçamento existente.
+  if (erroCarregarEdicao) {
+    return (
+      <AppLayout active="orcamentos" compact>
+        <div className="px-5 py-10 text-center text-danger">
+          Não foi possível carregar este orçamento para edição. Tente novamente.
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout active="orcamentos" compact>
@@ -1414,7 +1505,7 @@ export default function CriarOrcamentoPage() {
             Orçamentos
           </div>
           <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">
-            Novo Orçamento
+            {editando ? 'Editar Orçamento' : 'Novo Orçamento'}
           </h1>
         </div>
       </div>
@@ -1523,7 +1614,7 @@ export default function CriarOrcamentoPage() {
           <div className="text-[22px] font-bold leading-[1.1] text-teal [font-variant-numeric:tabular-nums]">{BRL(total)}</div>
         </div>
         <Button variant="primary" onClick={handleSubmit} disabled={loading} size="lg">
-          {loading ? 'Criando...' : 'Criar orçamento'}
+          {loading ? summaryProps.submitLabelLoading : summaryProps.submitLabel}
         </Button>
       </div>
 
@@ -1552,7 +1643,7 @@ export default function CriarOrcamentoPage() {
           open
           onClose={() => setPendentesAvanco(null)}
           title="Itens com estoque insuficiente"
-          subtitle="Aviso antes de criar o orçamento"
+          subtitle={editando ? 'Aviso antes de salvar as alterações' : 'Aviso antes de criar o orçamento'}
           icon={<AlertTriangle size={20} />}
           iconBg="rgba(249,115,22,0.14)"
           iconColor="#A35A26"
@@ -1560,9 +1651,15 @@ export default function CriarOrcamentoPage() {
           footer={
             <div className="flex w-full flex-col gap-2.5">
               <div className="flex justify-between gap-2.5">
-                <Button variant="secondary" onClick={() => setModalVincular(true)}>
-                  <Factory size={14} /> Vincular produção existente
-                </Button>
+                {/* P-F007 (#312+318) — "Vincular produção existente" fica de fora na edição: o fluxo
+                    cria o orçamento como efeito colateral da simulação (só faz sentido quando ainda
+                    não existe id). Em edição o orçamento já existe — quem cair aqui pode salvar e
+                    usar o caminho já existente na tela de Detalhe (ORC-028, "Criar produção"). */}
+                {!editando && (
+                  <Button variant="secondary" onClick={() => setModalVincular(true)}>
+                    <Factory size={14} /> Vincular produção existente
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   disabled={selecionadosProducao.size === 0}
@@ -1582,17 +1679,17 @@ export default function CriarOrcamentoPage() {
               </div>
               <div className="flex justify-between gap-2.5">
                 <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
-                <Button variant="primary" onClick={() => { setPendentesAvanco(null); criarOrcamento() }}>
-                  Continuar mesmo assim
+                <Button variant="primary" onClick={() => { setPendentesAvanco(null); salvarOrcamento() }}>
+                  {editando ? 'Salvar mesmo assim' : 'Continuar mesmo assim'}
                 </Button>
               </div>
             </div>
           }
         >
           <p className="m-0 mb-3.5 text-[13.5px] text-muted">
-            Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode
-            continuar mesmo assim, vincular a uma produção que já está aguardando início, ou
-            selecionar itens para criar uma produção agora, cobrindo a diferença.
+            {editando
+              ? 'Estes itens vão ficar com estoque negativo se as alterações forem salvas assim. Você pode salvar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a diferença.'
+              : 'Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode continuar mesmo assim, vincular a uma produção que já está aguardando início, ou selecionar itens para criar uma produção agora, cobrindo a diferença.'}
           </p>
           <div className="flex flex-col gap-2">
             {pendentesAvanco.map(p => {
@@ -1625,7 +1722,7 @@ export default function CriarOrcamentoPage() {
         </ModalShell>
       )}
 
-      {modalVincular && pendentesAvanco && (
+      {!editando && modalVincular && pendentesAvanco && (
         <ModalVincularProducao
           onClose={handleFecharModalVincular}
           jaVinculadasIds={[]}

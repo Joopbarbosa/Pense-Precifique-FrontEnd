@@ -26,6 +26,13 @@ export const orcamentoService = {
     return response.data;
   },
 
+  // RN-NOVA-4/ORC-038 (V0.8.2, P-B003) — só aceita orçamento em RASCUNHO (400 BLOQUEIO fora
+  // disso); payload completo (PUT, não PATCH), mesmo OrcamentoRequest de criar().
+  editar: async (id: string, data: OrcamentoRequest): Promise<OrcamentoDetalheResponse> => {
+    const response = await api.put(`/orcamentos/${id}`, data);
+    return response.data;
+  },
+
   buscarItensCatalogo: async (catalogoId?: string, busca?: string): Promise<ItemCatalogoBuscaResponse[]> => {
     const params: Record<string, any> = {};
     if (catalogoId) params.catalogoId = catalogoId;
