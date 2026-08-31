@@ -77,6 +77,7 @@ export async function criarOrcamentoViaApi(
       clienteId,
       itens,
       metodoPagamento: 'PIX',
+      temPrazoProducao: true,
       prazoProducaoDias: 5,
       sinalAtivo: false,
       ...overrides,
@@ -186,6 +187,19 @@ export async function desativarCatalogo(request: APIRequestContext, token: strin
     .catch(() => {})
 }
 
+/** Resposta crua (sem checar ok()) — quem chama decide (ex. CEN-NOVO-E: bloqueio de edição fora de RASCUNHO espera 400). */
+export async function editarOrcamentoViaApi(
+  request: APIRequestContext,
+  token: string,
+  id: string,
+  body: Record<string, unknown>
+) {
+  return request.put(`${API_URL}/orcamentos/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: body,
+  })
+}
+
 export async function cancelarOrcamentoViaApi(
   request: APIRequestContext,
   token: string,
@@ -196,4 +210,50 @@ export async function cancelarOrcamentoViaApi(
     headers: { Authorization: `Bearer ${token}` },
     data: body,
   })
+}
+
+/** P-T004/#320 — vincula o orçamento a uma produção AGUARDANDO_INICIO já existente (merge por soma no backend). */
+export async function vincularProducaoViaApi(
+  request: APIRequestContext,
+  token: string,
+  orcamentoId: string,
+  producaoId: string
+) {
+  const res = await request.post(`${API_URL}/orcamentos/${orcamentoId}/vincular-producao`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { producaoId },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao vincular produção via API: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
+/** Resposta crua (sem checar ok()) — quem chama decide (CEN-NOVO-L espera 400 fora de AGUARDANDO_INICIO). */
+export async function desvincularProducaoViaApi(
+  request: APIRequestContext,
+  token: string,
+  orcamentoId: string,
+  producaoId: string
+) {
+  return request.delete(`${API_URL}/orcamentos/${orcamentoId}/vincular-producao/${producaoId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+/** P-T004/#320 — cria uma produção nova (AGUARDANDO_INICIO) já vinculada ao orçamento, com os produtos dele. */
+export async function criarProducaoVinculadaViaApi(
+  request: APIRequestContext,
+  token: string,
+  orcamentoId: string,
+  data: { dataInicio?: string; dataTerminoPrevista: string; observacoes?: string }
+) {
+  const res = await request.post(`${API_URL}/orcamentos/${orcamentoId}/criar-producao-vinculada`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data,
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produção vinculada via API: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
 }

@@ -1,3 +1,5 @@
+import type { AvisoEstoqueNegativo } from './producao';
+
 export type StatusOrcamento =
   'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'AGUARDANDO_SINAL' |
   'SINAL_PAGO' | 'EM_PRODUCAO' | 'FINALIZADO' | 'ENTREGUE' | 'PAGO' | 'CANCELADO';
@@ -54,7 +56,8 @@ export interface OrcamentoRequest {
   itens: OrcamentoItemRequest[];
   metodoPagamento: MetodoPagamento;
   metodoPagamentoObs?: string;
-  prazoProducaoDias: number;
+  temPrazoProducao: boolean;
+  prazoProducaoDias?: number;
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   sinalAtivo: boolean;
@@ -121,6 +124,29 @@ export interface ItemSemEstoque {
   quantidadeFaltante: number;
 }
 
+// #320 (RN-NOVA-6) — vínculo de orçamento com produção (orcamento_producoes). Mesmo shape devolvido
+// por POST /orcamentos/{id}/vincular-producao, POST /orcamentos/{id}/criar-producao-vinculada e pelo
+// campo producoesVinculadas de OrcamentoDetalheResponse (P-B013).
+export interface OrcamentoProducaoResponse {
+  id: string;
+  producaoId: string;
+  identificadorProducao: string;
+  // RN-ORC-VINC-04 (P-F005) — cópia de Producao.dataTerminoPrevista (nulo se a produção ainda não
+  // tiver essa data) e aviso de estouro comparado contra dataEntregaEstimada do orçamento. Por
+  // vínculo, não agregado — um orçamento com várias produções pode ter estouro só numa delas.
+  dataTerminoPrevista: string | null;
+  estouroPrazo: boolean;
+  createdAt: string;
+}
+
+// P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Sem campo produtos (vêm
+// do próprio orçamento, mesmo motivo de VincularProducaoRequest não carregar produtos).
+export interface CriarProducaoVinculadaRequest {
+  dataInicio?: string;
+  dataTerminoPrevista: string;
+  observacoes?: string;
+}
+
 export interface OrcamentoDetalheResponse {
   id: string;
   numero: number;
@@ -129,10 +155,14 @@ export interface OrcamentoDetalheResponse {
   status: StatusOrcamento;
   metodoPagamento: MetodoPagamento;
   metodoPagamentoObs?: string;
-  prazoProducaoDias: number;
+  prazoProducaoDias?: number;
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   dataAprovacao?: string;
+  // RN-ORC-VINC-04 (P-F005) — dataAprovacao + prazoProducaoDias, dias corridos. Nula quando falta um
+  // dos dois. Exposta isolada mesmo sem produção vinculada; usada para comparar com
+  // OrcamentoProducaoResponse.dataTerminoPrevista no aviso de estouro de prazo.
+  dataEntregaEstimada?: string | null;
   sinalAtivo: boolean;
   percentualSinal?: number;
   valorSinal?: number;
@@ -146,12 +176,16 @@ export interface OrcamentoDetalheResponse {
   dataValidade?: string;
   percentualMulta?: number;
   valorMulta?: number;
+  // RN-NOVA-1/ORC-036 (V0.8.2, P-B002) — populado só quando o sinal pago excedeu o valor bruto da
+  // multa (mini-estorno); nesse caso valorMulta vem sempre 0. Null nos outros 3 casos.
+  valorDevolvidoMulta?: number | null;
   estornoSinal?: boolean;
   dataEstornoSinal?: string;
   itens: OrcamentoItemResponse[];
   createdAt: string;
   updatedAt: string;
   avisosEstoque?: AvisoEstoque[];
+  producoesVinculadas: OrcamentoProducaoResponse[];
 }
 
 export interface AvancaStatusRequest {
@@ -164,5 +198,20 @@ export interface AvancaStatusRequest {
   dataEstornoSinal?: string;
   justificativa?: string;
   confirmarEstoqueNegativoProdutoIds?: string[];
+  // RN-NOVA-2 (revisada, P-B012) — true força o case ENVIADO a ignorar o atalho de aprovação
+  // direta mesmo elegível, seguindo o fluxo normal (status vai para APROVADO).
+  ignorarAtalhoAprovacaoDireta?: boolean;
+}
+
+// RN-NOVA-2 (revisada, P-B012) — resultado de simular POST /orcamentos/{id}/avancar-status sem
+// persistir nada. statusResultante é o que a chamada real produziria: FINALIZADO (atalho aplicável)
+// ou APROVADO (fluxo normal). avisosEstoque só vem preenchido quando o atalho aplicaria mas a baixa
+// deixaria algum produto negativo ainda não confirmado (mesmo shape de AvisoEstoqueNegativo/
+// ConfirmacaoEstoqueNegativoResponse já usado em EM_PRODUCAO→FINALIZADO).
+export interface SimulacaoAvancoStatusResponse {
+  statusAtual: StatusOrcamento;
+  statusResultante: StatusOrcamento;
+  atalhoAplicavel: boolean;
+  avisosEstoque: AvisoEstoqueNegativo[];
 }
 

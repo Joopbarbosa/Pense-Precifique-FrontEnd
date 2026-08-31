@@ -109,6 +109,42 @@ export async function inativarProduto(request: APIRequestContext, token: string,
     .catch(() => {})
 }
 
+/** Produto PRODUTO com `precoVenda` explícito — usado por cenários que precisam do preço vivo do
+ * cadastro (ex. CEN-NOVO-F/duplicar: provar que o item duplicado recalcula pelo preço atual). */
+export async function criarProdutoComPreco(request: APIRequestContext, token: string, nome: string, precoVenda: number) {
+  const res = await request.post(`${API_URL}/produtos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome, tipo: 'PRODUTO', tempoProducao: 10, precoVenda, fichaTecnica: [] },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar produto com preço de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
+/** Atualiza `precoVenda` de um produto já criado (PUT exige o payload completo — reaproveita nome/tipo/tempoProducao/fichaTecnica do produto original). */
+export async function atualizarPrecoProduto(
+  request: APIRequestContext,
+  token: string,
+  produto: { id: string; nome: string; tipo: string; tempoProducao: number; fichaTecnica?: unknown[] },
+  precoVenda: number
+) {
+  const res = await request.put(`${API_URL}/produtos/${produto.id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      nome: produto.nome,
+      tipo: produto.tipo,
+      tempoProducao: produto.tempoProducao,
+      precoVenda,
+      fichaTecnica: produto.fichaTecnica ?? [],
+    },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao atualizar preço do produto de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 export async function buscarProducao(request: APIRequestContext, token: string, id: string) {
   const res = await request.get(`${API_URL}/producoes/${id}`, {
     headers: { Authorization: `Bearer ${token}` },

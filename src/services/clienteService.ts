@@ -3,9 +3,9 @@ import type { ClienteRequest, ClienteResponse } from '../types/cliente'
 import type { PageResponse } from '../types/shared'
 
 export const clienteService = {
-  listar: async (page: number, size = 20, nome?: string): Promise<PageResponse<ClienteResponse>> => {
+  listar: async (page: number, size = 20, busca?: string): Promise<PageResponse<ClienteResponse>> => {
     const params: Record<string, any> = { page, size, sort: 'nome' }
-    if (nome) params.nome = nome
+    if (busca) params.busca = busca
     const response = await api.get('/clientes', { params })
     return response.data
   },

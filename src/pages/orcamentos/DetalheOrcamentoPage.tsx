@@ -8,20 +8,26 @@ import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
-  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory,
+  Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
+  AlertTriangle, Pencil, Copy,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
 import type {
   OrcamentoDetalheResponse,
+  OrcamentoItemResponse,
   AvancaStatusRequest,
   MetodoPagamento,
   ItemSemEstoque,
+  SimulacaoAvancoStatusResponse,
+  OrcamentoProducaoResponse,
+  CriarProducaoVinculadaRequest,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
 import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
+import ModalVincularProducao from "../../components/orcamento/ModalVincularProducao";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
 import { useRetryCooldown } from "../../hooks/useRetryCooldown";
@@ -313,6 +319,99 @@ function ModalSinal({
   );
 }
 
+// ─── ModalConfirmarAtalho — RN-NOVA-2 revisada (P-F002.2) ────────────────────
+// Uma modal só: quando há avisosEstoque, o aviso aparece embutido aqui (mesmo texto que a API já
+// devolve), não abre ConfirmarEstoqueNegativoModal por cima — decisão de UX travada no prompt.
+
+function ModalConfirmarAtalho({
+  itens,
+  avisosEstoque,
+  onClose,
+  onConfirmarAtalho,
+  onSeguirFluxoNormal,
+  confirming,
+}: {
+  itens: OrcamentoItemResponse[];
+  avisosEstoque: AvisoEstoqueNegativo[];
+  onClose: () => void;
+  onConfirmarAtalho: () => void;
+  onSeguirFluxoNormal: () => void;
+  confirming: boolean;
+}) {
+  const temAviso = avisosEstoque.length > 0;
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="Pular direto para Finalizado?"
+      subtitle="Enviado"
+      icon={<Zap size={18} />}
+      iconBg="#FFF4E8"
+      iconColor="#B5701F"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onSeguirFluxoNormal} disabled={confirming}>
+            Seguir fluxo normal
+          </Button>
+          <Button variant="primary" onClick={onConfirmarAtalho} disabled={confirming}>
+            {confirming ? "Confirmando..." : "Confirmar atalho"}
+          </Button>
+        </>
+      }
+    >
+      <p className="m-0 text-sm leading-[1.6] text-body">
+        {temAviso ? (
+          <>
+            Neste orçamento o cliente não vai pagar entrada e você disse que não precisa de prazo
+            de produção, então dá pra deixar pronto pra entrega agora. Mas dar baixa no estoque vai
+            deixar algum item negativo, como mostrado abaixo — quer confirmar assim mesmo?
+          </>
+        ) : (
+          <>
+            Neste orçamento o cliente não vai pagar entrada e você disse que não precisa de prazo
+            de produção. Como todos os itens já têm estoque, podemos deixar esse orçamento pronto
+            pra entrega agora mesmo?
+          </>
+        )}
+      </p>
+
+      {itens.length > 0 && (
+        <div className="mt-4 flex max-h-[180px] flex-col gap-1.5 overflow-y-auto rounded-input border border-line bg-app/60 px-3.5 py-3">
+          {itens.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3 text-[13.5px] text-body"
+            >
+              <span className="flex items-center gap-2 truncate">
+                <Box size={14} className="flex-shrink-0 text-muted" />
+                <span className="truncate">{item.nomeProduto}</span>
+              </span>
+              <span className="flex-shrink-0 text-muted">
+                estoque: {item.estoqueAtual}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {temAviso && (
+        <div className="mt-4 flex flex-col gap-2">
+          {avisosEstoque.map((a) => (
+            <div
+              key={a.componenteId}
+              className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3 text-[13.5px] text-warning-alt"
+            >
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <span>{a.mensagem}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </ModalShell>
+  );
+}
+
 // ─── ModalCancelSimples ───────────────────────────────────────────────────────
 
 function ModalCancelSimples({
@@ -430,6 +529,11 @@ function ModalCancelMulta({
   const sinalPago = orcamento.sinalAtivo && orcamento.valorSinal ? orcamento.valorSinal : 0;
   const multaBruta = (total * percNum) / 100;
   const multaAplicada = multaAtiva ? Math.max(multaBruta - sinalPago, 0) : 0;
+  // RN-NOVA-1/ORC-036 (mini-estorno) — o valor exato a devolver só existe depois de confirmar (o
+  // servidor recalcula com BigDecimal/arredondamento próprios, ver OrcamentoService.calcularResultadoMulta).
+  // Mostrar só um aviso qualitativo aqui evita duplicar a fórmula de negócio no cliente — reaproveita
+  // sinalPago/multaBruta só para decidir SE mostra o aviso, nunca para exibir um valor calculado.
+  const possivelMiniEstorno = multaAtiva && sinalPago > multaBruta;
 
   const tituloPasso =
     step === 1 ? "Itens deste pedido"
@@ -585,6 +689,12 @@ function ModalCancelMulta({
                   Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
                 </div>
               )}
+              {possivelMiniEstorno && (
+                <div className="mt-2 text-xs font-medium text-teal">
+                  O sinal pago é maior que a multa — a cliente vai receber a diferença de volta. O
+                  valor exato será calculado ao confirmar.
+                </div>
+              )}
             </div>
           )}
         </>
@@ -606,6 +716,12 @@ function ModalCancelMulta({
               {sinalPago > 0 && (
                 <span className="text-xs text-muted">
                   Já descontado o sinal de {BRL(sinalPago)} pago pela cliente.
+                </span>
+              )}
+              {possivelMiniEstorno && (
+                <span className="text-xs font-medium text-teal">
+                  O sinal pago é maior que a multa — a cliente vai receber a diferença de volta. O
+                  valor exato será calculado ao confirmar.
                 </span>
               )}
             </div>
@@ -932,12 +1048,22 @@ export default function DetalheOrcamentoPage() {
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [modal, setModal] = useState<null | "sinal" | "cancel">(null);
+  const [duplicando, setDuplicando] = useState(false);
+  const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho" | "vincularProducao">(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
   const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
   const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
   const [confirmandoAviso, setConfirmandoAviso] = useState(false);
+  const [simulacaoAtalho, setSimulacaoAtalho] = useState<SimulacaoAvancoStatusResponse | null>(null);
+  const [confirmandoAtalho, setConfirmandoAtalho] = useState(false);
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
+  const [vinculandoProducao, setVinculandoProducao] = useState(false);
+  // RN-ORC-VINC-02 ponto 2 (P-F005) — true quando a modal de vínculo foi aberta por interceptar o
+  // clique em "avançar para Em produção" (não pelo card/atalho "Vincular produção"), para os
+  // handlers de sucesso/fechamento saberem que devem completar a transição em seguida. Nunca
+  // bloqueia: mesmo fechando/ignorando a modal, a transição segue (RN-ORC-VINC-01, bloqueio já
+  // removido no Backend por P-B017).
+  const [vinculoViaTransicao, setVinculoViaTransicao] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
 
@@ -1018,6 +1144,125 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // RN-NOVA-2 (revisada, P-F002.2) — clique em "Aprovar" com status ENVIADO: simula antes de
+  // aplicar, para o usuário poder recusar o atalho. Decisão travada: erro na simulação NUNCA cai
+  // no fluxo normal automaticamente — evita aplicar o atalho de verdade sem o usuário ter visto a
+  // modal de confirmação.
+  const handleClicarAprovar = async () => {
+    if (!id) return;
+    setSaving(true);
+    setErroAvanco(null);
+    let resultado: SimulacaoAvancoStatusResponse;
+    try {
+      resultado = await orcamentoService.simularAvancarStatus(id);
+    } catch (err) {
+      console.error("Erro ao simular avanço de status:", err);
+      setErroAvanco(extractApiError(err, "Não foi possível verificar o atalho de aprovação. Tente novamente."));
+      setSaving(false);
+      return;
+    }
+    if (resultado.atalhoAplicavel) {
+      setSimulacaoAtalho(resultado);
+      setModal("confirmarAtalho");
+      setSaving(false);
+      return;
+    }
+    await handleAvancar();
+  };
+
+  const handleConfirmarAtalho = async () => {
+    if (!id) return;
+    setConfirmandoAtalho(true);
+    setErroAvanco(null);
+    try {
+      const avisos = simulacaoAtalho?.avisosEstoque ?? [];
+      const result = await orcamentoService.avancarStatus(id, {
+        confirmarEstoqueNegativoProdutoIds: avisos.length > 0 ? avisos.map((a) => a.componenteId) : undefined,
+      });
+      if (isConfirmacaoEstoqueNegativoResponse(result)) {
+        // estoque mudou entre a simulação e a confirmação — atualiza a mesma modal com os avisos novos
+        setSimulacaoAtalho((prev) => (prev ? { ...prev, avisosEstoque: result.avisos } : prev));
+      } else {
+        setOrcamento(result);
+        setModal(null);
+        setSimulacaoAtalho(null);
+      }
+    } catch (err) {
+      console.error("Erro ao confirmar atalho:", err);
+      setErroAvanco(extractApiError(err, "Erro ao avançar status do orçamento."));
+      setModal(null);
+      setSimulacaoAtalho(null);
+    } finally {
+      setConfirmandoAtalho(false);
+    }
+  };
+
+  const handleSeguirFluxoNormal = async () => {
+    if (!id) return;
+    setConfirmandoAtalho(true);
+    setErroAvanco(null);
+    try {
+      const result = await orcamentoService.avancarStatus(id, { ignorarAtalhoAprovacaoDireta: true });
+      if (!isConfirmacaoEstoqueNegativoResponse(result)) {
+        setOrcamento(result);
+      }
+      setModal(null);
+      setSimulacaoAtalho(null);
+    } catch (err) {
+      console.error("Erro ao seguir fluxo normal:", err);
+      setErroAvanco(extractApiError(err, "Erro ao avançar status do orçamento."));
+      setModal(null);
+      setSimulacaoAtalho(null);
+    } finally {
+      setConfirmandoAtalho(false);
+    }
+  };
+
+  // RN-PROD-VINC-03 (P-B016) — alerta combinado antes de confirmar, chamado pelo ModalVincularProducao
+  // ao selecionar uma produção da lista, nunca pulado.
+  const handleSimularVincularProducao = (producaoId: string) => {
+    if (!id) return Promise.reject(new Error("Orçamento sem id"));
+    return orcamentoService.simularVincularProducao(id, producaoId);
+  };
+
+  // Único ponto de "sucesso de vínculo" para os dois caminhos (existente/nova) e os dois pontos de
+  // entrada (card/atalho vs. interceptação da transição) — via `vinculoViaTransicao`, capturado
+  // antes de resetar o estado, decide se completa a transição para EM_PRODUCAO em seguida.
+  const finalizarVinculo = (vinculos: OrcamentoProducaoResponse[]) => {
+    const viaTransicao = vinculoViaTransicao;
+    setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
+    setModal(null);
+    setVinculoViaTransicao(false);
+    if (viaTransicao) {
+      handleAvancar();
+    } else {
+      setToast("Produção vinculada a este orçamento.");
+    }
+  };
+
+  const handleVincularProducao = async (producaoId: string) => {
+    if (!id) return;
+    setVinculandoProducao(true);
+    try {
+      const vinculos = await orcamentoService.vincularProducao(id, producaoId);
+      finalizarVinculo(vinculos);
+    } catch (err) {
+      console.error("Erro ao vincular produção:", err);
+      setToast(extractApiError(err, "Não foi possível vincular a produção."));
+    } finally {
+      setVinculandoProducao(false);
+    }
+  };
+
+  // RN-ORC-VINC-02 ponto 1/2 (P-F005) — "criar produção nova" embutida, reaproveitando o mesmo
+  // mini-formulário de CriarOrcamentoPage via ModalVincularProducao. Orçamento já existe neste
+  // ponto (Detalhe), então não há criação silenciosa a fazer antes — diferente do ponto 1.
+  const handleCriarProducaoNova = async (dados: CriarProducaoVinculadaRequest) => {
+    if (!id) return;
+    const vinculos = await orcamentoService.criarProducaoVinculada(id, dados);
+    finalizarVinculo(vinculos);
+  };
+
   const handleCancelar = async (data?: AvancaStatusRequest) => {
     if (!id) return;
     setSaving(true);
@@ -1030,6 +1275,25 @@ export default function DetalheOrcamentoPage() {
       alert("Erro ao cancelar orçamento");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // P-F008 (#314) — RN-NOVA-5/ORC-039: disponível em qualquer status (sem restrição, diferente do
+  // botão "Editar"), sem modal de confirmação prévia (ação não-destrutiva) — mesmo padrão de
+  // navegação direta usado por criar()/editar() nesta mesma página: sucesso navega direto para o
+  // recurso novo, sem toast intermediário; erro (herdado de criar(), ex. cliente excluído) mostra
+  // toast com a mensagem real do backend.
+  const handleDuplicar = async () => {
+    if (!id) return;
+    setDuplicando(true);
+    try {
+      const novo = await orcamentoService.duplicar(id);
+      navigate(`/orcamentos/${novo.id}`);
+    } catch (err) {
+      console.error("Erro ao duplicar orçamento:", err);
+      setToast(extractApiError(err, "Erro ao duplicar orçamento. Tente novamente."));
+    } finally {
+      setDuplicando(false);
     }
   };
 
@@ -1095,9 +1359,28 @@ export default function DetalheOrcamentoPage() {
   const sinalRecebido = ["SINAL_PAGO", "EM_PRODUCAO", "FINALIZADO", "ENTREGUE", "PAGO"].includes(status);
   const restante = (orcamento.total || 0) - (orcamento.valorSinal || 0);
 
+  // RN-ORC-VINC-02 ponto 2 (revisão #320) — vínculo é opcional em qualquer status (RN-ORC-VINC-01
+  // removeu o bloqueio antigo), mas o convite proativo ("Vincular produção", card abaixo quando
+  // ainda não há vínculo) só faz sentido nesses 2 caminhos, às vésperas de EM_PRODUCAO. O card de
+  // "já vinculado" (abaixo) não usa mais essa condição — mostra sempre que houver vínculo, mesmo em
+  // RASCUNHO/ENVIADO, já que o ponto 1 (P-F004, CriarOrcamentoPage) pode vincular bem antes disso.
+  const precisaVincularProducao =
+    (status === "APROVADO" && !orcamento.sinalAtivo) || status === "SINAL_PAGO";
+  const producoesVinculadas = orcamento.producoesVinculadas;
+
+  // RN-ORC-VINC-02 ponto 2 (P-F005) — intercepta só a transição real para EM_PRODUCAO
+  // (precisaVincularProducao já restringe aos 2 caminhos que levam direto pra lá) e só quando ainda
+  // não há vínculo algum; com vínculo já feito, avança direto como antes. Nunca bloqueia: a modal
+  // sempre tem como fechar/ignorar, e fechar completa a transição do mesmo jeito (ver
+  // finalizarVinculo/onClose da modal abaixo).
   const onPrimaryAction = () => {
     if (status === "AGUARDANDO_SINAL") {
       setModal("sinal");
+    } else if (status === "ENVIADO") {
+      handleClicarAprovar();
+    } else if (precisaVincularProducao && producoesVinculadas.length === 0) {
+      setVinculoViaTransicao(true);
+      setModal("vincularProducao");
     } else {
       handleAvancar();
     }
@@ -1129,13 +1412,35 @@ export default function DetalheOrcamentoPage() {
             </span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          icon={<FileText size={18} />}
-          onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
-        >
-          Ver preview do PDF
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* P-F007 (#312+318) — RN-NOVA-4/ORC-038: PUT /orcamentos/{id} só aceita RASCUNHO, então o
+              botão só aparece nesse status (defesa em profundidade — o backend também bloqueia). */}
+          {status === "RASCUNHO" && (
+            <Button
+              variant="ghost"
+              icon={<Pencil size={18} />}
+              onClick={() => navigate(`/orcamentos/${orcamento.id}/editar`)}
+            >
+              Editar
+            </Button>
+          )}
+          {/* P-F008 (#314) — RN-NOVA-5/ORC-039: disponível em qualquer status, diferente de Editar. */}
+          <Button
+            variant="ghost"
+            icon={<Copy size={18} />}
+            onClick={handleDuplicar}
+            disabled={duplicando || saving}
+          >
+            {duplicando ? "Duplicando..." : "Duplicar"}
+          </Button>
+          <Button
+            variant="ghost"
+            icon={<FileText size={18} />}
+            onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
+          >
+            Ver preview do PDF
+          </Button>
+        </div>
       </div>
 
       {/* SEÇÃO 1 — TIMELINE */}
@@ -1178,6 +1483,70 @@ export default function DetalheOrcamentoPage() {
             </div>
           )}
 
+          {precisaVincularProducao && producoesVinculadas.length === 0 && (
+            <div className="mt-[18px] flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#CFE0F2] bg-[#EAF1FB] px-3.5 py-3">
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex flex-shrink-0 text-[#2A6FB0]">
+                  <Factory size={16} />
+                </span>
+                <p className="m-0 text-[13px] leading-[1.5] text-[#2A6FB0]">
+                  Antes de seguir pra produção, vincule este orçamento a uma produção real — assim
+                  dá pra saber o que está sendo feito pra esse pedido.
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setVinculoViaTransicao(false);
+                  setModal("vincularProducao");
+                }}
+              >
+                Vincular produção
+              </Button>
+            </div>
+          )}
+
+          {producoesVinculadas.length > 0 && (
+            <div className="mt-[18px] flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/[0.06] px-3.5 py-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex flex-shrink-0 text-teal">
+                    <Check size={16} />
+                  </span>
+                  <p className="m-0 text-[13px] leading-[1.5] text-body">
+                    Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:{" "}
+                    <strong>{producoesVinculadas.map((v) => v.identificadorProducao).join(", ")}</strong>
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setVinculoViaTransicao(false);
+                    setModal("vincularProducao");
+                  }}
+                  className="border-none bg-transparent p-0 font-[inherit] text-[12.5px] font-semibold text-teal transition-colors duration-150 hover:text-teal/80"
+                >
+                  Vincular outra
+                </button>
+              </div>
+
+              {/* RN-ORC-VINC-04 (P-F005) — aviso de estouro é por vínculo, não agregado: uma
+                  produção pode passar do prazo prometido ao cliente enquanto outra não. */}
+              {producoesVinculadas.filter((v) => v.estouroPrazo).map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3"
+                >
+                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-orange" />
+                  <p className="m-0 text-[13px] leading-[1.5] text-warning-alt">
+                    <strong>{v.identificadorProducao}</strong> deve terminar depois do prazo
+                    prometido ao cliente — vale avisar ou ajustar a data combinada.
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
           {erroAvanco && (
             <div className="mt-[18px] flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
               <span className="mt-px flex flex-shrink-0 text-danger">
@@ -1193,18 +1562,32 @@ export default function DetalheOrcamentoPage() {
 
       {/* Banner cancelado */}
       {status === "CANCELADO" && (
-        <section className="flex animate-fade-up items-center gap-3.5 rounded-card border border-danger/30 bg-[#FCF0EC] px-6 py-5">
-          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-white text-danger">
-            <Ban size={16} />
-          </span>
-          <div>
-            <div className="text-[15.5px] font-bold text-dark">
-              Orçamento cancelado
-            </div>
-            <div className="mt-0.5 text-[13px] text-[#8A5A4E]">
-              Este orçamento foi cancelado e não pode mais avançar de status.
+        <section className="flex flex-col gap-3.5 animate-fade-up rounded-card border border-danger/30 bg-[#FCF0EC] px-6 py-5">
+          <div className="flex items-center gap-3.5">
+            <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-white text-danger">
+              <Ban size={16} />
+            </span>
+            <div>
+              <div className="text-[15.5px] font-bold text-dark">
+                Orçamento cancelado
+              </div>
+              <div className="mt-0.5 text-[13px] text-[#8A5A4E]">
+                Este orçamento foi cancelado e não pode mais avançar de status.
+              </div>
             </div>
           </div>
+          {/* RN-NOVA-1/ORC-036 (mini-estorno, V0.8.2) — sinal pago excedeu o valor bruto da multa,
+              a diferença é devolvida à cliente em vez de simplesmente zerar a multa sem explicação. */}
+          {orcamento.valorDevolvidoMulta != null && orcamento.valorDevolvidoMulta > 0 && (
+            <div className="flex items-center gap-2.5 rounded-xl border border-danger/25 bg-white px-4 py-3.5">
+              <Wallet size={16} className="flex-shrink-0 text-danger" />
+              <p className="m-0 text-[13px] leading-[1.5] text-[#8A5A4E]">
+                Você recebeu de volta{" "}
+                <strong className="font-bold text-dark">{BRL(orcamento.valorDevolvidoMulta)}</strong>{" "}
+                — o sinal pago era maior que a multa.
+              </p>
+            </div>
+          )}
         </section>
       )}
 
@@ -1426,6 +1809,39 @@ export default function DetalheOrcamentoPage() {
           saving={saving}
           onClose={() => setModal(null)}
           onConfirm={(data) => handleAvancar(data)}
+        />
+      )}
+
+      {modal === "confirmarAtalho" && simulacaoAtalho && (
+        <ModalConfirmarAtalho
+          itens={orcamento.itens}
+          avisosEstoque={simulacaoAtalho.avisosEstoque}
+          confirming={confirmandoAtalho}
+          onClose={() => {
+            setModal(null);
+            setSimulacaoAtalho(null);
+          }}
+          onConfirmarAtalho={handleConfirmarAtalho}
+          onSeguirFluxoNormal={handleSeguirFluxoNormal}
+        />
+      )}
+
+      {modal === "vincularProducao" && (
+        <ModalVincularProducao
+          onClose={() => {
+            const viaTransicao = vinculoViaTransicao;
+            setModal(null);
+            setVinculoViaTransicao(false);
+            // RN-ORC-VINC-02 ponto 2 — ignorar/fechar a modal nunca bloqueia a transição: se ela foi
+            // aberta interceptando o clique em "avançar", fechar sem vincular completa a transição
+            // do mesmo jeito.
+            if (viaTransicao) handleAvancar();
+          }}
+          onSimular={handleSimularVincularProducao}
+          onConfirmar={handleVincularProducao}
+          onCriarNova={handleCriarProducaoNova}
+          confirmando={vinculandoProducao}
+          jaVinculadasIds={producoesVinculadas.map((v) => v.producaoId)}
         />
       )}
 

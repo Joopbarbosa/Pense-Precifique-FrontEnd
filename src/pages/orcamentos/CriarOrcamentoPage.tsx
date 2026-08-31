@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, ModalShell, Stepper } from '../../components/ui'
@@ -15,13 +15,15 @@ import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
 import type {
   OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
-  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
+  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, CriarProducaoVinculadaRequest,
 } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
+import type { AlertaInsumo } from '../../types/producao'
 import { METODOS_PAGAMENTO } from '../../constants'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
+import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
@@ -459,11 +461,14 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
 
 // ── PrazoSection ───────────────────────────────────────────────────────────
 function PrazoSection({
+  temPrazoProducao, setTemPrazoProducao,
   prazoDias, setPrazoDias,
   inicioImediato, setInicioImediato,
   dataInicioEstimada, setDataInicioEstimada,
   error,
 }: {
+  temPrazoProducao: boolean
+  setTemPrazoProducao: (v: boolean) => void
   prazoDias: string
   setPrazoDias: (v: string) => void
   inicioImediato: boolean
@@ -475,66 +480,101 @@ function PrazoSection({
   return (
     <div className="flex flex-col gap-4 px-5 pb-5 pt-4">
 
-      {/* Campo de dias */}
-      <div className="flex items-center gap-3">
-        <input
-          type="number"
-          min={1}
-          value={prazoDias}
-          onChange={e => setPrazoDias(e.target.value.replace(/[^0-9]/g, ''))}
-          placeholder="10"
-          className={clsx(
-            'h-[46px] w-[100px] rounded-input border-[1.5px] px-3.5 text-center font-[inherit] text-lg font-bold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
-            error ? 'border-danger' : 'border-line'
-          )}
-        />
-        <span className="text-[15px] font-medium text-body">dias úteis</span>
+      {/* Toggle Vai ter prazo de produção? */}
+      <div className="flex flex-wrap items-center justify-between gap-3.5">
+        <div className="flex items-center gap-3">
+          <span className="grid h-[38px] w-[38px] place-items-center rounded-[11px] bg-teal/10 text-teal">
+            <Calendar size={18} />
+          </span>
+          <div>
+            <div className="text-[14.5px] font-semibold text-dark">Vai ter prazo de produção?</div>
+            <div className="mt-px text-[12.5px] text-muted">Define se este pedido tem data prevista de entrega.</div>
+          </div>
+        </div>
+        <div className="flex flex-shrink-0 overflow-hidden rounded-input border border-line">
+          {(['Não', 'Sim'] as const).map((lbl, i) => {
+            const val = i === 1
+            const on = temPrazoProducao === val
+            return (
+              <button
+                key={lbl}
+                onClick={() => setTemPrazoProducao(val)}
+                className={clsx(
+                  'h-10 w-[60px] border-none font-[inherit] text-sm font-semibold transition-colors duration-150',
+                  on ? (val ? 'bg-teal text-white' : 'bg-line-soft text-body') : 'bg-white text-dim'
+                )}
+              >{lbl}</button>
+            )
+          })}
+        </div>
       </div>
-      {error && (
-        <div className="flex items-center gap-[5px] text-[13px] text-danger">
-          <AlertCircle size={13} />
-          {error}
-        </div>
-      )}
 
-      {/* Checkbox início */}
-      <button
-        type="button"
-        onClick={() => setInicioImediato(!inicioImediato)}
-        className={clsx(
-          'flex items-start gap-2.5 rounded-xl border-[1.5px] px-[15px] py-[13px] text-left font-[inherit] transition-all duration-150',
-          inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-cream'
-        )}
-      >
-        <span className={clsx(
-          'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
-          inicioImediato ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
-        )}>
-          {inicioImediato && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
-        </span>
-        <div>
-          <div className="text-[14.5px] font-semibold text-dark">Início assim que aprovado</div>
-          <div className="mt-0.5 text-[12.5px] text-muted">A produção começa logo após a aprovação do cliente.</div>
-        </div>
-      </button>
+      {temPrazoProducao && (
+        <div className="flex flex-col gap-4 animate-[fadeUp_.2s_ease_both]">
 
-      {/* Data estimada */}
-      {!inicioImediato && (
-        <div className="animate-[fadeUp_.2s_ease_both]">
-          <label className="block">
-            <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-              <Calendar size={16} className="text-teal" /> Data estimada de início
-            </span>
+          {/* Campo de dias */}
+          <div className="flex items-center gap-3">
             <input
-              type="date"
-              value={dataInicioEstimada}
-              onChange={e => setDataInicioEstimada(e.target.value)}
-              className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              type="number"
+              min={1}
+              value={prazoDias}
+              onChange={e => setPrazoDias(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="10"
+              className={clsx(
+                'h-[46px] w-[100px] rounded-input border-[1.5px] px-3.5 text-center font-[inherit] text-lg font-bold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                error ? 'border-danger' : 'border-line'
+              )}
             />
-          </label>
-          <p className="mb-0 mt-1.5 text-[12.5px] text-muted">
-            Informe quando você estima começar a produção deste pedido.
-          </p>
+            <span className="text-[15px] font-medium text-body">dias úteis</span>
+          </div>
+          {error && (
+            <div className="flex items-center gap-[5px] text-[13px] text-danger">
+              <AlertCircle size={13} />
+              {error}
+            </div>
+          )}
+
+          {/* Checkbox início */}
+          <button
+            type="button"
+            onClick={() => setInicioImediato(!inicioImediato)}
+            className={clsx(
+              'flex items-start gap-2.5 rounded-xl border-[1.5px] px-[15px] py-[13px] text-left font-[inherit] transition-all duration-150',
+              inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-cream'
+            )}
+          >
+            <span className={clsx(
+              'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
+              inicioImediato ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
+            )}>
+              {inicioImediato && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
+            </span>
+            <div>
+              <div className="text-[14.5px] font-semibold text-dark">Início assim que aprovado</div>
+              <div className="mt-0.5 text-[12.5px] text-muted">A produção começa logo após a aprovação do cliente.</div>
+            </div>
+          </button>
+
+          {/* Data estimada */}
+          {!inicioImediato && (
+            <div className="animate-[fadeUp_.2s_ease_both]">
+              <label className="block">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={16} className="text-teal" /> Data estimada de início
+                </span>
+                <input
+                  type="date"
+                  value={dataInicioEstimada}
+                  onChange={e => setDataInicioEstimada(e.target.value)}
+                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+              </label>
+              <p className="mb-0 mt-1.5 text-[12.5px] text-muted">
+                Informe quando você estima começar a produção deste pedido.
+              </p>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -721,7 +761,7 @@ function PagamentoSection({
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────
-function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit, loading }: {
+function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit, loading, submitLabel, submitLabelLoading }: {
   subtotal: number
   descTipo: '%' | 'R$'
   descValor: string
@@ -738,6 +778,8 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
   restante: number
   onSubmit: () => void
   loading: boolean
+  submitLabel: string
+  submitLabelLoading: string
 }) {
   return (
     <div className="overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -823,7 +865,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
         </label>
 
         <Button variant="primary" fullWidth size="lg" onClick={onSubmit} disabled={loading}>
-          {loading ? 'Criando orçamento...' : 'Criar orçamento'}
+          {loading ? submitLabelLoading : submitLabel}
         </Button>
       </div>
     </div>
@@ -1066,6 +1108,10 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
 // ── CriarOrcamentoPage ─────────────────────────────────────────────────────
 export default function CriarOrcamentoPage() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const editando = !!id
+  const [carregandoEdicao, setCarregandoEdicao] = useState(editando)
+  const [erroCarregarEdicao, setErroCarregarEdicao] = useState(false)
   const [cliente, setCliente] = useState<ClienteResponse | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [modalItem, setModalItem] = useState<Item | null>(null)
@@ -1073,6 +1119,7 @@ export default function CriarOrcamentoPage() {
   const [descValor, setDescValor] = useState('')
   const [metodoPagamento, setMetodoPagamento] = useState('PIX')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
+  const [temPrazoProducao, setTemPrazoProducao] = useState(true)
   const [prazoDias, setPrazoDias] = useState('')
   const [prazoDiasError, setPrazoDiasError] = useState('')
   const [inicioImediato, setInicioImediato] = useState(true)
@@ -1095,6 +1142,12 @@ export default function CriarOrcamentoPage() {
   // RN-NOVA-11 (revisada, checkpoint em lote) — seleção de itens por checkbox na modal de
   // checkpoint, para acionar "Criar produção" uma única vez cobrindo todos os selecionados.
   const [selecionadosProducao, setSelecionadosProducao] = useState<Set<string>>(new Set())
+  // RN-ORC-VINC-02 ponto 1 (P-F004) — sub-modal de "vincular a produção existente", embutida no
+  // mesmo checkpoint acima. orcamentoCriadoId != null indica que o orçamento já foi persistido como
+  // efeito da pré-visualização do vínculo (ver handleSimularVinculo).
+  const [modalVincular, setModalVincular] = useState(false)
+  const [orcamentoCriadoId, setOrcamentoCriadoId] = useState<string | null>(null)
+  const [confirmandoVinculo, setConfirmandoVinculo] = useState(false)
   const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
@@ -1109,6 +1162,60 @@ export default function CriarOrcamentoPage() {
   useEffect(() => {
     catalogoService.listar({ size: 100 }).then(data => setCatalogos(data.content)).catch(() => setCatalogos([]))
   }, [])
+
+  // P-F007 (#312+318) — modo edição: carrega o orçamento existente (RN-NOVA-4/ORC-038) e
+  // pré-preenche todo o formulário. `Item.id` local é sempre gerado de novo aqui (Date.now() + índice)
+  // — nunca reaproveita o id do OrcamentoItemResponse, porque esse id é só chave de React local,
+  // nunca enviada no payload (ver montarPayload) e nunca usada pra casar com a resposta da API; a
+  // troca de produto de um item vira remover+adicionar no backend (id novo na resposta), mas isso é
+  // transparente porque salvarOrcamento sempre navega para /orcamentos/{id} e a tela de Detalhe
+  // busca os itens frescos da API.
+  useEffect(() => {
+    if (!editando || !id) return
+    let cancelled = false
+    setCarregandoEdicao(true)
+    setErroCarregarEdicao(false)
+    ;(async () => {
+      try {
+        const orc = await orcamentoService.buscarPorId(id)
+        const cli = await clienteService.buscarPorId(orc.clienteId)
+        if (cancelled) return
+        setCliente(cli)
+        setItems(orc.itens.map((it, i) => ({
+          id: Date.now() + i,
+          nome: it.nomeProduto,
+          qtd: it.quantidade,
+          preco: it.precoUnitario,
+          customs: it.customizacoes.map(c => ({ id: c.produtoId, nome: c.nomeProduto, valor: c.precoUnitario, qtd: c.quantidade })),
+          produtoId: it.produtoId,
+          itemCatalogoId: it.itemCatalogoId,
+          catalogoNome: it.catalogoNome,
+          algumInsumoNaoFracionavel: it.algumInsumoNaoFracionavel,
+          permitirEstoqueNegativo: it.permitirEstoqueNegativo,
+          estoqueAtual: it.estoqueAtual,
+        })))
+        setMetodoPagamento(orc.metodoPagamento)
+        setMetodoPagamentoObs(orc.metodoPagamentoObs || '')
+        setTemPrazoProducao(orc.prazoProducaoDias != null)
+        setPrazoDias(orc.prazoProducaoDias != null ? String(orc.prazoProducaoDias) : '')
+        setInicioImediato(orc.inicioAssimQueAprovado)
+        setDataInicioEstimada(orc.dataInicioEstimada || '')
+        setSinalAtivo(orc.sinalAtivo)
+        setSinalTipo(orc.percentualSinal != null ? '%' : 'R$')
+        setSinalValor(orc.percentualSinal != null ? String(orc.percentualSinal) : orc.valorSinal != null ? String(orc.valorSinal) : '')
+        setDescTipo(orc.tipoDesconto === 'VALOR' ? 'R$' : '%')
+        setDescValor(orc.descontoValor ? String(orc.descontoValor) : '')
+        setValidade(orc.dataValidade ? orc.dataValidade.slice(0, 10) : '')
+        setObs(orc.observacoes || '')
+      } catch (err) {
+        console.error('Erro ao carregar orçamento para edição:', err)
+        if (!cancelled) setErroCarregarEdicao(true)
+      } finally {
+        if (!cancelled) setCarregandoEdicao(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [editando, id])
 
   // RN-NOVA-11 — reconsulta estoque sempre que a lista de itens muda (adicionar/remover/alterar
   // quantidade), para que `EstoqueTags`/aviso inline nunca fiquem presos ao snapshot da adição.
@@ -1209,15 +1316,17 @@ export default function CriarOrcamentoPage() {
       return
     }
 
-    const prazoDiasNum = parseInt(prazoDias)
-    if (!prazoDiasNum || prazoDiasNum < 1) {
-      setPrazoDiasError('Prazo obrigatório, mínimo 1 dia')
-      return
-    }
+    if (temPrazoProducao) {
+      const prazoDiasNum = parseInt(prazoDias)
+      if (!prazoDiasNum || prazoDiasNum < 1) {
+        setPrazoDiasError('Prazo obrigatório, mínimo 1 dia')
+        return
+      }
 
-    if (!inicioImediato && !dataInicioEstimada) {
-      alert('Informe a data estimada de início')
-      return
+      if (!inicioImediato && !dataInicioEstimada) {
+        alert('Informe a data estimada de início')
+        return
+      }
     }
 
     if (sinalAtivo && sinalNum <= 0) {
@@ -1237,14 +1346,17 @@ export default function CriarOrcamentoPage() {
       return
     }
 
-    criarOrcamento()
+    salvarOrcamento()
   }
 
-  const criarOrcamento = async () => {
-    if (!cliente) return
+  // Extraído de salvarOrcamento (RN-ORC-VINC-02, P-F004) — reaproveitado também pelo fluxo de
+  // vincular produção embutido (só em modo criação, ver P-F007), que precisa criar o orçamento de
+  // verdade (obter um id real) antes de poder chamar simular-vincular-producao/vincular-producao
+  // (ambos escopados a /orcamentos/{id}).
+  const montarPayload = (): OrcamentoRequest => {
     const prazoDiasNum = parseInt(prazoDias)
-    const payload: OrcamentoRequest = {
-      clienteId: cliente.id,
+    return {
+      clienteId: cliente!.id,
       itens: items.map(it => ({
         ...(it.itemCatalogoId
           ? { itemCatalogoId: it.itemCatalogoId }
@@ -1257,9 +1369,10 @@ export default function CriarOrcamentoPage() {
       })),
       metodoPagamento: metodoPagamento as MetodoPagamento,
       metodoPagamentoObs: metodoPagamento === 'OUTRO' ? metodoPagamentoObs : undefined,
-      prazoProducaoDias: prazoDiasNum,
-      inicioAssimQueAprovado: inicioImediato,
-      dataInicioEstimada: !inicioImediato ? dataInicioEstimada : undefined,
+      temPrazoProducao,
+      prazoProducaoDias: temPrazoProducao ? prazoDiasNum : undefined,
+      inicioAssimQueAprovado: temPrazoProducao ? inicioImediato : true,
+      dataInicioEstimada: temPrazoProducao && !inicioImediato ? dataInicioEstimada : undefined,
       sinalAtivo,
       percentualSinal: sinalAtivo && sinalTipo === '%' ? sinalNum : undefined,
       valorSinal: sinalAtivo && sinalTipo === 'R$' ? sinalNum : undefined,
@@ -1268,23 +1381,112 @@ export default function CriarOrcamentoPage() {
       observacoes: obs || undefined,
       dataValidade: validade ? `${validade}T00:00:00` : undefined,
     }
+  }
 
+  // P-F007 (#312+318) — modo edição chama PUT (RN-NOVA-4/ORC-038) em vez de POST; mesmo payload
+  // completo dos dois casos (montarPayload não muda). RN-NOVA-11 continua valendo para criação:
+  // nunca bloqueada por estoque insuficiente, o checkpoint acima (pendentesAvanco) já cumpriu o
+  // papel de aviso antes deste request.
+  const salvarOrcamento = async () => {
+    if (!cliente) return
     setLoading(true)
     try {
-      // RN-NOVA-11 (revisada) — criação nunca é bloqueada por estoque insuficiente; o checkpoint
-      // acima (pendentesAvanco) já cumpriu o papel de aviso antes deste POST. `avisosEstoque` na
-      // resposta não tem mais consumidor nesta tela (a modal pós-criação foi removida).
-      const result = await orcamentoService.criar(payload)
+      const payload = montarPayload()
+      const result = editando && id
+        ? await orcamentoService.editar(id, payload)
+        : await orcamentoService.criar(payload)
       navigate(`/orcamentos/${result.id}`)
     } catch (err) {
-      console.error('Erro ao criar orçamento:', err)
-      setToast(extractApiError(err, 'Erro ao criar orçamento. Tente novamente.'))
+      console.error(editando ? 'Erro ao editar orçamento:' : 'Erro ao criar orçamento:', err)
+      setToast(extractApiError(err, editando ? 'Erro ao salvar alterações. Tente novamente.' : 'Erro ao criar orçamento. Tente novamente.'))
     } finally {
       setLoading(false)
     }
   }
 
-  const summaryProps = { subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading }
+  // RN-ORC-VINC-02 ponto 1 (P-F004) — orçamento ainda não existe neste checkpoint; ao escolher
+  // vincular a uma produção existente, o orçamento é criado (uma única vez, id guardado em
+  // orcamentoCriadoId) na primeira simulação, para então usar os endpoints reais de
+  // simular-vincular-producao/vincular-producao. Continua "embutido" (sem trocar de tela) — só a
+  // persistência acontece um pouco antes da confirmação final, não é uma escolha de UX, é
+  // consequência de os dois endpoints serem escopados a /orcamentos/{id}.
+  const handleSimularVinculo = async (producaoId: string): Promise<AlertaInsumo[]> => {
+    let orcId = orcamentoCriadoId
+    if (!orcId) {
+      const created = await orcamentoService.criar(montarPayload())
+      orcId = created.id
+      setOrcamentoCriadoId(orcId)
+    }
+    return orcamentoService.simularVincularProducao(orcId, producaoId)
+  }
+
+  // RN-ORC-VINC-02 ponto 1 (P-F005) — mesma criação silenciosa do orçamento de handleSimularVinculo
+  // acima: "criar produção nova" e "vincular existente" convergem no mesmo ponto de persistência do
+  // orçamento, só o passo seguinte diverge (criar-producao-vinculada em vez de
+  // simular/vincular-producao). Sem etapa de simulação — o endpoint não tem variante `simular-`,
+  // confirmar já é o único passo (ver ModalVincularProducao).
+  const handleCriarProducaoNova = async (dados: CriarProducaoVinculadaRequest) => {
+    let orcId = orcamentoCriadoId
+    if (!orcId) {
+      const created = await orcamentoService.criar(montarPayload())
+      orcId = created.id
+      setOrcamentoCriadoId(orcId)
+    }
+    await orcamentoService.criarProducaoVinculada(orcId, dados)
+    navigate(`/orcamentos/${orcId}`)
+  }
+
+  const handleConfirmarVinculo = async (producaoId: string) => {
+    if (!orcamentoCriadoId) return
+    setConfirmandoVinculo(true)
+    try {
+      await orcamentoService.vincularProducao(orcamentoCriadoId, producaoId)
+    } catch (err) {
+      console.error('Erro ao vincular produção ao orçamento recém-criado:', err)
+    } finally {
+      setConfirmandoVinculo(false)
+      navigate(`/orcamentos/${orcamentoCriadoId}`)
+    }
+  }
+
+  // Uma vez que o orçamento já foi criado como efeito da pré-visualização acima, não faz sentido
+  // continuar no formulário de criação (evita duplicar orçamento se a artesã clicar em "Criar
+  // orçamento" de novo) — fechar a modal navega direto para o orçamento já existente.
+  const handleFecharModalVincular = () => {
+    if (orcamentoCriadoId) {
+      navigate(`/orcamentos/${orcamentoCriadoId}`)
+      return
+    }
+    setModalVincular(false)
+  }
+
+  const summaryProps = {
+    subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading,
+    submitLabel: editando ? 'Salvar alterações' : 'Criar orçamento',
+    submitLabelLoading: editando ? 'Salvando alterações...' : 'Criando orçamento...',
+  }
+
+  // Estado de carregamento — modo edição, buscando o orçamento existente.
+  if (carregandoEdicao) {
+    return (
+      <AppLayout active="orcamentos" compact>
+        <div className="px-5 py-10 text-center text-muted">
+          Carregando orçamento...
+        </div>
+      </AppLayout>
+    )
+  }
+
+  // Estado de erro — modo edição, falha ao buscar o orçamento existente.
+  if (erroCarregarEdicao) {
+    return (
+      <AppLayout active="orcamentos" compact>
+        <div className="px-5 py-10 text-center text-danger">
+          Não foi possível carregar este orçamento para edição. Tente novamente.
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout active="orcamentos" compact>
@@ -1303,7 +1505,7 @@ export default function CriarOrcamentoPage() {
             Orçamentos
           </div>
           <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">
-            Novo Orçamento
+            {editando ? 'Editar Orçamento' : 'Novo Orçamento'}
           </h1>
         </div>
       </div>
@@ -1370,6 +1572,7 @@ export default function CriarOrcamentoPage() {
           {/* Seção 3: Prazo de produção */}
           <QuoteCard step="3" label="Prazo de produção" hint="Quantos dias úteis para finalizar este pedido.">
             <PrazoSection
+              temPrazoProducao={temPrazoProducao} setTemPrazoProducao={setTemPrazoProducao}
               prazoDias={prazoDias} setPrazoDias={setPrazoDias}
               inicioImediato={inicioImediato} setInicioImediato={setInicioImediato}
               dataInicioEstimada={dataInicioEstimada} setDataInicioEstimada={setDataInicioEstimada}
@@ -1411,7 +1614,7 @@ export default function CriarOrcamentoPage() {
           <div className="text-[22px] font-bold leading-[1.1] text-teal [font-variant-numeric:tabular-nums]">{BRL(total)}</div>
         </div>
         <Button variant="primary" onClick={handleSubmit} disabled={loading} size="lg">
-          {loading ? 'Criando...' : 'Criar orçamento'}
+          {loading ? summaryProps.submitLabelLoading : summaryProps.submitLabel}
         </Button>
       </div>
 
@@ -1435,45 +1638,58 @@ export default function CriarOrcamentoPage() {
           ação (RN-NOVA-5), sem exigir seleção para prosseguir com "Continuar mesmo assim". A modal
           "Orçamento criado com aviso de estoque" (pós-criação) foi removida — este checkpoint já
           cumpre o papel de aviso antes da criação. */}
-      {pendentesAvanco && (
+      {pendentesAvanco && !modalVincular && (
         <ModalShell
           open
           onClose={() => setPendentesAvanco(null)}
           title="Itens com estoque insuficiente"
-          subtitle="Aviso antes de criar o orçamento"
+          subtitle={editando ? 'Aviso antes de salvar as alterações' : 'Aviso antes de criar o orçamento'}
           icon={<AlertTriangle size={20} />}
           iconBg="rgba(249,115,22,0.14)"
           iconColor="#A35A26"
           width={560}
           footer={
-            <>
-              <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
-              <Button
-                variant="secondary"
-                disabled={selecionadosProducao.size === 0}
-                onClick={() => {
-                  const produtos = pendentesAvanco
-                    .filter(p => selecionadosProducao.has(p.produtoId))
-                    .map(p => ({
-                      produtoId: p.produtoId,
-                      nome: p.nomeProduto,
-                      quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
-                    }))
-                  navigate('/producao/nova', { state: { produtos } })
-                }}
-              >
-                <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
-              </Button>
-              <Button variant="primary" onClick={() => { setPendentesAvanco(null); criarOrcamento() }}>
-                Continuar mesmo assim
-              </Button>
-            </>
+            <div className="flex w-full flex-col gap-2.5">
+              <div className="flex justify-between gap-2.5">
+                {/* P-F007 (#312+318) — "Vincular produção existente" fica de fora na edição: o fluxo
+                    cria o orçamento como efeito colateral da simulação (só faz sentido quando ainda
+                    não existe id). Em edição o orçamento já existe — quem cair aqui pode salvar e
+                    usar o caminho já existente na tela de Detalhe (ORC-028, "Criar produção"). */}
+                {!editando && (
+                  <Button variant="secondary" onClick={() => setModalVincular(true)}>
+                    <Factory size={14} /> Vincular produção existente
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  disabled={selecionadosProducao.size === 0}
+                  onClick={() => {
+                    const produtos = pendentesAvanco
+                      .filter(p => selecionadosProducao.has(p.produtoId))
+                      .map(p => ({
+                        produtoId: p.produtoId,
+                        nome: p.nomeProduto,
+                        quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
+                      }))
+                    navigate('/producao/nova', { state: { produtos } })
+                  }}
+                >
+                  <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
+                </Button>
+              </div>
+              <div className="flex justify-between gap-2.5">
+                <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
+                <Button variant="primary" onClick={() => { setPendentesAvanco(null); salvarOrcamento() }}>
+                  {editando ? 'Salvar mesmo assim' : 'Continuar mesmo assim'}
+                </Button>
+              </div>
+            </div>
           }
         >
           <p className="m-0 mb-3.5 text-[13.5px] text-muted">
-            Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode
-            continuar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a
-            diferença.
+            {editando
+              ? 'Estes itens vão ficar com estoque negativo se as alterações forem salvas assim. Você pode salvar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a diferença.'
+              : 'Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode continuar mesmo assim, vincular a uma produção que já está aguardando início, ou selecionar itens para criar uma produção agora, cobrindo a diferença.'}
           </p>
           <div className="flex flex-col gap-2">
             {pendentesAvanco.map(p => {
@@ -1504,6 +1720,17 @@ export default function CriarOrcamentoPage() {
             })}
           </div>
         </ModalShell>
+      )}
+
+      {!editando && modalVincular && pendentesAvanco && (
+        <ModalVincularProducao
+          onClose={handleFecharModalVincular}
+          jaVinculadasIds={[]}
+          onSimular={handleSimularVinculo}
+          onConfirmar={handleConfirmarVinculo}
+          confirmando={confirmandoVinculo}
+          onCriarNova={handleCriarProducaoNova}
+        />
       )}
 
     </AppLayout>

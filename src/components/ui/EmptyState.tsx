@@ -37,6 +37,11 @@ export default function EmptyState({
         {description && (
           <p className="mb-0 mt-1.5 text-[13.5px] text-muted">{description}</p>
         )}
+        {action && (
+          <Button variant="secondary" size="sm" icon={action.icon} onClick={action.onClick} className="mt-3.5">
+            {action.label}
+          </Button>
+        )}
       </div>
     )
   }
