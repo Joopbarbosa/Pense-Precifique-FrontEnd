@@ -86,12 +86,11 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await expect(page.getByText('Estoque insuficiente', { exact: true })).toBeVisible()
   })
 
-  test('CEN-NOVO-16 — modal de checkpoint com checkbox e ação única "Criar produção" em lote ao clicar "Criar orçamento"', async ({ page, request }) => {
+  test('ORC-CEN-087 (ex-CEN-NOVO-16/CEN-NOVO-1) — checkpoint com checkbox: "Criar produção" em lote persiste o orçamento e cria a produção vinculada só com os itens marcados (RN-NOVA-12/13/14-pt1)', async ({ page, request }) => {
     const token = await apiLogin(request)
-    // Precisa de ficha técnica válida (não só estoqueAtual) para POST /producoes/simular-alertas
-    // não recusar o produto ao carregar a Nova Produção pré-preenchida — mesmo motivo documentado
-    // em itens-sem-estoque.spec.ts ("clicar em Criar produção navega..."). Insumo fracionável evita
-    // a trava de múltiplo de rendimento (RN-051/#187), que não é o que este teste investiga.
+    // Precisa de ficha técnica válida (não só estoqueAtual) — mesmo motivo documentado em
+    // itens-sem-estoque.spec.ts. Insumo fracionável evita a trava de múltiplo de rendimento
+    // (RN-051/#187), que não é o que este teste investiga.
     const insumo = await criarInsumoFracionavel(request, token, `QA218-Insumo-${Date.now()}`, 100, 'DECIMAL')
     const nomeProduto = `QA218-Modal-${Date.now()}`
     const produto = await criarProdutoComFichaEEstoque(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 2)
@@ -119,7 +118,7 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await expect(page.getByText(/disponível 2, necessário 5/i)).toBeVisible()
     await expect(page.getByText(/faltam 3 un\./i)).toBeVisible()
 
-    // Sem seleção, "Criar produção" fica desabilitado.
+    // Sem seleção, "Criar produção" fica desabilitado (RN-NOVA-13, caso composto — ORC-CEN-089).
     const criarProducaoBtn = page.getByRole('button', { name: /^Criar produção/, exact: false })
     await expect(criarProducaoBtn).toBeDisabled()
 
@@ -129,9 +128,60 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await expect(page.getByText('Criar produção (1)')).toBeVisible()
 
     await criarProducaoBtn.click()
-    await expect(page).toHaveURL(/\/producao\/nova$/, { timeout: 5000 })
-    // Pré-preenchido em lote via location.state (sem produtoId/quantidade na query string).
-    await expect(page.getByText(nomeProduto, { exact: true })).toBeVisible({ timeout: 5000 })
+
+    // RN-NOVA-12 — mini-formulário próprio abre (nunca navega direto pra /producao/nova, o
+    // orçamento ainda não foi persistido neste ponto).
+    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 5000 })
+    await page.locator('label:has-text("Término previsto") input[type="date"]').fill('2026-12-01')
+    await page.getByRole('button', { name: 'Criar produção', exact: true }).click()
+
+    // RN-NOVA-14 ponto 1 — sucesso navega de volta pro orçamento recém-criado, não pra Produção.
+    await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$/, { timeout: 8000 })
+    const orcamentoId = page.url().split('/orcamentos/')[1]
+
+    const orcamentoRes = await request.get(`${API_URL}/orcamentos/${orcamentoId}`, { headers: { Authorization: `Bearer ${token}` } })
+    const orcamento = await orcamentoRes.json()
+    expect(orcamento.producoesVinculadas).toHaveLength(1)
+
+    const producaoRes = await request.get(`${API_URL}/producoes/${orcamento.producoesVinculadas[0].producaoId}`, { headers: { Authorization: `Bearer ${token}` } })
+    const producao = await producaoRes.json()
+    // RN-NOVA-13 — produção cobre só o item marcado, não todos os itens do orçamento.
+    expect(producao.produtos).toHaveLength(1)
+    expect(producao.produtos[0].nomeProduto).toBe(nomeProduto)
+  })
+
+  test('ORC-CEN-090 (ex-CEN-NOVO-4) — cancelar o mini-formulário antes de confirmar mantém a artesã no checkpoint, sem perder o rascunho (RN-NOVA-14-pt2)', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const insumo = await criarInsumoFracionavel(request, token, `QA218-Insumo-${Date.now()}`, 100, 'DECIMAL')
+    const nomeProduto = `QA218-Cancelar-${Date.now()}`
+    const produto = await criarProdutoComFichaEEstoque(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 2)
+    criadosProdutoIds.push(produto.id)
+    const nomeCliente = `QA218-Cliente-090-${Date.now()}`
+    const cliente = await criarCliente(request, token, nomeCliente)
+
+    await login(page)
+    await page.goto('/orcamentos/novo')
+    await selecionarCliente(page, nomeCliente)
+
+    await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
+    await page.getByText(nomeProduto, { exact: true }).click()
+    for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+', exact: true }).click()
+    await page.waitForTimeout(600)
+
+    await page.locator('input[type="number"][placeholder="10"]').fill('5')
+    await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
+    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+
+    await page.getByRole('checkbox').check()
+    await page.getByRole('button', { name: /^Criar produção/, exact: false }).click()
+    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 5000 })
+
+    // Cancela sem preencher o formulário — orçamento nunca foi persistido, então não há pra onde
+    // "voltar": fica no checkpoint, rascunho intacto em memória.
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
+    await expect(page).toHaveURL(/\/orcamentos\/novo$/)
+    await expect(page.getByText(nomeProduto, { exact: true }).first()).toBeVisible()
   })
 
   test('ORC-CEN-065 — estoque exibido reflete a simulação mais recente, não o snapshot da adição', async ({ page, request }) => {

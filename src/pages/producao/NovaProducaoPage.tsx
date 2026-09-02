@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Stepper } from '../../components/ui'
@@ -186,7 +186,6 @@ function AlertasInsumos({ alertas }: { alertas: AlertaInsumo[] }) {
 
 export default function NovaProducaoPage() {
   const navigate = useNavigate()
-  const location = useLocation()
   const [searchParams] = useSearchParams()
   const produtoIdParam = searchParams.get('produtoId')
   const quantidadeParam = searchParams.get('quantidade')
@@ -260,34 +259,6 @@ export default function NovaProducaoPage() {
       .catch(() => setToast('Não foi possível pré-carregar o produto informado.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [produtoIdParam, quantidadeParam])
-
-  // RN-NOVA-11 (revisada, V0.8.1) — pré-preenchimento em lote vindo do checkpoint de estoque do
-  // Orçamento (CriarOrcamentoPage), quando a artesã seleciona N itens e clica "Criar produção"
-  // uma única vez. Reaproveita o mesmo `POST /producoes` que já aceita múltiplos produtos — sem
-  // endpoint novo nem N chamadas sequenciais. Via `location.state` (não query string) para não
-  // interferir no fluxo de item único acima, que outras telas (Detalhe do Orçamento/Produção)
-  // continuam usando.
-  useEffect(() => {
-    const produtosState = (location.state as { produtos?: { produtoId: string; nome: string; quantidade: number }[] } | null)?.produtos
-    if (!produtosState || produtosState.length === 0) return
-    Promise.all(produtosState.map(p => produtoService.buscarPorId(p.produtoId)))
-      .then(produtosCarregados => {
-        const candidato: ProdutoSelecionado[] = produtosCarregados.map((produto, i) => {
-          const multiplo = produto.algumInsumoNaoFracionavel ? (produto.rendimento ?? 1) : undefined
-          const quantidade = multiplo ?? Math.max(1, produtosState[i].quantidade || 1)
-          return {
-            produtoId: produto.id, nome: produto.nome, identificador: produto.identificador,
-            quantidade, multiploRendimento: multiplo,
-            algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
-            permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
-            estoqueAtual: produto.estoqueAtual,
-          }
-        })
-        avaliarAlertas(candidato)
-      })
-      .catch(() => setToast('Não foi possível pré-carregar os produtos selecionados.'))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const handleSelectProduto = async (produto: ProdutoResponse) => {
     const existente = produtos.find(p => p.produtoId === produto.id)

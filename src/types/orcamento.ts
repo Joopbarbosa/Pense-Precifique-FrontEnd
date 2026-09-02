@@ -139,12 +139,17 @@ export interface OrcamentoProducaoResponse {
   createdAt: string;
 }
 
-// P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Sem campo produtos (vêm
-// do próprio orçamento, mesmo motivo de VincularProducaoRequest não carregar produtos).
+// P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Produtos vêm sempre do
+// próprio orçamento, nunca deste request.
+// RN-NOVA-13 (V0.8.3, #375+308) — produtoIds é a extensão de contrato usada pelo checkpoint de
+// estoque insuficiente (CriarOrcamentoPage): null/ausente preserva o padrão (todos os itens,
+// consumido por ModalVincularProducao/modoCriarNova); lista explícita restringe a produção criada
+// a só os produtos marcados (chave produtoId, não orcamentoItemId). Lista vazia é 400 no backend.
 export interface CriarProducaoVinculadaRequest {
   dataInicio?: string;
   dataTerminoPrevista: string;
   observacoes?: string;
+  produtoIds?: string[];
 }
 
 export interface OrcamentoDetalheResponse {

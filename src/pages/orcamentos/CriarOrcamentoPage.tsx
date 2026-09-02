@@ -1148,6 +1148,19 @@ export default function CriarOrcamentoPage() {
   const [modalVincular, setModalVincular] = useState(false)
   const [orcamentoCriadoId, setOrcamentoCriadoId] = useState<string | null>(null)
   const [confirmandoVinculo, setConfirmandoVinculo] = useState(false)
+  // RN-NOVA-12/13/14 (#375+308) — mini-formulário próprio de "Criar produção (N)" do checkpoint,
+  // separado do ModalVincularProducao (que é !editando-only e cobre sempre todos os itens). Cobre
+  // criação E edição: persiste o orçamento (POST ou PUT, conforme editando) antes de chamar
+  // criar-producao-vinculada só com os produtoIds selecionados. edicaoPersistidaCheckpoint rastreia
+  // se o PUT desta ação específica já aconteceu, pra decidir se o cancelamento deve navegar de volta
+  // pro orçamento (RN-NOVA-14 ponto 2) — em edição, orcamentoCriadoId nunca é setado (id já existe).
+  const [modalCriarProducaoCheckpoint, setModalCriarProducaoCheckpoint] = useState(false)
+  const [formDataInicioProducaoCheckpoint, setFormDataInicioProducaoCheckpoint] = useState('')
+  const [formDataTerminoProducaoCheckpoint, setFormDataTerminoProducaoCheckpoint] = useState('')
+  const [formObsProducaoCheckpoint, setFormObsProducaoCheckpoint] = useState('')
+  const [formErroProducaoCheckpoint, setFormErroProducaoCheckpoint] = useState<string | null>(null)
+  const [criandoProducaoCheckpoint, setCriandoProducaoCheckpoint] = useState(false)
+  const [edicaoPersistidaCheckpoint, setEdicaoPersistidaCheckpoint] = useState(false)
   const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
@@ -1460,6 +1473,67 @@ export default function CriarOrcamentoPage() {
     setModalVincular(false)
   }
 
+  // RN-NOVA-12/13 (#375+308) — "Criar produção (N)" do checkpoint: persiste o orçamento (criação
+  // ou edição, mesmo mecanismo de salvarOrcamento/montarPayload) e só então cria a produção
+  // vinculada cobrindo unicamente os produtoIds selecionados. Erro de persistência usa o mesmo
+  // tratamento de salvarOrcamento (toast, sem navegar); erro do passo de vincular fica inline no
+  // formulário (mesmo padrão de ModalVincularProducao.handleCriarNova), pra permitir retry sem
+  // perder o orçamento já persistido.
+  const handleCriarProducaoCheckpoint = async () => {
+    if (!formDataTerminoProducaoCheckpoint) {
+      setFormErroProducaoCheckpoint('Informe o prazo de término previsto.')
+      return
+    }
+    setCriandoProducaoCheckpoint(true)
+    setFormErroProducaoCheckpoint(null)
+
+    let orcId: string
+    try {
+      if (editando && id) {
+        await orcamentoService.editar(id, montarPayload())
+        setEdicaoPersistidaCheckpoint(true)
+        orcId = id
+      } else if (orcamentoCriadoId) {
+        orcId = orcamentoCriadoId
+      } else {
+        const created = await orcamentoService.criar(montarPayload())
+        orcId = created.id
+        setOrcamentoCriadoId(orcId)
+      }
+    } catch (err) {
+      console.error(editando ? 'Erro ao salvar alterações do orçamento:' : 'Erro ao criar orçamento:', err)
+      setToast(extractApiError(err, editando ? 'Erro ao salvar alterações. Tente novamente.' : 'Erro ao criar orçamento. Tente novamente.'))
+      setCriandoProducaoCheckpoint(false)
+      return
+    }
+
+    try {
+      await orcamentoService.criarProducaoVinculada(orcId, {
+        dataInicio: formDataInicioProducaoCheckpoint || undefined,
+        dataTerminoPrevista: formDataTerminoProducaoCheckpoint,
+        observacoes: formObsProducaoCheckpoint || undefined,
+        produtoIds: Array.from(selecionadosProducao),
+      })
+      navigate(`/orcamentos/${orcId}`)
+    } catch (err) {
+      setFormErroProducaoCheckpoint(extractApiError(err, 'Não foi possível criar a produção. Tente novamente.'))
+    } finally {
+      setCriandoProducaoCheckpoint(false)
+    }
+  }
+
+  // RN-NOVA-14 ponto 2 — cancelamento do checkpoint: só navega de volta pro orçamento se ele já foi
+  // persistido como efeito desta ação (criado agora ou, em edição, com o PUT desta ação já
+  // confirmado) — nunca perde o rascunho em memória se nada foi persistido ainda.
+  const handleFecharModalCriarProducaoCheckpoint = () => {
+    setModalCriarProducaoCheckpoint(false)
+    if (orcamentoCriadoId) {
+      navigate(`/orcamentos/${orcamentoCriadoId}`)
+    } else if (editando && id && edicaoPersistidaCheckpoint) {
+      navigate(`/orcamentos/${id}`)
+    }
+  }
+
   const summaryProps = {
     subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading,
     submitLabel: editando ? 'Salvar alterações' : 'Criar orçamento',
@@ -1638,7 +1712,7 @@ export default function CriarOrcamentoPage() {
           ação (RN-NOVA-5), sem exigir seleção para prosseguir com "Continuar mesmo assim". A modal
           "Orçamento criado com aviso de estoque" (pós-criação) foi removida — este checkpoint já
           cumpre o papel de aviso antes da criação. */}
-      {pendentesAvanco && !modalVincular && (
+      {pendentesAvanco && !modalVincular && !modalCriarProducaoCheckpoint && (
         <ModalShell
           open
           onClose={() => setPendentesAvanco(null)}
@@ -1664,14 +1738,11 @@ export default function CriarOrcamentoPage() {
                   variant="secondary"
                   disabled={selecionadosProducao.size === 0}
                   onClick={() => {
-                    const produtos = pendentesAvanco
-                      .filter(p => selecionadosProducao.has(p.produtoId))
-                      .map(p => ({
-                        produtoId: p.produtoId,
-                        nome: p.nomeProduto,
-                        quantidade: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
-                      }))
-                    navigate('/producao/nova', { state: { produtos } })
+                    setFormDataInicioProducaoCheckpoint('')
+                    setFormDataTerminoProducaoCheckpoint('')
+                    setFormObsProducaoCheckpoint('')
+                    setFormErroProducaoCheckpoint(null)
+                    setModalCriarProducaoCheckpoint(true)
                   }}
                 >
                   <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
@@ -1731,6 +1802,91 @@ export default function CriarOrcamentoPage() {
           confirmando={confirmandoVinculo}
           onCriarNova={handleCriarProducaoNova}
         />
+      )}
+
+      {/* RN-NOVA-12/13/14 (#375+308) — mini-formulário próprio de "Criar produção (N)" do
+          checkpoint, separado do ModalVincularProducao acima: funciona em criação E edição (aquele
+          é !editando-only) e cria a produção só com os itens marcados (produtoIds), não todos os
+          itens do orçamento. Mesmo padrão visual do modoCriarNova de ModalVincularProducao. */}
+      {pendentesAvanco && modalCriarProducaoCheckpoint && (
+        <ModalShell
+          open
+          onClose={handleFecharModalCriarProducaoCheckpoint}
+          title="Criar produção"
+          subtitle={`Cobre só ${selecionadosProducao.size === 1 ? 'o item selecionado' : `os ${selecionadosProducao.size} itens selecionados`}`}
+          icon={<Factory size={18} />}
+          iconBg="#EAF1FB"
+          iconColor="#2A6FB0"
+          footer={
+            <>
+              <Button variant="ghost" onClick={handleFecharModalCriarProducaoCheckpoint} disabled={criandoProducaoCheckpoint}>
+                Cancelar
+              </Button>
+              <Button variant="primary" onClick={handleCriarProducaoCheckpoint} disabled={criandoProducaoCheckpoint}>
+                {criandoProducaoCheckpoint ? 'Criando...' : 'Criar produção'}
+              </Button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <p className="m-0 text-[13.5px] text-muted">
+              Fica vinculada a este orçamento automaticamente, cobrindo só os produtos marcados no
+              checkpoint — nasce em "Aguardando início".
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <label className="block flex-1 basis-[160px]">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={15} className="text-teal" /> Início
+                </span>
+                <input
+                  type="date"
+                  value={formDataInicioProducaoCheckpoint}
+                  onChange={(e) => setFormDataInicioProducaoCheckpoint(e.target.value)}
+                  disabled={criandoProducaoCheckpoint}
+                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+              </label>
+              <label className="block flex-1 basis-[160px]">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={15} className="text-teal" /> Término previsto <span className="text-orange">*</span>
+                </span>
+                <input
+                  type="date"
+                  value={formDataTerminoProducaoCheckpoint}
+                  min={formDataInicioProducaoCheckpoint || undefined}
+                  onChange={(e) => setFormDataTerminoProducaoCheckpoint(e.target.value)}
+                  disabled={criandoProducaoCheckpoint}
+                  className={clsx(
+                    'h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                    formErroProducaoCheckpoint && !formDataTerminoProducaoCheckpoint ? 'border-danger' : 'border-line'
+                  )}
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                <StickyNote size={15} className="text-teal" /> Observações <span className="text-[11.5px] font-medium text-muted">(opcional)</span>
+              </span>
+              <textarea
+                value={formObsProducaoCheckpoint}
+                onChange={(e) => setFormObsProducaoCheckpoint(e.target.value)}
+                disabled={criandoProducaoCheckpoint}
+                rows={3}
+                placeholder="Ex: separar embalagem especial para este pedido"
+                className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              />
+            </label>
+
+            {formErroProducaoCheckpoint && (
+              <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
+                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{formErroProducaoCheckpoint}</span>
+              </div>
+            )}
+          </div>
+        </ModalShell>
       )}
 
     </AppLayout>
