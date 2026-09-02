@@ -34,6 +34,17 @@ export interface HistoricoStatus {
   origem: 'SISTEMA' | 'USUARIO'
 }
 
+// RN-NOVA-16 (V0.8.3, #375+308) — item de "orçamentos vinculados" na Listagem/Kanban de Produção,
+// mesma direção espelhada de OrcamentoProducaoResponse. Presença de 1+ item, independente do
+// status do orçamento (inclusive CANCELADO), já basta pro indicador (VinculoAtivoBadge).
+export interface ProducaoOrcamentoVinculo {
+  orcamentoId: string
+  identificadorOrcamento: string
+  statusOrcamento: string
+  nomeCliente: string
+  valorTotal: number
+}
+
 export interface ProducaoResumo {
   id: string
   numero: number
@@ -45,6 +56,7 @@ export interface ProducaoResumo {
   produtos: ProducaoProdutoItem[]
   alertasInsumos: AlertaInsumo[]
   historicoStatus: HistoricoStatus[]
+  orcamentosVinculados: ProducaoOrcamentoVinculo[]
 }
 
 export interface ProducaoDetalhe extends ProducaoResumo {
