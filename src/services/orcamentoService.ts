@@ -40,8 +40,12 @@ export const orcamentoService = {
     return response.data;
   },
 
-  buscarItensCatalogo: async (catalogoId?: string, busca?: string): Promise<ItemCatalogoBuscaResponse[]> => {
-    const params: Record<string, any> = {};
+  // RN-NOVA-18 (V0.8.3, P-B008/P-F001d) — paginação real, mesmo formato Page<> dos demais
+  // service.listar do sistema. Tamanho de página mantido em 8 (não 20) — painel de ItemSearch
+  // calibrado para exibir exatamente 8 linhas (ORC-030). Único consumidor: ItemSearch
+  // (CriarOrcamentoPage.tsx) — breaking change sem coexistência, confirmado por grep (Passo 0).
+  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = 8): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+    const params: Record<string, any> = { page, size };
     if (catalogoId) params.catalogoId = catalogoId;
     if (busca) params.busca = busca;
     const response = await api.get('/orcamentos/itens-catalogo', { params });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -22,6 +22,7 @@ import type { AlertaInsumo } from '../../types/producao'
 import { METODOS_PAGAMENTO } from '../../constants'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { useToast } from '../../hooks/useToast'
+import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { extractApiError } from '../../utils/apiError'
 import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
 
@@ -907,11 +908,31 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
   onSelectProdutoAvulso: (produto: ProdutoResponse) => void
 }) {
   const [q, setQ] = useState('')
-  const [itensCatalogo, setItensCatalogo] = useState<ItemCatalogoBuscaResponse[]>([])
   const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
+
+  // RN-NOVA-18 (V0.8.3) — paginação real do branch de item de catálogo, via usePaginatedList
+  // (mesmo hook/padrão de ListaProducaoPage.tsx). fetcher memoizado por [catalogoFiltro, q] para
+  // não recriar a cada render do componente (produtos/loading/maxHeight mudando não pode disparar
+  // o efeito de busca abaixo de novo — só mudança real de filtro/query).
+  const fetchItensCatalogo = useCallback(
+    (page: number, size: number) => orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, q || undefined, page, size),
+    [catalogoFiltro, q]
+  )
+  const {
+    items: itensCatalogo,
+    setItems: setItensCatalogo,
+    hasMore: hasMoreCatalogo,
+    loadingMore: loadingMoreCatalogo,
+    loadMore: handleCarregarMaisCatalogo,
+    reset: carregarCatalogo,
+  } = usePaginatedList<ItemCatalogoBuscaResponse>({
+    fetcher: fetchItensCatalogo,
+    pageSize: 8,
+    errorMessage: 'Não foi possível carregar os itens de catálogo.',
+  })
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -957,11 +978,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
       try {
         const tarefas: Promise<void>[] = []
         if (modo !== 'produto') {
-          tarefas.push(
-            orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, q || undefined).then(data => {
-              if (!cancelled) setItensCatalogo(data)
-            }).catch(() => { if (!cancelled) setItensCatalogo([]) })
-          )
+          tarefas.push(carregarCatalogo())
         } else if (!cancelled) {
           setItensCatalogo([])
         }
@@ -981,7 +998,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
     }
     const timer = setTimeout(load, 300)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [q, open, modo, catalogoFiltro])
+  }, [q, open, modo, catalogoFiltro, carregarCatalogo])
 
   if (!open) return null
 
@@ -1101,6 +1118,25 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
           </div>
         )}
       </div>
+      {itensCatalogo.length > 0 && hasMoreCatalogo && (
+        // RN-NOVA-18 — rodapé fixo, simétrico ao "sticky top-0" da barra de busca acima (mesmo
+        // container rolável `wrapRef`): fica sempre visível no rodapé do painel calibrado para 8
+        // linhas, sem exigir rolagem extra dentro do popover para achar o botão (decisão do
+        // usuário, Passo 0 item 4 — ver DECISOES_V0.8.3.md). Sem `data-search-row`: não entra no
+        // cálculo de `maxHeight` (useLayoutEffect acima), que só mede linhas de item real.
+        <div className="sticky bottom-0 z-10 border-t border-line bg-white px-1.5 py-1.5">
+          <button
+            onClick={handleCarregarMaisCatalogo}
+            disabled={loadingMoreCatalogo}
+            className={clsx(
+              'h-9 w-full rounded-lg border-[1.5px] border-line bg-white font-[inherit] text-[13.5px] font-semibold text-body',
+              loadingMoreCatalogo ? 'cursor-default opacity-60' : 'cursor-pointer'
+            )}
+          >
+            {loadingMoreCatalogo ? 'Carregando…' : 'Carregar mais'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

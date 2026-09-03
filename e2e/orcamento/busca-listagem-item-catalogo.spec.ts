@@ -91,7 +91,7 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await expect(page.getByText('Nenhum item de catálogo encontrado. Cadastre um item de catálogo primeiro.')).toBeVisible()
   })
 
-  test('RN-NOVA-7/CEN-NOVO-9 — listagem completa aparece ao focar o campo de produto, sem digitar nada', async ({ page, request }) => {
+  test('RN-NOVA-18/CEN-NOVO-19 — paginação real: 8 itens na primeira página, "Carregar mais" busca o resto, botão some sem mais páginas', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
     const nomes = Array.from({ length: 10 }, (_, i) => `QA-217c-Item-${ts}-${String(i + 1).padStart(2, '0')}`)
@@ -106,50 +106,33 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
 
-    // Sem digitar nada: os 10 itens já estão no DOM (listagem completa), não só uma amostra.
+    const dropdown = page.locator('div.animate-pop')
+    await dropdown.waitFor({ state: 'visible' })
+    const buttons = dropdown.getByRole('button').filter({ hasText: `QA-217c-Item-${ts}` })
+
+    // Primeira página real (RN-NOVA-18/#353 completo): só 8 dos 10 itens chegam ao DOM — os 2
+    // últimos não existem ainda (paginação de verdade, não mais "10 no DOM cortados por CSS").
+    await expect(buttons).toHaveCount(8)
+    await expect(page.getByText(`QA-217c-Item-${ts}-09`)).toHaveCount(0)
+    await expect(page.getByText(`QA-217c-Item-${ts}-10`)).toHaveCount(0)
+
+    const carregarMais = page.getByRole('button', { name: 'Carregar mais', exact: true })
+    await expect(carregarMais).toBeVisible()
+
+    const segundaPagina = page.waitForResponse(res =>
+      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes('page=1')
+    )
+    await carregarMais.click()
+    await segundaPagina
+
+    // Segunda página: os 2 itens restantes aparecem, os 8 primeiros continuam (append, não replace).
+    await expect(buttons).toHaveCount(10)
     for (const nome of nomes) {
       await expect(page.getByText(nome)).toBeAttached()
     }
-  })
 
-  test('RN-NOVA-7/CEN-NOVO-9 — no máximo 8 itens de produto visíveis por vez, resto acessível via rolagem', async ({ page, request }) => {
-    const token = await apiLogin(request)
-    const ts = Date.now()
-    const nomes = Array.from({ length: 10 }, (_, i) => `QA-217d-Item-${ts}-${String(i + 1).padStart(2, '0')}`)
-    const { catalogo, produtoIds: ids } = await criarCatalogoComItens(request, token, `QA-217d-Catalogo-${ts}`, nomes)
-    catalogoIds.push(catalogo.id)
-    produtoIds.push(...ids)
-    const cliente = await criarCliente(request, token, `QA-217d-Cliente-${ts}`)
-
-    await login(page)
-    await page.goto('/orcamentos/novo')
-    await selecionarCliente(page, cliente.nome)
-    await page.getByRole('button', { name: 'Catálogo' }).click()
-    await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
-
-    const dropdown = page.locator('div.animate-pop')
-    await dropdown.waitFor({ state: 'visible' })
-
-    const buttons = dropdown.getByRole('button').filter({ hasText: `QA-217d-Item-${ts}` })
-    // A busca dispara com debounce (300ms) — `toHaveCount` faz polling e espera resolver,
-    // diferente de `buttons.count()` puro, que é uma leitura única e pode rodar antes do fetch.
-    await expect(buttons).toHaveCount(10)
-    const total = 10
-    const dropdownBox = await dropdown.boundingBox()
-    expect(dropdownBox).not.toBeNull()
-
-    let visiveis = 0
-    for (let i = 0; i < total; i++) {
-      const box = await buttons.nth(i).boundingBox()
-      if (!box) continue
-      const dentro = box.y >= dropdownBox!.y - 1 && box.y + box.height <= dropdownBox!.y + dropdownBox!.height + 1
-      if (dentro) visiveis++
-    }
-    expect(visiveis).toBe(8)
-
-    // Container precisa realmente permitir rolagem para os itens restantes (não é paginação).
-    const scrollInfo = await dropdown.evaluate(el => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }))
-    expect(scrollInfo.scrollHeight).toBeGreaterThan(scrollInfo.clientHeight)
+    // hasMore=false (10/10 carregados, last=true) — botão desaparece.
+    await expect(carregarMais).toHaveCount(0)
   })
 
   test('RN-NOVA-7/CEN-NOVO-10 — listagem completa + no máximo 8 customizações visíveis, resto via rolagem', async ({ page, request }) => {
