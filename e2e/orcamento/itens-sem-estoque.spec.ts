@@ -3,7 +3,7 @@ import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, criarProdutoComFichaEEstoque, inativarProduto } from '../helpers/producao'
 import { criarInsumoFracionavel } from '../helpers/insumo'
-import { criarCliente } from '../helpers/orcamento'
+import { criarCliente, criarOrcamentoViaApi } from '../helpers/orcamento'
 
 const API_URL = 'http://localhost:8080'
 
@@ -40,21 +40,10 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     criadosProdutoIds.push(produtoSemEstoque.id, produtoComEstoque.id)
     const cliente = await criarCliente(request, token, `QA-RNNOVA5-Cliente-${Date.now()}`)
 
-    const resCriar = await request.post(`${API_URL}/orcamentos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        clienteId: cliente.id,
-        itens: [
-          { produtoId: produtoSemEstoque.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
-          { produtoId: produtoComEstoque.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 },
-        ],
-        metodoPagamento: 'PIX',
-        prazoProducaoDias: 5,
-        sinalAtivo: false,
-      },
-    })
-    if (!resCriar.ok()) throw new Error(`Falha ao criar orçamento de teste: ${resCriar.status()} ${await resCriar.text()}`)
-    const orcamento = await resCriar.json()
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produtoSemEstoque.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
+      { produtoId: produtoComEstoque.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 },
+    ])
 
     const res = await request.get(`${API_URL}/orcamentos/${orcamento.id}/itens-sem-estoque`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -78,17 +67,9 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     criadosProdutoIds.push(produto.id)
     const cliente = await criarCliente(request, token, `QA-RNNOVA5b-Cliente-${Date.now()}`)
 
-    const resCriar = await request.post(`${API_URL}/orcamentos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        clienteId: cliente.id,
-        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 }],
-        metodoPagamento: 'PIX',
-        prazoProducaoDias: 5,
-        sinalAtivo: false,
-      },
-    })
-    const orcamento = await resCriar.json()
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 },
+    ])
 
     const res = await request.get(`${API_URL}/orcamentos/${orcamento.id}/itens-sem-estoque`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -112,17 +93,9 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     criadosProdutoIds.push(produto.id)
     const cliente = await criarCliente(request, token, `QA-RNNOVA5c-Cliente-${Date.now()}`)
 
-    const resCriar = await request.post(`${API_URL}/orcamentos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        clienteId: cliente.id,
-        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 }],
-        metodoPagamento: 'PIX',
-        prazoProducaoDias: 5,
-        sinalAtivo: false,
-      },
-    })
-    const orcamento = await resCriar.json()
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
+    ])
 
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
@@ -137,17 +110,9 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     criadosProdutoIds.push(produto.id)
     const cliente = await criarCliente(request, token, `QA-RNNOVA5d-Cliente-${Date.now()}`)
 
-    const resCriar = await request.post(`${API_URL}/orcamentos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        clienteId: cliente.id,
-        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 }],
-        metodoPagamento: 'PIX',
-        prazoProducaoDias: 5,
-        sinalAtivo: false,
-      },
-    })
-    const orcamento = await resCriar.json()
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 5 },
+    ])
 
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
@@ -170,17 +135,9 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     criadosProdutoIds.push(produto.id)
     const cliente = await criarCliente(request, token, `QA-RNNOVA5e-Cliente-${Date.now()}`)
 
-    const resCriar = await request.post(`${API_URL}/orcamentos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        clienteId: cliente.id,
-        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 }],
-        metodoPagamento: 'PIX',
-        prazoProducaoDias: 5,
-        sinalAtivo: false,
-      },
-    })
-    const orcamento = await resCriar.json()
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
+    ])
 
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)

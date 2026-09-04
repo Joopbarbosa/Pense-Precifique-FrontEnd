@@ -2,9 +2,14 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
-import { criarCliente, buscarOrcamento, selecionarCliente, adicionarItemAvulso, avancarStatusViaApi } from '../helpers/orcamento'
-
-const API_URL = 'http://localhost:8080'
+import {
+  criarCliente,
+  buscarOrcamento,
+  selecionarCliente,
+  adicionarItemAvulso,
+  avancarStatusViaApi,
+  criarOrcamentoViaApi,
+} from '../helpers/orcamento'
 
 /**
  * Homologação P-QA-005 / OpenProject #126 — Validação de Estoque no Orçamento (Fluxo H),
@@ -149,18 +154,9 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     const nomeCliente = `QA-RN052-Orc-Cliente-${Date.now()}`
     const cliente = await criarCliente(request, token, nomeCliente)
 
-    const resCriar = await request.post(`${API_URL}/orcamentos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        clienteId: cliente.id,
-        itens: [{ produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 }],
-        metodoPagamento: 'PIX',
-        prazoProducaoDias: 5,
-        sinalAtivo: false,
-      },
-    })
-    if (!resCriar.ok()) throw new Error(`Falha ao criar orçamento de teste: ${resCriar.status()} ${await resCriar.text()}`)
-    const orcamento = await resCriar.json()
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
+      { produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
+    ])
 
     // Avança até EM_PRODUCAO via API — não é o que este teste investiga.
     await avancarStatusViaApi(request, token, orcamento.id) // RASCUNHO -> ENVIADO
