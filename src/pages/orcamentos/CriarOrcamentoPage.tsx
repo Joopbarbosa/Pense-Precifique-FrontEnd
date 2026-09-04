@@ -25,6 +25,7 @@ import { useToast } from '../../hooks/useToast'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { extractApiError } from '../../utils/apiError'
 import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
+import SelecaoProducaoEstoque from '../../components/orcamento/SelecaoProducaoEstoque'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
@@ -1798,34 +1799,22 @@ export default function CriarOrcamentoPage() {
               ? 'Estes itens vão ficar com estoque negativo se as alterações forem salvas assim. Você pode salvar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a diferença.'
               : 'Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode continuar mesmo assim, vincular a uma produção que já está aguardando início, ou selecionar itens para criar uma produção agora, cobrindo a diferença.'}
           </p>
-          <div className="flex flex-col gap-2">
-            {pendentesAvanco.map(p => {
-              const falta = Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual))
-              const selecionado = selecionadosProducao.has(p.produtoId)
-              return (
-                <label
-                  key={p.produtoId}
-                  className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selecionado}
-                    onChange={() => setSelecionadosProducao(prev => {
-                      const next = new Set(prev)
-                      if (next.has(p.produtoId)) next.delete(p.produtoId)
-                      else next.add(p.produtoId)
-                      return next
-                    })}
-                    className="h-4 w-4 flex-shrink-0 accent-orange"
-                  />
-                  <AlertTriangle size={16} className="flex-shrink-0 text-orange" />
-                  <span className="flex-1 text-[13px] leading-[1.4] text-warning-alt">
-                    <strong className="font-semibold">{p.nomeProduto}</strong> — disponível {p.estoqueAtual}, necessário {p.quantidadeNecessaria} (faltam {falta} un.)
-                  </span>
-                </label>
-              )
+          <SelecaoProducaoEstoque
+            itens={pendentesAvanco.map(p => ({
+              produtoId: p.produtoId,
+              nomeProduto: p.nomeProduto,
+              estoqueAtual: p.estoqueAtual,
+              quantidadeNecessaria: p.quantidadeNecessaria,
+              quantidadeFaltante: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
+            }))}
+            selecionados={selecionadosProducao}
+            onToggle={produtoId => setSelecionadosProducao(prev => {
+              const next = new Set(prev)
+              if (next.has(produtoId)) next.delete(produtoId)
+              else next.add(produtoId)
+              return next
             })}
-          </div>
+          />
         </ModalShell>
       )}
 

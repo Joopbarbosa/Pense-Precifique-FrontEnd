@@ -241,12 +241,16 @@ export async function desvincularProducaoViaApi(
   })
 }
 
-/** P-T004/#320 — cria uma produção nova (AGUARDANDO_INICIO) já vinculada ao orçamento, com os produtos dele. */
+/**
+ * P-T004/#320 — cria uma produção nova (AGUARDANDO_INICIO) já vinculada ao orçamento, com os
+ * produtos dele. `produtoIds` (RN-NOVA-13/25, P-F001f) restringe a produtos específicos do
+ * orçamento — null/ausente preserva o padrão (todos os itens).
+ */
 export async function criarProducaoVinculadaViaApi(
   request: APIRequestContext,
   token: string,
   orcamentoId: string,
-  data: { dataInicio?: string; dataTerminoPrevista: string; observacoes?: string }
+  data: { dataInicio?: string; dataTerminoPrevista: string; observacoes?: string; produtoIds?: string[] }
 ) {
   const res = await request.post(`${API_URL}/orcamentos/${orcamentoId}/criar-producao-vinculada`, {
     headers: { Authorization: `Bearer ${token}` },

@@ -122,6 +122,12 @@ export interface ItemSemEstoque {
   quantidadeSolicitada: number;
   estoqueAtual: number;
   quantidadeFaltante: number;
+  // RN-NOVA-26 (V0.8.3, #387, P-B009) — id/identificador (ex. "PRD-7") da produção em estado
+  // não-terminal (AGUARDANDO_INICIO/EM_ANDAMENTO/TRAVADA) que já cobre este produto especificamente;
+  // null quando não há vínculo ativo. Frontend troca o checkbox de seleção por VinculoAtivoBadge +
+  // "Visualizar produção" quando preenchido (RN-NOVA-25).
+  producaoVinculadaId: string | null;
+  identificadorProducaoVinculada: string | null;
 }
 
 // #320 (RN-NOVA-6) — vínculo de orçamento com produção (orcamento_producoes). Mesmo shape devolvido

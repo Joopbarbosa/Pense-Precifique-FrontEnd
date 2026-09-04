@@ -9,7 +9,7 @@ import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
-  AlertTriangle, Pencil, Copy,
+  AlertTriangle, Pencil, Copy, StickyNote,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -28,6 +28,8 @@ import { isConfirmacaoEstoqueNegativoResponse } from "../../types/producao";
 import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
 import ModalVincularProducao from "../../components/orcamento/ModalVincularProducao";
+import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
+import { VinculoAtivoBadge } from "../../components/shared";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
 import { useRetryCooldown } from "../../hooks/useRetryCooldown";
@@ -1064,8 +1066,31 @@ export default function DetalheOrcamentoPage() {
   // bloqueia: mesmo fechando/ignorando a modal, a transição segue (RN-ORC-VINC-01, bloqueio já
   // removido no Backend por P-B017).
   const [vinculoViaTransicao, setVinculoViaTransicao] = useState(false);
+  // RN-NOVA-25 (V0.8.3, #319+376, P-F001f) — checkbox unificado do card "Estoque insuficiente":
+  // seleção por produtoId (mesmo padrão de CriarOrcamentoPage/RN-NOVA-11) + mini-formulário próprio
+  // de "Criar produção (N)", que cria vínculo formal via criarProducaoVinculada com subconjunto de
+  // itens — nunca mais o botão individual sem vínculo de ORC-028.
+  const [selecionadosProducaoDetalhe, setSelecionadosProducaoDetalhe] = useState<Set<string>>(new Set());
+  const [modalCriarProducaoDetalhe, setModalCriarProducaoDetalhe] = useState(false);
+  const [formDataInicioProducaoDetalhe, setFormDataInicioProducaoDetalhe] = useState("");
+  const [formDataTerminoProducaoDetalhe, setFormDataTerminoProducaoDetalhe] = useState("");
+  const [formObsProducaoDetalhe, setFormObsProducaoDetalhe] = useState("");
+  const [formErroProducaoDetalhe, setFormErroProducaoDetalhe] = useState<string | null>(null);
+  const [criandoProducaoDetalhe, setCriandoProducaoDetalhe] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
+
+  // RN-NOVA-5/RN-NOVA-26 (#194, #387) — auxiliar para o card "Estoque insuficiente"; não bloqueia o
+  // Detalhe se falhar. Extraído de `carregar` para poder ser rechamado sozinho (sem o flash de
+  // "Carregando orçamento...") depois que uma produção nova é criada e vinculada (RN-NOVA-25), já
+  // que só esta chamada sabe, por item, qual produção específica cobre aquele produto.
+  const refetchItensSemEstoque = useCallback(() => {
+    if (!id) return;
+    orcamentoService
+      .buscarItensSemEstoque(id)
+      .then(setItensSemEstoque)
+      .catch(() => setToast("Não foi possível verificar o estoque dos itens deste orçamento."));
+  }, [id, setToast]);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -1086,12 +1111,8 @@ export default function DetalheOrcamentoPage() {
       setLoading(false);
     }
 
-    // RN-NOVA-5 (#194) — auxiliar para o botão "Criar produção"; não bloqueia o Detalhe se falhar.
-    orcamentoService
-      .buscarItensSemEstoque(id)
-      .then(setItensSemEstoque)
-      .catch(() => setToast("Não foi possível verificar o estoque dos itens deste orçamento."));
-  }, [id, setToast]);
+    refetchItensSemEstoque();
+  }, [id, refetchItensSemEstoque]);
 
   useEffect(() => {
     carregar();
@@ -1263,6 +1284,49 @@ export default function DetalheOrcamentoPage() {
     finalizarVinculo(vinculos);
   };
 
+  // RN-NOVA-25 (#319+376, P-F001f) — "Criar produção (N)" do card "Estoque insuficiente": mesmo
+  // endpoint de `handleCriarProducaoNova` acima, mas com `produtoIds` restrito aos itens marcados no
+  // checkbox (nunca todos os itens do orçamento) — mini-formulário próprio, mesmo padrão do
+  // checkpoint de `CriarOrcamentoPage.tsx` (RN-NOVA-12/13). Diferente de `finalizarVinculo`
+  // (`producoesVinculadas` já vem pronto na resposta), também precisa rechamar
+  // `itens-sem-estoque` — só esse endpoint sabe, por produtoId, qual vínculo específico cobre cada
+  // item (RN-NOVA-26).
+  const handleCriarProducaoCheckpointDetalhe = async () => {
+    if (!id) return;
+    if (!formDataTerminoProducaoDetalhe) {
+      setFormErroProducaoDetalhe("Informe o prazo de término previsto.");
+      return;
+    }
+    setCriandoProducaoDetalhe(true);
+    setFormErroProducaoDetalhe(null);
+    try {
+      const vinculos = await orcamentoService.criarProducaoVinculada(id, {
+        dataInicio: formDataInicioProducaoDetalhe || undefined,
+        dataTerminoPrevista: formDataTerminoProducaoDetalhe,
+        observacoes: formObsProducaoDetalhe || undefined,
+        produtoIds: Array.from(selecionadosProducaoDetalhe),
+      });
+      setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
+      setSelecionadosProducaoDetalhe(new Set());
+      setModalCriarProducaoDetalhe(false);
+      setToast("Produção criada e vinculada a este orçamento.");
+      refetchItensSemEstoque();
+    } catch (err) {
+      setFormErroProducaoDetalhe(extractApiError(err, "Não foi possível criar a produção. Tente novamente."));
+    } finally {
+      setCriandoProducaoDetalhe(false);
+    }
+  };
+
+  const handleToggleSelecaoProducaoDetalhe = (produtoId: string) => {
+    setSelecionadosProducaoDetalhe((prev) => {
+      const next = new Set(prev);
+      if (next.has(produtoId)) next.delete(produtoId);
+      else next.add(produtoId);
+      return next;
+    });
+  };
+
   const handleCancelar = async (data?: AvancaStatusRequest) => {
     if (!id) return;
     setSaving(true);
@@ -1367,6 +1431,11 @@ export default function DetalheOrcamentoPage() {
   const precisaVincularProducao =
     (status === "APROVADO" && !orcamento.sinalAtivo) || status === "SINAL_PAGO";
   const producoesVinculadas = orcamento.producoesVinculadas;
+  // RN-NOVA-25 (#319+376) — itens com estoque insuficiente e sem nenhuma produção não-terminal
+  // cobrindo o produto ainda: são os únicos elegíveis para o checkbox/ação agregada "Criar produção
+  // (N)". Itens com producaoVinculadaId preenchido (RN-NOVA-26) mostram "Visualizar produção" no
+  // próprio card, não entram aqui.
+  const itensPendentesSemVinculo = itensSemEstoque.filter((i) => !i.producaoVinculadaId);
 
   // RN-ORC-VINC-02 ponto 2 (P-F005) — intercepta só a transição real para EM_PRODUCAO
   // (precisaVincularProducao já restringe aos 2 caminhos que levam direto pra lá) e só quando ainda
@@ -1621,6 +1690,36 @@ export default function DetalheOrcamentoPage() {
 
           {/* Itens */}
           <div className="flex flex-col gap-3 border-b border-line py-4">
+            {/* RN-NOVA-25 (#319+376) — ação agregada acima da lista, some sozinha quando não há
+                mais nenhum item pendente (todos já cobertos por produção, ou nenhum problema de
+                estoque) — nunca aparece "Visualizar produção" aqui: itens em produções diferentes
+                (RN-NOVA-13) tornariam um botão único ambíguo, cada item já mostra a produção certa
+                no próprio card. */}
+            {itensPendentesSemVinculo.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-input border border-orange/30 bg-orange/[0.05] px-3.5 py-2.5">
+                <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-warning-alt">
+                  <AlertTriangle size={14} className="flex-shrink-0 text-orange" />
+                  {itensPendentesSemVinculo.length === 1
+                    ? "1 item com estoque insuficiente"
+                    : `${itensPendentesSemVinculo.length} itens com estoque insuficiente`}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={selecionadosProducaoDetalhe.size === 0}
+                  onClick={() => {
+                    setFormDataInicioProducaoDetalhe("");
+                    setFormDataTerminoProducaoDetalhe("");
+                    setFormObsProducaoDetalhe("");
+                    setFormErroProducaoDetalhe(null);
+                    setModalCriarProducaoDetalhe(true);
+                  }}
+                >
+                  <Factory size={14} />
+                  Criar produção{selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
+                </Button>
+              </div>
+            )}
             {orcamento.itens.map((it, i) => {
               const semEstoque = itensSemEstoque.find((s) => s.produtoId === it.produtoId);
               return (
@@ -1671,21 +1770,32 @@ export default function DetalheOrcamentoPage() {
                       ))}
                     </div>
                     {semEstoque && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2 rounded-input border border-orange/30 bg-orange/[0.08] px-3 py-2">
-                        <AlertCircle size={14} className="flex-shrink-0 text-orange" />
-                        <span className="flex-1 text-[12px] leading-[1.4] text-warning-alt">
-                          Estoque insuficiente: faltam {semEstoque.quantidadeFaltante} un. (disponível {semEstoque.estoqueAtual} de {semEstoque.quantidadeSolicitada} solicitadas)
-                        </span>
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/producao/nova?produtoId=${semEstoque.produtoId}&quantidade=${Math.ceil(semEstoque.quantidadeFaltante)}`
-                            )
-                          }
-                          className="inline-flex h-7 flex-shrink-0 items-center gap-1.5 rounded-full border-none bg-orange px-3 font-[inherit] text-[11.5px] font-semibold text-white transition-colors duration-150 hover:bg-orange/90"
-                        >
-                          <Factory size={12} /> Criar produção
-                        </button>
+                      <div className="mt-2">
+                        {semEstoque.producaoVinculadaId ? (
+                          // RN-NOVA-26 (#387) — já existe produção não-terminal cobrindo este
+                          // produto especificamente: mostra a produção certa, não uma navegação
+                          // genérica pra criar outra.
+                          <VinculoAtivoBadge
+                            label="Visualizar produção"
+                            onClick={() => navigate(`/producao/${semEstoque.producaoVinculadaId}`)}
+                          />
+                        ) : (
+                          // RN-NOVA-25 (#319+376) — checkbox no lugar do botão individual sem
+                          // vínculo (ORC-028, comportamento substituído nesta versão): a ação real
+                          // fica no "Criar produção (N)" agregado, logo acima da lista de itens.
+                          <SelecaoProducaoEstoque
+                            itens={[{
+                              produtoId: semEstoque.produtoId,
+                              nomeProduto: semEstoque.nomeProduto,
+                              estoqueAtual: semEstoque.estoqueAtual,
+                              quantidadeNecessaria: semEstoque.quantidadeSolicitada,
+                              quantidadeFaltante: semEstoque.quantidadeFaltante,
+                            }]}
+                            selecionados={selecionadosProducaoDetalhe}
+                            onToggle={handleToggleSelecaoProducaoDetalhe}
+                            ocultarNome
+                          />
+                        )}
                       </div>
                     )}
                   </div>
@@ -1843,6 +1953,91 @@ export default function DetalheOrcamentoPage() {
           confirmando={vinculandoProducao}
           jaVinculadasIds={producoesVinculadas.map((v) => v.producaoId)}
         />
+      )}
+
+      {/* RN-NOVA-25 (#319+376, P-F001f) — mini-formulário próprio de "Criar produção (N)" do card
+          "Estoque insuficiente", mesmo padrão visual do modoCriarNova de ModalVincularProducao e do
+          checkpoint de CriarOrcamentoPage (RN-NOVA-12/13) — mas cobre só os produtoIds marcados no
+          checkbox, não todos os itens do orçamento. */}
+      {modalCriarProducaoDetalhe && (
+        <ModalShell
+          open
+          onClose={() => setModalCriarProducaoDetalhe(false)}
+          title="Criar produção"
+          subtitle={`Cobre só ${selecionadosProducaoDetalhe.size === 1 ? "o item selecionado" : `os ${selecionadosProducaoDetalhe.size} itens selecionados`}`}
+          icon={<Factory size={18} />}
+          iconBg="#EAF1FB"
+          iconColor="#2A6FB0"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setModalCriarProducaoDetalhe(false)} disabled={criandoProducaoDetalhe}>
+                Cancelar
+              </Button>
+              <Button variant="primary" onClick={handleCriarProducaoCheckpointDetalhe} disabled={criandoProducaoDetalhe}>
+                {criandoProducaoDetalhe ? "Criando..." : "Criar produção"}
+              </Button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <p className="m-0 text-[13.5px] text-muted">
+              Fica vinculada a este orçamento automaticamente, cobrindo só os produtos marcados —
+              nasce em "Aguardando início".
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <label className="block flex-1 basis-[160px]">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={15} className="text-teal" /> Início
+                </span>
+                <input
+                  type="date"
+                  value={formDataInicioProducaoDetalhe}
+                  onChange={(e) => setFormDataInicioProducaoDetalhe(e.target.value)}
+                  disabled={criandoProducaoDetalhe}
+                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+              </label>
+              <label className="block flex-1 basis-[160px]">
+                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                  <Calendar size={15} className="text-teal" /> Término previsto <span className="text-orange">*</span>
+                </span>
+                <input
+                  type="date"
+                  value={formDataTerminoProducaoDetalhe}
+                  min={formDataInicioProducaoDetalhe || undefined}
+                  onChange={(e) => setFormDataTerminoProducaoDetalhe(e.target.value)}
+                  disabled={criandoProducaoDetalhe}
+                  className={clsx(
+                    "h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]",
+                    formErroProducaoDetalhe && !formDataTerminoProducaoDetalhe ? "border-danger" : "border-line"
+                  )}
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
+                <StickyNote size={15} className="text-teal" /> Observações <span className="text-[11.5px] font-medium text-muted">(opcional)</span>
+              </span>
+              <textarea
+                value={formObsProducaoDetalhe}
+                onChange={(e) => setFormObsProducaoDetalhe(e.target.value)}
+                disabled={criandoProducaoDetalhe}
+                rows={3}
+                placeholder="Ex: separar embalagem especial para este pedido"
+                className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              />
+            </label>
+
+            {formErroProducaoDetalhe && (
+              <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
+                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{formErroProducaoDetalhe}</span>
+              </div>
+            )}
+          </div>
+        </ModalShell>
       )}
 
       {modal === "cancel" && kind === "simples" && (
