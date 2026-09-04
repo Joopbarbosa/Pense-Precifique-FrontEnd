@@ -30,6 +30,8 @@ import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEs
 import ModalVincularProducao from "../../components/orcamento/ModalVincularProducao";
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
 import { VinculoAtivoBadge } from "../../components/shared";
+import ModalConfirmacaoVinculoSequencial from "../../components/shared/ModalConfirmacaoVinculoSequencial";
+import { construirFilaVinculosOrcamento, type VinculoPendente } from "../../utils/vinculoCancelamento";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
 import { useRetryCooldown } from "../../hooks/useRetryCooldown";
@@ -1077,6 +1079,9 @@ export default function DetalheOrcamentoPage() {
   const [formObsProducaoDetalhe, setFormObsProducaoDetalhe] = useState("");
   const [formErroProducaoDetalhe, setFormErroProducaoDetalhe] = useState<string | null>(null);
   const [criandoProducaoDetalhe, setCriandoProducaoDetalhe] = useState(false);
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — fila de vínculos (produções) pendentes de confirmação
+  // "desfazer vínculo?" exibida logo após o cancelamento ser confirmado com sucesso, um por vez.
+  const [filaVinculos, setFilaVinculos] = useState<VinculoPendente[] | null>(null);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
 
@@ -1342,6 +1347,30 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — a fila de vínculos roda ANTES da modal real de
+  // cancelamento (ModalCancelSimples/Justificativa/Multa/Estorno), não depois: embora o
+  // cancelamento do Orçamento em si não valide o estado das produções vinculadas, rodar antes
+  // mantém a mesma ordem nos dois lados (Orçamento/Produção) — necessária no lado espelhado
+  // porque lá os endpoints de desfazer vínculo validam o estado ATUAL da produção no servidor, que
+  // deixa de ser AGUARDANDO_INICIO assim que ela mesma é cancelada (ver DetalheProducaoPage.tsx).
+  const [verificandoVinculos, setVerificandoVinculos] = useState(false);
+  const handleCliqueCancelar = async () => {
+    if (!orcamento) return;
+    setVerificandoVinculos(true);
+    try {
+      const fila = await construirFilaVinculosOrcamento(orcamento);
+      if (fila.length > 0) setFilaVinculos(fila);
+      else setModal("cancel");
+    } finally {
+      setVerificandoVinculos(false);
+    }
+  };
+
+  const handleConcluirFilaVinculos = () => {
+    setFilaVinculos(null);
+    setModal("cancel");
+  };
+
   // P-F008 (#314) — RN-NOVA-5/ORC-039: disponível em qualquer status (sem restrição, diferente do
   // botão "Editar"), sem modal de confirmação prévia (ação não-destrutiva) — mesmo padrão de
   // navegação direta usado por criar()/editar() nesta mesma página: sucesso navega direto para o
@@ -1525,10 +1554,11 @@ export default function DetalheOrcamentoPage() {
               {cancelavel ? (
                 <div className="flex flex-col items-start gap-1.5">
                   <button
-                    onClick={() => setModal("cancel")}
-                    className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger"
+                    onClick={handleCliqueCancelar}
+                    disabled={verificandoVinculos}
+                    className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Ban size={15} /> Cancelar orçamento
+                    <Ban size={15} /> {verificandoVinculos ? "Verificando vínculos..." : "Cancelar orçamento"}
                   </button>
                   {CANCEL_KIND_HINT[kind] && (
                     <span className="text-xs text-muted">{CANCEL_KIND_HINT[kind]}</span>
@@ -2078,6 +2108,9 @@ export default function DetalheOrcamentoPage() {
           onClose={() => setAvisoEstoqueNegativo(null)}
           onConfirm={handleConfirmarAvisoEstoque}
         />
+      )}
+      {filaVinculos && filaVinculos.length > 0 && (
+        <ModalConfirmacaoVinculoSequencial fila={filaVinculos} onConcluir={handleConcluirFilaVinculos} direcao="orcamento" />
       )}
     </AppLayout>
   );

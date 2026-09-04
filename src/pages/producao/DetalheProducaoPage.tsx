@@ -29,6 +29,8 @@ import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
+import ModalConfirmacaoVinculoSequencial from '../../components/shared/ModalConfirmacaoVinculoSequencial'
+import { construirFilaVinculosProducao, type VinculoPendente } from '../../utils/vinculoCancelamento'
 
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 
@@ -84,6 +86,9 @@ export default function DetalheProducaoPage() {
   const [erro, setErro] = useState(false)
   const [modal, setModal] = useState<TipoModal | null>(null)
   const [modalCancelarConsumo, setModalCancelarConsumo] = useState(false)
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — fila de vínculos (orçamentos) pendentes de confirmação
+  // "desfazer vínculo?" exibida logo após o cancelamento ser confirmado com sucesso, um por vez.
+  const [filaVinculos, setFilaVinculos] = useState<VinculoPendente[] | null>(null)
 
   const carregar = useCallback(() => {
     if (!id) return
@@ -103,7 +108,15 @@ export default function DetalheProducaoPage() {
     carregar()
   }
 
-  const handleCancelar = () => {
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — a fila de vínculos roda ANTES da modal real de
+  // cancelamento (justificativa/consumo), não depois: `desvincularProducao`/
+  // `removerProdutoDeProducaoAtiva` validam o estado ATUAL da produção no servidor
+  // (AGUARDANDO_INICIO para reversão completa, EM_ANDAMENTO/TRAVADA para a 2ª pergunta) — depois
+  // de cancelar, `estado` já seria sempre CANCELADA, e essas chamadas passariam a falhar com 400
+  // (achado ao montar o teste e2e do lado espelhado: a "AGUARDANDO_INICIO" só existe até o
+  // cancelamento em si acontecer). Resolver antes evita essa corrida sem precisar de nenhum
+  // parâmetro extra no Backend.
+  const abrirModalCancelamentoReal = () => {
     if (!producao) return
     if (producao.estado === 'AGUARDANDO_INICIO') {
       setModal('cancelar')
@@ -112,9 +125,19 @@ export default function DetalheProducaoPage() {
     }
   }
 
-  const handleSuccessCancelarConsumo = (mensagem: string) => {
-    setModalCancelarConsumo(false)
-    handleSuccess(mensagem)
+  const handleCancelar = () => {
+    if (!producao) return
+    const fila = construirFilaVinculosProducao(producao)
+    if (fila.length > 0) {
+      setFilaVinculos(fila)
+    } else {
+      abrirModalCancelamentoReal()
+    }
+  }
+
+  const handleConcluirFilaVinculos = () => {
+    setFilaVinculos(null)
+    abrirModalCancelamentoReal()
   }
 
   if (loading) {
@@ -308,7 +331,12 @@ export default function DetalheProducaoPage() {
 
         <Section icon={<Clock size={18} />} title="Histórico de status">
           <div className="flex flex-col gap-0">
-            {producao.historicoStatus.map((h, i) => (
+            {/* RN-NOVA-17 (V0.8.3, P-F003) — achado: historicoStatus sempre incluiu eventos
+                ITEM_ADICIONADO/ITEM_REMOVIDO (RN-ORC-VINC-03/RN-NOVA-17), não só transição de
+                estado — sem o filtro por tipoEvento essas linhas renderizavam aqui com
+                statusNovo/statusAnterior nulos (entrada em branco). Eventos undefined (histórico
+                antigo, anterior a este campo) contam como STATUS por compatibilidade. */}
+            {producao.historicoStatus.filter(h => h.tipoEvento === 'STATUS' || h.tipoEvento === undefined).map((h, i) => (
               <div key={i} className={clsx('flex items-start gap-3 py-3', i > 0 && 'border-t border-line')}>
                 <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-teal" />
                 <div className="min-w-0 flex-1">
@@ -319,7 +347,7 @@ export default function DetalheProducaoPage() {
                         <ChevronRight size={13} className="text-muted" />
                       </>
                     )}
-                    <span>{ESTADO_LABEL_SIMPLES[h.statusNovo] ?? h.statusNovo}</span>
+                    <span>{(h.statusNovo && (ESTADO_LABEL_SIMPLES[h.statusNovo] ?? h.statusNovo)) || '—'}</span>
                   </div>
                   <div className="mt-0.5 text-[12.5px] text-muted">
                     {fmtDataHora(h.dataTransicao)} · <span className="uppercase tracking-[0.03em]">{ORIGEM_LABEL[h.origem] ?? h.origem}</span>
@@ -409,8 +437,11 @@ export default function DetalheProducaoPage() {
         <CancelarProducaoConsumoModal
           producaoId={producao.id}
           onClose={() => setModalCancelarConsumo(false)}
-          onSuccess={handleSuccessCancelarConsumo}
+          onSuccess={(mensagem) => { setModalCancelarConsumo(false); handleSuccess(mensagem) }}
         />
+      )}
+      {filaVinculos && filaVinculos.length > 0 && (
+        <ModalConfirmacaoVinculoSequencial fila={filaVinculos} onConcluir={handleConcluirFilaVinculos} direcao="producao" />
       )}
     </AppLayout>
   )

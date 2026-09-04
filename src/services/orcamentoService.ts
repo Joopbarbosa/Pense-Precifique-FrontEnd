@@ -98,10 +98,23 @@ export const orcamentoService = {
   },
 
   // RN-ORC-VINC-03 (P-B017) — reverte as quantidades adicionadas por vincularProducao (histórico
-  // ITEM_ADICIONADO daquele orçamento nessa produção). Sem consumidor de UI ainda nesta tarefa
-  // (P-F004) — confirmado existente via curl para o ponto 2 de RN-ORC-VINC-02 (prompt seguinte).
-  desvincularProducao: async (id: string, producaoId: string): Promise<void> => {
-    await api.delete(`/orcamentos/${id}/vincular-producao/${producaoId}`);
+  // ITEM_ADICIONADO daquele orçamento nessa produção). Primeiro consumidor de UI: RN-NOVA-17
+  // (P-F003, modal sequencial de desfazer vínculo ao cancelar) — antes chamado só via API em E2E.
+  // `manterProdutos=true` (RN-NOVA-17, contrato em contrato-orcamento.md) só tem efeito quando a
+  // produção vinculada está EM_ANDAMENTO/TRAVADA: remove só a linha OrcamentoProducao, sem tocar
+  // produto/histórico/estoque. Em AGUARDANDO_INICIO a flag é ignorada (reversão completa normal).
+  desvincularProducao: async (id: string, producaoId: string, manterProdutos = false): Promise<void> => {
+    await api.delete(`/orcamentos/${id}/vincular-producao/${producaoId}`, {
+      params: manterProdutos ? { manterProdutos: true } : undefined,
+    });
+  },
+
+  // RN-NOVA-17 (V0.8.3, P-B001, #375+308) — cobre "Não, remover" do cancelamento com vínculo
+  // ativo: remove a contribuição de 1 produto específico numa produção EM_ANDAMENTO/TRAVADA.
+  // AVISO, nunca bloqueio — material já consumido não é revertido. Não fecha o vínculo em si; o
+  // chamador ainda precisa fechar com desvincularProducao(..., manterProdutos=true) ao final.
+  removerProdutoDeProducaoAtiva: async (id: string, producaoId: string, produtoId: string): Promise<void> => {
+    await api.delete(`/orcamentos/${id}/vincular-producao/${producaoId}/produtos/${produtoId}`);
   },
 
   // RN-ORC-VINC-05 (P-B020) — cria uma produção nova já vinculada, produtos vindos do próprio
