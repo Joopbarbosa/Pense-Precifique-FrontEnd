@@ -5,14 +5,24 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner } from '../../components/ui'
 import {
   ArrowLeft, Calendar, StickyNote, Box, AlertTriangle, Lock, Clock,
-  Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, ChevronRight, Package,
+  Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, ChevronRight, Package, Link2,
 } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
 import type { ProducaoDetalhe, EstadoProducao } from '../../types/producao'
+import type { StatusOrcamento } from '../../types/orcamento'
 import { formatQuantidade } from '../../utils/quantidade'
-import { EstoqueTags } from '../../components/ui/Badge'
+import { EstoqueTags, StatusBadge } from '../../components/ui/Badge'
+import { STATUS_LABEL } from '../../constants/statusOrcamento'
+
+// Mesmo padrão local de StatusBadgeLabel/StatusBadgeType já duplicado em ListaOrcamentosPage.tsx/
+// PreviewPdfOrcamentoPage.tsx — StatusBadge (components/ui/Badge.tsx) não exporta seu union type.
+type StatusBadgeLabel =
+  | 'Rascunho' | 'Enviado' | 'Aprovado'
+  | 'Aguardando Sinal' | 'Sinal Pago'
+  | 'Em Produção' | 'Finalizado'
+  | 'Entregue' | 'Pago' | 'Cancelado'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
@@ -46,6 +56,10 @@ function fmtDataHora(iso: string): string {
   if (isNaN(d.getTime())) return iso
   return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
+
+// RN-NOVA-15 (V0.8.3, #375+308) — mesmo padrão local de BRL(n) já usado em
+// DetalheOrcamentoPage.tsx/ListaProdutosPage.tsx, sem util compartilhado no projeto.
+const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace('.', ',')}`
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
@@ -340,6 +354,31 @@ export default function DetalheProducaoPage() {
                   </button>
                 )
               })}
+            </div>
+          </Section>
+        )}
+
+        {producao.orcamentosVinculados.length > 0 && (
+          <Section icon={<Link2 size={18} />} title="Orçamentos vinculados">
+            <div className="flex flex-col gap-2">
+              {producao.orcamentosVinculados.map(orc => (
+                <button
+                  key={orc.orcamentoId}
+                  onClick={() => navigate(`/orcamentos/${orc.orcamentoId}`)}
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3 text-left font-[inherit] transition-colors duration-100 hover:bg-line-soft"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-dark">{orc.identificadorOrcamento}</div>
+                    <div className="mt-0.5 truncate text-[12.5px] text-muted">{orc.nomeCliente}</div>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-2.5">
+                    <span className="text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                      {BRL(orc.valorTotal)}
+                    </span>
+                    <StatusBadge status={STATUS_LABEL[orc.statusOrcamento as StatusOrcamento] as StatusBadgeLabel} size="sm" />
+                  </div>
+                </button>
+              ))}
             </div>
           </Section>
         )}
