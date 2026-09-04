@@ -87,7 +87,7 @@ test.describe('CEN-NOVO-18 — SINAL_PAGO → cancelamento com Estorno → Recib
     await expect(reciboFrame.getByText(nomeCliente, { exact: true }).first()).toBeVisible()
     await expect(reciboFrame.getByText('Valor devolvido', { exact: true })).toBeVisible()
     await expect(reciboFrame.getByText(`#${orcamento.numero}`, { exact: true }).first()).toBeVisible()
-    await expect(reciboFrame.getByText(String(valorSinal).replace('.', ','))).toBeVisible()
+    await expect(reciboFrame.getByText(String(valorSinal).replace('.', ',')).first()).toBeVisible()
     await expect(reciboFrame.getByText(dataFormatada).first()).toBeVisible()
     // Achado antigo (RECONCILIA-002/P-F008a) reconfirmado, não implementado — segue ausente.
     await expect(reciboFrame.getByText('Método de devolução')).toHaveCount(0)
