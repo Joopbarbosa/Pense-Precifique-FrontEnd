@@ -112,6 +112,14 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
   apiError.ts`) lê o Blob como texto e faz `JSON.parse` antes do catch.
 - **`reporEstoque` em E2E é sempre via `POST /lotes-compra`** (`e2e/helpers/insumo.ts`) —
   `PUT /insumos/{id}` ignora `estoqueAtual` no backend, repor estoque com `PUT` não faz nada.
+- **Modal sequencial "uma pergunta por vez"** (canônico: `ModalConfirmacaoVinculoSequencial`,
+  `components/shared/`, V0.8.3/RN-NOVA-17) — quando uma ação tem N confirmações independentes
+  (ex.: cancelar algo com múltiplos vínculos, cada um exigindo Sim/Não próprio), nunca agregar
+  numa lista + confirmação única — abrir modal por item, resolver, avançar pro próximo, até
+  esgotar a fila. Fila é `useState` local na página que dispara a ação (não hook/contexto
+  genérico — só extrair se um 3º consumidor aparecer), construída **antes** de qualquer chamada
+  que mude o estado do que está sendo enfileirado (endpoints de reversão validam estado atual no
+  servidor, não snapshot — rodar a fila depois quebra sistematicamente).
 
 ---
 
