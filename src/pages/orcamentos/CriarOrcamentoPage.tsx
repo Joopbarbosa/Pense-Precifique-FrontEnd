@@ -6,13 +6,17 @@ import { Button, ModalShell, Stepper } from '../../components/ui'
 import {
   Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
   Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check, Factory,
+  Calculator,
 } from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
 import { orcamentoService } from '../../services/orcamentoService'
 import { catalogoService } from '../../services/catalogoService'
+import { itemCatalogoService } from '../../services/itemCatalogoService'
+import { empresaService } from '../../services/empresaService'
+import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import type { ClienteResponse } from '../../types/cliente'
-import type { ProdutoResponse } from '../../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse } from '../../types/produto'
 import type {
   OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
   SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, CriarProducaoVinculadaRequest,
@@ -28,6 +32,77 @@ import ModalVincularProducao from '../../components/orcamento/ModalVincularProdu
 import SelecaoProducaoEstoque from '../../components/orcamento/SelecaoProducaoEstoque'
 
 const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
+
+// ── Calculadora de preço (ORC-020 REVISÃO/RN-NOVA-22-23, V0.8.4/#399) ───────────────
+// Funções de módulo (não dentro do componente) — reaproveitadas tanto pela adição
+// direta de produto avulso/item de catálogo quanto pela fila de customizações dentro
+// de ModalCustomizacoes (customização é um Produto com ficha técnica própria — mesma
+// mecânica do produto avulso, RN-NOVA-23).
+interface DadosCalculadoraItem {
+  titulo: string
+  sugerido: number
+  precoInicial: number
+  breakdown: { label: string; value: string; sub?: string }[]
+}
+
+// Monta os dados da calculadora para produto avulso/customização — RN-NOVA-23: usa
+// GET /produtos/{id} (detalhe) + GET /configuracoes/precificacao, os dois endpoints já
+// existentes. `sugerido` vem pronto do Backend (precoSugerido) — Frontend não recalcula
+// custo×margem (isso seria regra de negócio replicada no cliente).
+async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Calculadora de Preço'): Promise<DadosCalculadoraItem> {
+  const [detalhe, config] = await Promise.all([
+    produtoService.buscarPorId(produtoId) as Promise<ProdutoDetalheResponse & { precoSugerido: number; margemLucro: number }>,
+    empresaService.getConfiguracao(),
+  ])
+  const custoInsumos = detalhe.fichaTecnica.reduce((s, f) => s + f.quantidade * f.custoUnitario, 0)
+  const maoObra = (detalhe.tempoProducao / 60) * config.valorHora
+  // `margemLucro` do produto é a PORCENTAGEM cadastrada (ex.: 40 = 40%), não um valor em
+  // R$ — o lucro em reais é a diferença entre o sugerido (já pronto do Backend) e o
+  // custo total (insumos + mão de obra). Achado do teste visual desta tarefa: a
+  // primeira versão exibia `margemLucro` direto como moeda (R$ 40,00 em vez de R$ 5,66).
+  const lucro = detalhe.precoSugerido - custoInsumos - maoObra
+  return {
+    titulo,
+    sugerido: detalhe.precoSugerido,
+    precoInicial: detalhe.precoSugerido,
+    breakdown: [
+      { label: 'Custo dos insumos', value: BRL(custoInsumos) },
+      { label: 'Mão de obra', value: BRL(maoObra), sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h` },
+      { label: 'Margem de lucro', value: BRL(lucro), sub: `${detalhe.margemLucro}%` },
+    ],
+  }
+}
+
+// Monta os dados da calculadora para item de catálogo — RN-NOVA-23: combina o
+// breakdown do Produto de origem com a composição JÁ PERSISTIDA do item
+// (quantidadePacote + customizacoesAnexadas + precoSugerido de ItemCatalogoResponse) —
+// não recalcula a composição do zero. RN-NOVA-3 (V0.8.4): se alguma customização
+// anexada não existir mais (excluída/inativa), a composição não é mais a mesma que foi
+// fixada — lança erro aqui, cai no BLOQUEIO único (RN-NOVA-2) do modal chamador.
+async function carregarCalculadoraCatalogo(catalogoId: string, itemId: string): Promise<DadosCalculadoraItem> {
+  const itensDoCatalogo = await itemCatalogoService.listar(catalogoId)
+  const item = itensDoCatalogo.find(i => i.id === itemId)
+  if (!item) throw new Error('Item de catálogo não encontrado — composição pode ter mudado.')
+  // Confirma que a composição persistida ainda é válida (RN-NOVA-3) — cada
+  // customização anexada precisa existir e continuar ativa.
+  await Promise.all(item.customizacoesAnexadas.map(c => produtoService.buscarPorId(c.produtoId).then(p => {
+    if (!p.ativo) throw new Error(`Customização "${c.produtoNome}" não está mais ativa.`)
+  })))
+  // CEN-NOVO-4 (DECISOES_V0.8.4.md) — valor final inicia com o precoSugerido já
+  // calculado (não o precoVenda persistido, que pode já vir de override anterior no
+  // cadastro do Catálogo — aqui é uma nova confirmação, não a herança de uma antiga).
+  return {
+    titulo: 'Calculadora de Preço',
+    sugerido: item.precoSugerido,
+    precoInicial: item.precoSugerido,
+    breakdown: [
+      { label: `Produto (${item.produtoNome}) × ${item.quantidadePacote}`, value: BRL(item.precoSugerido) },
+      ...(item.customizacoesAnexadas.length > 0
+        ? [{ label: 'Customizações anexadas', value: `${item.customizacoesAnexadas.length} item(ns)` }]
+        : []),
+    ],
+  }
+}
 
 // Símbolo exibido na UI ('%' | 'R$') é conceito distinto do valor aceito pela API
 // (enum TipoDesconto do backend, ver TipoDesconto.java) — nunca enviar o símbolo direto.
@@ -341,6 +416,61 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
 
   const extraTotal = selecionadas.reduce((s, c) => s + c.valor * c.qtd, 0)
 
+  // RN-NOVA-1 (V0.8.4) — cancelar a calculadora de uma customização da fila descarta só
+  // aquela seleção (some do checklist de `selecionadas`), a fila segue com o resto. Se
+  // não sobrar nenhuma, fecha a fila sem chamar onConfirm — a artesã volta pra tela de
+  // seleção, livre pra ajustar ou fechar o modal inteiro.
+  const descartarDaFila = () => {
+    if (!fila) return
+    const [atual, ...resto] = fila
+    setSelecionadas(prev => prev.filter(x => x.id !== atual.id))
+    setFila(resto.length > 0 ? resto : null)
+  }
+
+  const confirmarDaFila = (precoFinal: number) => {
+    if (!fila) return
+    const [atual, ...resto] = fila
+    const novasConfirmadas = [...confirmadas, { ...atual, valor: precoFinal }]
+    if (resto.length > 0) {
+      setConfirmadas(novasConfirmadas)
+      setFila(resto)
+    } else {
+      onConfirm(item.id, novasConfirmadas)
+    }
+  }
+
+  // ORC-020 (REVISÃO)/RN-NOVA-22-23 (V0.8.4/#399) — customização é um Produto com
+  // ficha técnica própria, mesma mecânica do produto avulso (RN-NOVA-23): ao confirmar
+  // a seleção, cada customização escolhida passa pela calculadora, uma de cada vez —
+  // mesmo padrão "modal sequencial" já usado em ModalConfirmacaoVinculoSequencial
+  // (ver CLAUDE.md do Frontend, seção 5). `fila` guarda as que ainda faltam confirmar;
+  // `confirmadas` acumula o preço final de cada uma já confirmada.
+  const [fila, setFila] = useState<typeof selecionadas | null>(null)
+  const [confirmadas, setConfirmadas] = useState<typeof selecionadas>([])
+
+  const iniciarConfirmacao = () => {
+    if (selecionadas.length === 0) { onConfirm(item.id, []); return }
+    setConfirmadas([])
+    setFila([...selecionadas])
+  }
+
+  // Fila ativa: some a modal de seleção, mostra só a calculadora da customização atual
+  // — mesmo espírito do padrão sequencial (uma pergunta/decisão por vez).
+  if (fila && fila.length > 0) {
+    const atual = fila[0]
+    return (
+      // key força remount a cada passo da fila — sem isso, o useEffect de carregamento
+      // (mount-only) não dispara de novo pra próxima customização, ficando com dados
+      // presos na anterior (mesma posição na árvore, React reaproveitaria a instância).
+      <ModalCalculadoraItem
+        key={atual.id}
+        carregar={() => carregarCalculadoraAvulso(atual.id, atual.nome)}
+        onClose={descartarDaFila}
+        onConfirm={confirmarDaFila}
+      />
+    )
+  }
+
   return (
     <ModalShell
       open
@@ -353,7 +483,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={() => onConfirm(item.id, selecionadas)}>
+          <Button variant="primary" onClick={iniciarConfirmacao}>
             Confirmar {selecionadas.length > 0 ? `(${selecionadas.length})` : ''}
           </Button>
         </>
@@ -456,6 +586,95 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
           </span>
           <span className="text-[15px] font-bold text-orange">+{BRL(extraTotal)}</span>
         </div>
+      )}
+    </ModalShell>
+  )
+}
+
+// ── ModalCalculadoraItem ─────────────────────────────────────────────────────
+// RN-NOVA-22 (REVISÃO)/RN-NOVA-23/RN-NOVA-1/RN-NOVA-2 (V0.8.4/#399, DECISOES_V0.8.4.md) —
+// calculadora de preço ao adicionar produto avulso, customização ou item de catálogo ao
+// orçamento. Reaproveita o componente CalculadoraPreco já usado por Produto/Catálogo
+// (RN-NOVA-23: "os dois endpoints já existentes, sem mudança de contrato de Backend").
+//
+// Diferença desta tela para Produto/Catálogo: a comparação de cor aqui é EXATA (sem
+// tolerância de arredondamento) — RN-NOVA-22 (REVISÃO). Produto/Catálogo mantêm suas
+// próprias tolerâncias (0.005/0.001), não alteradas por esta tarefa.
+// (`DadosCalculadoraItem` e as funções `carregarCalculadora*` vivem no escopo de
+// módulo, perto de `BRL` — reaproveitadas também pela fila de customizações abaixo.)
+function ModalCalculadoraItem({ carregar, onClose, onConfirm }: {
+  /** Busca os dados (Backend) e monta o breakdown — lança erro em qualquer falha,
+   *  inclusive composição inconsistente (RN-NOVA-3), pra cair no estado de BLOQUEIO
+   *  único (RN-NOVA-2: sem fallback pro preço cadastrado). */
+  carregar: () => Promise<DadosCalculadoraItem>
+  onClose: () => void
+  onConfirm: (precoFinal: number) => void
+}) {
+  const [estado, setEstado] = useState<'carregando' | 'erro' | 'ok'>('carregando')
+  const [dados, setDados] = useState<DadosCalculadoraItem | null>(null)
+  const [precoFinal, setPrecoFinal] = useState('')
+
+  useEffect(() => {
+    let cancelado = false
+    setEstado('carregando')
+    carregar()
+      .then(d => {
+        if (cancelado) return
+        setDados(d)
+        setPrecoFinal(d.precoInicial.toFixed(2).replace('.', ','))
+        setEstado('ok')
+      })
+      .catch(() => { if (!cancelado) setEstado('erro') })
+    return () => { cancelado = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const numLocal = (v: string) => parseFloat(v.replace(',', '.')) || 0
+  const pf = numLocal(precoFinal)
+  // RN-NOVA-22 (REVISÃO) — comparação exata sobre o valor exibido (2 casas), sem
+  // tolerância — diferente do overrideAtivo de Produto/Catálogo (0.005/0.001).
+  const diff = dados ? Math.round((pf - dados.sugerido) * 100) / 100 : 0
+  const overrideAtivo = diff !== 0
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title={dados?.titulo ?? 'Calculadora de preço'}
+      subtitle="Calculadora de preço"
+      icon={<Calculator size={20} />}
+      footer={estado === 'ok' ? (
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" onClick={() => onConfirm(pf)}>Adicionar ao orçamento</Button>
+        </>
+      ) : undefined}
+    >
+      {estado === 'carregando' && (
+        <div className="py-8 text-center text-sm text-muted">Carregando dados de preço…</div>
+      )}
+      {/* RN-NOVA-2 (V0.8.4) — falha ao carregar bloqueia a adição; sem fallback pro
+          preço cadastrado sem calculadora (decisão explícita, evita reintroduzir RN-054
+          silenciosamente). Cobre também RN-NOVA-3 (composição de item de catálogo com
+          customização anexada inativa/excluída — o `carregar()` do item de catálogo
+          lança erro nesse caso). */}
+      {estado === 'erro' && (
+        <div className="py-4 text-center">
+          <div className="text-sm font-semibold text-danger">Não foi possível carregar os dados de preço deste item.</div>
+          <div className="mt-1 text-[13px] text-muted">Tente novamente em instantes.</div>
+        </div>
+      )}
+      {estado === 'ok' && dados && (
+        <CalculadoraPreco
+          titulo={dados.titulo}
+          sugerido={dados.sugerido}
+          precoFinal={precoFinal}
+          onPrecoFinalChange={setPrecoFinal}
+          overrideAtivo={overrideAtivo}
+          diffOverride={overrideAtivo ? diff : null}
+        >
+          {dados.breakdown.map((linha, i) => <LinhaCalculadora key={i} {...linha} />)}
+        </CalculadoraPreco>
       )}
     </ModalShell>
   )
@@ -1296,41 +1515,29 @@ export default function CriarOrcamentoPage() {
   const sinalAplicado = sinalAtivo ? (sinalTipo === '%' ? total * sinalNum / 100 : Math.min(sinalNum, total)) : 0
   const restante = Math.max(0, total - sinalAplicado)
 
+  // ORC-020 (REVISÃO)/RN-NOVA-22-23 (V0.8.4/#399) — reverte deliberadamente o
+  // comportamento anterior (P-F005/#251, RN-054 revisada, 2026-08-16: "nenhum item,
+  // catálogo ou avulso, pergunta margem/preço dentro do orçamento"). A partir desta
+  // tarefa, os 3 pontos de entrada (produto avulso, customização, item de catálogo)
+  // abrem a calculadora de preço (ModalCalculadoraItem) antes de confirmar a adição —
+  // decisão explícita do usuário, ciente da reversão. `calculadoraPendente` guarda o
+  // item ainda não confirmado; só entra em `items` no `onConfirm` da calculadora.
+  type CalculadoraPendente =
+    | { tipo: 'avulso'; produto: ProdutoResponse }
+    | { tipo: 'catalogo'; item: ItemCatalogoBuscaResponse }
+
+  const [calculadoraPendente, setCalculadoraPendente] = useState<CalculadoraPendente | null>(null)
+
   // RN-NOVA-11 (revisada) — adicionar item nunca bloqueia, independente de
   // permitirEstoqueNegativo; o estoque exibido (EstoqueTags/aviso inline) vem sempre da simulação
   // ao vivo do efeito de debounce acima, nunca de uma checagem síncrona no momento da adição.
   const handleAddCatalogoItem = (item: ItemCatalogoBuscaResponse) => {
-    setItems(arr => [...arr, {
-      id: Date.now(),
-      nome: item.nomeProduto,
-      qtd: 1,
-      preco: item.precoVenda,
-      customs: [],
-      itemCatalogoId: item.id,
-      produtoId: item.produtoId,
-      catalogoNome: item.catalogoNome,
-      algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
-      permitirEstoqueNegativo: item.permitirEstoqueNegativo,
-      estoqueAtual: item.estoqueAtual,
-    }])
+    setCalculadoraPendente({ tipo: 'catalogo', item })
     setProductOpen(false)
   }
 
-  // P-F005/#251 — preço vem direto do cadastro do produto (RN-054 revisada, 2026-08-16):
-  // nenhum item, catálogo ou avulso, pergunta margem/preço dentro do orçamento.
   const handleSelectProdutoAvulso = (produto: ProdutoResponse) => {
-    setItems(arr => [...arr, {
-      id: Date.now(),
-      nome: produto.nome,
-      qtd: 1,
-      preco: produto.precoVenda ?? 0,
-      customs: [],
-      produtoId: produto.id,
-      produtoIdentificador: produto.identificador,
-      algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
-      permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
-      estoqueAtual: produto.estoqueAtual,
-    }])
+    setCalculadoraPendente({ tipo: 'avulso', produto })
     setProductOpen(false)
   }
 
@@ -1737,6 +1944,54 @@ export default function CriarOrcamentoPage() {
           onConfirm={(id, customs) => {
             setItems(arr => arr.map(x => x.id === id ? { ...x, customs } : x))
             setModalItem(null)
+          }}
+        />
+      )}
+
+      {/* Modal calculadora — produto avulso / item de catálogo (RN-NOVA-22/23, V0.8.4/#399).
+          RN-NOVA-1: fechar/cancelar sem confirmar descarta a seleção — não adiciona
+          nada, `calculadoraPendente` só volta a null, nenhum item fica pendente. */}
+      {calculadoraPendente && (
+        <ModalCalculadoraItem
+          key={calculadoraPendente.tipo === 'avulso' ? calculadoraPendente.produto.id : calculadoraPendente.item.id}
+          carregar={() =>
+            calculadoraPendente.tipo === 'avulso'
+              ? carregarCalculadoraAvulso(calculadoraPendente.produto.id)
+              : carregarCalculadoraCatalogo(calculadoraPendente.item.catalogoId, calculadoraPendente.item.id)
+          }
+          onClose={() => setCalculadoraPendente(null)}
+          onConfirm={precoFinal => {
+            if (calculadoraPendente.tipo === 'avulso') {
+              const produto = calculadoraPendente.produto
+              setItems(arr => [...arr, {
+                id: Date.now(),
+                nome: produto.nome,
+                qtd: 1,
+                preco: precoFinal,
+                customs: [],
+                produtoId: produto.id,
+                produtoIdentificador: produto.identificador,
+                algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
+                permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
+                estoqueAtual: produto.estoqueAtual,
+              }])
+            } else {
+              const item = calculadoraPendente.item
+              setItems(arr => [...arr, {
+                id: Date.now(),
+                nome: item.nomeProduto,
+                qtd: 1,
+                preco: precoFinal,
+                customs: [],
+                itemCatalogoId: item.id,
+                produtoId: item.produtoId,
+                catalogoNome: item.catalogoNome,
+                algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
+                permitirEstoqueNegativo: item.permitirEstoqueNegativo,
+                estoqueAtual: item.estoqueAtual,
+              }])
+            }
+            setCalculadoraPendente(null)
           }}
         />
       )}

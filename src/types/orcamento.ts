@@ -23,6 +23,11 @@ export interface OrcamentoItemRequest {
 export interface ItemCatalogoBuscaResponse {
   id: string;
   produtoId: string;
+  /** RN-NOVA-23 (#313/#399) — id do Catálogo dono do item, usado pra montar a
+   *  calculadora de preço via GET /catalogos/{catalogoId}/itens. Campo já existia no
+   *  Backend (ItemCatalogoBuscaResponse.java) desde V0.8.3, mas nunca tinha sido
+   *  espelhado aqui — achado de sincronia de contrato desta tarefa. */
+  catalogoId: string;
   nomeProduto: string;
   precoVenda: number;
   catalogoNome: string;
