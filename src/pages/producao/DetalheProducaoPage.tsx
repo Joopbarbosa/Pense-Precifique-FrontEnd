@@ -5,20 +5,32 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner } from '../../components/ui'
 import {
   ArrowLeft, Calendar, StickyNote, Box, AlertTriangle, Lock, Clock,
-  Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, ChevronRight, Package,
+  Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, ChevronRight, Package, Link2,
 } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { useToast } from '../../hooks/useToast'
 import type { ProducaoDetalhe, EstadoProducao } from '../../types/producao'
+import type { StatusOrcamento } from '../../types/orcamento'
 import { formatQuantidade } from '../../utils/quantidade'
-import { EstoqueTags } from '../../components/ui/Badge'
+import { EstoqueTags, StatusBadge } from '../../components/ui/Badge'
+import { STATUS_LABEL } from '../../constants/statusOrcamento'
+
+// Mesmo padrão local de StatusBadgeLabel/StatusBadgeType já duplicado em ListaOrcamentosPage.tsx/
+// PreviewPdfOrcamentoPage.tsx — StatusBadge (components/ui/Badge.tsx) não exporta seu union type.
+type StatusBadgeLabel =
+  | 'Rascunho' | 'Enviado' | 'Aprovado'
+  | 'Aguardando Sinal' | 'Sinal Pago'
+  | 'Em Produção' | 'Finalizado'
+  | 'Entregue' | 'Pago' | 'Cancelado'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
 import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoModal'
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
+import ModalConfirmacaoVinculoSequencial from '../../components/shared/ModalConfirmacaoVinculoSequencial'
+import { construirFilaVinculosProducao, type VinculoPendente } from '../../utils/vinculoCancelamento'
 
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 
@@ -47,6 +59,10 @@ function fmtDataHora(iso: string): string {
   return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+// RN-NOVA-15 (V0.8.3, #375+308) — mesmo padrão local de BRL(n) já usado em
+// DetalheOrcamentoPage.tsx/ListaProdutosPage.tsx, sem util compartilhado no projeto.
+const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace('.', ',')}`
+
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <section className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -70,6 +86,9 @@ export default function DetalheProducaoPage() {
   const [erro, setErro] = useState(false)
   const [modal, setModal] = useState<TipoModal | null>(null)
   const [modalCancelarConsumo, setModalCancelarConsumo] = useState(false)
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — fila de vínculos (orçamentos) pendentes de confirmação
+  // "desfazer vínculo?" exibida logo após o cancelamento ser confirmado com sucesso, um por vez.
+  const [filaVinculos, setFilaVinculos] = useState<VinculoPendente[] | null>(null)
 
   const carregar = useCallback(() => {
     if (!id) return
@@ -89,7 +108,15 @@ export default function DetalheProducaoPage() {
     carregar()
   }
 
-  const handleCancelar = () => {
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — a fila de vínculos roda ANTES da modal real de
+  // cancelamento (justificativa/consumo), não depois: `desvincularProducao`/
+  // `removerProdutoDeProducaoAtiva` validam o estado ATUAL da produção no servidor
+  // (AGUARDANDO_INICIO para reversão completa, EM_ANDAMENTO/TRAVADA para a 2ª pergunta) — depois
+  // de cancelar, `estado` já seria sempre CANCELADA, e essas chamadas passariam a falhar com 400
+  // (achado ao montar o teste e2e do lado espelhado: a "AGUARDANDO_INICIO" só existe até o
+  // cancelamento em si acontecer). Resolver antes evita essa corrida sem precisar de nenhum
+  // parâmetro extra no Backend.
+  const abrirModalCancelamentoReal = () => {
     if (!producao) return
     if (producao.estado === 'AGUARDANDO_INICIO') {
       setModal('cancelar')
@@ -98,9 +125,19 @@ export default function DetalheProducaoPage() {
     }
   }
 
-  const handleSuccessCancelarConsumo = (mensagem: string) => {
-    setModalCancelarConsumo(false)
-    handleSuccess(mensagem)
+  const handleCancelar = () => {
+    if (!producao) return
+    const fila = construirFilaVinculosProducao(producao)
+    if (fila.length > 0) {
+      setFilaVinculos(fila)
+    } else {
+      abrirModalCancelamentoReal()
+    }
+  }
+
+  const handleConcluirFilaVinculos = () => {
+    setFilaVinculos(null)
+    abrirModalCancelamentoReal()
   }
 
   if (loading) {
@@ -294,7 +331,12 @@ export default function DetalheProducaoPage() {
 
         <Section icon={<Clock size={18} />} title="Histórico de status">
           <div className="flex flex-col gap-0">
-            {producao.historicoStatus.map((h, i) => (
+            {/* RN-NOVA-17 (V0.8.3, P-F003) — achado: historicoStatus sempre incluiu eventos
+                ITEM_ADICIONADO/ITEM_REMOVIDO (RN-ORC-VINC-03/RN-NOVA-17), não só transição de
+                estado — sem o filtro por tipoEvento essas linhas renderizavam aqui com
+                statusNovo/statusAnterior nulos (entrada em branco). Eventos undefined (histórico
+                antigo, anterior a este campo) contam como STATUS por compatibilidade. */}
+            {producao.historicoStatus.filter(h => h.tipoEvento === 'STATUS' || h.tipoEvento === undefined).map((h, i) => (
               <div key={i} className={clsx('flex items-start gap-3 py-3', i > 0 && 'border-t border-line')}>
                 <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-teal" />
                 <div className="min-w-0 flex-1">
@@ -305,7 +347,7 @@ export default function DetalheProducaoPage() {
                         <ChevronRight size={13} className="text-muted" />
                       </>
                     )}
-                    <span>{ESTADO_LABEL_SIMPLES[h.statusNovo] ?? h.statusNovo}</span>
+                    <span>{(h.statusNovo && (ESTADO_LABEL_SIMPLES[h.statusNovo] ?? h.statusNovo)) || '—'}</span>
                   </div>
                   <div className="mt-0.5 text-[12.5px] text-muted">
                     {fmtDataHora(h.dataTransicao)} · <span className="uppercase tracking-[0.03em]">{ORIGEM_LABEL[h.origem] ?? h.origem}</span>
@@ -343,6 +385,31 @@ export default function DetalheProducaoPage() {
             </div>
           </Section>
         )}
+
+        {producao.orcamentosVinculados.length > 0 && (
+          <Section icon={<Link2 size={18} />} title="Orçamentos vinculados">
+            <div className="flex flex-col gap-2">
+              {producao.orcamentosVinculados.map(orc => (
+                <button
+                  key={orc.orcamentoId}
+                  onClick={() => navigate(`/orcamentos/${orc.orcamentoId}`)}
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3 text-left font-[inherit] transition-colors duration-100 hover:bg-line-soft"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-dark">{orc.identificadorOrcamento}</div>
+                    <div className="mt-0.5 truncate text-[12.5px] text-muted">{orc.nomeCliente}</div>
+                  </div>
+                  <div className="flex flex-shrink-0 items-center gap-2.5">
+                    <span className="text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                      {BRL(orc.valorTotal)}
+                    </span>
+                    <StatusBadge status={STATUS_LABEL[orc.statusOrcamento as StatusOrcamento] as StatusBadgeLabel} size="sm" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
       </div>
 
       {toast && (
@@ -370,8 +437,11 @@ export default function DetalheProducaoPage() {
         <CancelarProducaoConsumoModal
           producaoId={producao.id}
           onClose={() => setModalCancelarConsumo(false)}
-          onSuccess={handleSuccessCancelarConsumo}
+          onSuccess={(mensagem) => { setModalCancelarConsumo(false); handleSuccess(mensagem) }}
         />
+      )}
+      {filaVinculos && filaVinculos.length > 0 && (
+        <ModalConfirmacaoVinculoSequencial fila={filaVinculos} onConcluir={handleConcluirFilaVinculos} direcao="producao" />
       )}
     </AppLayout>
   )

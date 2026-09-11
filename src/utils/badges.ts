@@ -19,7 +19,9 @@ export const ESTADO_PRODUCAO_BADGE: Record<string, { label: string; bg: string; 
 
 export function getBadgeEstado(
   estado: string,
-  historicoStatus?: { statusNovo: string; origem: string }[]
+  // RN-NOVA-17 (V0.8.3, P-F003) — `statusNovo` ganhou `| null` no tipo real (HistoricoStatus):
+  // eventos `ITEM_ADICIONADO`/`ITEM_REMOVIDO` do histórico não são transição de estado.
+  historicoStatus?: { statusNovo: string | null; origem: string }[]
 ): { label: string; bg: string; fg: string } {
   if (estado === 'TRAVADA') {
     const travas = historicoStatus?.filter(h => h.statusNovo === 'TRAVADA') ?? []

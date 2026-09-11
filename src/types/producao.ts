@@ -28,10 +28,33 @@ export interface ProducaoProdutoItem {
 
 export interface HistoricoStatus {
   statusAnterior: EstadoProducao | null
-  statusNovo: EstadoProducao
+  statusNovo: EstadoProducao | null
   dataTransicao: string
   justificativa: string | null
   origem: 'SISTEMA' | 'USUARIO'
+  // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — campos confirmados via curl real que o tipo não
+  // expunha ainda (evento sempre existiu no histórico, mas só `STATUS` era consumido até aqui).
+  // `tipoEvento === 'ITEM_ADICIONADO'` é a única fonte hoje de "quais produtos este orçamento
+  // contribuiu para esta produção" (não existe DTO de vínculo granular por produto) — usado para
+  // montar a segunda pergunta ("manter o produto?") do modal sequencial de desfazer vínculo.
+  // `statusNovo`/`statusAnterior` vêm `null` nesses eventos (não são transição de estado).
+  tipoEvento?: 'STATUS' | 'ITEM_ADICIONADO' | 'ITEM_REMOVIDO'
+  produtoId?: string | null
+  nomeProduto?: string | null
+  quantidade?: number | null
+  referenciaOrcamentoId?: string | null
+  identificadorOrcamento?: string | null
+}
+
+// RN-NOVA-16 (V0.8.3, #375+308) — item de "orçamentos vinculados" na Listagem/Kanban de Produção,
+// mesma direção espelhada de OrcamentoProducaoResponse. Presença de 1+ item, independente do
+// status do orçamento (inclusive CANCELADO), já basta pro indicador (VinculoAtivoBadge).
+export interface ProducaoOrcamentoVinculo {
+  orcamentoId: string
+  identificadorOrcamento: string
+  statusOrcamento: string
+  nomeCliente: string
+  valorTotal: number
 }
 
 export interface ProducaoResumo {
@@ -45,6 +68,7 @@ export interface ProducaoResumo {
   produtos: ProducaoProdutoItem[]
   alertasInsumos: AlertaInsumo[]
   historicoStatus: HistoricoStatus[]
+  orcamentosVinculados: ProducaoOrcamentoVinculo[]
 }
 
 export interface ProducaoDetalhe extends ProducaoResumo {

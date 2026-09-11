@@ -25,6 +25,7 @@ import ModalDetalheResumidoProducao from '../../components/producao/ModalDetalhe
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanColumn } from '../../components/kanban/KanbanBoard'
 import { EstoqueTags } from '../../components/ui/Badge'
+import { VinculoAtivoBadge } from '../../components/shared'
 import type { ProducaoProdutoItem } from '../../types/producao'
 
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
@@ -102,6 +103,11 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
       <div className="max-h-[88px] overflow-y-auto">
         <ProdutosLista produtos={producao.produtos} nomeClassName="text-[12.5px] leading-[1.4] text-body" />
       </div>
+      {producao.orcamentosVinculados.length > 0 && (
+        <div className="mt-1.5">
+          <VinculoAtivoBadge label="Orçamento vinculado" />
+        </div>
+      )}
       <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
     </div>
   )
@@ -251,12 +257,17 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
         {fmtData(producao.dataInicio)} – {fmtData(producao.dataTerminoPrevista)}
       </span>
 
-      <span
-        className="inline-flex h-7 w-fit items-center whitespace-nowrap rounded-full px-[11px] text-[12.5px] font-semibold"
-        style={{ background: badge.bg, color: badge.fg }}
-      >
-        {badge.label}
-      </span>
+      <div className="flex flex-col items-start gap-1.5">
+        <span
+          className="inline-flex h-7 w-fit items-center whitespace-nowrap rounded-full px-[11px] text-[12.5px] font-semibold"
+          style={{ background: badge.bg, color: badge.fg }}
+        >
+          {badge.label}
+        </span>
+        {producao.orcamentosVinculados.length > 0 && (
+          <VinculoAtivoBadge label="Tem orçamento vinculado" />
+        )}
+      </div>
 
       <AlertaIcones producao={producao} />
 
@@ -311,6 +322,9 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
             <span className="text-[12.5px] text-muted">
               {fmtData(producao.dataInicio)} – {fmtData(producao.dataTerminoPrevista)}
             </span>
+            {producao.orcamentosVinculados.length > 0 && (
+              <VinculoAtivoBadge label="Tem orçamento vinculado" />
+            )}
           </div>
         </div>
         {modoAgrupamento ? (
