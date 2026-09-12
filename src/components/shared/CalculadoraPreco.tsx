@@ -34,7 +34,26 @@ interface CalculadoraPrecoProps {
   disabledInput?: boolean
 }
 
-/** Calculadora de Custo/Preço — mesmo componente usado em Produto (custo+margem) e Catálogo (preço×quantidade), RN-NOVA/#239. */
+// RN-NOVA-22 (REVISÃO, V0.8.4/#399) — esquema de cor de 3 estados, derivado aqui
+// dentro a partir de overrideAtivo+diffOverride (já enviados por todo consumidor,
+// desde antes desta tarefa) — Produto/Catálogo herdam a mudança visual sem precisar
+// mudar nada nas próprias telas (cada uma mantém sua própria tolerância de override:
+// 0.005/0.001; a comparação exata, sem tolerância, é regra só do Orçamento e já vem
+// pronta no overrideAtivo que o Orçamento calcula e passa pra cá).
+type EstadoPreco = 'igual' | 'acima' | 'abaixo'
+
+function estadoPreco(overrideAtivo: boolean, diffOverride?: number | null): EstadoPreco {
+  if (!overrideAtivo || !diffOverride) return 'igual'
+  return diffOverride > 0 ? 'acima' : 'abaixo'
+}
+
+const CORES_ESTADO: Record<EstadoPreco, { rs: string; input: string }> = {
+  igual: { rs: 'border-line bg-cream text-dim', input: 'border-line text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]' },
+  acima: { rs: 'border-azul/30 bg-azul/[0.08] text-azul', input: 'border-azul text-azul focus:ring-4 focus:ring-azul/[0.12]' },
+  abaixo: { rs: 'border-orange/30 bg-orange/[0.08] text-orange', input: 'border-orange text-orange focus:ring-4 focus:ring-orange/[0.12]' },
+}
+
+/** Calculadora de Custo/Preço — mesmo componente usado em Produto (custo+margem), Catálogo (preço×quantidade) e Orçamento (RN-NOVA-23, V0.8.4/#399). */
 export default function CalculadoraPreco({
   titulo, calculando = false, children,
   mostrarSugerido = true, mensagemSemPreco,
@@ -44,6 +63,7 @@ export default function CalculadoraPreco({
   overrideAtivo, diffOverride,
   disabledInput = false,
 }: CalculadoraPrecoProps) {
+  const estado = estadoPreco(overrideAtivo, diffOverride)
   return (
     <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
       <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
@@ -80,7 +100,7 @@ export default function CalculadoraPreco({
               <div className="relative">
                 <span className={clsx(
                   'pointer-events-none absolute inset-y-0 left-0 grid w-[46px] place-items-center rounded-l-input border-r text-[15px] font-bold',
-                  overrideAtivo ? 'border-orange/30 bg-orange/[0.08] text-orange' : 'border-line bg-cream text-dim'
+                  CORES_ESTADO[estado].rs
                 )}>R$</span>
                 <input
                   value={precoFinal}
@@ -89,9 +109,7 @@ export default function CalculadoraPreco({
                   disabled={disabledInput}
                   className={clsx(
                     'h-[52px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-xl font-bold outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums]',
-                    overrideAtivo
-                      ? 'border-orange text-orange focus:ring-4 focus:ring-orange/[0.12]'
-                      : 'border-line text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                    CORES_ESTADO[estado].input,
                     disabledInput ? 'bg-cream' : 'bg-white'
                   )}
                 />

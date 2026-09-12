@@ -43,19 +43,36 @@ export async function selecionarCliente(page: Page, nomeCliente: string) {
  * a quantidade via Stepper (só +/-, sem input numérico direto — CriarOrcamentoPage.tsx:153-169).
  * Assume que a página já está em `/orcamentos/novo` e que `nomeProduto` é único o bastante para
  * não colidir com outro resultado de busca (nome com timestamp, como nos demais specs QA).
- * P-F005/#251 (2026-08-16) — clicar no produto adiciona direto, sem modal de margem/preço: o
- * preço vem do cadastro do produto (RN-054 revisada). `ModalMargemAvulso` foi removida.
+ *
+ * ORC-020 (REVISÃO)/RN-NOVA-22-23 (V0.8.4/#399) — reverte P-F005/#251 (RN-054 revisada):
+ * clicar no produto agora abre a calculadora de preço (`ModalCalculadoraItem`) antes de
+ * confirmar a adição. Este helper aceita o preço sugerido por padrão (não mexe no campo de
+ * preço final) — specs que precisam testar a própria calculadora usam os cenários dedicados
+ * em `calculadora-preco.spec.ts`, não este helper.
  */
 export async function adicionarItemAvulso(page: Page, nomeProduto: string, quantidade: number) {
   await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
   await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
   await page.getByText(nomeProduto, { exact: true }).click()
+  await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 
   // Stepper começa em 1 — clica em "+" (quantidade - 1) vezes. Único +/- na tela nesse ponto
   // (um só item na lista), então o botão "+" é inequívoco.
   for (let i = 1; i < quantidade; i++) {
     await page.getByRole('button', { name: '+', exact: true }).click()
   }
+}
+
+/**
+ * Mesma mecânica de `adicionarItemAvulso`, para um item de catálogo (`nomeProduto` é o
+ * `nomeProduto` do item, como retornado por `ItemCatalogoBuscaResponse`). ORC-020
+ * (REVISÃO)/RN-NOVA-22-23 (V0.8.4/#399) — também abre a calculadora antes de confirmar.
+ */
+export async function adicionarItemCatalogo(page: Page, nomeProduto: string) {
+  await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+  await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
+  await page.getByText(nomeProduto, { exact: true }).click()
+  await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 }
 
 /**
