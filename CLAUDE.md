@@ -4,9 +4,7 @@
 > achado seguranca-resiliencia, GHSA-337j-9hxr-rhxg/GHSA-wrjc-x8rr-h8h6 só corrigiam
 > em v7+) · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Última atualização: 11/09/2026 · Branch padrão atual: `main` (pocket piloto V0.8.4
-> trabalhou em `pocket-teste`, fora do padrão `feature/V[X.Y]` — nome específico deste
-> piloto, não repetir em versões normais)
+> Última atualização: 12/09/2026 (Retomada V0.9.0) · Branch padrão atual: `feature/V0.9.0`
 > Se este arquivo e o prompt da sessão divergirem, este arquivo vence.
 >
 > Histórico de versões (V0.6 a V0.8.2) migrado para `docs-pense-precifique/version/[VX.Y]/
@@ -153,6 +151,10 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
   montagem do payload** — são fluxos genuinamente diferentes por design (Modal só envia
   `{ justificativa }`; Page monta `consumoReal` via `ConsumoRealSection`, compartilhada também com
   `AgruparProducoesModal`).
+- **Nginx do container escuta 8080, não 80** (V0.9.0/#429) — o Dockerfile passou a rodar como
+  usuário não-root (`USER nginx`), que não pode bindar porta <1024. Porta externa continua 3000
+  (`docker-compose.yml` mapeia `3000:8080`) — não afeta `localhost:3000`, só o `EXPOSE`/`listen`
+  interno do container.
 - Rastreamento de tarefas migrou de ClickUp para OpenProject — commits antigos com
   `ClickUp <código> / <task-id>` são histórico, não o padrão atual.
 
