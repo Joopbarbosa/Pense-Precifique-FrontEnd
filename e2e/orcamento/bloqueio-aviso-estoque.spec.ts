@@ -50,6 +50,9 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
+    // V0.8.4/#399 reintroduziu a CalculadoraPreco antes de confirmar a adição (RN-054 revertida) —
+    // sem este clique o item nunca entra de fato na lista, achado #452 (gate seguranca-resiliencia).
+    await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 
     // RN-NOVA-11 (revisada) — item entra na lista normalmente, sem toast de bloqueio, mesmo com
     // permitirEstoqueNegativo=false e estoque 0.
@@ -72,6 +75,9 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
+    // V0.8.4/#399 reintroduziu a CalculadoraPreco antes de confirmar a adição (RN-054 revertida) —
+    // sem este clique o item nunca entra de fato na lista, achado #452 (gate seguranca-resiliencia).
+    await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 
     // Qtd inicial 1 <= estoque 2 — sem aviso ainda.
     await expect(page.getByText(nomeProduto, { exact: true })).toBeVisible({ timeout: 5000 })
@@ -105,6 +111,9 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
+    // V0.8.4/#399 reintroduziu a CalculadoraPreco antes de confirmar a adição (RN-054 revertida) —
+    // sem este clique o item nunca entra de fato na lista, achado #452 (gate seguranca-resiliencia).
+    await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 
     // quantidade 5, estoque 2 -> falta 3.
     for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+', exact: true }).click()
@@ -166,6 +175,9 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
+    // V0.8.4/#399 reintroduziu a CalculadoraPreco antes de confirmar a adição (RN-054 revertida) —
+    // sem este clique o item nunca entra de fato na lista, achado #452 (gate seguranca-resiliencia).
+    await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+', exact: true }).click()
     await page.waitForTimeout(600)
 
@@ -199,6 +211,9 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nomeProduto)
     await page.getByText(nomeProduto, { exact: true }).click()
+    // V0.8.4/#399 reintroduziu a CalculadoraPreco antes de confirmar a adição (RN-054 revertida) —
+    // sem este clique o item nunca entra de fato na lista, achado #452 (gate seguranca-resiliencia).
+    await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 
     // Snapshot no momento da adição: 10 em estoque.
     await expect(page.getByText('10 em estoque')).toBeVisible({ timeout: 5000 })
