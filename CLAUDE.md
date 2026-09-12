@@ -2,7 +2,9 @@
 
 > React 18 + TypeScript · Vite · React Router v6 · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Última atualização: 05/09/2026 · Branch padrão atual: `feature/V0.8.3`
+> Última atualização: 11/09/2026 · Branch padrão atual: `main` (pocket piloto V0.8.4
+> trabalhou em `pocket-teste`, fora do padrão `feature/V[X.Y]` — nome específico deste
+> piloto, não repetir em versões normais)
 > Se este arquivo e o prompt da sessão divergirem, este arquivo vence.
 >
 > Histórico de versões (V0.6 a V0.8.2) migrado para `docs-pense-precifique/version/[VX.Y]/
@@ -40,6 +42,7 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 | Hooks (`usePaginatedList`, `useDebounceSearch`, `useAuth`, `useToast`) | `src/hooks/` |
 | Constants (`METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL`) | `src/constants/` |
 | Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`) | `e2e/`, `e2e/helpers/` |
+| Testes E2E de segurança (modelo de atacante — IDOR, etc., skill `seguranca-resiliencia`) | `e2e/seguranca/` (novo, V0.8.4) |
 | Documentação funcional (regras, cenários, contrato, decisões) | **não vive aqui** — `../docs-pense-precifique/modulos/[MODULO]/` |
 
 ---
@@ -119,7 +122,22 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
   esgotar a fila. Fila é `useState` local na página que dispara a ação (não hook/contexto
   genérico — só extrair se um 3º consumidor aparecer), construída **antes** de qualquer chamada
   que mude o estado do que está sendo enfileirado (endpoints de reversão validam estado atual no
-  servidor, não snapshot — rodar a fila depois quebra sistematicamente).
+  servidor, não snapshot — rodar a fila depois quebra sistematicamente). **Mecânica ≠
+  componente:** `ModalCustomizacoes` (`CriarOrcamentoPage.tsx`, V0.8.4/#399) é o 3º consumidor
+  da mesma mecânica de fila (uma calculadora de preço por customização selecionada, avançando
+  até esgotar), mas **não importa** `ModalConfirmacaoVinculoSequencial` — o conteúdo por passo é
+  uma calculadora inteira, não uma pergunta Sim/Não, então o componente compartilhado não serve;
+  só o padrão de estado (`fila`/avançar/`key` por item para forçar remount) se repete. Extrair um
+  hook genérico só valeria se um 4º consumidor aparecer com o mesmo formato de passo.
+- **`CalculadoraPreco`/`LinhaCalculadora`** (canônico: `components/shared/CalculadoraPreco.tsx`,
+  usado por Produto, Catálogo e, desde V0.8.4/#399, Orçamento) — esquema de cor de 3 estados
+  sobre o valor final de venda vs. o preço sugerido: **preto** = igual (comparação **exata**,
+  sem tolerância de arredondamento — `Math.round((pf - sugerido) * 100) / 100 === 0`), **azul**
+  (token `azul`) = acima, **laranja** = abaixo. Produto/Catálogo mantêm suas próprias tolerâncias
+  de override (`0.005`/`0.001`, respectivamente, não documentadas como regra — só existem no
+  código) para decidir se o preço é considerado "editado" (`overrideAtivo`); **só o Orçamento usa
+  comparação exata**, por decisão explícita de produto (V0.8.4) — não unificar as tolerâncias
+  entre módulos sem decisão de negócio própria, é inconsistência conhecida, não bug.
 
 ---
 
