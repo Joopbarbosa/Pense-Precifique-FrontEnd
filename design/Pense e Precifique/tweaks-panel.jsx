@@ -57,6 +57,25 @@
 /* END USAGE */
 // ─────────────────────────────────────────────────────────────────────────────
 
+// OP #430 — Semgrep (wildcard-postmessage-configuration): postMessage('*') deixa
+// a mensagem legível por qualquer origem, caso este frame seja embutido num host
+// hostil. Não dá pra hardcodar o host esperado aqui (scaffold reusável, embutido
+// por ferramentas de design diferentes em origens diferentes) — deriva a origem
+// real do host a partir de `document.referrer` (o navegador preenche isso com a
+// URL do pai quando o conteúdo carrega dentro de um iframe), caindo pra
+// same-origin só se o referrer vier vazio/ilegível (nunca '*').
+function __postToHost(message) {
+  let targetOrigin = window.location.origin;
+  if (document.referrer) {
+    try {
+      targetOrigin = new URL(document.referrer).origin;
+    } catch {
+      // referrer ilegível — mantém o fallback same-origin acima.
+    }
+  }
+  window.parent.postMessage(message, targetOrigin);
+}
+
 const __TWEAKS_STYLE = `
   .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
     max-height:calc(100vh - 32px);display:flex;flex-direction:column;
@@ -179,7 +198,7 @@ function useTweaks(defaults) {
     const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
       ? keyOrEdits : { [keyOrEdits]: val };
     setValues((prev) => ({ ...prev, ...edits }));
-    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    __postToHost({ type: '__edit_mode_set_keys', edits });
     // Same-window signal so in-page listeners (deck-stage rail thumbnails)
     // can react — the parent message only reaches the host, not peers.
     window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
@@ -233,13 +252,13 @@ function TweaksPanel({ title = 'Tweaks', children }) {
       else if (t === '__deactivate_edit_mode') setOpen(false);
     };
     window.addEventListener('message', onMsg);
-    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    __postToHost({ type: '__edit_mode_available' });
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
   const dismiss = () => {
     setOpen(false);
-    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+    __postToHost({ type: '__edit_mode_dismissed' });
   };
 
   const onDragStart = (e) => {

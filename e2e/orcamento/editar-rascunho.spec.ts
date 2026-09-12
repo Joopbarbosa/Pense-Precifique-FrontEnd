@@ -89,6 +89,15 @@ test.describe('CEN-NOVO-C/D/E — Editar orçamento em RASCUNHO', () => {
     await page.getByRole('button', { name: 'Adicionar item' }).click()
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(produtoY.nome)
     await page.getByText(produtoY.nome, { exact: true }).click()
+    // V0.8.4/#399 reintroduziu a CalculadoraPreco antes de confirmar a adição (RN-054 revertida) —
+    // achado #452 (gate seguranca-resiliencia). Calculadora abre com "sugerido" pré-preenchido
+    // (nem sempre igual a precoVenda, produtoY não tem ficha técnica pra basear sugestão) — preenche
+    // explicitamente com produtoY.precoVenda, simulando a artesã confirmando o preço de venda real.
+    await expect(page.getByText('Calculadora de Preço').first()).toBeVisible()
+    await page.getByText('Preço final de venda', { exact: true })
+      .locator('xpath=following-sibling::div[1]//input')
+      .fill(produtoY.precoVenda.toFixed(2).replace('.', ','))
+    await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     await expect(page.getByText(produtoY.nome, { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Salvar alterações' }).click()
