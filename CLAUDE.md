@@ -1,6 +1,8 @@
 # Pense & Precifique — Front-End
 
-> React 18 + TypeScript · Vite · React Router v6 · Zustand · Axios · Tailwind CSS
+> React 18 + TypeScript · Vite · React Router v7 (migrado de v6 na V0.9.0/#420,#431 —
+> achado seguranca-resiliencia, GHSA-337j-9hxr-rhxg/GHSA-wrjc-x8rr-h8h6 só corrigiam
+> em v7+) · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
 > Última atualização: 11/09/2026 · Branch padrão atual: `main` (pocket piloto V0.8.4
 > trabalhou em `pocket-teste`, fora do padrão `feature/V[X.Y]` — nome específico deste
