@@ -27,6 +27,16 @@ const CAT_TO_TIPO: Record<string, string | undefined> = {
   'Inativos': undefined,
 }
 
+// #459 (V0.10.0, parent #336) — só "Inativos" filtra por ativo; "Todos"/"Produto"/"Customização"
+// continuam mostrando ativos+inativos misturados (comportamento existente, marcado por linha via
+// `inativo`) — mudar isso não é o escopo do achado, só o fato de "Inativos" não filtrar nada.
+const CAT_TO_ATIVO: Record<string, boolean | undefined> = {
+  'Todos': undefined,
+  'Produto': undefined,
+  'Customização': undefined,
+  'Inativos': false,
+}
+
 // RN-NOVA-4 (V0.10.0, #336) — cada categoria mapeada para o campo correspondente de
 // ProdutoContagensResponse (GET /produtos/contagens).
 const contagemPorCategoria = (contadores: ProdutoContagensResponse | null, c: string): number | undefined => {
@@ -534,7 +544,7 @@ export default function ListaProdutosPage() {
     setQuery: setBusca,
     reset,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => produtoService.listar(page, size, CAT_TO_TIPO[cat], q),
+    fetcher: (page, size, q) => produtoService.listar(page, size, CAT_TO_TIPO[cat], q, undefined, CAT_TO_ATIVO[cat]),
   })
 
   useEffect(() => {

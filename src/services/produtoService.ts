@@ -4,11 +4,14 @@ import type { InsumoResponse } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const produtoService = {
-  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
+  // #459 (V0.10.0, parent #336) — ativo filtra server-side (era sem filtro nenhum: a categoria
+  // "Inativos" mostrava a mesma lista que "Todos", mesma classe de bug do #336 original).
+  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean, ativo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
     if (tipo) params.tipo = tipo
     if (busca) params.busca = busca
     if (semCatalogo) params.semCatalogo = true
+    if (ativo != null) params.ativo = ativo
     const response = await api.get('/produtos', { params })
     return response.data
   },
