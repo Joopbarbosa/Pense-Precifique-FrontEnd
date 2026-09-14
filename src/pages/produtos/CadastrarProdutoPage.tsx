@@ -4,7 +4,6 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
-import { FracionavelBadge } from '../../components/ui/Badge'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
   Check, AlertTriangle, ChevronRight, Pencil, FileText,
@@ -142,7 +141,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
 }) {
   return (
-    <div className="max-w-[760px] animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="grid grid-cols-2 gap-x-6 gap-y-[22px]">
         <div className="col-span-2">
           <Field label="Nome do produto" required size="md">
@@ -326,7 +325,8 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
       <input
         value={display}
         onChange={e => {
-          const cleaned = e.target.value.replace(/[^\d.,/]/g, '')
+          const permitidos = fracionavel ? /[^\d.,/]/g : /[^\d/]/g
+          const cleaned = e.target.value.replace(permitidos, '')
           setDisplay(cleaned)
           onChange(cleaned)
         }}
@@ -338,19 +338,45 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
   )
 }
 
+// ---------- FracionavelToggle ----------
+//
+// RN-NOVA-2 (V0.10.0, #299) — mesma linguagem visual de FracionavelBadge (components/ui/Badge.tsx),
+// mas clicável nos dois estados. Local a esta página: único consumidor editável do campo hoje — nas
+// demais 13 telas o badge segue somente-leitura (FracionavelBadge/EstoqueTags não mudam).
+
+function FracionavelToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="inline-flex h-[27px] overflow-hidden rounded-full border border-line">
+      {([['Não fracionável', false], ['Fracionável', true]] as [string, boolean][]).map(([lbl, val]) => (
+        <button
+          key={lbl}
+          type="button"
+          onClick={() => onChange(val)}
+          className={clsx(
+            'border-none px-[11px] font-[inherit] text-[12.5px] font-semibold transition-colors duration-150',
+            value === val
+              ? val ? 'bg-success/10 text-success' : 'bg-orange/10 text-orange'
+              : 'bg-white text-dim hover:bg-cream'
+          )}
+        >
+          {lbl}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo }: {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo, fracionavel, onFracionavelChange }: {
   ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
   rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
   mostrarBotaoCatalogo: boolean; salvandoCatalogo: boolean; botaoCatalogoDisabled: boolean; onCriarCatalogo: () => void
+  fracionavel: boolean; onFracionavelChange: (v: boolean) => void
 }) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
   const remove = (idx: number) => setFicha(f => f.filter((_, k) => k !== idx))
   const setQtd = (idx: number, v: string) => setFicha(f => f.map((row, k) => k === idx ? { ...row, qtd: num(v) } : row))
-
-  // RN-051 — só insumos diretos (não produtos-componente) contam para o travamento de quantidade em Produção.
-  const algumInsumoNaoFracionavel = ficha.some(item => item.tipo === 'insumo' && !item.fracionavel)
 
   return (
     <div className="animate-fade-up">
@@ -360,11 +386,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             <Layers size={18} className="text-teal" />
             <h3 className="m-0 whitespace-nowrap text-[15.5px] font-bold text-dark">Componentes do produto</h3>
             {ficha.length > 0 && (
-              <FracionavelBadge
-                fracionavel={!algumInsumoNaoFracionavel}
-                labelFracionavel="Produto fracionável"
-                labelNaoFracionavel="Produto não fracionável"
-              />
+              <FracionavelToggle value={fracionavel} onChange={onFracionavelChange} />
             )}
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
@@ -599,6 +621,9 @@ export default function CadastrarProdutoPage() {
   const [margemPadrao, setMargemPadrao] = useState(0)
   const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
   const [estoqueAtualExistente, setEstoqueAtualExistente] = useState<number | null>(null)
+  // RN-NOVA-2 (V0.10.0, #299) — calculado+override, mesmo padrão de precoFinal/precoFinalManual acima.
+  const [fracionavel, setFracionavel] = useState(true)
+  const [fracionavelManual, setFracionavelManual] = useState(false)
 
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
@@ -613,6 +638,10 @@ export default function CadastrarProdutoPage() {
   const isProduto = dados.tipo === 'Produto'
   // Ambos os tipos restantes (PRODUTO e CUSTOMIZACAO) têm preço de venda com override — RN-038a/PDT-001, #210+231+234.
   const mostrarPrecoMargem = isCustomizacao || isProduto
+
+  // RN-NOVA-2 — mesmo cálculo-base de PDT-016 (algumInsumoNaoFracionavel), só insumos diretos contam.
+  const algumInsumoNaoFracionavel = ficha.some(item => item.tipo === 'insumo' && !item.fracionavel)
+  const fracionavelDerivado = !algumInsumoNaoFracionavel
 
   // Mesma fórmula da Calculadora — mantém o preço final espelhando o sugerido enquanto não houver override manual.
   const custoInsumosCalc = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
@@ -639,6 +668,13 @@ export default function CadastrarProdutoPage() {
     if (!mostrarPrecoMargem || editando || precoFinalManual) return
     setPrecoFinal(sugeridoCalc > 0 ? sugeridoCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')
   }, [mostrarPrecoMargem, editando, precoFinalManual, sugeridoCalc])
+
+  // RN-NOVA-2 (#299) — fracionável nasce espelhando o derivado da ficha técnica; para de acompanhar
+  // assim que a artesã sobrescreve manualmente (override — CEN-NOVO-3/4/5).
+  useEffect(() => {
+    if (fracionavelManual) return
+    setFracionavel(fracionavelDerivado)
+  }, [fracionavelDerivado, fracionavelManual])
 
   // Carregar dados na edição
   useEffect(() => {
@@ -667,6 +703,8 @@ export default function CadastrarProdutoPage() {
         setCustoUnitario(produto.custoUnitario ?? null)
         setPermitirEstoqueNegativo(produto.permitirEstoqueNegativo)
         setEstoqueAtualExistente(produto.estoqueAtual)
+        setFracionavel(produto.fracionavel ?? !produto.algumInsumoNaoFracionavel)
+        setFracionavelManual(produto.fracionavelOverride ?? false)
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
           setPrecoFinalManual(true)
@@ -699,6 +737,7 @@ export default function CadastrarProdutoPage() {
       precoVenda: precoVendaNum,
       rendimento: rendimentoNum,
       permitirEstoqueNegativo,
+      fracionavel,
       fichaTecnica: ficha.map(item => ({
         insumoId: item.tipo === 'insumo' ? item.id : undefined,
         produtoBaseId: item.tipo === 'produto' ? item.id : undefined,
@@ -808,6 +847,8 @@ export default function CadastrarProdutoPage() {
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento || rendimentoErroInline}
             mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
             botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido} onCriarCatalogo={() => salvar('catalogo')}
+            fracionavel={fracionavel}
+            onFracionavelChange={v => { setFracionavelManual(true); setFracionavel(v) }}
           />
           <Calculadora
             ficha={ficha} tempo={dados.tempo} rendimento={rendimento}
