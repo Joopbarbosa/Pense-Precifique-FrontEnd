@@ -28,6 +28,11 @@ interface ModalVincularProducaoProps {
   onConfirmar: (producaoId: string) => Promise<void>
   confirmando: boolean
   onCriarNova?: (dados: CriarProducaoVinculadaRequest) => Promise<void>
+  // Achado do teste manual (V0.10.0) — quando a modal foi aberta interceptando o clique em
+  // "avançar status" (DetalheOrcamentoPage, ponto 2), fechar/cancelar não avança mais o status
+  // sozinho (reverte RN-ORC-VINC-02 ponto 2): avançar sem vincular passa a ser uma ação explícita
+  // e separada, só disponível quando este prop é passado.
+  onAvancarSemVincular?: () => void
 }
 
 export default function ModalVincularProducao({
@@ -37,6 +42,7 @@ export default function ModalVincularProducao({
   onConfirmar,
   confirmando,
   onCriarNova,
+  onAvancarSemVincular,
 }: ModalVincularProducaoProps) {
   const [busca, setBusca] = useState('')
   const [producoes, setProducoes] = useState<ProducaoResumo[]>([])
@@ -289,9 +295,16 @@ export default function ModalVincularProducao({
       iconBg="#EAF1FB"
       iconColor="#2A6FB0"
       footer={
-        <Button variant="ghost" onClick={onClose}>
-          Fechar
-        </Button>
+        <div className="flex w-full items-center justify-between gap-2.5">
+          <Button variant="ghost" onClick={onClose}>
+            Fechar
+          </Button>
+          {onAvancarSemVincular && (
+            <Button variant="secondary" onClick={onAvancarSemVincular}>
+              Avançar sem vincular
+            </Button>
+          )}
+        </div>
       }
     >
       {onCriarNova && (

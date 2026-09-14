@@ -1531,13 +1531,12 @@ export default function DetalheOrcamentoPage() {
   const itensPendentesSemVinculo = itensSemEstoque.filter((i) => !i.producaoVinculadaId);
 
   // RN-NOVA-3 (#317) — mesma lista que alimenta DownloadsCard, reaproveitada pelo "Preview" do header.
+  // Achado do teste manual (V0.10.0) — reverte a regra original de #317 ("pula direto com 1
+  // documento disponível"): a modal agora sempre abre, mesmo com 1 documento só, a pedido
+  // explícito do usuário.
   const documentosParaPreview = documentosDisponiveis(orcamento);
   const handleClickPreview = () => {
     if (documentosParaPreview.length === 0) return;
-    if (documentosParaPreview.length === 1) {
-      handlePreviewKind(documentosParaPreview[0].kind);
-      return;
-    }
     setModal("preview");
   };
 
@@ -2078,19 +2077,27 @@ export default function DetalheOrcamentoPage() {
       {modal === "vincularProducao" && (
         <ModalVincularProducao
           onClose={() => {
-            const viaTransicao = vinculoViaTransicao;
+            // Achado do teste manual (V0.10.0) — reverte RN-ORC-VINC-02 ponto 2: fechar/cancelar a
+            // modal (X, clique fora, "Fechar") não avança mais o status sozinho. Avançar sem
+            // vincular passa a ser uma ação explícita (botão "Avançar sem vincular" abaixo), nunca
+            // mais um efeito colateral de fechar por engano.
             setModal(null);
             setVinculoViaTransicao(false);
-            // RN-ORC-VINC-02 ponto 2 — ignorar/fechar a modal nunca bloqueia a transição: se ela foi
-            // aberta interceptando o clique em "avançar", fechar sem vincular completa a transição
-            // do mesmo jeito.
-            if (viaTransicao) handleAvancar();
           }}
           onSimular={handleSimularVincularProducao}
           onConfirmar={handleVincularProducao}
           onCriarNova={handleCriarProducaoNova}
           confirmando={vinculandoProducao}
           jaVinculadasIds={producoesVinculadas.map((v) => v.producaoId)}
+          onAvancarSemVincular={
+            vinculoViaTransicao
+              ? () => {
+                  setModal(null);
+                  setVinculoViaTransicao(false);
+                  handleAvancar();
+                }
+              : undefined
+          }
         />
       )}
 
