@@ -1373,6 +1373,29 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // Achado do teste manual (V0.10.0, #465) — quando o orçamento já tem produção vinculada
+  // (RN-PROD-VINC-01/02: vincular sincroniza os itens pendentes pra dentro da produção
+  // existente), "Criar produção (N)" sempre criava uma produção NOVA, mesmo quando o item
+  // pendente podia simplesmente ser sincronizado pra produção que já existe — risco real de
+  // duplicar produção pro mesmo pedido. Reaproveita o mesmo `vincularProducao` (sincronização já
+  // implementada) em vez de sempre passar por `criarProducaoVinculada`.
+  const handleSincronizarProducaoExistente = async () => {
+    if (!id || !orcamento || orcamento.producoesVinculadas.length === 0) return;
+    setCriandoProducaoDetalhe(true);
+    setFormErroProducaoDetalhe(null);
+    try {
+      const vinculos = await orcamentoService.vincularProducao(id, orcamento.producoesVinculadas[0].producaoId);
+      setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
+      setSelecionadosProducaoDetalhe(new Set());
+      setToast("Item(ns) vinculados à produção já existente.");
+      refetchItensSemEstoque();
+    } catch (err) {
+      setToast(extractApiError(err, "Não foi possível vincular à produção existente."));
+    } finally {
+      setCriandoProducaoDetalhe(false);
+    }
+  };
+
   const handleToggleSelecaoProducaoDetalhe = (produtoId: string) => {
     setSelecionadosProducaoDetalhe((prev) => {
       const next = new Set(prev);
@@ -1809,21 +1832,37 @@ export default function DetalheOrcamentoPage() {
                     ? "1 item com estoque insuficiente"
                     : `${itensPendentesSemVinculo.length} itens com estoque insuficiente`}
                 </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={selecionadosProducaoDetalhe.size === 0}
-                  onClick={() => {
-                    setFormDataInicioProducaoDetalhe("");
-                    setFormDataTerminoProducaoDetalhe("");
-                    setFormObsProducaoDetalhe("");
-                    setFormErroProducaoDetalhe(null);
-                    setModalCriarProducaoDetalhe(true);
-                  }}
-                >
-                  <Factory size={14} />
-                  Criar produção{selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* #465 — quando já existe produção vinculada (não-terminal), sincronizar é
+                      preferível a criar outra: evita duplicar produção pro mesmo pedido. */}
+                  {orcamento.producoesVinculadas.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={selecionadosProducaoDetalhe.size === 0 || criandoProducaoDetalhe}
+                      onClick={handleSincronizarProducaoExistente}
+                    >
+                      <Factory size={14} />
+                      Vincular à {orcamento.producoesVinculadas[0].identificadorProducao}
+                      {selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={selecionadosProducaoDetalhe.size === 0}
+                    onClick={() => {
+                      setFormDataInicioProducaoDetalhe("");
+                      setFormDataTerminoProducaoDetalhe("");
+                      setFormObsProducaoDetalhe("");
+                      setFormErroProducaoDetalhe(null);
+                      setModalCriarProducaoDetalhe(true);
+                    }}
+                  >
+                    <Factory size={14} />
+                    Criar produção{selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
+                  </Button>
+                </div>
               </div>
             )}
             {orcamento.itens.map((it, i) => {
