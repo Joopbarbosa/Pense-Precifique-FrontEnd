@@ -166,8 +166,10 @@ export default function DetalheProducaoPage() {
       { label: 'Iniciar', icon: <Play size={16} />, variant: 'primary', onClick: () => setModal('iniciar') },
       { label: 'Editar', icon: <Pencil size={16} />, variant: 'secondary', onClick: () => navigate(`/producao/${producao.id}/editar`) },
       // RN-NOVA-5 (V0.10.0, #450) — só produções nascidas de agrupamento, só AGUARDANDO_INICIO
-      // (nenhum insumo baixado ainda, nada a redistribuir/estornar).
-      ...(producao.tipoOrigem === 'AGRUPAMENTO'
+      // (nenhum insumo baixado ainda, nada a redistribuir/estornar). RN-NOVA-11/#469 — mais de 2
+      // produtos/customizações agrupados (critério aditivo) — sem isso o clique levaria a um erro
+      // do backend sem necessidade, já que a elegibilidade agora também depende da contagem.
+      ...(producao.tipoOrigem === 'AGRUPAMENTO' && producao.produtos.length > 2
         ? [{ label: 'Desagrupar', icon: <Ungroup size={16} />, variant: 'secondary' as const, onClick: () => setModal('desagrupar') }]
         : []),
       { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: handleCancelar },

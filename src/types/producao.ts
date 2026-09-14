@@ -69,6 +69,9 @@ export interface ProducaoResumo {
   alertasInsumos: AlertaInsumo[]
   historicoStatus: HistoricoStatus[]
   orcamentosVinculados: ProducaoOrcamentoVinculo[]
+  // #470 (V0.10.0) — achado do Frontend: faltava na listagem (já existia no Detalhe), necessário
+  // pra decidir a opção "Desagrupar" no menu de 3 pontinhos sem round-trip por linha.
+  tipoOrigem: string | null
 }
 
 // RN-NOVA-4 (V0.10.0, #336) — GET /producoes/contagens, badges de filtro de ListaProducaoPage.tsx.

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
-import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown, Calendar, Eye, EyeOff, Columns3 } from 'lucide-react'
+import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown, Calendar, Eye, EyeOff, Columns3, Ungroup, Rows3, AlignJustify } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
@@ -22,11 +22,12 @@ import AgruparProducoesModal from '../../components/producao/AgruparProducoesMod
 import ModalDivisao from '../../components/producao/ModalDivisao'
 import ConfirmarEstoqueNegativoModal from '../../components/producao/ConfirmarEstoqueNegativoModal'
 import ModalDetalheResumidoProducao from '../../components/producao/ModalDetalheResumidoProducao'
+import DesagruparProducaoModal from '../../components/producao/DesagruparProducaoModal'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanColumn } from '../../components/kanban/KanbanBoard'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { VinculoAtivoBadge } from '../../components/shared'
-import type { ProducaoProdutoItem } from '../../types/producao'
+import type { ProducaoProdutoItem, ProducaoDetalhe } from '../../types/producao'
 
 type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
 type ViewMode = 'lista' | 'kanban'
@@ -64,14 +65,19 @@ const TRANSICOES_KANBAN: Record<string, Record<string, TransicaoKanban>> = {
 // #238 — cada produto da produção em sua própria linha (nome + tag fracionável/estoque negativo/
 // estoque atual), substituindo o `nomesProdutos = produtos.map(...).join(', ')` que colapsava tudo
 // numa única string sem espaço pra tag por componente.
-function ProdutosLista({ produtos, className, nomeClassName }: {
+// #472 (V0.10.0) — 'simplificado' (padrão): só o 1º produto + indicador "+N"; 'detalhado': todos,
+// sem rolagem interna (a linha/card cresce em altura em vez de rolar).
+function ProdutosLista({ produtos, className, nomeClassName, modo = 'detalhado' }: {
   produtos: ProducaoProdutoItem[]
   className?: string
   nomeClassName?: string
+  modo?: 'simplificado' | 'detalhado'
 }) {
+  const visiveis = modo === 'simplificado' ? produtos.slice(0, 1) : produtos
+  const restantes = produtos.length - visiveis.length
   return (
     <div className={clsx('flex flex-col gap-1.5', className)}>
-      {produtos.map(p => (
+      {visiveis.map(p => (
         <div key={p.produtoId} className="min-w-0">
           <div className={clsx('truncate', nomeClassName ?? 'text-sm text-body')}>{p.nomeProduto}</div>
           <EstoqueTags
@@ -83,6 +89,9 @@ function ProdutosLista({ produtos, className, nomeClassName }: {
           />
         </div>
       ))}
+      {restantes > 0 && (
+        <div className="text-xs font-semibold text-muted">+{restantes} produto{restantes > 1 ? 's' : ''}</div>
+      )}
     </div>
   )
 }
@@ -100,9 +109,7 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
         <span className="text-[13px] font-bold text-dark [font-variant-numeric:tabular-nums]">{producao.identificador}</span>
         <AlertaIcones producao={producao} size={14} />
       </div>
-      <div className="max-h-[88px] overflow-y-auto">
-        <ProdutosLista produtos={producao.produtos} nomeClassName="text-[12.5px] leading-[1.4] text-body" />
-      </div>
+      <ProdutosLista produtos={producao.produtos} nomeClassName="text-[12.5px] leading-[1.4] text-body" modo="simplificado" />
       {producao.orcamentosVinculados.length > 0 && (
         <div className="mt-1.5">
           <VinculoAtivoBadge label="Orçamento vinculado" />
@@ -245,15 +252,27 @@ function menuItemsParaEstado(
   producao: ProducaoResumo,
   navigate: (path: string) => void,
   onCancelar: (producao: ProducaoResumo) => void,
-  abrirModal: (tipo: TipoModal, producaoId: string) => void
+  abrirModal: (tipo: TipoModal, producaoId: string) => void,
+  onDesagrupar: (producaoId: string) => void,
+  carregandoDesagrupar: string | null
 ): ActionMenuItem[] {
   switch (producao.estado) {
-    case 'AGUARDANDO_INICIO':
+    case 'AGUARDANDO_INICIO': {
+      // RN-NOVA-5/#450 + RN-NOVA-11/#469 (V0.10.0) — mesma condição do backend, replicada aqui só
+      // pra decidir a exibição (o backend continua sendo quem de fato valida/bloqueia): origem
+      // AGRUPAMENTO + mais de 2 produtos/customizações agrupados. #470 — antes só existia no menu
+      // do Detalhe, faltava aqui na listagem.
+      const elegivelDesagrupar = producao.tipoOrigem === 'AGRUPAMENTO' && producao.produtos.length > 2
+      const abrindo = carregandoDesagrupar === producao.id
       return [
         { label: 'Iniciar', icon: <Play size={15} />, onClick: () => abrirModal('iniciar', producao.id) },
         { label: 'Editar', icon: <Pencil size={15} />, onClick: () => navigate(`/producao/${producao.id}/editar`) },
+        ...(elegivelDesagrupar
+          ? [{ label: abrindo ? 'Abrindo…' : 'Desagrupar', icon: <Ungroup size={15} />, onClick: () => onDesagrupar(producao.id) }]
+          : []),
         { label: 'Cancelar', icon: <Ban size={15} />, onClick: () => onCancelar(producao), danger: true, dividerBefore: true },
       ]
+    }
     case 'EM_ANDAMENTO':
       return [
         { label: 'Travar', icon: <PauseCircle size={15} />, onClick: () => abrirModal('travar', producao.id) },
@@ -270,33 +289,40 @@ function menuItemsParaEstado(
   }
 }
 
-function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgrupamento, selecionado, onToggleSelecao }: {
+function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, onDesagrupar, carregandoDesagrupar, modoAgrupamento, modoExibicao, selecionado, onToggleSelecao }: {
   producao: ProducaoResumo
   onVerDetalhes: () => void
   onCancelar: (producao: ProducaoResumo) => void
   abrirModal: (tipo: TipoModal, producaoId: string) => void
+  onDesagrupar: (producaoId: string) => void
+  carregandoDesagrupar: string | null
   modoAgrupamento: boolean
+  modoExibicao: 'simplificado' | 'detalhado'
   selecionado: boolean
   onToggleSelecao: () => void
 }) {
   const navigate = useNavigate()
   const badge = getBadgeEstado(producao.estado, producao.historicoStatus)
-  const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
+  const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal, onDesagrupar, carregandoDesagrupar)
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)
   const quantidadeTotal = producao.produtos.reduce((soma, p) => soma + p.quantidade, 0)
+  // #471 (V0.10.0) — no modo Agrupar, clicar em qualquer parte do registro marca o checkbox (antes
+  // só clicar exatamente em cima do checkbox funcionava, o resto sempre navegava pro Detalhe).
+  const onClickRegistro = modoAgrupamento ? (agrupavel ? onToggleSelecao : undefined) : onVerDetalhes
 
   return (
     <div
-      className="hidden cursor-pointer grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid"
-      onClick={onVerDetalhes}
+      className={clsx(
+        'hidden grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid',
+        onClickRegistro ? 'cursor-pointer' : 'cursor-default'
+      )}
+      onClick={onClickRegistro}
     >
       <span className="text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">
         {producao.identificador}
       </span>
 
-      <div className="max-h-[76px] overflow-y-auto">
-        <ProdutosLista produtos={producao.produtos} />
-      </div>
+      <ProdutosLista produtos={producao.produtos} modo={modoExibicao} />
 
       <span className="text-[13px] text-muted [font-variant-numeric:tabular-nums]">
         {quantidadeTotal}
@@ -331,26 +357,31 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, modoAgru
   )
 }
 
-function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, modoAgrupamento, selecionado, onToggleSelecao }: {
+function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, onDesagrupar, carregandoDesagrupar, modoAgrupamento, modoExibicao, selecionado, onToggleSelecao }: {
   producao: ProducaoResumo
   index: number
   onVerDetalhes: () => void
   onCancelar: (producao: ProducaoResumo) => void
   abrirModal: (tipo: TipoModal, producaoId: string) => void
+  onDesagrupar: (producaoId: string) => void
+  carregandoDesagrupar: string | null
   modoAgrupamento: boolean
+  modoExibicao: 'simplificado' | 'detalhado'
   selecionado: boolean
   onToggleSelecao: () => void
 }) {
   const navigate = useNavigate()
   const badge = getBadgeEstado(producao.estado, producao.historicoStatus)
-  const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal)
+  const menuItems = menuItemsParaEstado(producao, navigate, onCancelar, abrirModal, onDesagrupar, carregandoDesagrupar)
   const agrupavel = ESTADOS_AGRUPAVEIS.includes(producao.estado)
+  // #471 (V0.10.0) — mesmo critério de ProducaoRow.
+  const onClickRegistro = modoAgrupamento ? (agrupavel ? onToggleSelecao : undefined) : onVerDetalhes
 
   return (
     <div
-      className="block cursor-pointer border-b border-line px-[18px] py-4 sm:hidden"
+      className={clsx('block border-b border-line px-[18px] py-4 sm:hidden', onClickRegistro ? 'cursor-pointer' : 'cursor-default')}
       style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.05}s` }}
-      onClick={onVerDetalhes}
+      onClick={onClickRegistro}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -358,8 +389,8 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
             <span className="text-sm font-bold text-dark">{producao.identificador}</span>
             <AlertaIcones producao={producao} />
           </div>
-          <div className="mb-2 max-h-[100px] overflow-y-auto">
-            <ProdutosLista produtos={producao.produtos} />
+          <div className="mb-2">
+            <ProdutosLista produtos={producao.produtos} modo={modoExibicao} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -403,6 +434,13 @@ export default function ListaProducaoPage() {
   const [modal, setModal] = useState<{ tipo: TipoModal; producaoId: string } | null>(null)
   const [detalheResumido, setDetalheResumido] = useState<ProducaoResumo | null>(null)
   const [modoAgrupamento, setModoAgrupamento] = useState(false)
+  // #472 (V0.10.0) — Simplificado (padrão): 1 produto + indicador "+N". Detalhado: todos, sem
+  // rolagem interna.
+  const [modoExibicao, setModoExibicao] = useState<'simplificado' | 'detalhado'>('simplificado')
+  // #470 (V0.10.0) — DesagruparProducaoModal exige ProducaoDetalhe (produtos completos), não
+  // ProducaoResumo da listagem — busca o detalhe só ao abrir, mesmo padrão de detalheResumido.
+  const [desagruparProducao, setDesagruparProducao] = useState<ProducaoDetalhe | null>(null)
+  const [carregandoDesagrupar, setCarregandoDesagrupar] = useState<string | null>(null)
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
   const [modalAgrupar, setModalAgrupar] = useState(false)
   const [barraSelecaoOculta, setBarraSelecaoOculta] = useState(false)
@@ -645,6 +683,26 @@ export default function ListaProducaoPage() {
     carregarContadores()
   }
 
+  // #470 (V0.10.0) — busca o detalhe completo (produtos) só ao abrir, a listagem não carrega isso.
+  const abrirDesagrupar = async (producaoId: string) => {
+    setCarregandoDesagrupar(producaoId)
+    try {
+      const detalhe = await producaoService.buscarPorId(producaoId)
+      setDesagruparProducao(detalhe)
+    } catch {
+      setToast('Não foi possível abrir o desagrupamento. Tente novamente.')
+    } finally {
+      setCarregandoDesagrupar(null)
+    }
+  }
+
+  const handleSuccessDesagrupar = (mensagem: string) => {
+    setToast(mensagem)
+    setDesagruparProducao(null)
+    carregar()
+    carregarContadores()
+  }
+
   const producoesSelecionadas = producoes.filter(p => selecionadas.has(p.id))
 
   const searchActive = query.trim().length > 0
@@ -718,50 +776,79 @@ export default function ListaProducaoPage() {
           <div className="mb-[18px] flex flex-col gap-3.5">
             <FiltroChips filtro={filtro} onChange={handleFiltroChange} contadores={contadores} />
 
-            <div className="relative min-w-[200px] max-w-[420px]">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
-                <Search size={18} />
-              </span>
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Buscar por produto…"
-                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-              />
-            </div>
-
-            <div>
-              <div className="mb-[7px] flex items-center gap-1.5 text-[12px] font-semibold text-muted">
-                <Calendar size={13} /> Data de início
+            {/* #472 (V0.10.0) — busca e filtro de data lado a lado (antes empilhados verticalmente,
+                cada um numa linha própria); toggle Simplificado/Detalhado junto, mesma linha. */}
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="relative min-w-[200px] max-w-[420px] flex-1">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
+                  <Search size={18} />
+                </span>
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Buscar por produto…"
+                  className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
               </div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <input
-                  type="date"
-                  value={dataInicioDe}
-                  max={dataInicioAte || undefined}
-                  onChange={e => handleDataInicioDeChange(e.target.value)}
-                  aria-label="Data de início — de"
-                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-                />
-                <span className="text-[13px] text-muted">até</span>
-                <input
-                  type="date"
-                  value={dataInicioAte}
-                  min={dataInicioDe || undefined}
-                  onChange={e => handleDataInicioAteChange(e.target.value)}
-                  aria-label="Data de início — até"
-                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-                />
-                {periodoAtivo && (
+
+              <div>
+                <div className="mb-[7px] flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+                  <Calendar size={13} /> Data de início
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <input
+                    type="date"
+                    value={dataInicioDe}
+                    max={dataInicioAte || undefined}
+                    onChange={e => handleDataInicioDeChange(e.target.value)}
+                    aria-label="Data de início — de"
+                    className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  />
+                  <span className="text-[13px] text-muted">até</span>
+                  <input
+                    type="date"
+                    value={dataInicioAte}
+                    min={dataInicioDe || undefined}
+                    onChange={e => handleDataInicioAteChange(e.target.value)}
+                    aria-label="Data de início — até"
+                    className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  />
+                  {periodoAtivo && (
+                    <button
+                      type="button"
+                      onClick={handleLimparPeriodo}
+                      className="h-11 cursor-pointer whitespace-nowrap rounded-input border-none bg-transparent px-1 font-[inherit] text-[13px] font-semibold text-teal"
+                    >
+                      Limpar período
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {viewMode === 'lista' && (
+                <div className="inline-flex h-11 flex-shrink-0 overflow-hidden rounded-input border-[1.5px] border-line">
                   <button
                     type="button"
-                    onClick={handleLimparPeriodo}
-                    className="h-11 cursor-pointer whitespace-nowrap rounded-input border-none bg-transparent px-1 font-[inherit] text-[13px] font-semibold text-teal"
+                    onClick={() => setModoExibicao('simplificado')}
+                    className={clsx(
+                      'flex h-full items-center gap-1.5 px-3 font-[inherit] text-[13px] font-semibold transition-colors duration-150',
+                      modoExibicao === 'simplificado' ? 'bg-teal/10 text-teal' : 'bg-white text-dim hover:bg-cream'
+                    )}
                   >
-                    Limpar período
+                    <Rows3 size={14} /> Simplificado
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setModoExibicao('detalhado')}
+                    className={clsx(
+                      'flex h-full items-center gap-1.5 border-l-[1.5px] border-line px-3 font-[inherit] text-[13px] font-semibold transition-colors duration-150',
+                      modoExibicao === 'detalhado' ? 'bg-teal/10 text-teal' : 'bg-white text-dim hover:bg-cream'
+                    )}
+                  >
+                    <AlignJustify size={14} /> Detalhado
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -794,7 +881,10 @@ export default function ListaProducaoPage() {
                       onVerDetalhes={() => navigate(`/producao/${p.id}`)}
                       onCancelar={handleCancelar}
                       abrirModal={abrirModal}
+                      onDesagrupar={abrirDesagrupar}
+                      carregandoDesagrupar={carregandoDesagrupar}
                       modoAgrupamento={modoAgrupamento}
+                      modoExibicao={modoExibicao}
                       selecionado={selecionadas.has(p.id)}
                       onToggleSelecao={() => toggleSelecao(p.id)}
                     />
@@ -804,7 +894,10 @@ export default function ListaProducaoPage() {
                       onVerDetalhes={() => navigate(`/producao/${p.id}`)}
                       onCancelar={handleCancelar}
                       abrirModal={abrirModal}
+                      onDesagrupar={abrirDesagrupar}
+                      carregandoDesagrupar={carregandoDesagrupar}
                       modoAgrupamento={modoAgrupamento}
+                      modoExibicao={modoExibicao}
                       selecionado={selecionadas.has(p.id)}
                       onToggleSelecao={() => toggleSelecao(p.id)}
                     />
@@ -987,6 +1080,13 @@ export default function ListaProducaoPage() {
           producoes={producoesSelecionadas}
           onClose={fecharModalAgrupar}
           onSuccess={handleSuccessAgrupar}
+        />
+      )}
+      {desagruparProducao && (
+        <DesagruparProducaoModal
+          producao={desagruparProducao}
+          onClose={() => setDesagruparProducao(null)}
+          onSuccess={handleSuccessDesagrupar}
         />
       )}
       {divisaoResult && (
