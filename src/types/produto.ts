@@ -19,6 +19,9 @@ export interface FichaTecnicaItemResponse {
   tipoExibicaoQuantidade?: TipoExibicaoQuantidade | null
   produtoBaseId?: string
   nomeProdutoBase?: string
+  /** #462 (achado do teste manual) — distingue Produto de Customização ao recarregar uma ficha
+   *  técnica já salva; sem isso o Frontend rotulava todo componente como "produto". */
+  tipoProdutoBase?: TipoProduto
   quantidade: number
   custoUnitario: number
   custoTotal: number

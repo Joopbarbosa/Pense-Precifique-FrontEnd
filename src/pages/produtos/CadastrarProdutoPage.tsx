@@ -714,7 +714,9 @@ export default function CadastrarProdutoPage() {
           marca: item.marcaInsumo || '',
           un: item.unidadeMedida || 'un',
           custo: item.custoUnitario,
-          tipo: item.insumoId ? 'insumo' : 'produto',
+          // #462 (achado do teste manual) — tipoProdutoBase agora vem do contrato; antes disso,
+          // todo componente com produtoBaseId virava 'produto' genérico, mesmo sendo Customização.
+          tipo: item.insumoId ? 'insumo' : item.tipoProdutoBase === 'CUSTOMIZACAO' ? 'customizacao' : 'produto',
           fracionavel: item.fracionavelInsumo ?? true,
           qtd: item.quantidade,
         }))
@@ -761,7 +763,10 @@ export default function CadastrarProdutoPage() {
       fracionavel,
       fichaTecnica: ficha.map(item => ({
         insumoId: item.tipo === 'insumo' ? item.id : undefined,
-        produtoBaseId: item.tipo === 'produto' ? item.id : undefined,
+        // #462 (achado do teste manual): faltava tratar 'customizacao' aqui — ficava sem
+        // insumoId E sem produtoBaseId, e o backend rejeitava com "deve referenciar exatamente
+        // um insumo ou um produto base" ao tentar salvar uma ficha técnica com Customização.
+        produtoBaseId: item.tipo === 'produto' || item.tipo === 'customizacao' ? item.id : undefined,
         quantidade: item.qtd,
       })),
     }
