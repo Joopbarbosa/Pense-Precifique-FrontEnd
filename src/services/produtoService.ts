@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, ProdutoContagensResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
@@ -10,6 +10,13 @@ export const produtoService = {
     if (busca) params.busca = busca
     if (semCatalogo) params.semCatalogo = true
     const response = await api.get('/produtos', { params })
+    return response.data
+  },
+
+  // RN-NOVA-4 (V0.10.0, #336) — contadores por categoria (badges de ListaProdutosPage.tsx).
+  // Endpoint já existia (Frente 4/P-BE-CONSOLIDADO-001), nunca tinha sido consumido pelo frontend.
+  contagens: async (): Promise<ProdutoContagensResponse> => {
+    const response = await api.get('/produtos/contagens')
     return response.data
   },
 

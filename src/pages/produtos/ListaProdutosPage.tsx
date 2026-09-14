@@ -16,7 +16,7 @@ import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
-import type { ProdutoResponse, ComponenteVinculadoResponse, AcaoResolucaoVinculo, TipoVinculoProduto, ResolverVinculosProdutoRequest } from '../../types/produto'
+import type { ProdutoResponse, ProdutoContagensResponse, ComponenteVinculadoResponse, AcaoResolucaoVinculo, TipoVinculoProduto, ResolverVinculosProdutoRequest } from '../../types/produto'
 
 const CATS = ['Todos', 'Produto', 'Customização', 'Inativos']
 
@@ -25,6 +25,19 @@ const CAT_TO_TIPO: Record<string, string | undefined> = {
   'Produto': 'PRODUTO',
   'Customização': 'CUSTOMIZACAO',
   'Inativos': undefined,
+}
+
+// RN-NOVA-4 (V0.10.0, #336) — cada categoria mapeada para o campo correspondente de
+// ProdutoContagensResponse (GET /produtos/contagens).
+const contagemPorCategoria = (contadores: ProdutoContagensResponse | null, c: string): number | undefined => {
+  if (!contadores) return undefined
+  switch (c) {
+    case 'Todos': return contadores.total
+    case 'Produto': return contadores.porTipo.produto
+    case 'Customização': return contadores.porTipo.customizacao
+    case 'Inativos': return contadores.inativos
+    default: return undefined
+  }
 }
 
 const BRL = (n: number) =>
@@ -505,6 +518,8 @@ export default function ListaProdutosPage() {
     loading: boolean
   } | null>(null)
   const { toast, setToast } = useToast()
+  // RN-NOVA-4 (V0.10.0, #336) — contadores por categoria, agregados no backend.
+  const [contadores, setContadores] = useState<ProdutoContagensResponse | null>(null)
 
   const {
     items: produtos,
@@ -528,11 +543,20 @@ export default function ListaProdutosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cat])
 
+  const carregarContadores = () => {
+    produtoService.contagens().then(setContadores).catch(() => {})
+  }
+
+  useEffect(() => {
+    carregarContadores()
+  }, [])
+
   const handleReativar = async (produto: ProdutoResponse) => {
     try {
       await produtoService.reativar(produto.id)
       setProdutos(prev => prev.map(x => x.id === produto.id ? { ...x, ativo: true } : x))
       setToast('Produto reativado.')
+      carregarContadores()
     } catch (err) {
       console.error(err)
       setToast(extractApiError(err, 'Erro ao reativar. Tente novamente.'))
@@ -555,6 +579,7 @@ export default function ListaProdutosPage() {
         setToast('Produto excluído.')
       }
       setConfirmAcao(null)
+      carregarContadores()
     } catch (err: any) {
       const mensagem = err?.response?.data?.message as string | undefined
       if (err?.response?.status === 400 && mensagem?.includes('vinculado')) {
@@ -587,7 +612,7 @@ export default function ListaProdutosPage() {
     setCat(c)
   }
 
-  const counts = (c: string) => c === cat ? totalElements : 0
+  const counts = (c: string) => contagemPorCategoria(contadores, c) ?? 0
 
   return (
     <AppLayout active="produtos" compact>
