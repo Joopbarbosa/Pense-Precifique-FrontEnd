@@ -975,24 +975,24 @@ function ModalCancelEstorno({
 
 // ─── Card de downloads ────────────────────────────────────────────────────────
 
-function DownloadsCard({
-  orcamento,
-  onDownload,
-  pdfBloqueado,
-  pdfLabel,
-}: {
-  orcamento: OrcamentoDetalheResponse;
-  onDownload: (kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento") => void;
-  pdfBloqueado: boolean;
-  pdfLabel: string;
-}) {
-  const status = orcamento.status as ApiStatus;
+type DocumentoKind = "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento";
 
-  const links: { label: string; kind: Parameters<typeof onDownload>[0]; icon: React.ReactNode }[] = [];
+interface DocumentoDisponivel {
+  kind: DocumentoKind;
+  label: string;
+  icon: React.ReactNode;
+}
+
+// RN-NOVA-3 (V0.10.0, #317) — lógica condicional de "quais documentos existem" para este
+// orçamento, extraída de DownloadsCard para ser reaproveitada também pelo botão "Preview" do
+// header (CEN-NOVO-6/7: 2+ documentos → modal de seleção; 1 só → abre direto, sem modal).
+function documentosDisponiveis(orcamento: OrcamentoDetalheResponse): DocumentoDisponivel[] {
+  const status = orcamento.status as ApiStatus;
+  const links: DocumentoDisponivel[] = [];
 
   // PDF do orçamento — qualquer status exceto CANCELADO
   if (status !== "CANCELADO") {
-    links.push({ label: pdfLabel, kind: "pdf", icon: <FileText size={18} /> });
+    links.push({ label: "PDF do orçamento", kind: "pdf", icon: <FileText size={18} /> });
   }
 
   // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
@@ -1014,6 +1014,26 @@ function DownloadsCard({
   if (orcamento.estornoSinal === true) {
     links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Receipt size={16} /> });
   }
+
+  return links;
+}
+
+function DownloadsCard({
+  orcamento,
+  onDownload,
+  pdfBloqueado,
+  pdfLabel,
+}: {
+  orcamento: OrcamentoDetalheResponse;
+  onDownload: (kind: DocumentoKind) => void;
+  pdfBloqueado: boolean;
+  pdfLabel: string;
+}) {
+  // Mesma lista condicional do botão "Preview" do header — só troca o label do PDF pelo estado
+  // dinâmico de download (retry/cooldown), que não faz sentido no contexto de preview.
+  const links = documentosDisponiveis(orcamento).map((l) =>
+    l.kind === "pdf" ? { ...l, label: pdfLabel } : l
+  );
 
   return (
     <section className="mt-[18px] animate-[fadeUp_.6s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -1053,7 +1073,7 @@ export default function DetalheOrcamentoPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
-  const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho" | "vincularProducao">(null);
+  const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho" | "vincularProducao" | "preview">(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
   const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
   const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
@@ -1411,15 +1431,27 @@ export default function DetalheOrcamentoPage() {
     pagamento: "recibo-pagamento",
   };
 
-  const handleDownloadAny = (
-    kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
-  ) => {
+  const handleDownloadAny = (kind: DocumentoKind) => {
     if (!id) return;
     if (kind === "pdf") {
       handleDownloadPdf();
       return;
     }
     navigate(`/orcamentos/${id}/${PREVIEW_ROUTE[kind]}`);
+  };
+
+  // RN-NOVA-3 (#317) — rota de preview do "Preview" unificado do header, distinta de
+  // handleDownloadAny (que baixa o PDF direto via blob) — aqui o PDF também abre em tela de
+  // preview própria, igual aos outros 4 documentos.
+  const PREVIEW_ROUTE_ALL: Record<DocumentoKind, string> = {
+    pdf: "preview",
+    ...PREVIEW_ROUTE,
+  };
+
+  const handlePreviewKind = (kind: DocumentoKind) => {
+    if (!id) return;
+    setModal(null);
+    navigate(`/orcamentos/${id}/${PREVIEW_ROUTE_ALL[kind]}`);
   };
 
   if (loading) {
@@ -1465,6 +1497,17 @@ export default function DetalheOrcamentoPage() {
   // (N)". Itens com producaoVinculadaId preenchido (RN-NOVA-26) mostram "Visualizar produção" no
   // próprio card, não entram aqui.
   const itensPendentesSemVinculo = itensSemEstoque.filter((i) => !i.producaoVinculadaId);
+
+  // RN-NOVA-3 (#317) — mesma lista que alimenta DownloadsCard, reaproveitada pelo "Preview" do header.
+  const documentosParaPreview = documentosDisponiveis(orcamento);
+  const handleClickPreview = () => {
+    if (documentosParaPreview.length === 0) return;
+    if (documentosParaPreview.length === 1) {
+      handlePreviewKind(documentosParaPreview[0].kind);
+      return;
+    }
+    setModal("preview");
+  };
 
   // RN-ORC-VINC-02 ponto 2 (P-F005) — intercepta só a transição real para EM_PRODUCAO
   // (precisaVincularProducao já restringe aos 2 caminhos que levam direto pra lá) e só quando ainda
@@ -1531,13 +1574,15 @@ export default function DetalheOrcamentoPage() {
           >
             {duplicando ? "Duplicando..." : "Duplicar"}
           </Button>
-          <Button
-            variant="ghost"
-            icon={<FileText size={18} />}
-            onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
-          >
-            Ver preview do PDF
-          </Button>
+          {documentosParaPreview.length > 0 && (
+            <Button
+              variant="ghost"
+              icon={<FileText size={18} />}
+              onClick={handleClickPreview}
+            >
+              Preview
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1943,6 +1988,32 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {/* Modais */}
+      {modal === "preview" && (
+        <ModalShell
+          open
+          onClose={() => setModal(null)}
+          title="Qual documento você quer ver?"
+          subtitle={`${documentosParaPreview.length} documentos disponíveis para este orçamento.`}
+          icon={<FileText size={15} />}
+        >
+          <div className="flex flex-col gap-[9px]">
+            {documentosParaPreview.map((doc) => (
+              <button
+                key={doc.kind}
+                type="button"
+                onClick={() => handlePreviewKind(doc.kind)}
+                className="flex items-center gap-3 rounded-[11px] border border-line bg-cream px-3.5 py-3 text-left transition-colors duration-150 hover:border-teal hover:bg-teal/[0.05]"
+              >
+                <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+                  {doc.icon}
+                </span>
+                <span className="text-sm font-semibold text-dark">{doc.label}</span>
+              </button>
+            ))}
+          </div>
+        </ModalShell>
+      )}
+
       {modal === "sinal" && (
         <ModalSinal
           orcamento={orcamento}
