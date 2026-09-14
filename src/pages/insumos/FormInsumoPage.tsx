@@ -129,8 +129,10 @@ export default function FormInsumoPage() {
   const custoUnit = editando && custoUnitarioExistente !== null
     ? custoUnitarioExistente
     : (qComprada > 0 ? preco / qComprada : null)
+  // #458 (V0.10.0) — sempre 2 casas com arredondamento matemático padrão (antes: até 3 casas
+  // quando < R$0,10, sem RN que justifique casa extra nesse caso).
   const custoFmt = custoUnit != null
-    ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: custoUnit < 0.1 ? 3 : 2, maximumFractionDigits: 3 })
+    ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '—'
 
   // RN-NOVA-1 (V0.10.0, #442) — cadastro só calcula/exibe o custo unitário; não
