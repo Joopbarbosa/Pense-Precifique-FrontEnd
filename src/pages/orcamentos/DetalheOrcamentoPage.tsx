@@ -55,6 +55,12 @@ type ApiStatus =
 
 
 // Botão principal por status
+// RN-NOVA-10 (V0.10.0, #466) — achado do teste manual: a reordenação FINALIZADO→PAGO→ENTREGUE
+// mudou o STEPS/timeline, mas este mapa (e o NEXT_HINT/finalizado/cancelavel abaixo) tinham
+// ficado com o rótulo da ordem antiga — FINALIZADO apontava pra "Marcar como entregue" (deveria
+// ser "Confirmar pagamento", já que o próximo passo agora é PAGO) e não existia entrada pra PAGO
+// (deveria ser "Marcar como entregue"), então o botão de avançar sumia por completo nesse status.
+// Consequência direta de #466, corrigida inline (não é tarefa nova).
 const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
   RASCUNHO: "Enviar orçamento",
   ENVIADO: "Marcar como aprovado",
@@ -62,8 +68,8 @@ const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
   AGUARDANDO_SINAL: "Confirmar recebimento do sinal",
   SINAL_PAGO: "Iniciar produção",
   EM_PRODUCAO: "Marcar como finalizado",
-  FINALIZADO: "Marcar como entregue",
-  ENTREGUE: "Confirmar pagamento",
+  FINALIZADO: "Confirmar pagamento",
+  PAGO: "Marcar como entregue",
 };
 
 // Descrição do próximo passo
@@ -74,8 +80,8 @@ const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
   AGUARDANDO_SINAL: "Confirme o recebimento do sinal para liberar a produção.",
   SINAL_PAGO: "Inicie a produção dos itens do pedido.",
   EM_PRODUCAO: "Quando concluir, marque a produção como finalizada.",
-  FINALIZADO: "Marque como entregue após a entrega ao cliente.",
-  ENTREGUE: "Confirme o pagamento final para encerrar o pedido.",
+  FINALIZADO: "Confirme o pagamento para seguir para a entrega.",
+  PAGO: "Marque como entregue após a entrega ao cliente.",
 };
 
 // Ordem da timeline (exclui Cancelado)
@@ -1502,8 +1508,10 @@ export default function DetalheOrcamentoPage() {
   const meta = STATUS_META[status] || STATUS_META.RASCUNHO;
   const actionLabel = ACTION_LABEL[status];
   const nextHint = NEXT_HINT[status];
-  const finalizado = status === "PAGO" || status === "CANCELADO";
-  const cancelavel = status !== "PAGO" && status !== "CANCELADO";
+  // RN-NOVA-10 (V0.10.0, #466) — terminal da timeline passou de PAGO para ENTREGUE; mesmo achado
+  // do ACTION_LABEL/NEXT_HINT acima, corrigido junto.
+  const finalizado = status === "ENTREGUE" || status === "CANCELADO";
+  const cancelavel = status !== "ENTREGUE" && status !== "CANCELADO";
 
   const sinalRecebido = ["SINAL_PAGO", "EM_PRODUCAO", "FINALIZADO", "ENTREGUE", "PAGO"].includes(status);
   const restante = (orcamento.total || 0) - (orcamento.valorSinal || 0);
