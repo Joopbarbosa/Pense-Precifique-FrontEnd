@@ -79,6 +79,8 @@ const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
 };
 
 // Ordem da timeline (exclui Cancelado)
+// RN-NOVA-10 (V0.10.0, #466, altera ORC-005) — troca FINALIZADO->ENTREGUE->PAGO por
+// FINALIZADO->PAGO->ENTREGUE; única mudança na sequência.
 const STEPS: ApiStatus[] = [
   "RASCUNHO",
   "ENVIADO",
@@ -87,8 +89,8 @@ const STEPS: ApiStatus[] = [
   "SINAL_PAGO",
   "EM_PRODUCAO",
   "FINALIZADO",
-  "ENTREGUE",
   "PAGO",
+  "ENTREGUE",
 ];
 
 const STATUS_META: Record<string, { bg: string; fg: string; dot: string }> = {
@@ -980,6 +982,9 @@ type DocumentoKind = "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento";
 interface DocumentoDisponivel {
   kind: DocumentoKind;
   label: string;
+  // #463 (V0.10.0) — descrição curta por documento: usuária relatou que a lista de 2+ opções não
+  // ficava intuitiva (botões visualmente idênticos, sem contexto do que cada um representa).
+  descricao: string;
   icon: React.ReactNode;
 }
 
@@ -990,29 +995,48 @@ function documentosDisponiveis(orcamento: OrcamentoDetalheResponse): DocumentoDi
   const status = orcamento.status as ApiStatus;
   const links: DocumentoDisponivel[] = [];
 
-  // PDF do orçamento — qualquer status exceto CANCELADO
-  if (status !== "CANCELADO") {
-    links.push({ label: "PDF do orçamento", kind: "pdf", icon: <FileText size={18} /> });
+  // PDF do orçamento — qualquer status exceto CANCELADO; #464 (V0.10.0) reabre a exceção quando
+  // há multa aplicável (percentualMulta > 0) — usuário confirmou querer os dois juntos nesse caso.
+  const temMulta = orcamento.percentualMulta != null && orcamento.percentualMulta > 0;
+  if (status !== "CANCELADO" || temMulta) {
+    links.push({
+      label: "PDF do orçamento", kind: "pdf", icon: <FileText size={18} />,
+      descricao: "Proposta completa enviada ao cliente",
+    });
   }
 
   // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
   if (orcamento.sinalAtivo && orcamento.dataSinalPago != null) {
-    links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Receipt size={16} /> });
+    links.push({
+      label: "Recibo do sinal", kind: "reciboSinal", icon: <Receipt size={16} />,
+      descricao: "Comprovante do sinal já pago",
+    });
   }
 
-  // Recibo de pagamento — apenas PAGO
-  if (status === "PAGO") {
-    links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Receipt size={16} /> });
+  // Recibo de pagamento — DT-NOVA-4 (V0.10.0, #466): dataPagamento != null (não status === "PAGO")
+  // — RN-NOVA-10 tira PAGO de terminal (agora vem antes de ENTREGUE), então status por igualdade
+  // faria o recibo sumir do preview assim que o orçamento avançasse pra ENTREGUE.
+  if (orcamento.dataPagamento != null) {
+    links.push({
+      label: "Recibo de pagamento", kind: "pagamento", icon: <Receipt size={16} />,
+      descricao: "Comprovante do pagamento total",
+    });
   }
 
   // PDF de multa — somente se percentualMulta > 0
-  if (orcamento.percentualMulta != null && orcamento.percentualMulta > 0) {
-    links.push({ label: "PDF de multa", kind: "multa", icon: <FileText size={20} /> });
+  if (temMulta) {
+    links.push({
+      label: "PDF de multa", kind: "multa", icon: <FileText size={20} />,
+      descricao: "Detalhamento da multa por cancelamento",
+    });
   }
 
   // Recibo de estorno — somente se houve estorno de fato
   if (orcamento.estornoSinal === true) {
-    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Receipt size={16} /> });
+    links.push({
+      label: "Recibo de estorno", kind: "estorno", icon: <Receipt size={16} />,
+      descricao: "Comprovante da devolução do sinal",
+    });
   }
 
   return links;
@@ -1823,7 +1847,10 @@ export default function DetalheOrcamentoPage() {
                     </div>
                     <EstoqueTags
                       className="mt-1.5"
-                      fracionavel={!it.algumInsumoNaoFracionavel}
+                      // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — antes usava
+                      // !algumInsumoNaoFracionavel (proxy indireto, campo de gate de negócio, não
+                      // o fracionável de verdade do Produto); agora lê o campo correto, ao vivo.
+                      fracionavel={it.fracionavel ?? true}
                       permitirEstoqueNegativo={it.permitirEstoqueNegativo}
                       estoqueAtual={it.estoqueAtual}
                       variant="busca"
@@ -2007,7 +2034,10 @@ export default function DetalheOrcamentoPage() {
                 <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                   {doc.icon}
                 </span>
-                <span className="text-sm font-semibold text-dark">{doc.label}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-dark">{doc.label}</span>
+                  <span className="block text-xs text-muted">{doc.descricao}</span>
+                </span>
               </button>
             ))}
           </div>

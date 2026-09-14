@@ -62,8 +62,8 @@ const STATUS_LABEL: Record<StatusOrcamento, string> = {
   SINAL_PAGO:       'Sinal pago',
   EM_PRODUCAO:      'Em produção',
   FINALIZADO:       'Finalizado',
-  ENTREGUE:         'Entregue',
   PAGO:             'Pago',
+  ENTREGUE:         'Entregue',
   CANCELADO:        'Cancelado',
 }
 

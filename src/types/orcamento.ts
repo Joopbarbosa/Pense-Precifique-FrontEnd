@@ -98,6 +98,9 @@ export interface OrcamentoItemResponse {
   algumInsumoNaoFracionavel: boolean;
   permitirEstoqueNegativo: boolean;
   estoqueAtual: number;
+  // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — fracionável do Produto vendido, ao vivo
+  // (não é snapshot). Null quando o item não referencia Produto diretamente.
+  fracionavel?: boolean | null;
 }
 
 export interface OrcamentoResponse {
@@ -184,6 +187,9 @@ export interface OrcamentoDetalheResponse {
   valorSinal?: number;
   dataSinalPago?: string;
   metodoSinalRecebido?: MetodoPagamento;
+  // DT-NOVA-4 (V0.10.0, #466) — setado uma única vez na transição pra PAGO, nunca sobrescrito.
+  // Substitui status === "PAGO" como indicador de "já foi pago" (RN-NOVA-10 tira PAGO de terminal).
+  dataPagamento?: string;
   subtotal: number;
   tipoDesconto?: string;
   descontoValor?: number;
