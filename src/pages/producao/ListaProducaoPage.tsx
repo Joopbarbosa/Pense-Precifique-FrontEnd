@@ -11,7 +11,7 @@ import { extractApiError } from '../../utils/apiError'
 import { useToast } from '../../hooks/useToast'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
-import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo } from '../../types/producao'
+import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo, ProducaoContagensResponse } from '../../types/producao'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
 import TravarProducaoModal from '../../components/producao/TravarProducaoModal'
 import RetomarProducaoModal from '../../components/producao/RetomarProducaoModal'
@@ -144,6 +144,55 @@ const FILTERS: { label: string; value: EstadoProducao | '' }[] = [
   { label: 'Cancelada', value: 'CANCELADA' },
   { label: 'Não realizada', value: 'NAO_REALIZADA' },
 ]
+
+// RN-NOVA-4 (V0.10.0, #336) — cada filtro mapeado para o campo correspondente de
+// ProducaoContagensResponse (GET /producoes/contagens).
+const FILTRO_TO_CONTAGEM_KEY: Record<EstadoProducao | '', keyof ProducaoContagensResponse> = {
+  '': 'total',
+  AGUARDANDO_INICIO: 'aguardandoInicio',
+  EM_ANDAMENTO: 'emAndamento',
+  TRAVADA: 'travada',
+  FINALIZADA: 'finalizada',
+  CANCELADA: 'cancelada',
+  NAO_REALIZADA: 'naoRealizada',
+}
+
+// Reaproveitado pelos 2 modos de visualização (lista/Kanban) — mesmo filtro de estado, só muda o
+// que é renderizado abaixo dele.
+function FiltroChips({ filtro, onChange, contadores }: {
+  filtro: EstadoProducao | ''
+  onChange: (v: EstadoProducao | '') => void
+  contadores: ProducaoContagensResponse | null
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {FILTERS.map(f => {
+        const on = filtro === f.value
+        const count = contadores ? contadores[FILTRO_TO_CONTAGEM_KEY[f.value]] : undefined
+        return (
+          <button
+            key={f.value}
+            onClick={() => onChange(f.value)}
+            className={clsx(
+              'inline-flex h-[34px] cursor-pointer items-center gap-[7px] whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
+              on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
+            )}
+          >
+            {f.label}
+            {count != null && (
+              <span className={clsx(
+                'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1.5 text-[11px] font-bold',
+                on ? 'bg-white/[0.28] text-white' : 'bg-line-soft text-body'
+              )}>
+                {count}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 function fmtData(iso: string | null): string {
   if (!iso) return '—'
@@ -367,6 +416,8 @@ export default function ListaProducaoPage() {
   const [divisaoResult, setDivisaoResult] = useState<DivisaoResponse | null>(null)
   const [avisoKanban, setAvisoKanban] = useState<{ producaoId: string; avisos: AvisoEstoqueNegativo[] } | null>(null)
   const [confirmandoAvisoKanban, setConfirmandoAvisoKanban] = useState(false)
+  // RN-NOVA-4 (V0.10.0, #336) — contadores por filtro, agregados no backend.
+  const [contadores, setContadores] = useState<ProducaoContagensResponse | null>(null)
 
   const sortParam = sortField ? `${sortField},${sortDir}` : undefined
 
@@ -398,6 +449,14 @@ export default function ListaProducaoPage() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtro, query, sortParam, dataInicioDe, dataInicioAte])
+
+  const carregarContadores = () => {
+    producaoService.contagens().then(setContadores).catch(() => {})
+  }
+
+  useEffect(() => {
+    carregarContadores()
+  }, [])
 
   const {
     items: kanbanProducoes,
@@ -463,6 +522,7 @@ export default function ListaProducaoPage() {
     setModal(null)
     if (viewMode === 'kanban') carregarKanban()
     else carregar()
+    carregarContadores()
   }
 
   const handleFecharDivisao = () => {
@@ -497,6 +557,7 @@ export default function ListaProducaoPage() {
       if (result.estado === 'EM_ANDAMENTO') {
         setToast('Produção retomada.')
         carregarKanban()
+        carregarContadores()
         return true
       }
       setToast('Insumos ainda bloqueantes — produção permanece travada.')
@@ -523,6 +584,7 @@ export default function ListaProducaoPage() {
       } else if (result.estado === 'EM_ANDAMENTO') {
         setToast('Produção retomada.')
         carregarKanban()
+        carregarContadores()
       } else {
         setToast('Insumos ainda bloqueantes — produção permanece travada.')
       }
@@ -547,6 +609,7 @@ export default function ListaProducaoPage() {
     setModalCancelarConsumoId(null)
     if (viewMode === 'kanban') carregarKanban()
     else carregar()
+    carregarContadores()
   }
 
   const encerrarSelecao = () => {
@@ -579,6 +642,7 @@ export default function ListaProducaoPage() {
     setModalAgrupar(false)
     encerrarSelecao()
     carregar()
+    carregarContadores()
   }
 
   const producoesSelecionadas = producoes.filter(p => selecionadas.has(p.id))
@@ -652,23 +716,7 @@ export default function ListaProducaoPage() {
       ) : (
         <>
           <div className="mb-[18px] flex flex-col gap-3.5">
-            <div className="flex flex-wrap gap-2">
-              {FILTERS.map(f => {
-                const on = filtro === f.value
-                return (
-                  <button
-                    key={f.value}
-                    onClick={() => handleFiltroChange(f.value)}
-                    className={clsx(
-                      'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
-                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                )
-              })}
-            </div>
+            <FiltroChips filtro={filtro} onChange={handleFiltroChange} contadores={contadores} />
 
             <div className="relative min-w-[200px] max-w-[420px]">
               <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
@@ -789,23 +837,7 @@ export default function ListaProducaoPage() {
       {viewMode === 'kanban' && (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-[18px] flex flex-shrink-0 flex-col gap-3.5">
-            <div className="flex flex-wrap gap-2">
-              {FILTERS.map(f => {
-                const on = filtro === f.value
-                return (
-                  <button
-                    key={f.value}
-                    onClick={() => handleFiltroChange(f.value)}
-                    className={clsx(
-                      'h-[34px] cursor-pointer whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
-                      on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                )
-              })}
-            </div>
+            <FiltroChips filtro={filtro} onChange={handleFiltroChange} contadores={contadores} />
 
             <div>
               <div className="mb-[7px] flex items-center gap-1.5 text-[12px] font-semibold text-muted">

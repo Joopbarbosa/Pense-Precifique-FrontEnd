@@ -5,7 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner } from '../../components/ui'
 import {
   ArrowLeft, Calendar, StickyNote, Box, AlertTriangle, Lock, Clock,
-  Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, ChevronRight, Package, Link2,
+  Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, ChevronRight, Package, Link2, Ungroup,
 } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
@@ -30,9 +30,10 @@ import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoM
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
 import ModalConfirmacaoVinculoSequencial from '../../components/shared/ModalConfirmacaoVinculoSequencial'
+import DesagruparProducaoModal from '../../components/producao/DesagruparProducaoModal'
 import { construirFilaVinculosProducao, type VinculoPendente } from '../../utils/vinculoCancelamento'
 
-type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar'
+type TipoModal = 'iniciar' | 'travar' | 'retomar' | 'finalizar' | 'cancelar' | 'desagrupar'
 
 const ESTADO_LABEL_SIMPLES: Record<string, string> = {
   AGUARDANDO_INICIO: 'Aguardando início',
@@ -164,6 +165,11 @@ export default function DetalheProducaoPage() {
     AGUARDANDO_INICIO: [
       { label: 'Iniciar', icon: <Play size={16} />, variant: 'primary', onClick: () => setModal('iniciar') },
       { label: 'Editar', icon: <Pencil size={16} />, variant: 'secondary', onClick: () => navigate(`/producao/${producao.id}/editar`) },
+      // RN-NOVA-5 (V0.10.0, #450) — só produções nascidas de agrupamento, só AGUARDANDO_INICIO
+      // (nenhum insumo baixado ainda, nada a redistribuir/estornar).
+      ...(producao.tipoOrigem === 'AGRUPAMENTO'
+        ? [{ label: 'Desagrupar', icon: <Ungroup size={16} />, variant: 'secondary' as const, onClick: () => setModal('desagrupar') }]
+        : []),
       { label: 'Cancelar', icon: <Ban size={16} />, variant: 'danger', onClick: handleCancelar },
     ],
     EM_ANDAMENTO: [
@@ -432,6 +438,9 @@ export default function DetalheProducaoPage() {
       )}
       {modal === 'cancelar' && (
         <CancelarProducaoModal producaoId={producao.id} onClose={fecharModal} onSuccess={handleSuccess} />
+      )}
+      {modal === 'desagrupar' && (
+        <DesagruparProducaoModal producao={producao} onClose={fecharModal} onSuccess={handleSuccess} />
       )}
       {modalCancelarConsumo && (
         <CancelarProducaoConsumoModal

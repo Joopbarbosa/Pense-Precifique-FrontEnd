@@ -71,6 +71,31 @@ export interface ProducaoResumo {
   orcamentosVinculados: ProducaoOrcamentoVinculo[]
 }
 
+// RN-NOVA-4 (V0.10.0, #336) — GET /producoes/contagens, badges de filtro de ListaProducaoPage.tsx.
+export interface ProducaoContagensResponse {
+  total: number
+  aguardandoInicio: number
+  emAndamento: number
+  travada: number
+  finalizada: number
+  cancelada: number
+  naoRealizada: number
+}
+
+// RN-NOVA-5 (V0.10.0, #450) — POST /producoes/{id}/desagrupar.
+export interface DesagruparProducaoRequest {
+  itens: {
+    produtoId: string
+    estadoDestino: 'AGUARDANDO_INICIO' | 'EM_ANDAMENTO'
+    confirmarEstoqueNegativoInsumoIds?: string[]
+  }[]
+}
+
+export interface DesagruparProducaoResponse {
+  producoesNovas: ProducaoDetalhe[]
+  producaoOriginal: ProducaoDetalhe
+}
+
 export interface ProducaoDetalhe extends ProducaoResumo {
   dataTerminoReal: string | null
   justificativaCancelamento: string | null
