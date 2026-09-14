@@ -41,6 +41,16 @@ export interface InsumoResponse {
   updatedAt: string
 }
 
+// RN-NOVA-4 (V0.10.0, #336) — GET /insumos/contagens, badges de filtro de ListaInsumosPage.tsx.
+export interface InsumoContagensResponse {
+  todos: number
+  ativos: number
+  inativos: number
+  estoqueBaixo: number
+  estoqueNegativo: number
+  estoquePositivo: number
+}
+
 export interface BaixaManualInsumoRequest {
   quantidade: number
   motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO'

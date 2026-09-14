@@ -15,7 +15,7 @@ import {
   ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight, Repeat,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
+import type { InsumoContagensResponse, InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
 import { loteCompraService } from '../../services/loteCompraService'
@@ -713,14 +713,27 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, loading, onCl
   )
 }
 
+// #336 (V0.10.0) — dimensão que precisa virar filtro server-side (bug original: "Ativos"/
+// "Inativos" filtravam client-side sobre a janela paginada). "Estoque baixo/negativo/positivo"
+// continuam client-side, escopo consciente — ver contrato-insumo.md.
+const FILTRO_TO_ATIVO: Record<string, boolean | undefined> = {
+  Todos: undefined,
+  Ativos: true,
+  Inativos: false,
+}
+
 export default function ListaInsumosPage() {
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState('Todos')
+  const isFirstFiltro = useRef(true)
   const [modalCompra, setModalCompra] = useState(false)
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
   const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; operacao: 'INATIVAR' | 'EXCLUIR'; produtos: ProdutoRelacionadoResponse[]; loading: boolean } | null>(null)
+  // RN-NOVA-4 (V0.10.0, #336) — contadores por filtro, agregados no backend (não sobre a janela
+  // paginada já carregada no cliente).
+  const [contadores, setContadores] = useState<InsumoContagensResponse | null>(null)
   const { toast, setToast } = useToast()
 
   const {
@@ -734,8 +747,22 @@ export default function ListaInsumosPage() {
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => insumoService.listar(page, size, q),
+    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro]),
   })
+
+  const carregarContadores = () => {
+    insumoService.contagens().then(setContadores).catch(() => {})
+  }
+
+  useEffect(() => {
+    carregarContadores()
+  }, [])
+
+  useEffect(() => {
+    if (isFirstFiltro.current) { isFirstFiltro.current = false; return }
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtro])
 
   const handleQueryChange = (novaQuery: string) => {
     setQuery(novaQuery)
@@ -756,6 +783,7 @@ export default function ListaInsumosPage() {
         setToast('Insumo excluído.')
       }
       setConfirmAcao(null)
+      carregarContadores()
     } catch (err: any) {
       const mensagem = err?.response?.data?.message as string | undefined
       if (err?.response?.status === 400 && mensagem?.includes('vinculado')) {
@@ -785,6 +813,7 @@ export default function ListaInsumosPage() {
       await insumoService.reativar(insumo.id)
       setInsumos(prev => prev.map(x => x.id === insumo.id ? { ...x, ativo: true } : x))
       setToast('Insumo reativado.')
+      carregarContadores()
     } catch (err) {
       console.error(err)
       setToast(extractApiError(err, 'Erro ao reativar. Tente novamente.'))
@@ -799,19 +828,28 @@ export default function ListaInsumosPage() {
   const handleImpactoClose = () => {
     setImpactoLote(null)
     carregar()
+    carregarContadores()
   }
 
+  // "Ativos"/"Inativos" já vêm filtrados do servidor (FILTRO_TO_ATIVO no fetcher) — só as 3 abas
+  // de estoque continuam filtrando sobre a janela carregada (escopo consciente, ver #336 acima).
   let lista = insumos
-  if (filtro === 'Ativos')            lista = lista.filter(o => o.ativo)
-  if (filtro === 'Inativos')          lista = lista.filter(o => !o.ativo)
   if (filtro === 'Estoque baixo')     lista = lista.filter(isLow)
   if (filtro === 'Estoque negativo')  lista = lista.filter(isNegative)
   if (filtro === 'Estoque positivo')  lista = lista.filter(isPositive)
 
-  const lowCount = insumos.filter(isLow).length
-  const negativeCount = insumos.filter(isNegative).length
-  const positiveCount = insumos.filter(isPositive).length
   const empty = !loading && insumos.length === 0
+
+  // RN-NOVA-4 (#336) — contador exibido no badge de cada aba, sempre do endpoint agregado (nunca
+  // recalculado sobre a janela carregada) — só null enquanto a 1ª chamada não voltou.
+  const contagemPorFiltro: Record<string, number | undefined> = contadores ? {
+    Todos: contadores.todos,
+    Ativos: contadores.ativos,
+    Inativos: contadores.inativos,
+    'Estoque baixo': contadores.estoqueBaixo,
+    'Estoque negativo': contadores.estoqueNegativo,
+    'Estoque positivo': contadores.estoquePositivo,
+  } : {}
 
   const chipConfig: Record<string, {
     icon: LucideIcon
@@ -819,11 +857,10 @@ export default function ListaInsumosPage() {
     activeClass: string
     badgeBgClass: string
     badgeTextClass: string
-    count: number
   }> = {
-    'Estoque baixo':    { icon: AlertCircle, textClass: 'text-warning', activeClass: 'border-warning bg-warning', badgeBgClass: 'bg-warning-bg', badgeTextClass: 'text-warning', count: lowCount },
-    'Estoque negativo': { icon: AlertCircle, textClass: 'text-danger',  activeClass: 'border-danger bg-danger',   badgeBgClass: 'bg-danger-bg',  badgeTextClass: 'text-danger',  count: negativeCount },
-    'Estoque positivo': { icon: CheckCircle, textClass: 'text-success', activeClass: 'border-success bg-success', badgeBgClass: 'bg-success-bg', badgeTextClass: 'text-success', count: positiveCount },
+    'Estoque baixo':    { icon: AlertCircle, textClass: 'text-warning', activeClass: 'border-warning bg-warning', badgeBgClass: 'bg-warning-bg', badgeTextClass: 'text-warning' },
+    'Estoque negativo': { icon: AlertCircle, textClass: 'text-danger',  activeClass: 'border-danger bg-danger',   badgeBgClass: 'bg-danger-bg',  badgeTextClass: 'text-danger' },
+    'Estoque positivo': { icon: CheckCircle, textClass: 'text-success', activeClass: 'border-success bg-success', badgeBgClass: 'bg-success-bg', badgeTextClass: 'text-success' },
   }
 
   return (
@@ -872,6 +909,7 @@ export default function ListaInsumosPage() {
               {FILTERS.map(f => {
                 const on = filtro === f
                 const chip = chipConfig[f]
+                const count = contagemPorFiltro[f]
                 return (
                   <button
                     key={f}
@@ -889,12 +927,14 @@ export default function ListaInsumosPage() {
                       </span>
                     )}
                     {f}
-                    {chip && chip.count > 0 && (
+                    {count != null && (
                       <span className={clsx(
                         'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1.5 text-[11px] font-bold',
-                        on ? 'bg-white/[0.28] text-white' : clsx(chip.badgeBgClass, chip.badgeTextClass)
+                        on
+                          ? 'bg-white/[0.28] text-white'
+                          : chip ? clsx(chip.badgeBgClass, chip.badgeTextClass) : 'bg-line-soft text-body'
                       )}>
-                        {chip.count}
+                        {count}
                       </span>
                     )}
                   </button>
