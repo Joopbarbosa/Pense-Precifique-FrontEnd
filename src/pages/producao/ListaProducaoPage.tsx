@@ -258,11 +258,11 @@ function menuItemsParaEstado(
 ): ActionMenuItem[] {
   switch (producao.estado) {
     case 'AGUARDANDO_INICIO': {
-      // RN-NOVA-5/#450 + RN-NOVA-11/#469 (V0.10.0) — mesma condição do backend, replicada aqui só
-      // pra decidir a exibição (o backend continua sendo quem de fato valida/bloqueia): origem
-      // AGRUPAMENTO + mais de 2 produtos/customizações agrupados. #470 — antes só existia no menu
-      // do Detalhe, faltava aqui na listagem.
-      const elegivelDesagrupar = producao.tipoOrigem === 'AGRUPAMENTO' && producao.produtos.length > 2
+      // RN-NOVA-5/#450 (V0.10.0) — mesma condição do backend, replicada aqui só pra decidir a
+      // exibição (o backend continua sendo quem de fato valida/bloqueia): origem AGRUPAMENTO.
+      // RN-NOVA-11/#469 (mais de 2 produtos) foi revogada por RN-NOVA-14 — sem restrição adicional
+      // de contagem. #470 — antes só existia no menu do Detalhe, faltava aqui na listagem.
+      const elegivelDesagrupar = producao.tipoOrigem === 'AGRUPAMENTO'
       const abrindo = carregandoDesagrupar === producao.id
       return [
         { label: 'Iniciar', icon: <Play size={15} />, onClick: () => abrirModal('iniciar', producao.id) },
