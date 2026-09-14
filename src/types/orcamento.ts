@@ -33,6 +33,9 @@ export interface ItemCatalogoBuscaResponse {
   catalogoNome: string;
   catalogoNumero: number;
   algumInsumoNaoFracionavel: boolean;
+  /** #461/#473 — fracionavel do Produto vendido (valor final calculado+override), mesmo campo
+   *  já usado em OrcamentoItemResponse. Gap de contrato fechado nesta mesma rodada. */
+  fracionavel?: boolean | null;
   permitirEstoqueNegativo: boolean;
   estoqueAtual: number;
 }

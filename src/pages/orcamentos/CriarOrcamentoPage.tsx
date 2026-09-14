@@ -1290,10 +1290,8 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                   <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
                   <EstoqueTags
                     className="mt-1"
-                    fracionavel={false}
-                    // ItemCatalogoBuscaResponse ainda não expõe fracionavel (achado desta tarefa,
-                    // registrado em decisoes-orcamento.md) — badge fica ausente, não inventar valor.
-                    showFracionavel={false}
+                    fracionavel={item.fracionavel ?? true}
+                    showFracionavel={item.fracionavel != null}
                     permitirEstoqueNegativo={item.permitirEstoqueNegativo}
                     estoqueAtual={item.estoqueAtual}
                     variant="busca"
@@ -1998,8 +1996,8 @@ export default function CriarOrcamentoPage() {
                 algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
                 permitirEstoqueNegativo: item.permitirEstoqueNegativo,
                 estoqueAtual: item.estoqueAtual,
-                // fracionavel: ItemCatalogoBuscaResponse ainda não expõe o campo (achado, ver
-                // decisoes-orcamento.md) — badge fica ausente pra este item, não inventar valor.
+                // #461/#473 — ItemCatalogoBuscaResponse agora expõe fracionavel (gap fechado).
+                fracionavel: item.fracionavel ?? undefined,
               }])
             }
             setCalculadoraPendente(null)
