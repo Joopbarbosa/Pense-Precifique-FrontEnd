@@ -129,6 +129,10 @@ interface Item {
   algumInsumoNaoFracionavel: boolean
   permitirEstoqueNegativo: boolean
   estoqueAtual: number
+  // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — undefined quando a origem do item não
+  // expõe o dado (item de catálogo, ItemCatalogoBuscaResponse ainda sem esse campo no contrato —
+  // achado, ver decisoes-orcamento.md); badge só aparece quando o valor é conhecido de verdade.
+  fracionavel?: boolean
 }
 
 // ── QuoteCard ──────────────────────────────────────────────────────────────
@@ -320,8 +324,8 @@ function ItemRow({ item, index, simulacao, onQtd, onRemove, onOpenCustom }: {
           <div className="mt-0.5 text-[13px] text-muted">{BRL(item.preco)} / unidade</div>
           <EstoqueTags
             className="mt-1.5"
-            fracionavel={false}
-            showFracionavel={false}
+            fracionavel={item.fracionavel ?? true}
+            showFracionavel={item.fracionavel != null}
             permitirEstoqueNegativo={item.permitirEstoqueNegativo}
             estoqueAtual={estoqueExibido}
             variant="busca"
@@ -374,6 +378,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
   const [customizacoes, setCustomizacoes] = useState<{
     id: string; nome: string; valor: number
     algumInsumoNaoFracionavel: boolean; permitirEstoqueNegativo: boolean; estoqueAtual: number
+    fracionavel: boolean
   }[]>([])
   const [loadingCustom, setLoadingCustom] = useState(true)
   const [errorCustom, setErrorCustom] = useState(false)
@@ -390,6 +395,8 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
           algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
           permitirEstoqueNegativo: p.permitirEstoqueNegativo,
           estoqueAtual: p.estoqueAtual,
+          // RN-NOVA-7 (V0.10.0, #461) — ProdutoResponse já traz fracionavel real (RN-NOVA-2/#299).
+          fracionavel: p.fracionavel ?? true,
         })))
       })
       .catch(() => setErrorCustom(true))
@@ -544,8 +551,7 @@ function ModalCustomizacoes({ item, onClose, onConfirm }: {
                     <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
                     <EstoqueTags
                       className="mt-1"
-                      fracionavel={false}
-                      showFracionavel={false}
+                      fracionavel={c.fracionavel}
                       permitirEstoqueNegativo={c.permitirEstoqueNegativo}
                       estoqueAtual={c.estoqueAtual}
                       variant="busca"
@@ -1285,6 +1291,8 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                   <EstoqueTags
                     className="mt-1"
                     fracionavel={false}
+                    // ItemCatalogoBuscaResponse ainda não expõe fracionavel (achado desta tarefa,
+                    // registrado em decisoes-orcamento.md) — badge fica ausente, não inventar valor.
                     showFracionavel={false}
                     permitirEstoqueNegativo={item.permitirEstoqueNegativo}
                     estoqueAtual={item.estoqueAtual}
@@ -1317,8 +1325,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
                   <div className="text-xs text-muted">{BRL(p.precoVenda ?? 0)} / unidade</div>
                   <EstoqueTags
                     className="mt-1"
-                    fracionavel={false}
-                    showFracionavel={false}
+                    fracionavel={p.fracionavel ?? true}
                     permitirEstoqueNegativo={p.permitirEstoqueNegativo}
                     estoqueAtual={p.estoqueAtual}
                     variant="busca"
@@ -1462,6 +1469,7 @@ export default function CriarOrcamentoPage() {
           algumInsumoNaoFracionavel: it.algumInsumoNaoFracionavel,
           permitirEstoqueNegativo: it.permitirEstoqueNegativo,
           estoqueAtual: it.estoqueAtual,
+          fracionavel: it.fracionavel ?? undefined,
         })))
         setMetodoPagamento(orc.metodoPagamento)
         setMetodoPagamentoObs(orc.metodoPagamentoObs || '')
@@ -1974,6 +1982,7 @@ export default function CriarOrcamentoPage() {
                 algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
                 permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
                 estoqueAtual: produto.estoqueAtual,
+                fracionavel: produto.fracionavel ?? undefined,
               }])
             } else {
               const item = calculadoraPendente.item
@@ -1989,6 +1998,8 @@ export default function CriarOrcamentoPage() {
                 algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
                 permitirEstoqueNegativo: item.permitirEstoqueNegativo,
                 estoqueAtual: item.estoqueAtual,
+                // fracionavel: ItemCatalogoBuscaResponse ainda não expõe o campo (achado, ver
+                // decisoes-orcamento.md) — badge fica ausente pra este item, não inventar valor.
               }])
             }
             setCalculadoraPendente(null)
