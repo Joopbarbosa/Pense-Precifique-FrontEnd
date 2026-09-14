@@ -13,6 +13,7 @@ import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
+import { FracionavelBadge } from '../../components/ui/Badge'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
 const num = (s: string) => {
@@ -42,7 +43,8 @@ interface ItemDb {
   marca: string
   un: string
   custo: number
-  tipo: 'insumo' | 'produto'
+  // RN-NOVA-8 (V0.10.0, #462, altera PDT-015) — Customização passa a ser aceita como componente.
+  tipo: 'insumo' | 'produto' | 'customizacao'
   fracionavel: boolean
 }
 
@@ -178,9 +180,9 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
 
 // ---------- TipoBadge ----------
 
-function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
-  if (tipo === 'produto') {
-    const b = tipoProdutoBadge('PRODUTO')
+function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
+  if (tipo === 'produto' || tipo === 'customizacao') {
+    const b = tipoProdutoBadge(tipo === 'produto' ? 'PRODUTO' : 'CUSTOMIZACAO')
     return (
       <span
         className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
@@ -204,6 +206,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [open, setOpen] = useState(false)
   const [insumos, setInsumos] = useState<ItemDb[]>([])
   const [produtos, setProdutos] = useState<ItemDb[]>([])
+  const [customizacoes, setCustomizacoes] = useState<ItemDb[]>([])
   const [loadingBusca, setLoadingBusca] = useState(false)
   const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -232,14 +235,23 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
             .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
         )
+        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
+        // RN-NOVA-8 (V0.10.0, #462) — busca agora traz Produto e Customização juntos; separa por
+        // tipo real vindo da API (antes só existia Produto aqui, fracionavel vinha hardcoded true).
         setProdutos(
-          prods
-            .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
+          prodsFiltrados
+            .filter(p => p.tipo === 'PRODUTO')
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true }))
+        )
+        setCustomizacoes(
+          prodsFiltrados
+            .filter(p => p.tipo === 'CUSTOMIZACAO')
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true }))
         )
       } catch {
         setInsumos([])
         setProdutos([])
+        setCustomizacoes([])
         setErroBusca(true)
       } finally {
         setLoadingBusca(false)
@@ -248,7 +260,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     return () => clearTimeout(timer)
   }, [q, open, jaAdicionados])
 
-  const total = insumos.length + produtos.length
+  const total = insumos.length + produtos.length + customizacoes.length
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
@@ -256,12 +268,14 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       {itens.map(i => (
         <button
           key={i.id}
-          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]) }}
+          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
             'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
-            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
+            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal'
+              : i.tipo === 'customizacao' ? 'bg-[#2A9D8F]/[0.12] text-[#2A9D8F]'
+              : 'bg-line-soft text-dim'
           )}>
             <Box size={16} />
           </span>
@@ -302,6 +316,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             <>
               {grupo('Insumos', insumos)}
               {grupo('Produtos', produtos)}
+              {grupo('Customizações', customizacoes)}
             </>
           )}
         </div>
@@ -325,7 +340,10 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
       <input
         value={display}
         onChange={e => {
-          const permitidos = fracionavel ? /[^\d.,/]/g : /[^\d/]/g
+          // #468 (V0.10.0) — "/" (usado para digitar fração, ex. "1/2") continua permitido quando
+          // fracionável, mas precisa ser bloqueado junto de ","/"." quando não-fracionável — antes
+          // "/" escapava do filtro nos dois ramos, deixando digitar valor fracionário mesmo assim.
+          const permitidos = fracionavel ? /[^\d.,/]/g : /[^\d]/g
           const cleaned = e.target.value.replace(permitidos, '')
           setDisplay(cleaned)
           onChange(cleaned)
@@ -404,6 +422,9 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               <div className="flex min-w-0 items-center gap-[7px]">
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{row.nome}</span>
                 <TipoBadge tipo={row.tipo} />
+                {/* #460 (V0.10.0) — tag fracionável/não-fracionável do componente, ausente até
+                    aqui (dado já existia no estado, só nunca foi exibido). */}
+                <FracionavelBadge fracionavel={row.fracionavel} variant="busca" />
               </div>
               <div className="text-xs text-muted">{row.marca}{row.marca ? ' · ' : ''}{moeda(row.custo)}/{row.un}</div>
             </div>

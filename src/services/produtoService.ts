@@ -69,8 +69,10 @@ export const produtoService = {
     return response.data.content
   },
 
+  // RN-NOVA-8 (V0.10.0, #462, altera PDT-015) — sem filtro de tipo: Produto e Customização, ambos
+  // ativos, agora podem ser componente de ficha técnica. Antes só tipo=PRODUTO.
   buscarProdutosComponente: async (busca: string): Promise<ProdutoResponse[]> => {
-    const response = await api.get('/produtos', { params: { page: 0, size: 20, tipo: 'PRODUTO', busca, sort: 'nome' } })
+    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome' } })
     return response.data.content
   },
 
