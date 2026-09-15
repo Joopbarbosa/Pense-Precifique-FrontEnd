@@ -1396,6 +1396,43 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // Achado do teste manual (V0.10.0) — Customização também é produzível (o Backend agora inclui
+  // as customizações em itensSemEstoque), mas o card só renderizava esse status pro produto
+  // principal do item. Extraído pra ser reaproveitado nos dois casos (item principal + cada
+  // customização anexada), sem duplicar o JSX de "Visualizar produção" vs. checkbox.
+  const renderStatusEstoque = (produtoId: string, mostrarNome: boolean) => {
+    const semEstoque = itensSemEstoque.find((s) => s.produtoId === produtoId);
+    if (!semEstoque) return null;
+    return (
+      <div className="mt-2">
+        {semEstoque.producaoVinculadaId ? (
+          // RN-NOVA-26 (#387) — já existe produção não-terminal cobrindo este produto
+          // especificamente: mostra a produção certa, não uma navegação genérica pra criar outra.
+          <VinculoAtivoBadge
+            label="Visualizar produção"
+            onClick={() => navigate(`/producao/${semEstoque.producaoVinculadaId}`)}
+          />
+        ) : (
+          // RN-NOVA-25 (#319+376) — checkbox no lugar do botão individual sem vínculo (ORC-028,
+          // comportamento substituído nesta versão): a ação real fica no "Criar produção (N)"
+          // agregado, logo acima da lista de itens.
+          <SelecaoProducaoEstoque
+            itens={[{
+              produtoId: semEstoque.produtoId,
+              nomeProduto: semEstoque.nomeProduto,
+              estoqueAtual: semEstoque.estoqueAtual,
+              quantidadeNecessaria: semEstoque.quantidadeSolicitada,
+              quantidadeFaltante: semEstoque.quantidadeFaltante,
+            }]}
+            selecionados={selecionadosProducaoDetalhe}
+            onToggle={handleToggleSelecaoProducaoDetalhe}
+            ocultarNome={!mostrarNome}
+          />
+        )}
+      </div>
+    );
+  };
+
   const handleToggleSelecaoProducaoDetalhe = (produtoId: string) => {
     setSelecionadosProducaoDetalhe((prev) => {
       const next = new Set(prev);
@@ -1866,7 +1903,6 @@ export default function DetalheOrcamentoPage() {
               </div>
             )}
             {orcamento.itens.map((it, i) => {
-              const semEstoque = itensSemEstoque.find((s) => s.produtoId === it.produtoId);
               return (
                 <div key={i} className="flex items-start gap-3">
                   <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
@@ -1917,35 +1953,13 @@ export default function DetalheOrcamentoPage() {
                         </span>
                       ))}
                     </div>
-                    {semEstoque && (
-                      <div className="mt-2">
-                        {semEstoque.producaoVinculadaId ? (
-                          // RN-NOVA-26 (#387) — já existe produção não-terminal cobrindo este
-                          // produto especificamente: mostra a produção certa, não uma navegação
-                          // genérica pra criar outra.
-                          <VinculoAtivoBadge
-                            label="Visualizar produção"
-                            onClick={() => navigate(`/producao/${semEstoque.producaoVinculadaId}`)}
-                          />
-                        ) : (
-                          // RN-NOVA-25 (#319+376) — checkbox no lugar do botão individual sem
-                          // vínculo (ORC-028, comportamento substituído nesta versão): a ação real
-                          // fica no "Criar produção (N)" agregado, logo acima da lista de itens.
-                          <SelecaoProducaoEstoque
-                            itens={[{
-                              produtoId: semEstoque.produtoId,
-                              nomeProduto: semEstoque.nomeProduto,
-                              estoqueAtual: semEstoque.estoqueAtual,
-                              quantidadeNecessaria: semEstoque.quantidadeSolicitada,
-                              quantidadeFaltante: semEstoque.quantidadeFaltante,
-                            }]}
-                            selecionados={selecionadosProducaoDetalhe}
-                            onToggle={handleToggleSelecaoProducaoDetalhe}
-                            ocultarNome
-                          />
-                        )}
-                      </div>
-                    )}
+                    {renderStatusEstoque(it.produtoId, false)}
+                    {/* Achado do teste manual (V0.10.0) — Customização também é produzível; cada
+                        uma pode ter seu próprio status de estoque/vínculo, independente do produto
+                        principal do item. */}
+                    {it.customizacoes.map((c, k) => (
+                      <div key={`custom-estoque-${k}`}>{renderStatusEstoque(c.produtoId, true)}</div>
+                    ))}
                   </div>
                   <div className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
                     {BRL(it.subtotal)}
