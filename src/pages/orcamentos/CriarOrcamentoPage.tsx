@@ -183,7 +183,8 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
   // sem digitar nada, trazendo a listagem completa (paginada, backend já correto).
   const debouncedQ = useDebouncedValue(q, 300)
   useEffect(() => {
-    if (!open) return
+    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
+    if (!open || debouncedQ !== q) return
     const load = async () => {
       try {
         const data = await clienteService.listar(0, 20, debouncedQ.trim() || undefined)
@@ -194,7 +195,7 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
       }
     }
     load()
-  }, [debouncedQ, open])
+  }, [debouncedQ, open, q])
 
   // OpenProject #243 — mesma técnica de ItemSearch (ORC-030): altura do painel calculada a partir
   // da posição real da 8ª linha, em vez de um max-height fixo (era max-h-[248px], cabiam só ~4).
@@ -1201,6 +1202,8 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
       setProdutos([])
       return
     }
+    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
+    if (debouncedQ !== q) return
     let cancelled = false
     const load = async () => {
       setLoading(true)
@@ -1227,7 +1230,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
     }
     load()
     return () => { cancelled = true }
-  }, [debouncedQ, open, modo, catalogoFiltro, carregarCatalogo])
+  }, [debouncedQ, open, q, modo, catalogoFiltro, carregarCatalogo])
 
   if (!open) return null
 

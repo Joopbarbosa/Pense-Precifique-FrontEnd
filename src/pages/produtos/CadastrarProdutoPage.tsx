@@ -220,7 +220,8 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 
   const debouncedQ = useDebouncedValue(q, q.trim() ? 300 : 0)
   useEffect(() => {
-    if (!open) return
+    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
+    if (!open || debouncedQ !== q) return
     const termo = debouncedQ.trim()
     const qLower = termo.toLowerCase()
     setLoadingBusca(true)
@@ -258,7 +259,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         setLoadingBusca(false)
       }
     })()
-  }, [debouncedQ, open, jaAdicionados])
+  }, [debouncedQ, open, q, jaAdicionados])
 
   const total = insumos.length + produtos.length + customizacoes.length
 

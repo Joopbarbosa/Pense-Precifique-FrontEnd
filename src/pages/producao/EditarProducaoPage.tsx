@@ -62,13 +62,14 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
 
   const debouncedQ = useDebouncedValue(q, 300)
   useEffect(() => {
-    if (!open) return
+    // #357 (correção) — guard contra fetch prematuro: ver NovaProducaoPage.tsx (mesma duplicação).
+    if (!open || debouncedQ !== q) return
     setLoading(true)
     produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined)
       .then(data => setResults(data.content))
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
-  }, [debouncedQ, open])
+  }, [debouncedQ, open, q])
 
   return (
     <div ref={wrapRef} className="relative">
