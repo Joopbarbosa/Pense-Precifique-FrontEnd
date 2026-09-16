@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Stepper } from '../../components/ui'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import Toast from '../../components/shared/Toast'
 import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
 import { EstoqueTags, MultiploRendimentoAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
@@ -11,6 +12,7 @@ import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
 import type { AlertaInsumo } from '../../types/producao'
 import { useToast } from '../../hooks/useToast'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
 
 interface ProdutoSelecionado {
@@ -61,17 +63,15 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  const debouncedQ = useDebouncedValue(q, 300)
   useEffect(() => {
     if (!open) return
     setLoading(true)
-    const timer = setTimeout(() => {
-      produtoService.listar(0, 10, 'PRODUTO', q.trim() || undefined)
-        .then(data => setResults(data.content))
-        .catch(() => setResults([]))
-        .finally(() => setLoading(false))
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [q, open])
+    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined)
+      .then(data => setResults(data.content))
+      .catch(() => setResults([]))
+      .finally(() => setLoading(false))
+  }, [debouncedQ, open])
 
   return (
     <div ref={wrapRef} className="relative">
@@ -479,11 +479,7 @@ export default function NovaProducaoPage() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       <ConfirmacaoModal
         open={!!avisoPendente}
