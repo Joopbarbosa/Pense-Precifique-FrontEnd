@@ -38,8 +38,8 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 
 | Categoria | Local |
 |---|---|
-| Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`) | `components/ui/`, `components/shared/` |
-| Hooks (`usePaginatedList`, `useDebounceSearch`, `useAuth`, `useToast`) | `src/hooks/` |
+| Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`) | `components/ui/`, `components/shared/` |
+| Hooks (`usePaginatedList`, `useDebounceSearch`, `useDebouncedValue`, `useAuth`, `useToast`) | `src/hooks/` |
 | Constants (`METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL`) | `src/constants/` |
 | Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`) | `e2e/`, `e2e/helpers/` |
 | Testes E2E de segurança (modelo de atacante — IDOR, etc., skill `seguranca-resiliencia`) | `e2e/seguranca/` (novo, V0.8.4) |
@@ -72,7 +72,9 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 - **Design tokens** em `tailwind.config.ts` (`text-teal`, `bg-orange`, `text-dark`, `border-line`,
   `bg-app`, `text-muted`, `text-body`, `text-danger`, `spacing.section` = `18px`) — nunca hex
   hardcoded, sempre o token correspondente.
-- **Toast:** sempre via `useToast` — proibido estado boolean local.
+- **Toast:** sempre via `useToast` (estado) + `<Toast>` (`components/shared/Toast.tsx`, prop
+  `variant?: 'success'|'error'`) pra renderizar — proibido estado boolean local e proibido copiar
+  o `<div>` de renderização inline (V0.11.0/#352, 19 pontos consolidados).
 - **Busca em listagens é sempre server-side**, via `?busca=`, debounce ~300ms, reset de paginação
   para a página 0 a cada nova busca — nunca filtrar client-side sobre itens já carregados.
 - Default export em todos os componentes de página.
@@ -129,6 +131,27 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
   uma calculadora inteira, não uma pergunta Sim/Não, então o componente compartilhado não serve;
   só o padrão de estado (`fila`/avançar/`key` por item para forçar remount) se repete. Extrair um
   hook genérico só valeria se um 4º consumidor aparecer com o mesmo formato de passo.
+- **`<SortableHeader>`** (canônico: `components/shared/SortableHeader.tsx`, genérico sobre
+  `<F extends string>` — props `label`/`field`/`activeField`/`dir`/`onSort`) — cabeçalho de coluna
+  ordenável (ícone `ArrowUp`/`ArrowDown` trocado conforme direção ativa). Usado por
+  `ListaOrcamentosPage.tsx`/`ListaProducaoPage.tsx`/`ListaCatalogosPage.tsx` (V0.11.0/#351) — nunca
+  reimplementar local, nem como `<div onClick>` com ícone único rotacionando.
+- **`useDebouncedValue<T>(value, delay = 300)`** (`src/hooks/useDebouncedValue.ts`, V0.11.0/#357) —
+  debounce de valor puro, sem acoplamento a paginação (diferente de `useDebounceSearch`, que já
+  embute uma instância de `usePaginatedList`). Canônico para autocomplete/busca inline
+  (`ClienteSelect`/`ItemSearch` em `CriarOrcamentoPage.tsx`, `InsumoSearch` em
+  `CadastrarProdutoPage.tsx`, `ProdutoSearch` em `NovaProducaoPage.tsx`/`EditarProducaoPage.tsx`).
+  Efeito colateral aceito: painel sem termo digitado ainda dispara fetch imediato ao abrir (sem os
+  300ms artificiais que o `setTimeout` antigo tinha) — não é regressão, é a 1ª carga ficando mais
+  rápida. Todo consumidor precisa de guard `debouncedQ !== q` no efeito de fetch (reabrir o painel
+  antes do debounce assentar não pode disparar busca com valor desatualizado — achado do gate
+  `teste`, V0.11.0, corrigido nos 5 pontos).
+- **Seleção rápida + validação assíncrona antes de confirmar, sobre uma lista mutável**: nunca ler
+  o `state` React como base do próximo candidato quando há uma chamada assíncrona em voo — corrida
+  documentada em `NovaProducaoPage.tsx` (`modulos/PRODUCAO/decisoes-producao.md`, achado #357,
+  V0.11.0). Padrão de correção: ref sempre fresca sincronizada em toda mutação (inclusive nos
+  caminhos de reversão) + número de sequência (só a chamada mais recente aplica resultado).
+  Reaproveitar se um 2º fluxo parecido aparecer, em vez de reinventar.
 - **`CalculadoraPreco`/`LinhaCalculadora`** (canônico: `components/shared/CalculadoraPreco.tsx`,
   usado por Produto, Catálogo e, desde V0.8.4/#399, Orçamento) — esquema de cor de 3 estados
   sobre o valor final de venda vs. o preço sugerido: **preto** = igual (comparação **exata**,
