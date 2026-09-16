@@ -29,7 +29,7 @@ import type { AvisoEstoqueNegativo } from "../../types/producao";
 import ConfirmarEstoqueNegativoModal from "../../components/producao/ConfirmarEstoqueNegativoModal";
 import ModalVincularProducao from "../../components/orcamento/ModalVincularProducao";
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
-import { VinculoAtivoBadge } from "../../components/shared";
+import { VinculoAtivoBadge, Toast } from "../../components/shared";
 import ModalConfirmacaoVinculoSequencial from "../../components/shared/ModalConfirmacaoVinculoSequencial";
 import { construirFilaVinculosOrcamento, type VinculoPendente } from "../../utils/vinculoCancelamento";
 import { METODOS_PAGAMENTO, STATUS_LABEL } from "../../constants";
@@ -2083,11 +2083,7 @@ export default function DetalheOrcamentoPage() {
         onClose={pdfRetry.dispensarErro}
       />
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {/* Modais */}
       {modal === "preview" && (

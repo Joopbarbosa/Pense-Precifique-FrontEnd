@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, ProdutoContagensResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, ProdutoContagensResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
@@ -86,8 +86,4 @@ export const produtoService = {
     return response.data
   },
 
-  buscarPrecoSugerido: async (id: string, margem: number): Promise<PrecoSugeridoResponse> => {
-    const response = await api.get(`/produtos/${id}/preco-sugerido`, { params: { margem } })
-    return response.data
-  },
 }

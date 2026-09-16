@@ -9,6 +9,7 @@ import {
   Check, AlertTriangle, ChevronRight, Pencil, FileText,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
@@ -217,14 +218,15 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  const debouncedQ = useDebouncedValue(q, q.trim() ? 300 : 0)
   useEffect(() => {
-    if (!open) return
-    const termo = q.trim()
+    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
+    if (!open || debouncedQ !== q) return
+    const termo = debouncedQ.trim()
     const qLower = termo.toLowerCase()
     setLoadingBusca(true)
     setErroBusca(false)
-    const delay = termo ? 300 : 0
-    const timer = setTimeout(async () => {
+    ;(async () => {
       try {
         const [ins, prods] = await Promise.all([
           produtoService.buscarInsumos(termo),
@@ -256,9 +258,8 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       } finally {
         setLoadingBusca(false)
       }
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [q, open, jaAdicionados])
+    })()
+  }, [debouncedQ, open, q, jaAdicionados])
 
   const total = insumos.length + produtos.length + customizacoes.length
 

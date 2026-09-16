@@ -15,6 +15,7 @@ import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { empresaService } from '../../services/empresaService'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
+import Toast from '../../components/shared/Toast'
 import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse, ProdutoDetalheResponse } from '../../types/produto'
 import type {
@@ -27,6 +28,7 @@ import { METODOS_PAGAMENTO } from '../../constants'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { useToast } from '../../hooks/useToast'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
 import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
 import SelecaoProducaoEstoque from '../../components/orcamento/SelecaoProducaoEstoque'
@@ -179,20 +181,21 @@ function ClienteSelect({ cliente, onSelect, onClear }: {
 
   // OpenProject #243 — paridade com ItemSearch (ORC-030): busca dispara ao focar o campo, mesmo
   // sem digitar nada, trazendo a listagem completa (paginada, backend já correto).
+  const debouncedQ = useDebouncedValue(q, 300)
   useEffect(() => {
-    if (!open) return
+    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
+    if (!open || debouncedQ !== q) return
     const load = async () => {
       try {
-        const data = await clienteService.listar(0, 20, q.trim() || undefined)
+        const data = await clienteService.listar(0, 20, debouncedQ.trim() || undefined)
         setResults(data.content)
       } catch (err) {
         console.error('Erro ao buscar clientes:', err)
         setResults([])
       }
     }
-    const timer = setTimeout(load, 300)
-    return () => clearTimeout(timer)
-  }, [q, open])
+    load()
+  }, [debouncedQ, open, q])
 
   // OpenProject #243 — mesma técnica de ItemSearch (ORC-030): altura do painel calculada a partir
   // da posição real da 8ª linha, em vez de um max-height fixo (era max-h-[248px], cabiam só ~4).
@@ -1143,9 +1146,10 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
   // (mesmo hook/padrão de ListaProducaoPage.tsx). fetcher memoizado por [catalogoFiltro, q] para
   // não recriar a cada render do componente (produtos/loading/maxHeight mudando não pode disparar
   // o efeito de busca abaixo de novo — só mudança real de filtro/query).
+  const debouncedQ = useDebouncedValue(q, 300)
   const fetchItensCatalogo = useCallback(
-    (page: number, size: number) => orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, q || undefined, page, size),
-    [catalogoFiltro, q]
+    (page: number, size: number) => orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, debouncedQ || undefined, page, size),
+    [catalogoFiltro, debouncedQ]
   )
   const {
     items: itensCatalogo,
@@ -1198,6 +1202,8 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
       setProdutos([])
       return
     }
+    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
+    if (debouncedQ !== q) return
     let cancelled = false
     const load = async () => {
       setLoading(true)
@@ -1210,7 +1216,7 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
         }
         if (modo === 'tudo' || modo === 'produto') {
           tarefas.push(
-            produtoService.listar(0, 20, 'PRODUTO', q || undefined, modo === 'produto').then(data => {
+            produtoService.listar(0, 20, 'PRODUTO', debouncedQ || undefined, modo === 'produto').then(data => {
               if (!cancelled) setProdutos(data.content)
             }).catch(() => { if (!cancelled) setProdutos([]) })
           )
@@ -1222,9 +1228,9 @@ function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCa
         if (!cancelled) setLoading(false)
       }
     }
-    const timer = setTimeout(load, 300)
-    return () => { cancelled = true; clearTimeout(timer) }
-  }, [q, open, modo, catalogoFiltro, carregarCatalogo])
+    load()
+    return () => { cancelled = true }
+  }, [debouncedQ, open, q, modo, catalogoFiltro, carregarCatalogo])
 
   if (!open) return null
 
@@ -1816,11 +1822,7 @@ export default function CriarOrcamentoPage() {
     <AppLayout active="orcamentos" compact>
 
       {/* TOAST */}
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {/* Header */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">

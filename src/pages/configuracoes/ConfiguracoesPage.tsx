@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
+import Toast from '../../components/shared/Toast'
 import { Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
@@ -276,11 +277,7 @@ function Precificacao({
       </div>
 
       <PerfilCard nome={empresaNome} email={empresaEmail} configurada={empresaConfigurada} onEditarPerfil={onEditarPerfil} />
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   )
 }
@@ -416,11 +413,7 @@ function PerfilEmpresa({
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   )
 }
@@ -484,11 +477,7 @@ function ContaSeguranca() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       <div className="rounded-card border-[1.5px] border-[#F2D8CF] bg-[#FEF8F6] px-7 py-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <h3 className="m-0 text-[15.5px] font-bold text-danger-deep">Excluir conta</h3>

@@ -85,9 +85,16 @@ test.describe('CEN-NOVO-18 — SINAL_PAGO → cancelamento com Estorno → Recib
     const reciboFrame = page.frameLocator('iframe[title="Preview do recibo de estorno"]')
     await expect(reciboFrame.getByText('Sinal estornado', { exact: true })).toBeVisible({ timeout: 15_000 })
     await expect(reciboFrame.getByText(nomeCliente, { exact: true }).first()).toBeVisible()
-    await expect(reciboFrame.getByText('Valor devolvido', { exact: true })).toBeVisible()
+    // #372 (V0.11.0) — `getByText` solto pelo valor cru (ex. "30") casava por substring com
+    // qualquer texto do documento contendo essa sequência de dígitos (data, outros valores em
+    // R$). SecaoCalculadora (pense-precifique-pdf) renderiza cada linha como um <div> com 2
+    // <span> (label, valor) — escopar a busca do valor à linha "Valor devolvido" (mesmo padrão
+    // já usado em numero-sem-padding.spec.ts:116 para o ícone de status) resolve a ambiguidade
+    // sem depender de testid no microsserviço.
+    const linhaValorDevolvido = reciboFrame.getByText('Valor devolvido', { exact: true }).locator('..')
+    await expect(linhaValorDevolvido).toBeVisible()
     await expect(reciboFrame.getByText(`#${orcamento.numero}`, { exact: true }).first()).toBeVisible()
-    await expect(reciboFrame.getByText(String(valorSinal).replace('.', ',')).first()).toBeVisible()
+    await expect(linhaValorDevolvido.getByText(String(valorSinal).replace('.', ','))).toBeVisible()
     await expect(reciboFrame.getByText(dataFormatada).first()).toBeVisible()
     // Achado antigo (RECONCILIA-002/P-F008a) reconfirmado, não implementado — segue ausente.
     await expect(reciboFrame.getByText('Método de devolução')).toHaveCount(0)

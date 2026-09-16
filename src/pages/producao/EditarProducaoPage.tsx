@@ -3,6 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Spinner, Stepper } from '../../components/ui'
 import { extractApiError } from '../../utils/apiError'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useToast } from '../../hooks/useToast'
+import Toast from '../../components/shared/Toast'
 import { Search, Box, Trash2, Calendar, StickyNote, Save, Lock } from 'lucide-react'
 import { EstoqueTags, MultiploRendimentoAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
@@ -57,17 +60,16 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  const debouncedQ = useDebouncedValue(q, 300)
   useEffect(() => {
-    if (!open) return
+    // #357 (correção) — guard contra fetch prematuro: ver NovaProducaoPage.tsx (mesma duplicação).
+    if (!open || debouncedQ !== q) return
     setLoading(true)
-    const timer = setTimeout(() => {
-      produtoService.listar(0, 10, 'PRODUTO', q.trim() || undefined)
-        .then(data => setResults(data.content))
-        .catch(() => setResults([]))
-        .finally(() => setLoading(false))
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [q, open])
+    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined)
+      .then(data => setResults(data.content))
+      .catch(() => setResults([]))
+      .finally(() => setLoading(false))
+  }, [debouncedQ, open, q])
 
   return (
     <div ref={wrapRef} className="relative">
@@ -158,7 +160,7 @@ export default function EditarProducaoPage() {
   const [carregando, setCarregando] = useState(true)
   const [bloqueado, setBloqueado] = useState(false)
   const [identificador, setIdentificador] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, setToast } = useToast()
   const [dataInicio, setDataInicio] = useState('')
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
   const [observacoes, setObservacoes] = useState('')
@@ -201,12 +203,6 @@ export default function EditarProducaoPage() {
       .catch(() => setToast('Não foi possível carregar a produção.'))
       .finally(() => setCarregando(false))
   }, [id])
-
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   const handleSelectProduto = (produto: ProdutoResponse) => {
     const existente = produtos.find(p => p.produtoId === produto.id)
@@ -366,11 +362,7 @@ export default function EditarProducaoPage() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </AppLayout>
   )
 }

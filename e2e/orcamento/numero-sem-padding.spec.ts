@@ -15,7 +15,7 @@ const API_URL = 'http://localhost:8080'
 /**
  * Homologação Onda 5 (Frente 6, Cenários 237-238) — RN-053: remoção do zero-padding artificial
  * (`String(numero).padStart(4,'0')`) do número do orçamento nas 4 telas de PDF/recibo
- * (`PreviewPdfOrcamentoPage`, `PreviewMultaPage`, `ReciboSinalPage`, `ReciboPagamentoPage`) e no Detalhe
+ * (`PreviewPdfOrcamentoPage`, `ReciboMultaPage`, `ReciboSinalPage`, `ReciboPagamentoPage`) e no Detalhe
  * (cabeçalho + modal de confirmar estorno). Confirmado via `git log` (commits `401d119`,
  * `c307262`, `e6b4e86`) e via grep (`padStart` não existe mais em `src/`).
  *
@@ -40,7 +40,7 @@ const API_URL = 'http://localhost:8080'
  * também dava vazio, um falso-positivo). RN-053 em si continua correta — o gap era só na
  * estratégia de seletor do teste, desatualizada pela migração do #248. Corrigido para usar
  * `frameLocator` nos 3 (títulos confirmados em `ReciboSinalPage.tsx`/`ReciboPagamentoPage.tsx`/
- * `PreviewMultaPage.tsx`), mesmo padrão já usado para `/preview`. Ver `DECISOES_V0.8.1.md`,
+ * `ReciboMultaPage.tsx`), mesmo padrão já usado para `/preview`. Ver `DECISOES_V0.8.1.md`,
  * entrada P-T002.
  */
 test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/recibos e Detalhe do Orçamento', () => {
@@ -117,7 +117,7 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     await expect(iconeStatusPagamento).toHaveCSS('color', 'rgb(31, 138, 91)')
 
     // Orçamento cancelado com multa — único jeito de popular percentualMulta e cobrir
-    // PreviewMultaPage (não tem nenhuma relação com prazo/atraso, é sobre cancelamento).
+    // ReciboMultaPage (não tem nenhuma relação com prazo/atraso, é sobre cancelamento).
     const nomeClienteCancelado = `QA237-ClienteCancelado-${Date.now()}`
     const clienteCancelado = await criarCliente(request, token, nomeClienteCancelado)
     const orcamentoCancelado = await criarOrcamentoComNumeroDeDoisDigitos(request, token, clienteCancelado.id, produto.id)

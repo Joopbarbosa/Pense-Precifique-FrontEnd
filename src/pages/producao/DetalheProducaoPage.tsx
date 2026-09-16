@@ -30,6 +30,7 @@ import FinalizarProducaoModal from '../../components/producao/FinalizarProducaoM
 import CancelarProducaoModal from '../../components/producao/CancelarProducaoModal'
 import CancelarProducaoConsumoModal from '../../components/producao/CancelarProducaoConsumoModal'
 import ModalConfirmacaoVinculoSequencial from '../../components/shared/ModalConfirmacaoVinculoSequencial'
+import Toast from '../../components/shared/Toast'
 import DesagruparProducaoModal from '../../components/producao/DesagruparProducaoModal'
 import { construirFilaVinculosProducao, type VinculoPendente } from '../../utils/vinculoCancelamento'
 
@@ -420,11 +421,7 @@ export default function DetalheProducaoPage() {
         )}
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {modal === 'iniciar' && (
         <IniciarProducaoModal producaoId={producao.id} producao={producao} onClose={fecharModal} onSuccess={handleSuccess} />

@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Stepper } from '../../components/ui'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import Toast from '../../components/shared/Toast'
 import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
 import { EstoqueTags, MultiploRendimentoAviso } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
@@ -11,6 +12,7 @@ import { producaoService } from '../../services/producaoService'
 import type { ProdutoResponse } from '../../types/produto'
 import type { AlertaInsumo } from '../../types/producao'
 import { useToast } from '../../hooks/useToast'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
 
 interface ProdutoSelecionado {
@@ -61,17 +63,19 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  const debouncedQ = useDebouncedValue(q, 300)
   useEffect(() => {
-    if (!open) return
+    // #357 (correção) — guard contra fetch prematuro: reabrir o painel (open muda) dispara este
+    // efeito imediatamente, mesmo que debouncedQ ainda não tenha alcançado o q atual (assentamento
+    // do debounce é assíncrono, dessincronizado de `open`) — sem o guard, um fetch com query velha
+    // corre contra o fetch correto e pode sobrescrevê-lo por último.
+    if (!open || debouncedQ !== q) return
     setLoading(true)
-    const timer = setTimeout(() => {
-      produtoService.listar(0, 10, 'PRODUTO', q.trim() || undefined)
-        .then(data => setResults(data.content))
-        .catch(() => setResults([]))
-        .finally(() => setLoading(false))
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [q, open])
+    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined)
+      .then(data => setResults(data.content))
+      .catch(() => setResults([]))
+      .finally(() => setLoading(false))
+  }, [debouncedQ, open, q])
 
   return (
     <div ref={wrapRef} className="relative">
@@ -202,21 +206,44 @@ export default function NovaProducaoPage() {
   const [verificandoAlertas, setVerificandoAlertas] = useState(false)
   const ultimoConfirmadoRef = useRef<ProdutoSelecionado[]>([])
   const debounceQuantidadeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // #357 (achado durante a implementação) — handleSelectProduto/handleQuantidade liam `produtos`
+  // (state) como base do próximo candidato, mas `avaliarAlertas` é assíncrono (round-trip de
+  // simularAlertas) e só confirma via setProdutos depois de resolver. Selecionar o mesmo produto
+  // várias vezes em sequência rápida (mais rápido que o round-trip) fazia 2+ chamadas lerem a
+  // MESMA base desatualizada, perdendo incremento(s) — corrida pré-existente, exposta pela
+  // mudança de timing de #357 num teste E2E que seleciona o mesmo produto 4x seguidas
+  // (criar-producao.spec.ts #155). Ref espelha o candidato mais recente OTIMISTICAMENTE (antes do
+  // await), pra próxima chamada rápida sempre encadear a partir do estado real, não de uma
+  // closure velha.
+  const produtosBaseRef = useRef<ProdutoSelecionado[]>(produtos)
+  useEffect(() => { produtosBaseRef.current = produtos }, [produtos])
+  // Números de sequência: mesmo com a base sempre correta (ref acima), 2 chamadas concorrentes
+  // podem resolver FORA de ordem (a mais antiga responde por último) — sem isto, a resposta velha
+  // sobrescreve a nova via setProdutos. Só a chamada mais recente pode de fato aplicar o resultado.
+  const avaliarAlertasSeqRef = useRef(0)
 
   useEffect(() => () => {
     if (debounceQuantidadeRef.current) clearTimeout(debounceQuantidadeRef.current)
   }, [])
 
   const avaliarAlertas = async (candidato: ProdutoSelecionado[]) => {
+    const seq = ++avaliarAlertasSeqRef.current
     setVerificandoAlertas(true)
     try {
       const alertasSimulados = await producaoService.simularAlertas(
         candidato.map(p => ({ produtoId: p.produtoId, quantidade: p.quantidade }))
       )
+      if (seq !== avaliarAlertasSeqRef.current) return // resposta obsoleta — uma chamada mais nova já está em voo
 
       const bloqueios = alertasSimulados.filter(a => a.situacao === 'BLOQUEIO_FUTURO')
       if (bloqueios.length > 0) {
         setToast(`Insumo insuficiente: ${bloqueios.map(b => b.nomeInsumo).join(', ')}`)
+        // produtosBaseRef precisa ser revertido EXPLICITAMENTE aqui — handleSelectProduto/
+        // handleQuantidade já escreveram nele otimisticamente antes deste await; se
+        // ultimoConfirmadoRef.current for === ao produtos atual (nada mudou de fato), o
+        // setProdutos abaixo não dispara o efeito de sincronização (bailout de referência do
+        // React), deixando o ref "vazado" com o candidato rejeitado pra sempre.
+        produtosBaseRef.current = ultimoConfirmadoRef.current
         setProdutos(ultimoConfirmadoRef.current)
         return
       }
@@ -231,10 +258,12 @@ export default function NovaProducaoPage() {
       ultimoConfirmadoRef.current = candidato
       setAlertasAtuais(avisos)
     } catch (err: any) {
+      if (seq !== avaliarAlertasSeqRef.current) return
       setToast(extractApiError(err, 'Erro ao verificar disponibilidade de insumos.'))
+      produtosBaseRef.current = ultimoConfirmadoRef.current
       setProdutos(ultimoConfirmadoRef.current)
     } finally {
-      setVerificandoAlertas(false)
+      if (seq === avaliarAlertasSeqRef.current) setVerificandoAlertas(false)
     }
   }
 
@@ -261,7 +290,8 @@ export default function NovaProducaoPage() {
   }, [produtoIdParam, quantidadeParam])
 
   const handleSelectProduto = async (produto: ProdutoResponse) => {
-    const existente = produtos.find(p => p.produtoId === produto.id)
+    const base = produtosBaseRef.current
+    const existente = base.find(p => p.produtoId === produto.id)
     const multiplo = produto.algumInsumoNaoFracionavel ? (produto.rendimento ?? 1) : undefined
 
     const quantidade = existente
@@ -269,27 +299,35 @@ export default function NovaProducaoPage() {
       : (multiplo ?? 1)
 
     const candidato = existente
-      ? produtos.map(p => p.produtoId === produto.id ? { ...p, quantidade, multiploRendimento: multiplo } : p)
-      : [...produtos, {
+      ? base.map(p => p.produtoId === produto.id ? { ...p, quantidade, multiploRendimento: multiplo } : p)
+      : [...base, {
           produtoId: produto.id, nome: produto.nome, identificador: produto.identificador, quantidade, multiploRendimento: multiplo,
           algumInsumoNaoFracionavel: produto.algumInsumoNaoFracionavel ?? false,
           permitirEstoqueNegativo: produto.permitirEstoqueNegativo,
           estoqueAtual: produto.estoqueAtual,
         }]
 
+    produtosBaseRef.current = candidato
     await avaliarAlertas(candidato)
   }
 
   const handleQuantidade = (produtoId: string, quantidade: number) => {
-    const candidato = produtos.map(p => p.produtoId === produtoId ? { ...p, quantidade } : p)
+    const candidato = produtosBaseRef.current.map(p => p.produtoId === produtoId ? { ...p, quantidade } : p)
+    produtosBaseRef.current = candidato
     setProdutos(candidato)
 
     if (debounceQuantidadeRef.current) clearTimeout(debounceQuantidadeRef.current)
-    debounceQuantidadeRef.current = setTimeout(() => avaliarAlertas(candidato), 350)
+    // lê produtosBaseRef.current DENTRO do timeout (no disparo, não no agendamento) — se uma
+    // seleção rápida (handleSelectProduto) acontecer nesse meio-tempo, o debounce de quantidade
+    // dispara depois com a base mais fresca, nunca com o `candidato` capturado por closure 350ms
+    // atrás (que já estaria desatualizado e, combinado com avaliarAlertasSeqRef, venceria por
+    // ordem de sequência mesmo carregando um valor antigo).
+    debounceQuantidadeRef.current = setTimeout(() => avaliarAlertas(produtosBaseRef.current), 350)
   }
 
   const confirmarAvisoPendente = () => {
     if (!avisoPendente) return
+    produtosBaseRef.current = avisoPendente.candidato
     setProdutos(avisoPendente.candidato)
     ultimoConfirmadoRef.current = avisoPendente.candidato
     setAlertasAtuais(avisoPendente.alertas)
@@ -297,7 +335,8 @@ export default function NovaProducaoPage() {
   }
 
   const handleRemoverProduto = async (produtoId: string) => {
-    const novaLista = produtos.filter(p => p.produtoId !== produtoId)
+    const novaLista = produtosBaseRef.current.filter(p => p.produtoId !== produtoId)
+    produtosBaseRef.current = novaLista
     setProdutos(novaLista)
     ultimoConfirmadoRef.current = novaLista
 
@@ -479,15 +518,11 @@ export default function NovaProducaoPage() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       <ConfirmacaoModal
         open={!!avisoPendente}
-        onClose={() => { setProdutos(ultimoConfirmadoRef.current); setAvisoPendente(null) }}
+        onClose={() => { produtosBaseRef.current = ultimoConfirmadoRef.current; setProdutos(ultimoConfirmadoRef.current); setAvisoPendente(null) }}
         onConfirm={confirmarAvisoPendente}
         title="Estoque insuficiente"
         description="Este produto vai deixar o estoque de algum insumo negativo. Deseja adicionar mesmo assim?"
