@@ -57,7 +57,7 @@ test.describe('OpenProject #228 — Inativar/reativar insumo', () => {
     await page.getByRole('button', { name: 'Inativar insumo' }).click()
     await expect(page.getByText('Insumo inativado.')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Ativos', exact: true }).click()
+    await page.getByRole('button', { name: /^Ativos\b/ }).click()
     await expect(page.getByText(insumoSemVinculoNome, { exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: 'Inativos' }).click()
     await expect(page.getByText(insumoSemVinculoNome, { exact: true }).first()).toBeVisible()
@@ -67,7 +67,7 @@ test.describe('OpenProject #228 — Inativar/reativar insumo', () => {
     await linha.getByRole('button', { name: 'Mais ações' }).click()
     await page.getByText('Reativar', { exact: true }).click()
     await expect(page.getByText('Insumo reativado.')).toBeVisible()
-    await page.getByRole('button', { name: 'Ativos', exact: true }).click()
+    await page.getByRole('button', { name: /^Ativos\b/ }).click()
     await expect(page.getByText(insumoSemVinculoNome, { exact: true }).first()).toBeVisible()
 
     // --- inativar insumo vinculado a ficha técnica: bloqueado, modal lista o produto ---
@@ -83,7 +83,7 @@ test.describe('OpenProject #228 — Inativar/reativar insumo', () => {
     await page.getByRole('button', { name: 'Cancelar' }).click()
 
     // insumo continua ativo (bloqueado, não inativou)
-    await page.getByRole('button', { name: 'Ativos', exact: true }).click()
+    await page.getByRole('button', { name: /^Ativos\b/ }).click()
     await expect(page.getByText(insumoComVinculoNome, { exact: true }).first()).toBeVisible()
 
     // --- excluir (ação antiga, permanente) continua funcionando ---

@@ -75,7 +75,7 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
     await page.getByRole('button', { name: 'Inativar produtos vinculados' }).click()
     await expect(page.getByText('Insumo inativado.')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Ativos', exact: true }).click()
+    await page.getByRole('button', { name: /^Ativos\b/ }).click()
     await expect(page.getByText(insumoInativarNome, { exact: true })).toHaveCount(0)
   })
 
