@@ -4,7 +4,6 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
-import { FracionavelBadge } from '../../components/ui/Badge'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
   Check, AlertTriangle, ChevronRight, Pencil, FileText,
@@ -14,6 +13,7 @@ import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
+import { FracionavelBadge } from '../../components/ui/Badge'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
 const num = (s: string) => {
@@ -43,7 +43,8 @@ interface ItemDb {
   marca: string
   un: string
   custo: number
-  tipo: 'insumo' | 'produto'
+  // RN-NOVA-8 (V0.10.0, #462, altera PDT-015) — Customização passa a ser aceita como componente.
+  tipo: 'insumo' | 'produto' | 'customizacao'
   fracionavel: boolean
 }
 
@@ -142,7 +143,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
 }) {
   return (
-    <div className="max-w-[760px] animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="grid grid-cols-2 gap-x-6 gap-y-[22px]">
         <div className="col-span-2">
           <Field label="Nome do produto" required size="md">
@@ -179,9 +180,9 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
 
 // ---------- TipoBadge ----------
 
-function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' }) {
-  if (tipo === 'produto') {
-    const b = tipoProdutoBadge('PRODUTO')
+function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
+  if (tipo === 'produto' || tipo === 'customizacao') {
+    const b = tipoProdutoBadge(tipo === 'produto' ? 'PRODUTO' : 'CUSTOMIZACAO')
     return (
       <span
         className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
@@ -205,6 +206,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [open, setOpen] = useState(false)
   const [insumos, setInsumos] = useState<ItemDb[]>([])
   const [produtos, setProdutos] = useState<ItemDb[]>([])
+  const [customizacoes, setCustomizacoes] = useState<ItemDb[]>([])
   const [loadingBusca, setLoadingBusca] = useState(false)
   const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -233,14 +235,23 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
             .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
         )
+        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
+        // RN-NOVA-8 (V0.10.0, #462) — busca agora traz Produto e Customização juntos; separa por
+        // tipo real vindo da API (antes só existia Produto aqui, fracionavel vinha hardcoded true).
         setProdutos(
-          prods
-            .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: true }))
+          prodsFiltrados
+            .filter(p => p.tipo === 'PRODUTO')
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true }))
+        )
+        setCustomizacoes(
+          prodsFiltrados
+            .filter(p => p.tipo === 'CUSTOMIZACAO')
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true }))
         )
       } catch {
         setInsumos([])
         setProdutos([])
+        setCustomizacoes([])
         setErroBusca(true)
       } finally {
         setLoadingBusca(false)
@@ -249,7 +260,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
     return () => clearTimeout(timer)
   }, [q, open, jaAdicionados])
 
-  const total = insumos.length + produtos.length
+  const total = insumos.length + produtos.length + customizacoes.length
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
@@ -257,12 +268,14 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       {itens.map(i => (
         <button
           key={i.id}
-          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]) }}
+          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
             'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
-            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
+            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal'
+              : i.tipo === 'customizacao' ? 'bg-[#2A9D8F]/[0.12] text-[#2A9D8F]'
+              : 'bg-line-soft text-dim'
           )}>
             <Box size={16} />
           </span>
@@ -303,6 +316,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             <>
               {grupo('Insumos', insumos)}
               {grupo('Produtos', produtos)}
+              {grupo('Customizações', customizacoes)}
             </>
           )}
         </div>
@@ -326,7 +340,11 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
       <input
         value={display}
         onChange={e => {
-          const cleaned = e.target.value.replace(/[^\d.,/]/g, '')
+          // #468 (V0.10.0) — "/" (usado para digitar fração, ex. "1/2") continua permitido quando
+          // fracionável, mas precisa ser bloqueado junto de ","/"." quando não-fracionável — antes
+          // "/" escapava do filtro nos dois ramos, deixando digitar valor fracionário mesmo assim.
+          const permitidos = fracionavel ? /[^\d.,/]/g : /[^\d]/g
+          const cleaned = e.target.value.replace(permitidos, '')
           setDisplay(cleaned)
           onChange(cleaned)
         }}
@@ -338,19 +356,45 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
   )
 }
 
+// ---------- FracionavelToggle ----------
+//
+// RN-NOVA-2 (V0.10.0, #299) — mesma linguagem visual de FracionavelBadge (components/ui/Badge.tsx),
+// mas clicável nos dois estados. Local a esta página: único consumidor editável do campo hoje — nas
+// demais 13 telas o badge segue somente-leitura (FracionavelBadge/EstoqueTags não mudam).
+
+function FracionavelToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="inline-flex h-[27px] overflow-hidden rounded-full border border-line">
+      {([['Não fracionável', false], ['Fracionável', true]] as [string, boolean][]).map(([lbl, val]) => (
+        <button
+          key={lbl}
+          type="button"
+          onClick={() => onChange(val)}
+          className={clsx(
+            'border-none px-[11px] font-[inherit] text-[12.5px] font-semibold transition-colors duration-150',
+            value === val
+              ? val ? 'bg-success/10 text-success' : 'bg-orange/10 text-orange'
+              : 'bg-white text-dim hover:bg-cream'
+          )}
+        >
+          {lbl}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo }: {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo, fracionavel, onFracionavelChange }: {
   ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
   rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
   mostrarBotaoCatalogo: boolean; salvandoCatalogo: boolean; botaoCatalogoDisabled: boolean; onCriarCatalogo: () => void
+  fracionavel: boolean; onFracionavelChange: (v: boolean) => void
 }) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
   const remove = (idx: number) => setFicha(f => f.filter((_, k) => k !== idx))
   const setQtd = (idx: number, v: string) => setFicha(f => f.map((row, k) => k === idx ? { ...row, qtd: num(v) } : row))
-
-  // RN-051 — só insumos diretos (não produtos-componente) contam para o travamento de quantidade em Produção.
-  const algumInsumoNaoFracionavel = ficha.some(item => item.tipo === 'insumo' && !item.fracionavel)
 
   return (
     <div className="animate-fade-up">
@@ -360,11 +404,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             <Layers size={18} className="text-teal" />
             <h3 className="m-0 whitespace-nowrap text-[15.5px] font-bold text-dark">Componentes do produto</h3>
             {ficha.length > 0 && (
-              <FracionavelBadge
-                fracionavel={!algumInsumoNaoFracionavel}
-                labelFracionavel="Produto fracionável"
-                labelNaoFracionavel="Produto não fracionável"
-              />
+              <FracionavelToggle value={fracionavel} onChange={onFracionavelChange} />
             )}
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
@@ -382,6 +422,9 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               <div className="flex min-w-0 items-center gap-[7px]">
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{row.nome}</span>
                 <TipoBadge tipo={row.tipo} />
+                {/* #460 (V0.10.0) — tag fracionável/não-fracionável do componente, ausente até
+                    aqui (dado já existia no estado, só nunca foi exibido). */}
+                <FracionavelBadge fracionavel={row.fracionavel} variant="busca" />
               </div>
               <div className="text-xs text-muted">{row.marca}{row.marca ? ' · ' : ''}{moeda(row.custo)}/{row.un}</div>
             </div>
@@ -599,6 +642,9 @@ export default function CadastrarProdutoPage() {
   const [margemPadrao, setMargemPadrao] = useState(0)
   const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
   const [estoqueAtualExistente, setEstoqueAtualExistente] = useState<number | null>(null)
+  // RN-NOVA-2 (V0.10.0, #299) — calculado+override, mesmo padrão de precoFinal/precoFinalManual acima.
+  const [fracionavel, setFracionavel] = useState(true)
+  const [fracionavelManual, setFracionavelManual] = useState(false)
 
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
@@ -613,6 +659,10 @@ export default function CadastrarProdutoPage() {
   const isProduto = dados.tipo === 'Produto'
   // Ambos os tipos restantes (PRODUTO e CUSTOMIZACAO) têm preço de venda com override — RN-038a/PDT-001, #210+231+234.
   const mostrarPrecoMargem = isCustomizacao || isProduto
+
+  // RN-NOVA-2 — mesmo cálculo-base de PDT-016 (algumInsumoNaoFracionavel), só insumos diretos contam.
+  const algumInsumoNaoFracionavel = ficha.some(item => item.tipo === 'insumo' && !item.fracionavel)
+  const fracionavelDerivado = !algumInsumoNaoFracionavel
 
   // Mesma fórmula da Calculadora — mantém o preço final espelhando o sugerido enquanto não houver override manual.
   const custoInsumosCalc = ficha.reduce((s, r) => s + r.qtd * r.custo, 0)
@@ -640,6 +690,13 @@ export default function CadastrarProdutoPage() {
     setPrecoFinal(sugeridoCalc > 0 ? sugeridoCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')
   }, [mostrarPrecoMargem, editando, precoFinalManual, sugeridoCalc])
 
+  // RN-NOVA-2 (#299) — fracionável nasce espelhando o derivado da ficha técnica; para de acompanhar
+  // assim que a artesã sobrescreve manualmente (override — CEN-NOVO-3/4/5).
+  useEffect(() => {
+    if (fracionavelManual) return
+    setFracionavel(fracionavelDerivado)
+  }, [fracionavelDerivado, fracionavelManual])
+
   // Carregar dados na edição
   useEffect(() => {
     if (!editando || !id) return
@@ -657,7 +714,9 @@ export default function CadastrarProdutoPage() {
           marca: item.marcaInsumo || '',
           un: item.unidadeMedida || 'un',
           custo: item.custoUnitario,
-          tipo: item.insumoId ? 'insumo' : 'produto',
+          // #462 (achado do teste manual) — tipoProdutoBase agora vem do contrato; antes disso,
+          // todo componente com produtoBaseId virava 'produto' genérico, mesmo sendo Customização.
+          tipo: item.insumoId ? 'insumo' : item.tipoProdutoBase === 'CUSTOMIZACAO' ? 'customizacao' : 'produto',
           fracionavel: item.fracionavelInsumo ?? true,
           qtd: item.quantidade,
         }))
@@ -667,6 +726,8 @@ export default function CadastrarProdutoPage() {
         setCustoUnitario(produto.custoUnitario ?? null)
         setPermitirEstoqueNegativo(produto.permitirEstoqueNegativo)
         setEstoqueAtualExistente(produto.estoqueAtual)
+        setFracionavel(produto.fracionavel ?? !produto.algumInsumoNaoFracionavel)
+        setFracionavelManual(produto.fracionavelOverride ?? false)
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
           setPrecoFinalManual(true)
@@ -699,9 +760,13 @@ export default function CadastrarProdutoPage() {
       precoVenda: precoVendaNum,
       rendimento: rendimentoNum,
       permitirEstoqueNegativo,
+      fracionavel,
       fichaTecnica: ficha.map(item => ({
         insumoId: item.tipo === 'insumo' ? item.id : undefined,
-        produtoBaseId: item.tipo === 'produto' ? item.id : undefined,
+        // #462 (achado do teste manual): faltava tratar 'customizacao' aqui — ficava sem
+        // insumoId E sem produtoBaseId, e o backend rejeitava com "deve referenciar exatamente
+        // um insumo ou um produto base" ao tentar salvar uma ficha técnica com Customização.
+        produtoBaseId: item.tipo === 'produto' || item.tipo === 'customizacao' ? item.id : undefined,
         quantidade: item.qtd,
       })),
     }
@@ -808,6 +873,8 @@ export default function CadastrarProdutoPage() {
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento || rendimentoErroInline}
             mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
             botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido} onCriarCatalogo={() => salvar('catalogo')}
+            fracionavel={fracionavel}
+            onFracionavelChange={v => { setFracionavelManual(true); setFracionavel(v) }}
           />
           <Calculadora
             ficha={ficha} tempo={dados.tempo} rendimento={rendimento}

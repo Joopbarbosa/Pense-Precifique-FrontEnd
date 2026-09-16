@@ -115,7 +115,7 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     await page.getByRole('button', { name: /Carregar mais/ }).click()
     await expect(linhasDesktop(page)).toHaveCount(40, { timeout: 10_000 })
 
-    await page.getByRole('button', { name: 'Em andamento', exact: true }).click()
+    await page.getByRole('button', { name: /^Em andamento\b/ }).click()
     await page.waitForTimeout(600)
 
     await expect(linhasDesktop(page)).toHaveCount(5, { timeout: 10_000 })
@@ -309,13 +309,13 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
 
     // Combinável com o filtro de estado, sem um sobrescrever o outro
     await iniciarProducaoViaApi(request, token, recente.id)
-    await page.getByRole('button', { name: 'Em andamento', exact: true }).click()
+    await page.getByRole('button', { name: /^Em andamento\b/ }).click()
     await de.fill('2026-06-01')
     await page.waitForTimeout(400)
     await expect(linhasDesktop(page)).toHaveCount(1)
     await expect(linhasDesktop(page).getByText(recente.identificador)).toBeVisible()
 
-    await page.getByRole('button', { name: 'Todos', exact: true }).click()
+    await page.getByRole('button', { name: /^Todos\b/ }).click()
     await de.fill('')
     await page.waitForTimeout(400)
 

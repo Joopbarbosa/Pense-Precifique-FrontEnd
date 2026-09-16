@@ -283,9 +283,25 @@ export async function travarProducao(page: Page, justificativa: string) {
   await page.getByRole('button', { name: 'Confirmar trava' }).click()
 }
 
+/**
+ * Achado da suíte QA (V0.10.0): `RetomarProducaoModal` mostra, no PRÓPRIO corpo do modal, o texto
+ * estático "A produção voltará ao estado **Em andamento** caso os insumos estejam disponíveis" —
+ * então `page.getByText('Em andamento').first()` (padrão usado por specs deste arquivo) dava falso
+ * positivo IMEDIATAMENTE ao abrir o modal, antes mesmo do clique em "Confirmar retomada", correndo
+ * em paralelo com o POST /retomar real (não determinístico: passava ou falhava dependendo de quem
+ * vencia a corrida). 1ª tentativa de correção (esperar o botão "Confirmar retomada" sumir) também
+ * não era determinística: o próprio texto do botão muda para "Retomando..." enquanto `salvando`
+ * está true (`RetomarProducaoModal.tsx`), então "sumir o botão com esse nome" já acontecia no
+ * início do clique, não no fim da mutação. Correção real: esperar a resposta de rede do
+ * `POST /producoes/{id}/retomar` completar antes de devolver o controle — único sinal realmente
+ * determinístico de que o backend já processou a mutação.
+ */
 export async function retomarProducao(page: Page, opcoes?: { dividirMesmoAssim?: boolean }) {
   await page.getByRole('button', { name: 'Retomar', exact: true }).click()
-  await page.getByRole('button', { name: 'Confirmar retomada' }).click()
+  await Promise.all([
+    page.waitForResponse(res => /\/producoes\/[^/]+\/retomar$/.test(res.url()) && res.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Confirmar retomada' }).click(),
+  ])
   if (opcoes?.dividirMesmoAssim) {
     const dividirBtn = page.getByRole('button', { name: 'Dividir mesmo assim' })
     await expect(dividirBtn).toBeVisible({ timeout: 5000 })
@@ -510,9 +526,18 @@ export async function agruparProducoesViaApi(
   })
 }
 
-/** Linha desktop (`ProducaoRow`, sm:grid) da lista de produção, escopada pelo identificador exato (PRD-N). */
+/**
+ * Linha desktop (`ProducaoRow`, sm:grid) da lista de produção, escopada pelo identificador exato
+ * (PRD-N). Achado da suíte QA (#471, V0.10.0): a classe `cursor-pointer` deixou de ser
+ * incondicional — `onClickRegistro` (e com ele `cursor-pointer` vs. `cursor-default`,
+ * `ListaProducaoPage.tsx:311-319`) agora é `undefined` para produção não-agrupável em modo de
+ * seleção (`agrupavel=false`), então um seletor que exigisse `.cursor-pointer` não encontrava
+ * justo a linha "desabilitada" que os testes de bloqueio (ex.: 193) mais precisam localizar.
+ * `.filter({ has: getByText(identificador, {exact:true}) })` já escopa com precisão suficiente
+ * sem depender da classe condicional.
+ */
 export function linhaProducaoDesktop(page: Page, identificador: string) {
-  return page.locator('div.sm\\:grid.cursor-pointer').filter({ has: page.getByText(identificador, { exact: true }) })
+  return page.locator('div.sm\\:grid').filter({ has: page.getByText(identificador, { exact: true }) })
 }
 
 export async function ativarModoAgrupamento(page: Page) {

@@ -198,6 +198,30 @@ export async function criarCustomizacoes(request: APIRequestContext, token: stri
   return criadas
 }
 
+/**
+ * RN-NOVA-16 (V0.10.0, #476) — Customização produzível (ficha técnica + rendimento + estoqueAtual
+ * explícito), para os cenários de estoque/produção que agora também consideram customização
+ * anexada, não só o produto principal. Mesmo padrão de `criarProdutoComFichaEEstoque`
+ * (helpers/producao.ts), tipo CUSTOMIZACAO em vez de PRODUTO.
+ */
+export async function criarCustomizacaoComFichaEEstoque(
+  request: APIRequestContext,
+  token: string,
+  nome: string,
+  fichaTecnica: Array<{ insumoId: string; quantidade: number }>,
+  estoqueAtual: number,
+  rendimento = 1
+) {
+  const res = await request.post(`${API_URL}/produtos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome, tipo: 'CUSTOMIZACAO', tempoProducao: 10, precoVenda: 15, rendimento, fichaTecnica, estoqueAtual },
+  })
+  if (!res.ok()) {
+    throw new Error(`Falha ao criar customização (com ficha e estoque) de teste: ${res.status()} ${await res.text()}`)
+  }
+  return res.json()
+}
+
 export async function desativarCatalogo(request: APIRequestContext, token: string, id: string) {
   await request
     .post(`${API_URL}/catalogos/${id}/desativar`, { headers: { Authorization: `Bearer ${token}` } })

@@ -124,7 +124,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await expect(toggle).toHaveAttribute('aria-pressed', 'false')
     // O pill de filtro de estado (mecanismo antigo, ainda existe pra filtrar conteúdo) continua
     // visível e é um elemento diferente do toggle — ambos com o texto "Não realizada" coexistindo.
-    await expect(page.getByRole('button', { name: 'Não realizada', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Não realizada\b/ })).toBeVisible()
   })
 
   test('200 (era 182) — toggle "Colunas do quadro" exibe NÃO_REALIZADA como coluna própria, separada de CANCELADA', async ({ page, request }) => {
@@ -198,7 +198,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
 
     // Composição com o filtro de estado antigo: selecionar o pill "Não realizada" força a coluna
     // visível mesmo sem tocar no toggle (evita board vazio sem explicação), e desabilita o toggle.
-    await page.getByRole('button', { name: 'Não realizada', exact: true }).click()
+    await page.getByRole('button', { name: /^Não realizada\b/ }).click()
     await page.waitForTimeout(600)
     await expect(page.locator('div.rounded-t-card', { hasText: 'Não realizada' })).toBeVisible({ timeout: 5000 })
     const toggleForcado = page.getByRole('button', { name: 'Ocultar coluna Não realizada no quadro' })

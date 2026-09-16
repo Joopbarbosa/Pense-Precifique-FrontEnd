@@ -55,6 +55,12 @@ type ApiStatus =
 
 
 // Botão principal por status
+// RN-NOVA-10 (V0.10.0, #466) — achado do teste manual: a reordenação FINALIZADO→PAGO→ENTREGUE
+// mudou o STEPS/timeline, mas este mapa (e o NEXT_HINT/finalizado/cancelavel abaixo) tinham
+// ficado com o rótulo da ordem antiga — FINALIZADO apontava pra "Marcar como entregue" (deveria
+// ser "Confirmar pagamento", já que o próximo passo agora é PAGO) e não existia entrada pra PAGO
+// (deveria ser "Marcar como entregue"), então o botão de avançar sumia por completo nesse status.
+// Consequência direta de #466, corrigida inline (não é tarefa nova).
 const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
   RASCUNHO: "Enviar orçamento",
   ENVIADO: "Marcar como aprovado",
@@ -62,8 +68,8 @@ const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
   AGUARDANDO_SINAL: "Confirmar recebimento do sinal",
   SINAL_PAGO: "Iniciar produção",
   EM_PRODUCAO: "Marcar como finalizado",
-  FINALIZADO: "Marcar como entregue",
-  ENTREGUE: "Confirmar pagamento",
+  FINALIZADO: "Confirmar pagamento",
+  PAGO: "Marcar como entregue",
 };
 
 // Descrição do próximo passo
@@ -74,11 +80,13 @@ const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
   AGUARDANDO_SINAL: "Confirme o recebimento do sinal para liberar a produção.",
   SINAL_PAGO: "Inicie a produção dos itens do pedido.",
   EM_PRODUCAO: "Quando concluir, marque a produção como finalizada.",
-  FINALIZADO: "Marque como entregue após a entrega ao cliente.",
-  ENTREGUE: "Confirme o pagamento final para encerrar o pedido.",
+  FINALIZADO: "Confirme o pagamento para seguir para a entrega.",
+  PAGO: "Marque como entregue após a entrega ao cliente.",
 };
 
 // Ordem da timeline (exclui Cancelado)
+// RN-NOVA-10 (V0.10.0, #466, altera ORC-005) — troca FINALIZADO->ENTREGUE->PAGO por
+// FINALIZADO->PAGO->ENTREGUE; única mudança na sequência.
 const STEPS: ApiStatus[] = [
   "RASCUNHO",
   "ENVIADO",
@@ -87,8 +95,8 @@ const STEPS: ApiStatus[] = [
   "SINAL_PAGO",
   "EM_PRODUCAO",
   "FINALIZADO",
-  "ENTREGUE",
   "PAGO",
+  "ENTREGUE",
 ];
 
 const STATUS_META: Record<string, { bg: string; fg: string; dot: string }> = {
@@ -975,6 +983,71 @@ function ModalCancelEstorno({
 
 // ─── Card de downloads ────────────────────────────────────────────────────────
 
+type DocumentoKind = "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento";
+
+interface DocumentoDisponivel {
+  kind: DocumentoKind;
+  label: string;
+  // #463 (V0.10.0) — descrição curta por documento: usuária relatou que a lista de 2+ opções não
+  // ficava intuitiva (botões visualmente idênticos, sem contexto do que cada um representa).
+  descricao: string;
+  icon: React.ReactNode;
+}
+
+// RN-NOVA-3 (V0.10.0, #317) — lógica condicional de "quais documentos existem" para este
+// orçamento, extraída de DownloadsCard para ser reaproveitada também pelo botão "Preview" do
+// header (CEN-NOVO-6/7: 2+ documentos → modal de seleção; 1 só → abre direto, sem modal).
+function documentosDisponiveis(orcamento: OrcamentoDetalheResponse): DocumentoDisponivel[] {
+  const status = orcamento.status as ApiStatus;
+  const links: DocumentoDisponivel[] = [];
+
+  // PDF do orçamento — qualquer status exceto CANCELADO; #464 (V0.10.0) reabre a exceção quando
+  // há multa aplicável (percentualMulta > 0) — usuário confirmou querer os dois juntos nesse caso.
+  const temMulta = orcamento.percentualMulta != null && orcamento.percentualMulta > 0;
+  if (status !== "CANCELADO" || temMulta) {
+    links.push({
+      label: "PDF do orçamento", kind: "pdf", icon: <FileText size={18} />,
+      descricao: "Proposta completa enviada ao cliente",
+    });
+  }
+
+  // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
+  if (orcamento.sinalAtivo && orcamento.dataSinalPago != null) {
+    links.push({
+      label: "Recibo do sinal", kind: "reciboSinal", icon: <Receipt size={16} />,
+      descricao: "Comprovante do sinal já pago",
+    });
+  }
+
+  // Recibo de pagamento — DT-NOVA-4 (V0.10.0, #466): dataPagamento != null (não status === "PAGO")
+  // — RN-NOVA-10 tira PAGO de terminal (agora vem antes de ENTREGUE), então status por igualdade
+  // faria o recibo sumir do preview assim que o orçamento avançasse pra ENTREGUE.
+  if (orcamento.dataPagamento != null) {
+    links.push({
+      label: "Recibo de pagamento", kind: "pagamento", icon: <Receipt size={16} />,
+      descricao: "Comprovante do pagamento total",
+    });
+  }
+
+  // PDF de multa — somente se percentualMulta > 0
+  if (temMulta) {
+    links.push({
+      label: "PDF de multa", kind: "multa", icon: <FileText size={20} />,
+      descricao: "Detalhamento da multa por cancelamento",
+    });
+  }
+
+  // Recibo de estorno — somente se houve estorno de fato
+  if (orcamento.estornoSinal === true) {
+    links.push({
+      label: "Recibo de estorno", kind: "estorno", icon: <Receipt size={16} />,
+      descricao: "Comprovante da devolução do sinal",
+    });
+  }
+
+  return links;
+}
+
 function DownloadsCard({
   orcamento,
   onDownload,
@@ -982,38 +1055,15 @@ function DownloadsCard({
   pdfLabel,
 }: {
   orcamento: OrcamentoDetalheResponse;
-  onDownload: (kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento") => void;
+  onDownload: (kind: DocumentoKind) => void;
   pdfBloqueado: boolean;
   pdfLabel: string;
 }) {
-  const status = orcamento.status as ApiStatus;
-
-  const links: { label: string; kind: Parameters<typeof onDownload>[0]; icon: React.ReactNode }[] = [];
-
-  // PDF do orçamento — qualquer status exceto CANCELADO
-  if (status !== "CANCELADO") {
-    links.push({ label: pdfLabel, kind: "pdf", icon: <FileText size={18} /> });
-  }
-
-  // Recibo do sinal — somente se sinalAtivo e dataSinalPago preenchida
-  if (orcamento.sinalAtivo && orcamento.dataSinalPago != null) {
-    links.push({ label: "Recibo do sinal", kind: "reciboSinal", icon: <Receipt size={16} /> });
-  }
-
-  // Recibo de pagamento — apenas PAGO
-  if (status === "PAGO") {
-    links.push({ label: "Recibo de pagamento", kind: "pagamento", icon: <Receipt size={16} /> });
-  }
-
-  // PDF de multa — somente se percentualMulta > 0
-  if (orcamento.percentualMulta != null && orcamento.percentualMulta > 0) {
-    links.push({ label: "PDF de multa", kind: "multa", icon: <FileText size={20} /> });
-  }
-
-  // Recibo de estorno — somente se houve estorno de fato
-  if (orcamento.estornoSinal === true) {
-    links.push({ label: "Recibo de estorno", kind: "estorno", icon: <Receipt size={16} /> });
-  }
+  // Mesma lista condicional do botão "Preview" do header — só troca o label do PDF pelo estado
+  // dinâmico de download (retry/cooldown), que não faz sentido no contexto de preview.
+  const links = documentosDisponiveis(orcamento).map((l) =>
+    l.kind === "pdf" ? { ...l, label: pdfLabel } : l
+  );
 
   return (
     <section className="mt-[18px] animate-[fadeUp_.6s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -1053,7 +1103,7 @@ export default function DetalheOrcamentoPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
-  const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho" | "vincularProducao">(null);
+  const [modal, setModal] = useState<null | "sinal" | "cancel" | "confirmarAtalho" | "vincularProducao" | "preview">(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
   const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
   const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
@@ -1323,6 +1373,66 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
+  // Achado do teste manual (V0.10.0, #465) — quando o orçamento já tem produção vinculada
+  // (RN-PROD-VINC-01/02: vincular sincroniza os itens pendentes pra dentro da produção
+  // existente), "Criar produção (N)" sempre criava uma produção NOVA, mesmo quando o item
+  // pendente podia simplesmente ser sincronizado pra produção que já existe — risco real de
+  // duplicar produção pro mesmo pedido. Reaproveita o mesmo `vincularProducao` (sincronização já
+  // implementada) em vez de sempre passar por `criarProducaoVinculada`.
+  const handleSincronizarProducaoExistente = async () => {
+    if (!id || !orcamento || orcamento.producoesVinculadas.length === 0) return;
+    setCriandoProducaoDetalhe(true);
+    setFormErroProducaoDetalhe(null);
+    try {
+      const vinculos = await orcamentoService.vincularProducao(id, orcamento.producoesVinculadas[0].producaoId);
+      setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
+      setSelecionadosProducaoDetalhe(new Set());
+      setToast("Item(ns) vinculados à produção já existente.");
+      refetchItensSemEstoque();
+    } catch (err) {
+      setToast(extractApiError(err, "Não foi possível vincular à produção existente."));
+    } finally {
+      setCriandoProducaoDetalhe(false);
+    }
+  };
+
+  // Achado do teste manual (V0.10.0) — Customização também é produzível (o Backend agora inclui
+  // as customizações em itensSemEstoque), mas o card só renderizava esse status pro produto
+  // principal do item. Extraído pra ser reaproveitado nos dois casos (item principal + cada
+  // customização anexada), sem duplicar o JSX de "Visualizar produção" vs. checkbox.
+  const renderStatusEstoque = (produtoId: string, mostrarNome: boolean) => {
+    const semEstoque = itensSemEstoque.find((s) => s.produtoId === produtoId);
+    if (!semEstoque) return null;
+    return (
+      <div className="mt-2">
+        {semEstoque.producaoVinculadaId ? (
+          // RN-NOVA-26 (#387) — já existe produção não-terminal cobrindo este produto
+          // especificamente: mostra a produção certa, não uma navegação genérica pra criar outra.
+          <VinculoAtivoBadge
+            label="Visualizar produção"
+            onClick={() => navigate(`/producao/${semEstoque.producaoVinculadaId}`)}
+          />
+        ) : (
+          // RN-NOVA-25 (#319+376) — checkbox no lugar do botão individual sem vínculo (ORC-028,
+          // comportamento substituído nesta versão): a ação real fica no "Criar produção (N)"
+          // agregado, logo acima da lista de itens.
+          <SelecaoProducaoEstoque
+            itens={[{
+              produtoId: semEstoque.produtoId,
+              nomeProduto: semEstoque.nomeProduto,
+              estoqueAtual: semEstoque.estoqueAtual,
+              quantidadeNecessaria: semEstoque.quantidadeSolicitada,
+              quantidadeFaltante: semEstoque.quantidadeFaltante,
+            }]}
+            selecionados={selecionadosProducaoDetalhe}
+            onToggle={handleToggleSelecaoProducaoDetalhe}
+            ocultarNome={!mostrarNome}
+          />
+        )}
+      </div>
+    );
+  };
+
   const handleToggleSelecaoProducaoDetalhe = (produtoId: string) => {
     setSelecionadosProducaoDetalhe((prev) => {
       const next = new Set(prev);
@@ -1411,15 +1521,27 @@ export default function DetalheOrcamentoPage() {
     pagamento: "recibo-pagamento",
   };
 
-  const handleDownloadAny = (
-    kind: "pdf" | "reciboSinal" | "multa" | "estorno" | "pagamento",
-  ) => {
+  const handleDownloadAny = (kind: DocumentoKind) => {
     if (!id) return;
     if (kind === "pdf") {
       handleDownloadPdf();
       return;
     }
     navigate(`/orcamentos/${id}/${PREVIEW_ROUTE[kind]}`);
+  };
+
+  // RN-NOVA-3 (#317) — rota de preview do "Preview" unificado do header, distinta de
+  // handleDownloadAny (que baixa o PDF direto via blob) — aqui o PDF também abre em tela de
+  // preview própria, igual aos outros 4 documentos.
+  const PREVIEW_ROUTE_ALL: Record<DocumentoKind, string> = {
+    pdf: "preview",
+    ...PREVIEW_ROUTE,
+  };
+
+  const handlePreviewKind = (kind: DocumentoKind) => {
+    if (!id) return;
+    setModal(null);
+    navigate(`/orcamentos/${id}/${PREVIEW_ROUTE_ALL[kind]}`);
   };
 
   if (loading) {
@@ -1446,8 +1568,17 @@ export default function DetalheOrcamentoPage() {
   const meta = STATUS_META[status] || STATUS_META.RASCUNHO;
   const actionLabel = ACTION_LABEL[status];
   const nextHint = NEXT_HINT[status];
-  const finalizado = status === "PAGO" || status === "CANCELADO";
-  const cancelavel = status !== "PAGO" && status !== "CANCELADO";
+  // RN-NOVA-10 (V0.10.0, #466) — terminal da timeline passou de PAGO para ENTREGUE; mesmo achado
+  // do ACTION_LABEL/NEXT_HINT acima, corrigido junto.
+  const finalizado = status === "ENTREGUE" || status === "CANCELADO";
+  // Achado da suíte QA (V0.10.0): a correção acima do #466 replicou o find-replace PAGO→ENTREGUE
+  // também aqui, mas `cancelavel` não segue o mesmo conceito de "status terminal" de `finalizado`
+  // — `cancelKind()` (abaixo) sempre tratou ENTREGUE e PAGO como igualmente canceláveis (ambos
+  // caem no fluxo "justificativa", CANCEL_KIND_HINT inclusive, nenhum dos dois nunca mudou), o
+  // recurso de cancelar um pedido já entregue com justificativa é anterior a este pocket e não
+  // fazia parte do escopo de RN-NOVA-10 (que só reordena a timeline). Bloquear cancelamento só
+  // quando já CANCELADO — não há status realmente "sem volta" antes disso.
+  const cancelavel = status !== "CANCELADO";
 
   const sinalRecebido = ["SINAL_PAGO", "EM_PRODUCAO", "FINALIZADO", "ENTREGUE", "PAGO"].includes(status);
   const restante = (orcamento.total || 0) - (orcamento.valorSinal || 0);
@@ -1465,6 +1596,16 @@ export default function DetalheOrcamentoPage() {
   // (N)". Itens com producaoVinculadaId preenchido (RN-NOVA-26) mostram "Visualizar produção" no
   // próprio card, não entram aqui.
   const itensPendentesSemVinculo = itensSemEstoque.filter((i) => !i.producaoVinculadaId);
+
+  // RN-NOVA-3 (#317) — mesma lista que alimenta DownloadsCard, reaproveitada pelo "Preview" do header.
+  // Achado do teste manual (V0.10.0) — reverte a regra original de #317 ("pula direto com 1
+  // documento disponível"): a modal agora sempre abre, mesmo com 1 documento só, a pedido
+  // explícito do usuário.
+  const documentosParaPreview = documentosDisponiveis(orcamento);
+  const handleClickPreview = () => {
+    if (documentosParaPreview.length === 0) return;
+    setModal("preview");
+  };
 
   // RN-ORC-VINC-02 ponto 2 (P-F005) — intercepta só a transição real para EM_PRODUCAO
   // (precisaVincularProducao já restringe aos 2 caminhos que levam direto pra lá) e só quando ainda
@@ -1531,13 +1672,15 @@ export default function DetalheOrcamentoPage() {
           >
             {duplicando ? "Duplicando..." : "Duplicar"}
           </Button>
-          <Button
-            variant="ghost"
-            icon={<FileText size={18} />}
-            onClick={() => navigate(`/orcamentos/${orcamento.id}/preview`)}
-          >
-            Ver preview do PDF
-          </Button>
+          {documentosParaPreview.length > 0 && (
+            <Button
+              variant="ghost"
+              icon={<FileText size={18} />}
+              onClick={handleClickPreview}
+            >
+              Preview
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1549,7 +1692,15 @@ export default function DetalheOrcamentoPage() {
           </div>
           <Timeline current={status} />
 
-          {!finalizado && (
+          {/* Achado da suíte QA (V0.10.0): esta linha misturava 2 ações independentes (cancelar /
+              avançar status) sob um único gate `!finalizado` — fazia sentido enquanto os dois
+              ficavam indisponíveis juntos no status terminal antigo (PAGO), mas com `cancelavel`
+              corrigido acima (só bloqueia CANCELADO, cancelKind() sempre tratou ENTREGUE como
+              cancelável com justificativa) o gate por `finalizado` escondia "Cancelar orçamento"
+              de novo mesmo quando `cancelavel` já dizia que devia aparecer. `actionLabel` já é
+              undefined em status finalizado (sem entrada em ACTION_LABEL), então não precisa de
+              proteção própria aqui. */}
+          {(cancelavel || actionLabel) && (
             <div className="mt-[30px] flex flex-wrap items-center justify-between gap-[18px] border-t border-line pt-[22px]">
               {cancelavel ? (
                 <div className="flex flex-col items-start gap-1.5">
@@ -1733,25 +1884,40 @@ export default function DetalheOrcamentoPage() {
                     ? "1 item com estoque insuficiente"
                     : `${itensPendentesSemVinculo.length} itens com estoque insuficiente`}
                 </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={selecionadosProducaoDetalhe.size === 0}
-                  onClick={() => {
-                    setFormDataInicioProducaoDetalhe("");
-                    setFormDataTerminoProducaoDetalhe("");
-                    setFormObsProducaoDetalhe("");
-                    setFormErroProducaoDetalhe(null);
-                    setModalCriarProducaoDetalhe(true);
-                  }}
-                >
-                  <Factory size={14} />
-                  Criar produção{selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* #465 — quando já existe produção vinculada (não-terminal), sincronizar é
+                      preferível a criar outra: evita duplicar produção pro mesmo pedido. */}
+                  {orcamento.producoesVinculadas.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={selecionadosProducaoDetalhe.size === 0 || criandoProducaoDetalhe}
+                      onClick={handleSincronizarProducaoExistente}
+                    >
+                      <Factory size={14} />
+                      Vincular à {orcamento.producoesVinculadas[0].identificadorProducao}
+                      {selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={selecionadosProducaoDetalhe.size === 0}
+                    onClick={() => {
+                      setFormDataInicioProducaoDetalhe("");
+                      setFormDataTerminoProducaoDetalhe("");
+                      setFormObsProducaoDetalhe("");
+                      setFormErroProducaoDetalhe(null);
+                      setModalCriarProducaoDetalhe(true);
+                    }}
+                  >
+                    <Factory size={14} />
+                    Criar produção{selecionadosProducaoDetalhe.size > 0 ? ` (${selecionadosProducaoDetalhe.size})` : ""}
+                  </Button>
+                </div>
               </div>
             )}
             {orcamento.itens.map((it, i) => {
-              const semEstoque = itensSemEstoque.find((s) => s.produtoId === it.produtoId);
               return (
                 <div key={i} className="flex items-start gap-3">
                   <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
@@ -1778,7 +1944,10 @@ export default function DetalheOrcamentoPage() {
                     </div>
                     <EstoqueTags
                       className="mt-1.5"
-                      fracionavel={!it.algumInsumoNaoFracionavel}
+                      // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — antes usava
+                      // !algumInsumoNaoFracionavel (proxy indireto, campo de gate de negócio, não
+                      // o fracionável de verdade do Produto); agora lê o campo correto, ao vivo.
+                      fracionavel={it.fracionavel ?? true}
                       permitirEstoqueNegativo={it.permitirEstoqueNegativo}
                       estoqueAtual={it.estoqueAtual}
                       variant="busca"
@@ -1799,35 +1968,13 @@ export default function DetalheOrcamentoPage() {
                         </span>
                       ))}
                     </div>
-                    {semEstoque && (
-                      <div className="mt-2">
-                        {semEstoque.producaoVinculadaId ? (
-                          // RN-NOVA-26 (#387) — já existe produção não-terminal cobrindo este
-                          // produto especificamente: mostra a produção certa, não uma navegação
-                          // genérica pra criar outra.
-                          <VinculoAtivoBadge
-                            label="Visualizar produção"
-                            onClick={() => navigate(`/producao/${semEstoque.producaoVinculadaId}`)}
-                          />
-                        ) : (
-                          // RN-NOVA-25 (#319+376) — checkbox no lugar do botão individual sem
-                          // vínculo (ORC-028, comportamento substituído nesta versão): a ação real
-                          // fica no "Criar produção (N)" agregado, logo acima da lista de itens.
-                          <SelecaoProducaoEstoque
-                            itens={[{
-                              produtoId: semEstoque.produtoId,
-                              nomeProduto: semEstoque.nomeProduto,
-                              estoqueAtual: semEstoque.estoqueAtual,
-                              quantidadeNecessaria: semEstoque.quantidadeSolicitada,
-                              quantidadeFaltante: semEstoque.quantidadeFaltante,
-                            }]}
-                            selecionados={selecionadosProducaoDetalhe}
-                            onToggle={handleToggleSelecaoProducaoDetalhe}
-                            ocultarNome
-                          />
-                        )}
-                      </div>
-                    )}
+                    {renderStatusEstoque(it.produtoId, false)}
+                    {/* Achado do teste manual (V0.10.0) — Customização também é produzível; cada
+                        uma pode ter seu próprio status de estoque/vínculo, independente do produto
+                        principal do item. */}
+                    {it.customizacoes.map((c, k) => (
+                      <div key={`custom-estoque-${k}`}>{renderStatusEstoque(c.produtoId, true)}</div>
+                    ))}
                   </div>
                   <div className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">
                     {BRL(it.subtotal)}
@@ -1943,6 +2090,35 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {/* Modais */}
+      {modal === "preview" && (
+        <ModalShell
+          open
+          onClose={() => setModal(null)}
+          title="Qual documento você quer ver?"
+          subtitle={`${documentosParaPreview.length} documentos disponíveis para este orçamento.`}
+          icon={<FileText size={15} />}
+        >
+          <div className="flex flex-col gap-[9px]">
+            {documentosParaPreview.map((doc) => (
+              <button
+                key={doc.kind}
+                type="button"
+                onClick={() => handlePreviewKind(doc.kind)}
+                className="flex items-center gap-3 rounded-[11px] border border-line bg-cream px-3.5 py-3 text-left transition-colors duration-150 hover:border-teal hover:bg-teal/[0.05]"
+              >
+                <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+                  {doc.icon}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-dark">{doc.label}</span>
+                  <span className="block text-xs text-muted">{doc.descricao}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </ModalShell>
+      )}
+
       {modal === "sinal" && (
         <ModalSinal
           orcamento={orcamento}
@@ -1969,19 +2145,27 @@ export default function DetalheOrcamentoPage() {
       {modal === "vincularProducao" && (
         <ModalVincularProducao
           onClose={() => {
-            const viaTransicao = vinculoViaTransicao;
+            // Achado do teste manual (V0.10.0) — reverte RN-ORC-VINC-02 ponto 2: fechar/cancelar a
+            // modal (X, clique fora, "Fechar") não avança mais o status sozinho. Avançar sem
+            // vincular passa a ser uma ação explícita (botão "Avançar sem vincular" abaixo), nunca
+            // mais um efeito colateral de fechar por engano.
             setModal(null);
             setVinculoViaTransicao(false);
-            // RN-ORC-VINC-02 ponto 2 — ignorar/fechar a modal nunca bloqueia a transição: se ela foi
-            // aberta interceptando o clique em "avançar", fechar sem vincular completa a transição
-            // do mesmo jeito.
-            if (viaTransicao) handleAvancar();
           }}
           onSimular={handleSimularVincularProducao}
           onConfirmar={handleVincularProducao}
           onCriarNova={handleCriarProducaoNova}
           confirmando={vinculandoProducao}
           jaVinculadasIds={producoesVinculadas.map((v) => v.producaoId)}
+          onAvancarSemVincular={
+            vinculoViaTransicao
+              ? () => {
+                  setModal(null);
+                  setVinculoViaTransicao(false);
+                  handleAvancar();
+                }
+              : undefined
+          }
         />
       )}
 

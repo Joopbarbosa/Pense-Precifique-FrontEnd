@@ -13,6 +13,15 @@ import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo
  * não-fracionável). Fix confirmado em código: `display` é useState inicializado uma única vez,
  * nunca resincronizado por prop. Não existe campo equivalente dentro do próprio
  * FormInsumoPage.tsx — por isso este teste dirige a tela de Produto, não a de Insumo.
+ *
+ * [Atualização V0.10.0 — #338/#468] Premissa do cenário original mudou: na época, "0,25" digitado
+ * num insumo não-fracionável DEVIA aparecer normalmente no campo (bloqueio só existia ao salvar,
+ * RN-006) — esse era o próprio escopo do bug 025 (cosmético, não de validação). #338/#468
+ * mudaram essa regra deliberadamente: para insumo não-fracionável, `QtyInput` agora filtra
+ * ","/"."/"/" já durante a digitação (`permitidos = /[^\d]/g`, `CadastrarProdutoPage.tsx`), não
+ * só no submit — usuária pediu explicitamente que o bloqueio acontecesse "ao digitar", não só ao
+ * salvar. O teste abaixo foi ajustado para essa regra nova; o insumo fracionável continua sem
+ * bloqueio de "," (não regride).
  */
 test.describe('Cenário 228 — Regressão bug 025/0,25 na ficha técnica (#186)', () => {
   let insumoNaoFracId: string
@@ -33,7 +42,7 @@ test.describe('Cenário 228 — Regressão bug 025/0,25 na ficha técnica (#186)
     await inativarInsumo(request, token, insumoFracId)
   })
 
-  test('digitar "0,25" no campo de quantidade exibe "0,25" — insumo fracionável e não-fracionável', async ({ page, request }) => {
+  test('digitar "0,25" — insumo fracionável mantém "0,25", não-fracionável filtra para "025" (#338/#468)', async ({ page, request }) => {
     const token = await apiLogin(request)
     const insumoNaoFrac = await request.get(`http://localhost:8080/insumos/${insumoNaoFracId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -49,14 +58,15 @@ test.describe('Cenário 228 — Regressão bug 025/0,25 na ficha técnica (#186)
 
     const busca = page.getByPlaceholder('Buscar insumo ou produto...')
 
-    // insumo não-fracionável — regressão original do bug 025
+    // insumo não-fracionável — #338/#468 (V0.10.0) passaram a filtrar ","/"."/"/" já na digitação
+    // (antes só bloqueava ao salvar, regressão original do bug 025) — "," some, dígitos ficam.
     await busca.fill(insumoNaoFrac.nome)
     await page.getByRole('button', { name: new RegExp(insumoNaoFrac.nome) }).first().click()
     const linhaNaoFrac = page.locator('div.grid.animate-row-in', { hasText: insumoNaoFrac.nome })
     const inputNaoFrac = linhaNaoFrac.locator('input')
     await inputNaoFrac.fill('')
     await inputNaoFrac.pressSequentially('0,25')
-    await expect(inputNaoFrac).toHaveValue('0,25')
+    await expect(inputNaoFrac).toHaveValue('025')
 
     // insumo fracionável — mesmo campo, não deve truncar tampouco
     await busca.fill(insumoFrac.nome)

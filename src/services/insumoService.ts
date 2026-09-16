@@ -1,12 +1,21 @@
 import api from './api'
-import type { BaixaManualInsumoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse, ResolverVinculosInsumoRequest } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoContagensResponse, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse, ResolverVinculosInsumoRequest } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const insumoService = {
-  listar: async (page: number, size = 20, busca?: string): Promise<PageResponse<InsumoResponse>> => {
+  // #336 (V0.10.0) — `ativo` filtra server-side (era client-side sobre a janela paginada, causa
+  // raiz do bug original de #336: insumo inativado fora da 1ª página não aparecia no filtro).
+  listar: async (page: number, size = 20, busca?: string, ativo?: boolean): Promise<PageResponse<InsumoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
     if (busca) params.busca = busca
+    if (ativo != null) params.ativo = ativo
     const response = await api.get('/insumos', { params })
+    return response.data
+  },
+
+  // RN-NOVA-4 (V0.10.0, #336) — contadores por filtro, agregados no backend.
+  contagens: async (): Promise<InsumoContagensResponse> => {
+    const response = await api.get('/insumos/contagens')
     return response.data
   },
 

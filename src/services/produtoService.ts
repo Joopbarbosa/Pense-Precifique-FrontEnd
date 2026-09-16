@@ -1,15 +1,25 @@
 import api from './api'
-import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
+import type { ProdutoResponse, ProdutoDetalheResponse, ProdutoRequest, ProdutoContagensResponse, BaixaManualProdutoRequest, MovimentacaoProdutoResponse, PrecoSugeridoResponse, CatalogoVinculadoResponse, ComponenteVinculadoResponse, ResolverVinculosProdutoRequest } from '../types/produto'
 import type { InsumoResponse } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const produtoService = {
-  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
+  // #459 (V0.10.0, parent #336) — ativo filtra server-side (era sem filtro nenhum: a categoria
+  // "Inativos" mostrava a mesma lista que "Todos", mesma classe de bug do #336 original).
+  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean, ativo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
     if (tipo) params.tipo = tipo
     if (busca) params.busca = busca
     if (semCatalogo) params.semCatalogo = true
+    if (ativo != null) params.ativo = ativo
     const response = await api.get('/produtos', { params })
+    return response.data
+  },
+
+  // RN-NOVA-4 (V0.10.0, #336) — contadores por categoria (badges de ListaProdutosPage.tsx).
+  // Endpoint já existia (Frente 4/P-BE-CONSOLIDADO-001), nunca tinha sido consumido pelo frontend.
+  contagens: async (): Promise<ProdutoContagensResponse> => {
+    const response = await api.get('/produtos/contagens')
     return response.data
   },
 
@@ -59,8 +69,10 @@ export const produtoService = {
     return response.data.content
   },
 
+  // RN-NOVA-8 (V0.10.0, #462, altera PDT-015) — sem filtro de tipo: Produto e Customização, ambos
+  // ativos, agora podem ser componente de ficha técnica. Antes só tipo=PRODUTO.
   buscarProdutosComponente: async (busca: string): Promise<ProdutoResponse[]> => {
-    const response = await api.get('/produtos', { params: { page: 0, size: 20, tipo: 'PRODUTO', busca, sort: 'nome' } })
+    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome' } })
     return response.data.content
   },
 

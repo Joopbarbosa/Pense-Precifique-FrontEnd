@@ -69,6 +69,34 @@ export interface ProducaoResumo {
   alertasInsumos: AlertaInsumo[]
   historicoStatus: HistoricoStatus[]
   orcamentosVinculados: ProducaoOrcamentoVinculo[]
+  // #470 (V0.10.0) — achado do Frontend: faltava na listagem (já existia no Detalhe), necessário
+  // pra decidir a opção "Desagrupar" no menu de 3 pontinhos sem round-trip por linha.
+  tipoOrigem: string | null
+}
+
+// RN-NOVA-4 (V0.10.0, #336) — GET /producoes/contagens, badges de filtro de ListaProducaoPage.tsx.
+export interface ProducaoContagensResponse {
+  total: number
+  aguardandoInicio: number
+  emAndamento: number
+  travada: number
+  finalizada: number
+  cancelada: number
+  naoRealizada: number
+}
+
+// RN-NOVA-5 (V0.10.0, #450) — POST /producoes/{id}/desagrupar.
+export interface DesagruparProducaoRequest {
+  itens: {
+    produtoId: string
+    estadoDestino: 'AGUARDANDO_INICIO' | 'EM_ANDAMENTO'
+    confirmarEstoqueNegativoInsumoIds?: string[]
+  }[]
+}
+
+export interface DesagruparProducaoResponse {
+  producoesNovas: ProducaoDetalhe[]
+  producaoOriginal: ProducaoDetalhe
 }
 
 export interface ProducaoDetalhe extends ProducaoResumo {

@@ -129,17 +129,19 @@ export default function FormInsumoPage() {
   const custoUnit = editando && custoUnitarioExistente !== null
     ? custoUnitarioExistente
     : (qComprada > 0 ? preco / qComprada : null)
+  // #458 (V0.10.0) — sempre 2 casas com arredondamento matemático padrão (antes: até 3 casas
+  // quando < R$0,10, sem RN que justifique casa extra nesse caso).
   const custoFmt = custoUnit != null
-    ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: custoUnit < 0.1 ? 3 : 2, maximumFractionDigits: 3 })
+    ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '—'
 
-  // O insumo nasce com a compra inicial já registrada — o backend cria o insumo
-  // e a movimentação de ENTRADA/COMPRA em uma única chamada (RN-056).
-  const usaLote = !editando && preco > 0 && qComprada > 0
+  // RN-NOVA-1 (V0.10.0, #442) — cadastro só calcula/exibe o custo unitário; não
+  // grava movimentação nem popula estoque. Estoque nasce em 0, só muda por
+  // entrada manual ou compra de lote (telas separadas, pós-cadastro).
   const precoValido = preco > 0
   const qtdValida = qComprada > 0
-  const precoErro = !editando && precoTocado && !precoValido ? 'Preço total da compra é obrigatório' : undefined
-  const qtdErro = !editando && qtdTocado && !qtdValida ? 'Quantidade comprada é obrigatória' : undefined
+  const precoErro = !editando && precoTocado && !precoValido ? 'Custo do Insumo é obrigatório' : undefined
+  const qtdErro = !editando && qtdTocado && !qtdValida ? 'Quantidade é obrigatória' : undefined
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && num(estoque) < 0
   const estoqueNegativoErro = bloqueioEstoqueNegativo
@@ -345,42 +347,27 @@ export default function FormInsumoPage() {
 
         {/* SEÇÃO 3 — Estoque e custo */}
         <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="3" title="Estoque e custo" subtitle={editando ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe a compra inicial para calcular o custo unitário automaticamente.'} />
+          <SectionTitle number="3" title="Estoque e custo" subtitle={editando ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe o custo e a quantidade para calcular o custo unitário automaticamente.'} />
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            <Field
-              label="Quantidade em estoque *"
-              hint={
-                editando
-                  ? 'O estoque só muda via baixa manual ou compra de lote.'
-                  : usaLote
-                    ? `O estoque inicial será definido pela quantidade comprada (${qComprada} ${unLabel(unidade)}).`
-                    : 'Informe o preço e a quantidade da compra para calcular o custo unitário.'
-              }
-            >
-              <div className="relative">
-                <input
-                  placeholder="100"
-                  readOnly={editando || usaLote}
-                  {...numBind(usaLote ? qtdCompra : estoque, usaLote ? () => {} : setEstoque)}
-                  className={clsx(inputBase, 'pr-16', (editando || usaLote) && 'bg-cream text-subtle')}
-                />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                  {unLabel(unidade)}
-                </span>
-              </div>
-            </Field>
-            <Field label="Estoque mínimo para alerta" opt>
-              <div className="relative">
-                <input placeholder="10" {...numBind(minimo, setMinimo)} className={clsx(inputBase, 'pr-16')} />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                  {unLabel(unidade)}
-                </span>
-              </div>
-            </Field>
+            {editando && (
+              <Field label="Quantidade em estoque *" hint="O estoque só muda via baixa manual ou compra de lote.">
+                <div className="relative">
+                  <input
+                    placeholder="100"
+                    readOnly
+                    {...numBind(estoque, setEstoque)}
+                    className={clsx(inputBase, 'pr-16 bg-cream text-subtle')}
+                  />
+                  <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
+                    {unLabel(unidade)}
+                  </span>
+                </div>
+              </Field>
+            )}
 
             {!editando && (
               <>
-                <Field label="Preço total da compra *" erro={precoErro}>
+                <Field label="Custo do Insumo *" erro={precoErro}>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-dim">
                       R$
@@ -393,7 +380,7 @@ export default function FormInsumoPage() {
                     />
                   </div>
                 </Field>
-                <Field label="Quantidade comprada *" erro={qtdErro}>
+                <Field label="Quantidade *" erro={qtdErro}>
                   <div className="relative">
                     <input
                       placeholder="100"
@@ -408,6 +395,15 @@ export default function FormInsumoPage() {
                 </Field>
               </>
             )}
+
+            <Field label="Estoque mínimo para alerta" opt>
+              <div className="relative">
+                <input placeholder="10" {...numBind(minimo, setMinimo)} className={clsx(inputBase, 'pr-16')} />
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
+                  {unLabel(unidade)}
+                </span>
+              </div>
+            </Field>
           </div>
 
           {/* CARD RESULTADO */}
