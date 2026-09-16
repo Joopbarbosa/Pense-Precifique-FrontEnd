@@ -9,6 +9,7 @@ import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import Toast from '../../components/shared/Toast'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { EstoqueTags } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
@@ -628,11 +629,7 @@ export default function ListaProdutosPage() {
     <AppLayout active="produtos" compact>
 
       {/* TOAST */}
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {/* HEADER */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">

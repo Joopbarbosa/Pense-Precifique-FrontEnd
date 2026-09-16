@@ -5,6 +5,7 @@ import {
   PointerSensor, KeyboardSensor, KeyboardCode, useSensor, useSensors,
 } from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent, DragCancelEvent, KeyboardCoordinateGetter, Announcements, ScreenReaderInstructions } from '@dnd-kit/core'
+import Toast from '../shared/Toast'
 
 export interface KanbanColumn {
   id: string
@@ -176,11 +177,7 @@ export default function KanbanBoard<T extends { id: string }>({ columns, items, 
         </DragOverlay>
       </DndContext>
 
-      {toast && (
-        <div role="alert" aria-live="assertive" className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-danger px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(192,73,43,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} variant="error" />
     </div>
   )
 }

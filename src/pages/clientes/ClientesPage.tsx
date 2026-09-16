@@ -6,6 +6,7 @@ import Spinner from '../../components/ui/Spinner'
 import { Pencil, List, Ban, Phone, User, X, Mail, Plus, Users, Search } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import Toast from '../../components/shared/Toast'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
@@ -322,11 +323,7 @@ export default function ClientesPage() {
     <AppLayout active="clientes" compact>
 
       {/* TOAST */}
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {/* HEADER */}
       <div className="mb-2 flex flex-wrap items-start justify-between gap-5">

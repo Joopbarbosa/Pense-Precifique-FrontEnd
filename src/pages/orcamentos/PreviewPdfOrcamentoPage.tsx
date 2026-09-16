@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, StatusBadge, Spinner, EmptyState } from '../../components/ui'
-import { RetryCooldownModal } from '../../components/shared'
+import { RetryCooldownModal, Toast } from '../../components/shared'
 import { ArrowLeft, ArrowRight, ChevronRight, Download, FileWarning } from 'lucide-react'
 import { orcamentoService } from '../../services/orcamentoService'
 import { useToast } from '../../hooks/useToast'
@@ -244,11 +244,7 @@ export default function PreviewPdfOrcamentoPage() {
         onClose={downloadRetry.dispensarErro}
       />
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
     </AppLayout>
   )

@@ -9,6 +9,7 @@ import Spinner from '../../components/ui/Spinner'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import Toast from '../../components/shared/Toast'
 import { EstoqueTags } from '../../components/ui/Badge'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
@@ -867,11 +868,7 @@ export default function ListaInsumosPage() {
     <AppLayout active="insumos" compact>
 
       {/* TOAST */}
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>

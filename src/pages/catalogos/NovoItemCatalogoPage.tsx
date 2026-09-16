@@ -9,6 +9,7 @@ import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
+import Toast from '../../components/shared/Toast'
 import { EstoqueTags } from '../../components/ui/Badge'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
@@ -595,11 +596,7 @@ export default function NovoItemCatalogoPage() {
 
       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
     </AppLayout>
   )
