@@ -1,6 +1,16 @@
 import { APIRequestContext } from '@playwright/test'
 import { API_URL } from './auth'
 
+/**
+ * Achado da suíte QA (RN-NOVA-1/#442, V0.10.0): `POST /insumos` deixou de gerar movimentação de
+ * estoque automática — `estoqueAtual` nasce sempre em `0` (default da entidade), mesmo com
+ * `precoTotalCompraInicial`/`quantidadeCompradaInicial` preenchidos (esses dois campos hoje só
+ * alimentam o cálculo de `custoUnitario`, não mais estoque — ver `decisoes-insumo.md`). Este
+ * helper cria o insumo (para obter `custoUnitario`/id) e, quando `estoqueInicial > 0`, repõe o
+ * estoque de verdade via `POST /lotes-compra` (mesmo mecanismo de `reporEstoque`, abaixo) — sem
+ * essa 2ª chamada, todo spec que dependia de `estoqueInicial > 0` para popular estoque real
+ * silenciosamente passava a testar contra estoque `0`, mascarando o cenário pretendido.
+ */
 export async function criarInsumoComEstoque(
   request: APIRequestContext,
   token: string,
@@ -23,7 +33,18 @@ export async function criarInsumoComEstoque(
   if (!res.ok()) {
     throw new Error(`Falha ao criar insumo de teste: ${res.status()} ${await res.text()}`)
   }
-  return res.json()
+  const insumo = await res.json()
+  if (estoqueInicial > 0) {
+    const loteRes = await request.post(`${API_URL}/lotes-compra`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { itens: [{ insumoId: insumo.id, quantidadeComprada: estoqueInicial, precoTotalPago: 1 }] },
+    })
+    if (!loteRes.ok()) {
+      throw new Error(`Falha ao repor estoque inicial via lote de compra: ${loteRes.status()} ${await loteRes.text()}`)
+    }
+    insumo.estoqueAtual = estoqueInicial
+  }
+  return insumo
 }
 
 /**
@@ -31,6 +52,7 @@ export async function criarInsumoComEstoque(
  * Cenário 226 (RN-NOVA-1, glifo de fração em `ConsumoRealSection`/`DetalheProducaoPage`).
  * Diferente de `criarInsumoComEstoque`, que sempre cria `fracionavel: false`.
  */
+/** Mesmo achado de `criarInsumoComEstoque` (RN-NOVA-1/#442) — repõe estoque real via lote de compra. */
 export async function criarInsumoFracionavel(
   request: APIRequestContext,
   token: string,
@@ -55,7 +77,18 @@ export async function criarInsumoFracionavel(
   if (!res.ok()) {
     throw new Error(`Falha ao criar insumo fracionável de teste: ${res.status()} ${await res.text()}`)
   }
-  return res.json()
+  const insumo = await res.json()
+  if (estoqueInicial > 0) {
+    const loteRes = await request.post(`${API_URL}/lotes-compra`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { itens: [{ insumoId: insumo.id, quantidadeComprada: estoqueInicial, precoTotalPago: 1 }] },
+    })
+    if (!loteRes.ok()) {
+      throw new Error(`Falha ao repor estoque inicial via lote de compra: ${loteRes.status()} ${await loteRes.text()}`)
+    }
+    insumo.estoqueAtual = estoqueInicial
+  }
+  return insumo
 }
 
 /**
