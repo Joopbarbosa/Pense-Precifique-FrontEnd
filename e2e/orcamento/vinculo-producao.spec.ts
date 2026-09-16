@@ -187,9 +187,12 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     await page.getByRole('button', { name: 'Confirmar início', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
 
-    // Fechar/ignorar a modal (botão de texto do rodapé — o X do header do ModalShell também tem
-    // aria-label "Fechar", mesma armadilha documentada em helpers/producao.ts/iniciarProducao).
-    await page.getByRole('button', { name: 'Fechar' }).filter({ hasText: 'Fechar' }).click()
+    // RN-NOVA-13 (V0.10.0, #474) reverteu RN-ORC-VINC-02 ponto 2: fechar a modal sem vincular NÃO
+    // avança mais o status sozinho (achado do teste manual — fechar sem querer avançava o status
+    // e a artesã perdia o ponto de entrada pra vincular depois). "Avançar sem vincular" virou
+    // botão explícito, só visível nesse fluxo de interceptação — é ele que precisa ser clicado
+    // pra continuar provando que o vínculo nunca é bloqueante (RN-ORC-VINC-01, não alterada).
+    await page.getByRole('button', { name: 'Avançar sem vincular', exact: true }).click()
 
     // Timeline sempre renderiza o rótulo de todos os passos (inclusive "Em Produção"), então não
     // serve pra provar a transição — o botão de ação seguinte (ACTION_LABEL) só existe no status novo.

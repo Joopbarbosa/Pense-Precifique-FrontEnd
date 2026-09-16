@@ -140,7 +140,9 @@ test.describe('Cenário 239 — ModalShell nos 4 modais de Orçamento (título a
     await avancarStatusViaApi(request, token, orcamento.id) // ENVIADO -> APROVADO
     await avancarStatusViaApi(request, token, orcamento.id) // APROVADO -> EM_PRODUCAO (sinalAtivo=false)
     await avancarStatusViaApi(request, token, orcamento.id) // EM_PRODUCAO -> FINALIZADO
-    const resEntregue = await avancarStatusViaApi(request, token, orcamento.id) // FINALIZADO -> ENTREGUE
+    // RN-NOVA-10 (V0.10.0, #466) inverteu a ordem: FINALIZADO -> PAGO -> ENTREGUE (era -> ENTREGUE -> PAGO).
+    await avancarStatusViaApi(request, token, orcamento.id) // FINALIZADO -> PAGO
+    const resEntregue = await avancarStatusViaApi(request, token, orcamento.id) // PAGO -> ENTREGUE
     expect((await resEntregue.json()).status).toBe('ENTREGUE')
 
     await login(page)

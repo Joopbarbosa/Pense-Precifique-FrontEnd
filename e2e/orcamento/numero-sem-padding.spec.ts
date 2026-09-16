@@ -76,8 +76,9 @@ test.describe('Cenários 237-238 — RN-053: número sem zero-padding em PDFs/re
     await avancarStatusViaApi(request, token, orcamentoPago.id, { metodoSinalRecebido: 'PIX' }) // -> SINAL_PAGO
     await avancarStatusViaApi(request, token, orcamentoPago.id) // SINAL_PAGO -> EM_PRODUCAO
     await avancarStatusViaApi(request, token, orcamentoPago.id) // EM_PRODUCAO -> FINALIZADO
-    await avancarStatusViaApi(request, token, orcamentoPago.id) // FINALIZADO -> ENTREGUE
-    const resPago = await avancarStatusViaApi(request, token, orcamentoPago.id) // ENTREGUE -> PAGO
+    // RN-NOVA-10 (V0.10.0, #466) inverteu a ordem: FINALIZADO -> PAGO -> ENTREGUE (era -> ENTREGUE -> PAGO)
+    // — 1 chamada já basta pra chegar em PAGO agora, não mais 2.
+    const resPago = await avancarStatusViaApi(request, token, orcamentoPago.id) // FINALIZADO -> PAGO
     expect((await resPago.json()).status).toBe('PAGO')
 
     const numeroPuro = `#${orcamentoPago.numero}`

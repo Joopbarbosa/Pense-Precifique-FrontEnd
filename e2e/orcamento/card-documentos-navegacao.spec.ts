@@ -86,7 +86,12 @@ test.describe('CEN-NOVO-20 — Card Documentos: gate condicional + navegação p
     await expect(page).toHaveURL(new RegExp(`/orcamentos/${orcamento.id}/recibo-pagamento$`))
   })
 
-  test('CEN-NOVO-20c — CANCELADO com multa: "Baixar PDF do orçamento" some, "PDF de multa" navega certo', async ({ page, request }) => {
+  // [Atualização V0.10.0 — #464] Premissa original (CEN-NOVO-20c): "Baixar PDF do orçamento"
+  // sumia sempre que CANCELADO, com ou sem multa. Usuária confirmou que quer os dois documentos
+  // juntos (PDF do orçamento + PDF de multa) quando há multa — `documentosDisponiveis()` deixou
+  // de excluir incondicionalmente o PDF do orçamento por `status === CANCELADO`; sem multa, o
+  // comportamento antigo (nenhum documento) permanece (ORC-CEN-022, não alterado).
+  test('CEN-NOVO-20c (revisado #464) — CANCELADO com multa: os 2 documentos aparecem juntos e navegam certo', async ({ page, request }) => {
     const token = await apiLogin(request)
     const nomeProduto = `QACEN20-Produto-${Date.now()}`
     const produto = await criarProdutoComEstoque(request, token, nomeProduto, 1000)
@@ -106,7 +111,11 @@ test.describe('CEN-NOVO-20 — Card Documentos: gate condicional + navegação p
     await page.goto(`/orcamentos/${orcamento.id}`)
     await expect(page.getByRole('heading', { name: 'Documentos', exact: true })).toBeVisible({ timeout: 5000 })
 
-    await expect(page.getByRole('button', { name: 'Baixar PDF do orçamento', exact: true })).toHaveCount(0)
+    // "Baixar PDF do orçamento" baixa via blob (handleDownloadPdf), não navega — só a visibilidade
+    // importa aqui (mesmo padrão de CEN-NOVO-20a, que também nunca clica nele).
+    await expect(page.getByRole('button', { name: 'Baixar PDF do orçamento', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'PDF de multa', exact: true })).toBeVisible()
+
     await page.getByRole('button', { name: 'PDF de multa', exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`/orcamentos/${orcamento.id}/multa$`))
   })
