@@ -1571,7 +1571,14 @@ export default function DetalheOrcamentoPage() {
   // RN-NOVA-10 (V0.10.0, #466) — terminal da timeline passou de PAGO para ENTREGUE; mesmo achado
   // do ACTION_LABEL/NEXT_HINT acima, corrigido junto.
   const finalizado = status === "ENTREGUE" || status === "CANCELADO";
-  const cancelavel = status !== "ENTREGUE" && status !== "CANCELADO";
+  // Achado da suíte QA (V0.10.0): a correção acima do #466 replicou o find-replace PAGO→ENTREGUE
+  // também aqui, mas `cancelavel` não segue o mesmo conceito de "status terminal" de `finalizado`
+  // — `cancelKind()` (abaixo) sempre tratou ENTREGUE e PAGO como igualmente canceláveis (ambos
+  // caem no fluxo "justificativa", CANCEL_KIND_HINT inclusive, nenhum dos dois nunca mudou), o
+  // recurso de cancelar um pedido já entregue com justificativa é anterior a este pocket e não
+  // fazia parte do escopo de RN-NOVA-10 (que só reordena a timeline). Bloquear cancelamento só
+  // quando já CANCELADO — não há status realmente "sem volta" antes disso.
+  const cancelavel = status !== "CANCELADO";
 
   const sinalRecebido = ["SINAL_PAGO", "EM_PRODUCAO", "FINALIZADO", "ENTREGUE", "PAGO"].includes(status);
   const restante = (orcamento.total || 0) - (orcamento.valorSinal || 0);
@@ -1685,7 +1692,15 @@ export default function DetalheOrcamentoPage() {
           </div>
           <Timeline current={status} />
 
-          {!finalizado && (
+          {/* Achado da suíte QA (V0.10.0): esta linha misturava 2 ações independentes (cancelar /
+              avançar status) sob um único gate `!finalizado` — fazia sentido enquanto os dois
+              ficavam indisponíveis juntos no status terminal antigo (PAGO), mas com `cancelavel`
+              corrigido acima (só bloqueia CANCELADO, cancelKind() sempre tratou ENTREGUE como
+              cancelável com justificativa) o gate por `finalizado` escondia "Cancelar orçamento"
+              de novo mesmo quando `cancelavel` já dizia que devia aparecer. `actionLabel` já é
+              undefined em status finalizado (sem entrada em ACTION_LABEL), então não precisa de
+              proteção própria aqui. */}
+          {(cancelavel || actionLabel) && (
             <div className="mt-[30px] flex flex-wrap items-center justify-between gap-[18px] border-t border-line pt-[22px]">
               {cancelavel ? (
                 <div className="flex flex-col items-start gap-1.5">
