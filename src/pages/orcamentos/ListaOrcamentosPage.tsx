@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
-import { ExternalLink, Download, Plus, Filter, Search, Calendar, ArrowUp, ArrowDown } from 'lucide-react'
+import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
+import SortableHeader from '../../components/shared/SortableHeader'
 import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
 import { STATUS_LABEL } from '../../constants'
@@ -58,32 +59,6 @@ const SORT_BACKEND_FIELD: Record<Exclude<SortField, 'status'>, string> = {
   cliente: 'cliente.nome',
   total: 'total',
   createdAt: 'createdAt',
-}
-
-// Mesmo componente/contrato visual de SortableHeader em ListaProducaoPage.tsx:150-171 — replicado
-// aqui em vez de extraído para components/shared: só 2 consumidores hoje, extrair sem um 3º caso
-// de uso real seria generalização especulativa.
-function SortableHeader({ label, field, activeField, dir, onSort }: {
-  label: string
-  field: SortField
-  activeField: SortField | null
-  dir: 'asc' | 'desc'
-  onSort: (field: SortField) => void
-}) {
-  const ativo = activeField === field
-  return (
-    <button
-      type="button"
-      onClick={() => onSort(field)}
-      className={clsx(
-        'flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[11.5px] font-semibold uppercase tracking-[0.04em] transition-colors duration-100',
-        ativo ? 'text-body' : 'text-faint hover:text-body'
-      )}
-    >
-      {label}
-      {ativo && (dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
-    </button>
-  )
 }
 
 function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {

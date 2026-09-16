@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
-import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, ArrowUp, ArrowDown, Calendar, Eye, EyeOff, Columns3, Ungroup, Rows3, AlignJustify } from 'lucide-react'
+import { Plus, Search, Factory, AlertTriangle, Play, Pencil, Ban, PauseCircle, CheckCircle2, RotateCcw, Layers, Check, List, LayoutGrid, Calendar, Eye, EyeOff, Columns3, Ungroup, Rows3, AlignJustify } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
+import SortableHeader from '../../components/shared/SortableHeader'
+import Toast from '../../components/shared/Toast'
 import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { extractApiError } from '../../utils/apiError'
@@ -208,29 +210,6 @@ function fmtData(iso: string | null): string {
 }
 
 type SortField = 'dataInicio' | 'estado' | 'produto' | 'quantidade'
-
-function SortableHeader({ label, field, activeField, dir, onSort }: {
-  label: string
-  field: SortField
-  activeField: SortField | null
-  dir: 'asc' | 'desc'
-  onSort: (field: SortField) => void
-}) {
-  const ativo = activeField === field
-  return (
-    <button
-      type="button"
-      onClick={() => onSort(field)}
-      className={clsx(
-        'flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[11.5px] font-semibold uppercase tracking-[0.04em] transition-colors duration-100',
-        ativo ? 'text-body' : 'text-faint hover:text-body'
-      )}
-    >
-      {label}
-      {ativo && (dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
-    </button>
-  )
-}
 
 function AlertaIcones({ producao, size = 16 }: { producao: ProducaoResumo; size?: number }) {
   const alertasRelevantes = producao.alertasInsumos.filter(a => a.situacao !== 'SUFICIENTE')
@@ -1044,11 +1023,7 @@ export default function ListaProducaoPage() {
         </>
       )}
 
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input bg-teal px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {detalheResumido && (
         <ModalDetalheResumidoProducao producao={detalheResumido} onClose={() => setDetalheResumido(null)} />

@@ -7,7 +7,8 @@ import EmptyState from '../../components/ui/EmptyState'
 import ModalShell from '../../components/ui/ModalShell'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Files, Save, Pencil, Copy, Power, Plus, Search, ArrowDown } from 'lucide-react'
+import { Files, Save, Pencil, Copy, Power, Plus, Search } from 'lucide-react'
+import SortableHeader from '../../components/shared/SortableHeader'
 import { catalogoService } from '../../services/catalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import { extractApiError } from '../../utils/apiError'
@@ -351,25 +352,19 @@ export default function ListaCatalogosPage() {
         <>
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <div className="hidden grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
-              {COLUNAS.map((col, k) => {
-                const ativa = col.campo != null && ordenarPor === col.campo
-                return (
-                  <div
-                    key={k}
-                    onClick={col.campo ? () => handleSort(col.campo!) : undefined}
-                    className={clsx(
-                      'flex select-none items-center gap-1 text-[11.5px] font-semibold uppercase tracking-[0.04em]',
-                      col.campo ? 'cursor-pointer' : 'cursor-default',
-                      ativa ? 'text-teal' : 'text-dim'
-                    )}
-                  >
-                    {col.label}
-                    {ativa && (
-                      <ArrowDown size={11} className={direcao === 'ASC' ? 'rotate-180' : ''} />
-                    )}
-                  </div>
-                )
-              })}
+              {COLUNAS.map((col, k) => (
+                <div key={k} className={clsx(!col.campo && 'flex items-center text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim')}>
+                  {col.campo ? (
+                    <SortableHeader
+                      label={col.label}
+                      field={col.campo}
+                      activeField={ordenarPor}
+                      dir={direcao === 'ASC' ? 'asc' : 'desc'}
+                      onSort={handleSort}
+                    />
+                  ) : col.label}
+                </div>
+              ))}
             </div>
 
             {catalogos.map((c, i) => (
