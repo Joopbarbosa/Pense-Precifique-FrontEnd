@@ -10,7 +10,7 @@ import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
 import PreviewPdfOrcamentoPage from '../pages/orcamentos/PreviewPdfOrcamentoPage'
 import ReciboSinalPage from '../pages/orcamentos/ReciboSinalPage'
-import PreviewMultaPage from '../pages/orcamentos/PreviewMultaPage'
+import ReciboMultaPage from '../pages/orcamentos/ReciboMultaPage'
 import ReciboPagamentoPage from '../pages/orcamentos/ReciboPagamentoPage'
 import ReciboEstornoPage from '../pages/orcamentos/ReciboEstornoPage'
 import ListaInsumosPage from '../pages/insumos/ListaInsumosPage'
@@ -50,7 +50,7 @@ export const router = createBrowserRouter([
       { path: '/orcamentos/:id',                      element: <DetalheOrcamentoPage /> },
       { path: '/orcamentos/:id/preview',              element: <PreviewPdfOrcamentoPage /> },
       { path: '/orcamentos/:id/recibo-sinal',         element: <ReciboSinalPage /> },
-      { path: '/orcamentos/:id/multa',                element: <PreviewMultaPage /> },
+      { path: '/orcamentos/:id/multa',                element: <ReciboMultaPage /> },
       { path: '/orcamentos/:id/recibo-pagamento',     element: <ReciboPagamentoPage /> },
       { path: '/orcamentos/:id/recibo-estorno',       element: <ReciboEstornoPage /> },
 
