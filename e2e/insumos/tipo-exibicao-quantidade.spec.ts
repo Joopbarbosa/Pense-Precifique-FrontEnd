@@ -50,8 +50,11 @@ test.describe('Cenário 227 — Rótulo e tipoExibicaoQuantidade no formulário 
     await expect(page.getByText('Como exibir a quantidade?')).toBeVisible()
     await page.getByRole('button', { name: 'Fração', exact: true }).click()
 
-    await page.getByLabel(/Preço total da compra/).fill('50,00')
-    await page.getByLabel(/Quantidade comprada/).fill('20')
+    // Rótulos renomeados por #304 (V0.10.0, RN-NOVA-1 refinada): "Preço total da compra"/
+    // "Quantidade comprada" → "Custo do Insumo"/"Quantidade" (cadastro não gera mais entrada de
+    // estoque automática, ver RN-NOVA-1/#442 — o rótulo antigo não fazia mais sentido).
+    await page.getByLabel(/Custo do Insumo/).fill('50,00')
+    await page.getByLabel(/^Quantidade/).fill('20')
 
     await page.getByRole('button', { name: 'Salvar insumo' }).click()
     // regex ancorado em UUID — "/insumos/[^/]+$" também dá match em "/insumos/novo" (a própria

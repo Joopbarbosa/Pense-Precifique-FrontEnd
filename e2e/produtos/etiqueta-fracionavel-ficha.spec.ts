@@ -10,6 +10,15 @@ const API_URL = 'http://localhost:8080'
  * OpenProject #212 — Etiqueta de fracionável na aba Ficha Técnica de Cadastrar/Editar Produto.
  * CEN-NOVO-3/CEN-NOVO-4 (DECISOES_V0.7.md, RN-NOVA-3).
  * `FracionavelBadge` só renderiza quando `ficha.length > 0` (CadastrarProdutoPage.tsx:362-368).
+ *
+ * [Atualização V0.10.0 — #299/RN-NOVA-2] O badge somente-leitura "Produto fracionável"/"Produto
+ * não fracionável" foi substituído por `FracionavelToggle` (par de botões editável, usuária pode
+ * sobrescrever o valor derivado da ficha técnica). Mudanças de contrato do teste: (1) o texto
+ * perdeu o prefixo "Produto" — os botões dizem só "Fracionável"/"Não fracionável"; (2) os DOIS
+ * textos ficam sempre visíveis ao mesmo tempo (é um toggle de 2 opções, não mais um badge de
+ * estado único) — o que diferencia qual é o valor ATUAL é a classe de destaque no botão ativo
+ * (`text-success` quando fracionável, `text-orange` quando não-fracionável), não mais
+ * presença/ausência do texto.
  */
 test.describe('OpenProject #212 — Etiqueta "Produto fracionável"/"Produto não fracionável" na Ficha Técnica', () => {
   let criadosProdutoIds: string[] = []
@@ -41,8 +50,8 @@ test.describe('OpenProject #212 — Etiqueta "Produto fracionável"/"Produto nã
     await page.goto(`/produtos/${produto.id}/editar`)
     await page.getByRole('button', { name: '2 Ficha Técnica' }).click()
 
-    await expect(page.getByText('Produto fracionável', { exact: true })).toBeVisible()
-    await expect(page.getByText('Produto não fracionável', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Fracionável', exact: true })).toHaveClass(/text-success/)
+    await expect(page.getByRole('button', { name: 'Não fracionável', exact: true })).not.toHaveClass(/text-orange/)
   })
 
   test('CEN-NOVO-4 — ao menos um insumo não-fracionável → etiqueta "Produto não fracionável"', async ({ page, request }) => {
@@ -64,7 +73,7 @@ test.describe('OpenProject #212 — Etiqueta "Produto fracionável"/"Produto nã
     await page.goto(`/produtos/${produto.id}/editar`)
     await page.getByRole('button', { name: '2 Ficha Técnica' }).click()
 
-    await expect(page.getByText('Produto não fracionável', { exact: true })).toBeVisible()
-    await expect(page.getByText('Produto fracionável', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Não fracionável', exact: true })).toHaveClass(/text-orange/)
+    await expect(page.getByRole('button', { name: 'Fracionável', exact: true })).not.toHaveClass(/text-success/)
   })
 })
