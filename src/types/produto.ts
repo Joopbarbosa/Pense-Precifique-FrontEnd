@@ -102,12 +102,6 @@ export interface MovimentacaoProdutoResponse {
   createdAt: string
 }
 
-export interface PrecoSugeridoResponse {
-  custoUnitario: number
-  margem: number
-  precoSugerido: number
-}
-
 export interface CatalogoVinculadoResponse {
   id: string
   identificador: string
