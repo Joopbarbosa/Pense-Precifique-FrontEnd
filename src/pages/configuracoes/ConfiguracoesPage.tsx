@@ -4,10 +4,14 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import Toast from '../../components/shared/Toast'
-import { Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings } from 'lucide-react'
+import ModalShell from '../../components/ui/ModalShell'
+import {
+  Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings,
+  Wallet, Banknote, CreditCard, QrCode, Tag, Plus, Percent,
+} from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
-import type { EmpresaResponse, ConfiguracaoResponse } from '../../types/empresa'
+import type { EmpresaResponse, ConfiguracaoResponse, MetodoPagamentoConfiguravelResponse, TipoMetodoPagamento } from '../../types/empresa'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 
@@ -68,9 +72,10 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
 /* ── SubNav ──────────────────────────────────────────────────── */
 
 const SUBABAS = [
-  { id: 'precificacao' as const, label: 'Precificação',      icon: SlidersHorizontal, size: 15 },
-  { id: 'perfil' as const,       label: 'Perfil da empresa', icon: Building2,         size: 17 },
-  { id: 'conta' as const,        label: 'Conta',             icon: ShieldCheck,       size: 17 },
+  { id: 'precificacao' as const, label: 'Precificação',        icon: SlidersHorizontal, size: 15 },
+  { id: 'perfil' as const,       label: 'Perfil da empresa',   icon: Building2,         size: 17 },
+  { id: 'pagamento' as const,    label: 'Métodos de Pagamento', icon: Wallet,           size: 17 },
+  { id: 'conta' as const,        label: 'Conta',               icon: ShieldCheck,       size: 17 },
 ]
 
 type SubAba = typeof SUBABAS[number]['id']
@@ -492,12 +497,264 @@ function ContaSeguranca() {
   )
 }
 
+/* ── MetodosPagamento (#491, V0.12.0) ────────────────────────── */
+//
+// RN-NOVA-15/16/17 — 4 tipos fixos (semeados na criação da conta, sem nome próprio — rótulo vem
+// do `tipo`) + OUTRO de nome livre. Toggle ativo/inativo em qualquer um; taxa da maquininha só em
+// Cartão Crédito/Débito (informativa nesta versão); criação manual só de tipo OUTRO (tentar tipo
+// fixo é sempre rejeitado pelo backend, RN-NOVA-16/CEN-NOVO-12).
+
+const LABEL_TIPO_METODO: Record<TipoMetodoPagamento, string> = {
+  DINHEIRO: 'Dinheiro', PIX: 'Pix', CARTAO_CREDITO: 'Cartão Crédito', CARTAO_DEBITO: 'Cartão Débito', OUTRO: '',
+}
+
+const ICON_TIPO_METODO: Record<TipoMetodoPagamento, React.ReactNode> = {
+  DINHEIRO: <Banknote size={18} />, PIX: <QrCode size={18} />,
+  CARTAO_CREDITO: <CreditCard size={18} />, CARTAO_DEBITO: <CreditCard size={18} />, OUTRO: <Tag size={18} />,
+}
+
+const TIPOS_CARTAO: TipoMetodoPagamento[] = ['CARTAO_CREDITO', 'CARTAO_DEBITO']
+
+function AtivoToggle({ ativo, onChange, disabled }: { ativo: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={ativo}
+      disabled={disabled}
+      onClick={onChange}
+      className={clsx(
+        'relative h-6 w-11 flex-shrink-0 rounded-full border-none transition-colors duration-150 disabled:opacity-50',
+        ativo ? 'bg-teal' : 'bg-line'
+      )}
+    >
+      <span className={clsx(
+        'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-150',
+        ativo ? 'translate-x-[22px]' : 'translate-x-0.5'
+      )} />
+    </button>
+  )
+}
+
+function TaxaMaquininhaModal({ open, onClose, metodo, onSaved }: {
+  open: boolean; onClose: () => void
+  metodo: MetodoPagamentoConfiguravelResponse | null
+  onSaved: (m: MetodoPagamentoConfiguravelResponse) => void
+}) {
+  const [valor, setValor] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (metodo) setValor(metodo.taxaMaquininha != null ? formatMargem(metodo.taxaMaquininha) : '')
+    setErro(null)
+  }, [metodo])
+
+  if (!metodo) return null
+
+  const salvar = async () => {
+    setSalvando(true)
+    setErro(null)
+    try {
+      const atualizado = await empresaService.atualizarMetodoPagamento(metodo.id, { taxaMaquininha: parseDecimal(valor) })
+      onSaved(atualizado)
+      onClose()
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Erro ao salvar a taxa. Tente novamente.'))
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title={`Taxa da maquininha — ${LABEL_TIPO_METODO[metodo.tipo]}`}
+      subtitle="Só informativo nesta versão — não desconta nada do valor recebido."
+      icon={<Percent size={17} />}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+          <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</Button>
+        </div>
+      }
+    >
+      <CfgField label="Taxa cobrada pela operadora">
+        <AffixInput value={valor} onChange={setValor} suffix="%" inputMode="decimal" />
+      </CfgField>
+      {erro && <p className="mt-3 text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+    </ModalShell>
+  )
+}
+
+function NovoMetodoOutroModal({ open, onClose, onCreated }: {
+  open: boolean; onClose: () => void
+  onCreated: (m: MetodoPagamentoConfiguravelResponse) => void
+}) {
+  const [nome, setNome] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  useEffect(() => { if (open) { setNome(''); setErro(null) } }, [open])
+
+  const salvar = async () => {
+    if (!nome.trim()) {
+      setErro('Informe o nome do método.')
+      return
+    }
+    setSalvando(true)
+    setErro(null)
+    try {
+      const criado = await empresaService.criarMetodoPagamento({ tipo: 'OUTRO', nome: nome.trim() })
+      onCreated(criado)
+      onClose()
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Erro ao criar método. Tente novamente.'))
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Novo método de pagamento"
+      subtitle="Ex.: Fiado, Vale-presente."
+      icon={<Tag size={17} />}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+          <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Criando…' : 'Criar método'}</Button>
+        </div>
+      }
+    >
+      <CfgField label="Nome do método">
+        <CfgInput value={nome} onChange={setNome} placeholder="Ex: Fiado" />
+      </CfgField>
+      {erro && <p className="mt-3 text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+    </ModalShell>
+  )
+}
+
+function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }: {
+  metodo: MetodoPagamentoConfiguravelResponse
+  onToggle: () => void
+  onConfigurarTaxa: () => void
+  atualizando: boolean
+}) {
+  const label = metodo.tipo === 'OUTRO' ? (metodo.nome || 'Sem nome') : LABEL_TIPO_METODO[metodo.tipo]
+  const podeConfigurarTaxa = TIPOS_CARTAO.includes(metodo.tipo)
+
+  return (
+    <div className={clsx(
+      'flex items-center justify-between gap-4 rounded-input border-[1.5px] px-4 py-3.5 transition-opacity',
+      metodo.ativo ? 'border-line bg-white' : 'border-line bg-cream opacity-70'
+    )}>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className={clsx('grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]', metodo.ativo ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim')}>
+          {ICON_TIPO_METODO[metodo.tipo]}
+        </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-[14.5px] font-semibold text-dark">{label}</span>
+            {metodo.tipo === 'OUTRO' && (
+              <span className="flex-shrink-0 rounded-full bg-line-soft px-2 py-0.5 text-[10.5px] font-semibold text-subtle">Personalizado</span>
+            )}
+          </div>
+          {podeConfigurarTaxa && (
+            <button onClick={onConfigurarTaxa} className="mt-0.5 border-none bg-transparent p-0 text-[12.5px] font-semibold text-teal underline-offset-2 hover:underline">
+              {metodo.taxaMaquininha != null ? `Taxa: ${formatMargem(metodo.taxaMaquininha)}%` : 'Configurar taxa da maquininha'}
+            </button>
+          )}
+        </div>
+      </div>
+      <AtivoToggle ativo={metodo.ativo} onChange={onToggle} disabled={atualizando} />
+    </div>
+  )
+}
+
+function MetodosPagamento({ metodos, onReload }: {
+  metodos: MetodoPagamentoConfiguravelResponse[]
+  onReload: (novos: MetodoPagamentoConfiguravelResponse[]) => void
+}) {
+  const { toast, setToast } = useToast()
+  const [atualizandoId, setAtualizandoId] = useState<string | null>(null)
+  const [metodoTaxa, setMetodoTaxa] = useState<MetodoPagamentoConfiguravelResponse | null>(null)
+  const [modalNovoAberto, setModalNovoAberto] = useState(false)
+
+  const substituir = (atualizado: MetodoPagamentoConfiguravelResponse) => {
+    onReload(metodos.map(m => m.id === atualizado.id ? atualizado : m))
+  }
+
+  const toggle = async (m: MetodoPagamentoConfiguravelResponse) => {
+    setAtualizandoId(m.id)
+    try {
+      const atualizado = await empresaService.atualizarMetodoPagamento(m.id, { ativo: !m.ativo })
+      substituir(atualizado)
+    } catch (err: any) {
+      setToast(extractApiError(err, 'Erro ao atualizar método. Tente novamente.'))
+    } finally {
+      setAtualizandoId(null)
+    }
+  }
+
+  const ordem: Record<TipoMetodoPagamento, number> = { DINHEIRO: 0, PIX: 1, CARTAO_CREDITO: 2, CARTAO_DEBITO: 3, OUTRO: 4 }
+  const metodosOrdenados = [...metodos].sort((a, b) => (ordem[a.tipo] - ordem[b.tipo]) || (a.nome || '').localeCompare(b.nome || ''))
+
+  return (
+    <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
+      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="mb-[5px] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-[11px]">
+            <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+              <Wallet size={16} />
+            </span>
+            <h2 className="m-0 text-lg font-bold tracking-[-0.01em] text-dark">Métodos de Pagamento</h2>
+          </div>
+          <Button variant="ghost" icon={<Plus size={14} />} onClick={() => setModalNovoAberto(true)}>Novo método</Button>
+        </div>
+        <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
+          Formas de pagamento aceitas no Caixa — uma venda pode ser dividida entre vários.
+        </p>
+
+        <div className="flex flex-col gap-2.5">
+          {metodosOrdenados.map(m => (
+            <MetodoPagamentoCard
+              key={m.id}
+              metodo={m}
+              atualizando={atualizandoId === m.id}
+              onToggle={() => toggle(m)}
+              onConfigurarTaxa={() => setMetodoTaxa(m)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <TaxaMaquininhaModal
+        open={!!metodoTaxa}
+        metodo={metodoTaxa}
+        onClose={() => setMetodoTaxa(null)}
+        onSaved={substituir}
+      />
+      <NovoMetodoOutroModal
+        open={modalNovoAberto}
+        onClose={() => setModalNovoAberto(false)}
+        onCreated={m => onReload([...metodos, m])}
+      />
+      <Toast message={toast} />
+    </div>
+  )
+}
+
 /* ── ConfiguracoesPage ───────────────────────────────────────── */
 
 export default function ConfiguracoesPage() {
   const [aba, setAba] = useState<SubAba>('precificacao')
   const [empresa, setEmpresa] = useState<EmpresaResponse | null>(null)
   const [configuracao, setConfiguracao] = useState<ConfiguracaoResponse | null>(null)
+  const [metodosPagamento, setMetodosPagamento] = useState<MetodoPagamentoConfiguravelResponse[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [savingPrecif, setSavingPrecif] = useState(false)
   const [savingPerfil, setSavingPerfil] = useState(false)
@@ -506,9 +763,11 @@ export default function ConfiguracoesPage() {
     Promise.all([
       empresaService.getEmpresa(),
       empresaService.getConfiguracao(),
-    ]).then(([emp, cfg]) => {
+      empresaService.listarMetodosPagamento(),
+    ]).then(([emp, cfg, metodos]) => {
       setEmpresa(emp)
       setConfiguracao(cfg)
+      setMetodosPagamento(metodos)
     }).catch(console.error)
       .finally(() => setLoadingData(false))
   }, [])
@@ -576,6 +835,9 @@ export default function ConfiguracoesPage() {
               onSave={handleSavePerfil}
               saving={savingPerfil}
             />
+          )}
+          {aba === 'pagamento' && (
+            <MetodosPagamento metodos={metodosPagamento} onReload={setMetodosPagamento} />
           )}
           {aba === 'conta' && <ContaSeguranca />}
         </>
