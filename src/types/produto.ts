@@ -27,6 +27,9 @@ export interface FichaTecnicaItemResponse {
   custoTotal: number
 }
 
+/** #489 (V0.12.0) — lista fechada do Simples Nacional (RN-NOVA-13). */
+export type Csosn = '101' | '102' | '103' | '201' | '202' | '203' | '300' | '400' | '500' | '900'
+
 export interface ProdutoRequest {
   nome: string
   tipo: TipoProduto
@@ -40,6 +43,14 @@ export interface ProdutoRequest {
   /** RN-NOVA-2 (V0.10.0, #299) — ausente ou igual ao derivado da ficha técnica = sem override;
    *  diferente do derivado = override ativo, persiste até a artesã reverter manualmente. */
   fracionavel?: boolean
+  /** #489 (V0.12.0) — campos fiscais mínimos, todos opcionais. Preparação para emissão futura de
+   *  NFC-e/NF-e (fora de escopo) — nenhum cálculo de imposto nesta versão. */
+  codigoBarras?: string
+  ncm?: string
+  cfop?: string
+  cest?: string
+  unidadeComercial?: string
+  csosn?: Csosn
 }
 
 export interface ProdutoResponse {
@@ -62,6 +73,13 @@ export interface ProdutoResponse {
    *  gate de negócio (travamento de quantidade em Produção) — isso continua em `algumInsumoNaoFracionavel`. */
   fracionavel?: boolean
   fracionavelOverride?: boolean
+  /** #489 (V0.12.0) — campos fiscais mínimos, todos opcionais. */
+  codigoBarras?: string
+  ncm?: string
+  cfop?: string
+  cest?: string
+  unidadeComercial?: string
+  csosn?: Csosn
   createdAt: string
   updatedAt: string
 }
