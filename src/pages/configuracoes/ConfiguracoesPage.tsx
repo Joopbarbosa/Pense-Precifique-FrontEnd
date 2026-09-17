@@ -7,13 +7,14 @@ import Toast from '../../components/shared/Toast'
 import ModalShell from '../../components/ui/ModalShell'
 import {
   Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings,
-  Wallet, Banknote, CreditCard, QrCode, Tag, Plus, Percent,
+  Wallet, Tag, Plus, Percent,
 } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
 import type { EmpresaResponse, ConfiguracaoResponse, MetodoPagamentoConfiguravelResponse, TipoMetodoPagamento } from '../../types/empresa'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
+import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -504,14 +505,8 @@ function ContaSeguranca() {
 // Cartão Crédito/Débito (informativa nesta versão); criação manual só de tipo OUTRO (tentar tipo
 // fixo é sempre rejeitado pelo backend, RN-NOVA-16/CEN-NOVO-12).
 
-const LABEL_TIPO_METODO: Record<TipoMetodoPagamento, string> = {
-  DINHEIRO: 'Dinheiro', PIX: 'Pix', CARTAO_CREDITO: 'Cartão Crédito', CARTAO_DEBITO: 'Cartão Débito', OUTRO: '',
-}
-
-const ICON_TIPO_METODO: Record<TipoMetodoPagamento, React.ReactNode> = {
-  DINHEIRO: <Banknote size={18} />, PIX: <QrCode size={18} />,
-  CARTAO_CREDITO: <CreditCard size={18} />, CARTAO_DEBITO: <CreditCard size={18} />, OUTRO: <Tag size={18} />,
-}
+const LABEL_TIPO_METODO = LABEL_TIPO_METODO_PAGAMENTO
+const ICON_TIPO_METODO = ICON_TIPO_METODO_PAGAMENTO
 
 const TIPOS_CARTAO: TipoMetodoPagamento[] = ['CARTAO_CREDITO', 'CARTAO_DEBITO']
 

@@ -28,6 +28,7 @@ import NovaProducaoPage from '../pages/producao/NovaProducaoPage'
 import EditarProducaoPage from '../pages/producao/EditarProducaoPage'
 import DetalheProducaoPage from '../pages/producao/DetalheProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
+import CaixaPage from '../pages/caixa/CaixaPage'
 
 export const router = createBrowserRouter([
   // Rotas públicas
@@ -53,6 +54,8 @@ export const router = createBrowserRouter([
       { path: '/orcamentos/:id/multa',                element: <ReciboMultaPage /> },
       { path: '/orcamentos/:id/recibo-pagamento',     element: <ReciboPagamentoPage /> },
       { path: '/orcamentos/:id/recibo-estorno',       element: <ReciboEstornoPage /> },
+
+      { path: '/caixa',                element: <CaixaPage /> },
 
       { path: '/insumos',              element: <ListaInsumosPage /> },
       { path: '/insumos/novo',         element: <FormInsumoPage /> },

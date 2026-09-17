@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
-import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
@@ -12,6 +12,8 @@ const NAV = [
   { id: 'dashboard',  label: 'Dashboard',    icon: LayoutGrid, size: 20, href: '/dashboard' },
   { id: 'clientes',   label: 'Clientes',      icon: Users,     size: 20, href: '/clientes' },
   { id: 'orcamentos', label: 'Orçamentos',    icon: FileText,  size: 20, href: '/orcamentos' },
+  // #487/#488 (V0.12.0) — Caixa/PDV, caminho de venda rápida paralelo a Orçamento (Epic #416).
+  { id: 'caixa',      label: 'Caixa',         icon: Receipt,   size: 20, href: '/caixa' },
   { id: 'insumos',    label: 'Insumos',       icon: Package,   size: 20, href: '/insumos' },
   { id: 'produtos',   label: 'Produtos',      icon: Box,       size: 20, href: '/produtos' },
   { id: 'catalogos',  label: 'Catálogos',     icon: Files,     size: 22, href: '/catalogos' },
@@ -20,7 +22,7 @@ const NAV = [
 ] as const
 
 interface SidebarProps {
-  active: 'dashboard' | 'clientes' | 'orcamentos' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config'
+  active: 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config'
   open: boolean
   onClose: () => void
   collapsed: boolean
