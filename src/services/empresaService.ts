@@ -1,5 +1,8 @@
 import api from './api'
-import type { EmpresaRequest, EmpresaResponse, ConfiguracaoRequest, ConfiguracaoResponse } from '../types/empresa'
+import type {
+  EmpresaRequest, EmpresaResponse, ConfiguracaoRequest, ConfiguracaoResponse,
+  MetodoPagamentoConfiguravelRequest, MetodoPagamentoConfiguravelResponse, MetodoPagamentoConfiguravelUpdateRequest,
+} from '../types/empresa'
 
 export const empresaService = {
   getEmpresa: async (): Promise<EmpresaResponse | null> => {
@@ -24,6 +27,22 @@ export const empresaService = {
 
   upsertConfiguracao: async (data: ConfiguracaoRequest): Promise<ConfiguracaoResponse> => {
     const response = await api.put<ConfiguracaoResponse>('/configuracoes/precificacao', data)
+    return response.data
+  },
+
+  // #491 (V0.12.0) — métodos de pagamento configuráveis do Caixa/PDV.
+  listarMetodosPagamento: async (): Promise<MetodoPagamentoConfiguravelResponse[]> => {
+    const response = await api.get<MetodoPagamentoConfiguravelResponse[]>('/configuracoes/metodos-pagamento')
+    return response.data
+  },
+
+  criarMetodoPagamento: async (data: MetodoPagamentoConfiguravelRequest): Promise<MetodoPagamentoConfiguravelResponse> => {
+    const response = await api.post<MetodoPagamentoConfiguravelResponse>('/configuracoes/metodos-pagamento', data)
+    return response.data
+  },
+
+  atualizarMetodoPagamento: async (id: string, data: MetodoPagamentoConfiguravelUpdateRequest): Promise<MetodoPagamentoConfiguravelResponse> => {
+    const response = await api.put<MetodoPagamentoConfiguravelResponse>(`/configuracoes/metodos-pagamento/${id}`, data)
     return response.data
   },
 }

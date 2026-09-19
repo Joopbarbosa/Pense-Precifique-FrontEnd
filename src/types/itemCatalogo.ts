@@ -8,6 +8,9 @@ export interface CustomizacaoAnexadaResponse {
   produtoId: string
   produtoNome: string
   quantidade: number
+  /** #487 (V0.12.0) — preço de venda do produto da customização, usado pelo Caixa para montar o
+   *  preview do carrinho sem round-trip extra. */
+  precoVenda?: number
 }
 
 export interface ItemCatalogoRequest {

@@ -36,7 +36,7 @@ const TIPO_API_TO_LABEL: Record<string, string> = {
   'CUSTOMIZACAO': 'Customização',
 }
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 interface ItemDb {
   id: string
@@ -178,6 +178,7 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
     </div>
   )
 }
+
 
 // ---------- TipoBadge ----------
 
@@ -626,7 +627,9 @@ export default function CadastrarProdutoPage() {
   const { id } = useParams()
   const editando = !!id
   const [aba, setAba] = useState<'dados' | 'ficha'>('dados')
-  const [dados, setDados] = useState({ nome: '', tipo: 'Produto', descricao: '', tempo: '' })
+  const [dados, setDados] = useState({
+    nome: '', tipo: 'Produto', descricao: '', tempo: '',
+  })
   const setD = (k: string, v: any) => setDados(d => ({ ...d, [k]: v }))
   const [ficha, setFicha] = useState<FichaItem[]>([])
   const [rendimento, setRendimento] = useState('1')

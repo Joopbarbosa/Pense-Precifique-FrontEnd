@@ -25,9 +25,19 @@ const CONTAINER = 'pense-precifique-db'
 const DB_NAME = 'pense_precifique_db'
 const DB_USER = 'pense_user'
 
-// Todas as tabelas de domínio (schema atual, `\dt` confirmado em 2026-07-28) — deliberadamente
-// SEM usuarios/empresas/configuracoes_precificacao/flyway_schema_history.
+// Todas as tabelas de domínio (schema atual, `\dt` confirmado em 2026-07-28, ampliado em
+// 2026-09-17/#487-#488 com o módulo Caixa) — deliberadamente SEM usuarios/empresas/
+// configuracoes_precificacao/metodos_pagamento/flyway_schema_history: as 4 primeiras são "conta +
+// onboarding já feito" (mesmo motivo de sempre); metodos_pagamento entra na mesma categoria — só é
+// semeada em `POST /auth/register`, nunca re-semeada depois de um TRUNCATE, então incluí-la aqui
+// deixaria a conta de teste sem nenhum método de pagamento até a suíte inteira rodar de novo.
+// caixa_turnos/caixa_movimentos/venda_caixa* são achado de #487/#488 (V0.12.0) — sem FK para
+// nenhuma tabela já listada aqui, então nunca eram truncadas antes desta linha (só venda_caixa*
+// era truncada de forma transitiva, via CASCADE a partir de `produtos`) — turno ABERTO de uma
+// rodada anterior sobrevivia e quebrava RN-NOVA-6 ("só 1 turno aberto por vez") na rodada seguinte.
 const TABELAS_DOMINIO = [
+  'caixa_movimentos',
+  'caixa_turnos',
   'catalogos',
   'clientes',
   'ficha_tecnica_itens',
@@ -47,6 +57,9 @@ const TABELAS_DOMINIO = [
   'produtos',
   'recibos_estorno',
   'recibos_pagamento',
+  'venda_caixa',
+  'venda_caixa_item',
+  'venda_caixa_pagamento',
 ]
 
 export default async function globalSetup() {

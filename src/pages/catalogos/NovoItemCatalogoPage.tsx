@@ -4,13 +4,15 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, X, Box, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Search, ChevronRight, Files, X, Box, SlidersHorizontal } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import Toast from '../../components/shared/Toast'
 import { EstoqueTags } from '../../components/ui/Badge'
+import { CustomizacaoSeletor } from '../../components/venda'
+import type { CustomizacaoLinha } from '../../components/venda'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
 import { useToast } from '../../hooks/useToast'
@@ -29,16 +31,6 @@ interface ProdutoSelecionado {
   nome: string
   precoCusto: number
   ativo: boolean
-  algumInsumoNaoFracionavel: boolean
-  permitirEstoqueNegativo: boolean
-  estoqueAtual: number
-}
-
-interface CustomizacaoItem {
-  produtoId: string
-  nome: string
-  precoCusto: number
-  quantidade: string
   algumInsumoNaoFracionavel: boolean
   permitirEstoqueNegativo: boolean
   estoqueAtual: number
@@ -166,7 +158,7 @@ export default function NovoItemCatalogoPage() {
   const [loadingContexto, setLoadingContexto] = useState(true)
 
   const [produto, setProduto] = useState<ProdutoSelecionado | null>(null)
-  const [customizacoes, setCustomizacoes] = useState<CustomizacaoItem[]>([])
+  const [customizacoes, setCustomizacoes] = useState<CustomizacaoLinha[]>([])
   const [quantidade, setQuantidade] = useState('1')
   const [quantidadeErro, setQuantidadeErro] = useState<string | null>(null)
 
@@ -242,12 +234,7 @@ export default function NovoItemCatalogoPage() {
             if (item.customizacoesAnexadas.length > 0) {
               const custs = await Promise.all(item.customizacoesAnexadas.map(async c => {
                 const p = await produtoService.buscarPorId(c.produtoId)
-                return {
-                  produtoId: c.produtoId, nome: c.produtoNome, precoCusto: p.precoCusto, quantidade: c.quantidade.toString(),
-                  algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
-                  permitirEstoqueNegativo: p.permitirEstoqueNegativo,
-                  estoqueAtual: p.estoqueAtual,
-                }
+                return { id: c.produtoId, nome: c.produtoNome, valor: p.precoVenda ?? 0, qtd: c.quantidade }
               }))
               setCustomizacoes(custs)
             }
@@ -276,7 +263,7 @@ export default function NovoItemCatalogoPage() {
       produtoId: produto.id,
       quantidadePacote: qtd,
       precoVenda: precoEditadoManualmente && precoVenda ? num(precoVenda) : undefined,
-      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.produtoId, quantidade: num(c.quantidade) || 0 })),
+      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.id, quantidade: c.qtd })),
     }
   }, [produto, quantidade, precoVenda, precoEditadoManualmente, customizacoes])
 
@@ -290,7 +277,7 @@ export default function NovoItemCatalogoPage() {
     const request: PreviewPrecoRequest = {
       produtoId: produto.id,
       quantidadePacote: qtd,
-      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.produtoId, quantidade: num(c.quantidade) || 0 })),
+      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.id, quantidade: c.qtd })),
     }
     if (produtoBloqueadoRef.current === request.produtoId) return
 
@@ -326,21 +313,11 @@ export default function NovoItemCatalogoPage() {
     return () => clearTimeout(t)
   }, [loadingContexto, atualizarPreview])
 
-  const jaAdicionadosCustom = customizacoes.map(c => c.produtoId)
-
-  const addCustomizacao = (p: ProdutoSearchResultado) => {
-    setCustomizacoes(cs => [...cs, {
-      produtoId: p.id, nome: p.nome, precoCusto: p.precoCusto, quantidade: '1',
-      algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel,
-      permitirEstoqueNegativo: p.permitirEstoqueNegativo,
-      estoqueAtual: p.estoqueAtual,
-    }])
+  const toggleCustomizacao = (c: { id: string; nome: string; valor: number }) => {
+    setCustomizacoes(cs => cs.find(x => x.id === c.id) ? cs.filter(x => x.id !== c.id) : [...cs, { ...c, qtd: 1 }])
   }
-  const removeCustomizacao = (produtoId: string) => {
-    setCustomizacoes(cs => cs.filter(c => c.produtoId !== produtoId))
-  }
-  const setCustomizacaoQtd = (produtoId: string, v: string) => {
-    setCustomizacoes(cs => cs.map(c => c.produtoId === produtoId ? { ...c, quantidade: v.replace(/[^\d,]/g, '') } : c))
+  const setCustomizacaoQtd = (id: string, qtd: number) => {
+    setCustomizacoes(cs => cs.map(c => c.id === id ? { ...c, qtd: Math.max(1, qtd) } : c))
   }
 
   // RN-NOVA-8 — preview nunca persiste nada, então não há mais o que desfazer aqui.
@@ -507,45 +484,16 @@ export default function NovoItemCatalogoPage() {
             </Field>
           </div>
 
-          {/* Customizações anexadas */}
-          <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <div className="px-6 pb-4 pt-5">
-              <div className="mb-1 flex items-center gap-[9px]">
-                <SlidersHorizontal size={16} className="text-orange" />
-                <h3 className="m-0 text-[15.5px] font-bold text-dark">Customizações anexadas</h3>
-                <span className="text-xs font-medium text-muted">(opcional)</span>
-              </div>
-              <p className="mb-3.5 mt-0 text-[12.5px] text-muted">Extras opcionais que somam ao custo e ao preço sugerido deste item.</p>
-              <ProdutoSearch tipo="CUSTOMIZACAO" placeholder="Buscar customização..." jaAdicionados={jaAdicionadosCustom} onSelect={addCustomizacao} />
+          {/* Customizações anexadas — núcleo compartilhado com Orçamento/Caixa (#502, V0.12.0),
+              embutido direto na página, sem embrulho de modal (única entre os 3 consumidores). */}
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 pb-5 pt-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="mb-1 flex items-center gap-[9px]">
+              <SlidersHorizontal size={16} className="text-orange" />
+              <h3 className="m-0 text-[15.5px] font-bold text-dark">Customizações anexadas</h3>
+              <span className="text-xs font-medium text-muted">(opcional)</span>
             </div>
-            {customizacoes.length > 0 && (
-              <div>
-                <div className="grid grid-cols-[1fr_110px_40px] gap-3 border-t border-line bg-cream px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-                  <span>Customização</span><span>Quantidade</span><span />
-                </div>
-                {customizacoes.map(c => (
-                  <div key={c.produtoId} className="grid grid-cols-[1fr_110px_40px] items-center gap-3 border-t border-line px-6 py-3">
-                    <div className="min-w-0">
-                      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{c.nome}</div>
-                      <div className="text-xs text-muted">{moeda(c.precoCusto)}/un</div>
-                    </div>
-                    <input
-                      value={c.quantidade}
-                      onChange={e => setCustomizacaoQtd(c.produtoId, e.target.value)}
-                      inputMode="decimal"
-                      className={clsx(inputClass(), 'h-[38px] text-[13.5px]')}
-                    />
-                    <button
-                      onClick={() => removeCustomizacao(c.produtoId)}
-                      aria-label="Remover customização"
-                      className="grid h-8 w-8 place-items-center justify-self-end rounded-lg border-none bg-transparent text-[#BDB9B1] transition-colors duration-100 hover:bg-danger-bg hover:text-danger"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="mb-3.5 mt-0 text-[12.5px] text-muted">Extras opcionais que somam ao custo e ao preço sugerido deste item.</p>
+            <CustomizacaoSeletor selecionadas={customizacoes} onToggle={toggleCustomizacao} onQtd={setCustomizacaoQtd} />
           </div>
 
           {/* AÇÕES */}

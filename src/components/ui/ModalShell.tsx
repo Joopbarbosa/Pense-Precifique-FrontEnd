@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 interface ModalShellProps {
@@ -42,7 +43,7 @@ export default function ModalShell({
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]"
@@ -98,6 +99,7 @@ export default function ModalShell({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

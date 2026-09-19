@@ -182,6 +182,36 @@ export function MultiploRendimentoAviso({ rendimento }: { rendimento: number }) 
   )
 }
 
+// ---------- Tag ----------
+//
+// V0.12.0/#500 — pílula genérica laranja/verde, para telas que hoje mostram estado em texto
+// apagado (ex.: cabeçalho do turno de Caixa: "aberto desde"/"fundo de troco" viravam invisíveis ao
+// lado dos botões de ação). Reaproveita os mesmos tokens `orange`/`success` já usados por
+// FracionavelBadge/EstoqueNegativoBadge — não introduz cor nova.
+
+type TagTone = 'orange' | 'green'
+
+interface TagProps {
+  tone: TagTone
+  icon?: React.ReactNode
+  children: React.ReactNode
+  size?: 'sm' | 'md'
+}
+
+const TAG_TONE: Record<TagTone, string> = {
+  orange: 'bg-orange/10 text-orange',
+  green: 'bg-success/10 text-success',
+}
+
+export function Tag({ tone, icon, children, size = 'md' }: TagProps) {
+  return (
+    <span className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold', badgeSize[size], TAG_TONE[tone])}>
+      {icon}
+      {children}
+    </span>
+  )
+}
+
 export function VencidoBadge() {
   return (
     <span className="inline-flex h-6 items-center gap-[5px] whitespace-nowrap rounded-full bg-[#FCF0EC] px-[9px] text-[11.5px] font-semibold text-danger">

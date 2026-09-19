@@ -4,6 +4,7 @@ import clsx from "clsx";
 import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
+import SegmentedControl from "../../components/ui/SegmentedControl";
 import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
@@ -650,24 +651,16 @@ function ModalCancelMulta({
       {/* ─── PASSO 2 — MULTA ─── */}
       {step === 2 && (
         <>
-          <div className="mb-[18px] flex w-fit overflow-hidden rounded-input border border-line">
-            {(["Não", "Sim"] as const).map((lbl) => {
-              const val = lbl === "Sim";
-              const on = multaAtiva === val;
-              return (
-                <button
-                  key={lbl}
-                  onClick={() => setMultaAtiva(val)}
-                  className={clsx(
-                    "h-11 w-20 border-none font-[inherit] text-sm font-semibold",
-                    on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
-                  )}
-                >
-                  {lbl}
-                </button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+            value={multaAtiva}
+            onChange={setMultaAtiva}
+            height="h-11"
+            optionWidth="w-20"
+            textSize="text-sm"
+            activeColors={['bg-line-soft text-body', 'bg-orange text-white']}
+            className="mb-[18px] w-fit"
+          />
 
           {multaAtiva && (
             <div className="animate-[fadeUp_.25s_ease_both]">
@@ -875,24 +868,16 @@ function ModalCancelEstorno({
             <div className="mb-2.5 text-sm font-semibold text-dark">
               Deseja estornar o sinal?
             </div>
-            <div className="flex w-fit overflow-hidden rounded-input border border-line">
-              {(["Não", "Sim"] as const).map((lbl) => {
-                const val = lbl === "Sim";
-                const on = estornar === val;
-                return (
-                  <button
-                    key={lbl}
-                    onClick={() => setEstornar(val)}
-                    className={clsx(
-                      "h-11 w-20 border-none font-[inherit] text-sm font-semibold transition-all duration-150",
-                      on ? (val ? "bg-orange text-white" : "bg-line-soft text-body") : "bg-white text-dim"
-                    )}
-                  >
-                    {lbl}
-                  </button>
-                );
-              })}
-            </div>
+            <SegmentedControl
+              options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+              value={estornar}
+              onChange={setEstornar}
+              height="h-11"
+              optionWidth="w-20"
+              textSize="text-sm"
+              activeColors={['bg-line-soft text-body', 'bg-orange text-white']}
+              className="w-fit"
+            />
           </div>
 
           {/* Data do estorno (só quando Sim) */}

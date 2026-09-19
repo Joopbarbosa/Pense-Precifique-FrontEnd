@@ -4,7 +4,7 @@
 > achado seguranca-resiliencia, GHSA-337j-9hxr-rhxg/GHSA-wrjc-x8rr-h8h6 só corrigiam
 > em v7+) · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Última atualização: 12/09/2026 (Retomada V0.9.0) · Branch padrão atual: `feature/V0.9.0`
+> Última atualização: 19/09/2026 (Retomada V0.12.0) · Branch padrão atual: `feature/V0.12.0`
 > Se este arquivo e o prompt da sessão divergirem, este arquivo vence.
 >
 > Histórico de versões (V0.6 a V0.8.2) migrado para `docs-pense-precifique/version/[VX.Y]/
@@ -38,7 +38,8 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 
 | Categoria | Local |
 |---|---|
-| Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`) | `components/ui/`, `components/shared/` |
+| Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`, `Toggle`, `SegmentedControl`, `Tag`) | `components/ui/`, `components/shared/` |
+| Domínio compartilhado de venda (`ItemSearch`, `ItemLinha`, `ModalCustomizacoes`, `ModalCalculadoraItem`, `CustomizacaoSeletor`, `DescontoBlock`, `ClienteSelect`, `SectionCard`, `ModoToggle`) — consumido por Orçamento, Caixa e Catálogo | `components/venda/` (novo, V0.12.0) |
 | Hooks (`usePaginatedList`, `useDebounceSearch`, `useDebouncedValue`, `useAuth`, `useToast`) | `src/hooks/` |
 | Constants (`METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL`) | `src/constants/` |
 | Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`) | `e2e/`, `e2e/helpers/` |
@@ -50,12 +51,14 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 ## 3. Verificar antes de criar
 
 - **Service novo?** Conferir `src/services/` primeiro — todo módulo já tem o seu (`authService`,
-  `catalogoService`, `clienteService`, `dashboardService`, `empresaService`, `insumoService`,
-  `itemCatalogoService`, `loteCompraService`, `orcamentoService`, `producaoService`,
-  `produtoService`, `usuarioService`).
-- **Componente de UI novo?** Conferir `components/ui/`/`components/shared/` — wrapper de
-  label+input é sempre `Field` (`components/ui/Field.tsx`, prop `size?: 'sm'|'md'`), modal é
-  sempre `ModalShell`. Nunca reimplementar local.
+  `caixaService` (V0.12.0), `catalogoService`, `clienteService`, `dashboardService`,
+  `empresaService`, `insumoService`, `itemCatalogoService`, `loteCompraService`, `orcamentoService`,
+  `producaoService`, `produtoService`, `usuarioService`).
+- **Componente de UI novo?** Conferir `components/ui/`/`components/shared/`/`components/venda/`
+  (este último para qualquer coisa de busca/carrinho/customização/cliente que sirva Orçamento **e**
+  Caixa) — wrapper de label+input é sempre `Field` (`components/ui/Field.tsx`, prop
+  `size?: 'sm'|'md'`), modal é sempre `ModalShell`, controle binário com 2 opções é sempre
+  `SegmentedControl` (`components/ui/SegmentedControl.tsx`, V0.12.0). Nunca reimplementar local.
 - **Nota de backlog "decisão registrada"/"concluído" não é confirmação de código** — sempre
   conferir o código-fonte (ou curl na API) antes de escrever prompt/implementação em cima dela. A
   fonte de verdade é sempre o código e o `git log`, não o checkbox.
@@ -71,7 +74,11 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 - **Ícones:** sempre via Lucide React (`import { X } from 'lucide-react'`) — nunca SVG manual.
 - **Design tokens** em `tailwind.config.ts` (`text-teal`, `bg-orange`, `text-dark`, `border-line`,
   `bg-app`, `text-muted`, `text-body`, `text-danger`, `spacing.section` = `18px`) — nunca hex
-  hardcoded, sempre o token correspondente.
+  hardcoded, sempre o token correspondente. **Anel de foco:** token `ring-teal/focus` (25%,
+  V0.12.0, mesmo peso do `Toggle`) — substituiu `ring-teal/[0.12]` (12%, quase imperceptível)
+  duplicado em 5 arquivos junto de `inputBase`. `Tag` (`components/ui/Badge.tsx`, V0.12.0) é a
+  pílula genérica com tons `green`/`orange` — canônica para qualquer par de estado curto (ex.:
+  cabeçalho de turno do Caixa), não reimplementar como `<span>` solto.
 - **Toast:** sempre via `useToast` (estado) + `<Toast>` (`components/shared/Toast.tsx`, prop
   `variant?: 'success'|'error'`) pra renderizar — proibido estado boolean local e proibido copiar
   o `<div>` de renderização inline (V0.11.0/#352, 19 pontos consolidados).
@@ -161,6 +168,37 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
   código) para decidir se o preço é considerado "editado" (`overrideAtivo`); **só o Orçamento usa
   comparação exata**, por decisão explícita de produto (V0.8.4) — não unificar as tolerâncias
   entre módulos sem decisão de negócio própria, é inconsistência conhecida, não bug.
+- **`<SegmentedControl>`** (canônico: `components/ui/SegmentedControl.tsx`, V0.12.0, migrou 7+
+  cópias inline) — controle binário sempre no par **esquerda laranja / direita verde** (ex.:
+  Não/Sim, %/R$, Fechado/Aberto). **Exceção deliberada, não regredida**: telas com paleta própria
+  já aprovada antes da convenção existir (Multa/Estorno no Detalhe do Orçamento — laranja quando
+  ativo, cinza quando não, nos dois lados) mantêm a cor original — migrar essas exigiria decisão de
+  design nova, não confundir com esquecimento. A convenção laranja/direita-verde só se aplica a
+  exatamente 2 opções — 3+ opções (ex.: filtro Tudo/Catálogo/Produto) ficam sempre verde na opção
+  ativa, sem o par de cores.
+- **`ModalShell` via `createPortal`** (`components/ui/ModalShell.tsx`, V0.12.0) — renderiza fora da
+  árvore DOM da página, corrigindo o fundo cinza contido dentro de um card em vez de cobrir a tela
+  inteira (causa raiz: `animate-[fadeUp]`/qualquer `transform` num ancestral vira containing block
+  de um `position: fixed`). Nenhuma mudança de API para quem já consome `ModalShell` — Esc/X/clique
+  fora/z-index de Toast por cima continuam iguais.
+- **`components/venda/`** (novo, V0.12.0) — biblioteca compartilhada por Orçamento e Caixa (e,
+  parcialmente, Catálogo): `ItemSearch` (busca de Produto/ItemCatalogo paginada), `ItemLinha`
+  (linha do carrinho), `ModalCustomizacoes`/`ModalCalculadoraItem` (Orçamento, com fila de
+  calculadora) e `CustomizacaoSeletor` (núcleo sem calculadora nem opinião de invólucro — usado
+  embutido direto na página em Catálogo, em dropdown no Caixa, dentro de `ModalCustomizacoes` no
+  Orçamento), `DescontoBlock`, `ClienteSelect`, `SectionCard`, `ModoToggle`. Extraído de funções
+  locais não-exportadas de `CriarOrcamentoPage.tsx` — mover primeiro (commit puro de import),
+  parametrizar depois, nunca no mesmo commit (Orçamento é tela aprovada em uso, maior risco de
+  regressão do pocket #486). Identidade de linha do carrinho não é parte do componente — cada
+  página decide (Orçamento cria linha nova por `Date.now()`, Caixa mescla duplicadas por `key`).
+- **Sidebar: grupo de navegação recolhível** (canônico: `GRUPO_VENDAS` em
+  `components/layout/Sidebar.tsx`, V0.12.0) — cabeçalho do grupo segue o mesmo estilo visual de um
+  item de navegação comum (ícone à esquerda, mesma fonte, sem caixa alta) — só a seta de
+  expandir/recolher o diferencia; itens do grupo ganham recuo (`ml-5`) quando expandido. Preferência
+  persistida em `localStorage` (não `useState` puro — `AppLayout` remonta a cada navegação, sem
+  layout de rota compartilhado). No modo ícone (`collapsed` do `AppLayout`), os itens do grupo
+  sempre aparecem, ignorando o estado de expandido/recolhido — não há onde mostrar cabeçalho/seta
+  nesse modo.
 
 ---
 

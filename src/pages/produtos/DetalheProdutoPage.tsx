@@ -118,7 +118,7 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   const qtdNum = parseFloat((qtd || '0').replace(/\./g, '').replace(',', '.')) || 0
   const podeRegistrar = qtdNum > 0 && obs.trim().length >= 30 && !salvando
 
-  const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+  const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
   const registrar = async () => {
     setErro(null)
