@@ -38,6 +38,9 @@ export interface ItemCatalogoBuscaResponse {
   fracionavel?: boolean | null;
   permitirEstoqueNegativo: boolean;
   estoqueAtual: number;
+  /** #487 (V0.12.0) — customizações fixas anexadas ao item, com preço; usado pelo Caixa para
+   *  montar o preview do carrinho sem round-trip extra. Orçamento não usa este campo. */
+  customizacoesFixas?: import('./itemCatalogo').CustomizacaoAnexadaResponse[];
 }
 
 // #218 — POST /orcamentos/simular-alertas (RN-NOVA-8/9): simula situação de estoque por Produto

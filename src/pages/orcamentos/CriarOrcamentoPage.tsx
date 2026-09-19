@@ -1,23 +1,19 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, ModalShell, Stepper } from '../../components/ui'
+import { Button, ModalShell, SegmentedControl } from '../../components/ui'
 import {
-  Phone, Search, Layers, Box, Trash2, SlidersHorizontal, Tag, AlertCircle, AlertTriangle,
-  Calendar, Wallet, DollarSign, FileText, StickyNote, Filter, ShoppingCart, Plus, Check, Factory,
-  Calculator,
+  AlertCircle, AlertTriangle,
+  Calendar, Wallet, DollarSign, FileText, StickyNote, ShoppingCart, Plus, Check, Factory,
 } from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
 import { orcamentoService } from '../../services/orcamentoService'
 import { catalogoService } from '../../services/catalogoService'
-import { itemCatalogoService } from '../../services/itemCatalogoService'
-import { empresaService } from '../../services/empresaService'
-import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import Toast from '../../components/shared/Toast'
 import type { ClienteResponse } from '../../types/cliente'
-import type { ProdutoResponse, ProdutoDetalheResponse } from '../../types/produto'
+import type { ProdutoResponse } from '../../types/produto'
 import type {
   OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
   SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, CriarProducaoVinculadaRequest,
@@ -25,86 +21,18 @@ import type {
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { AlertaInsumo } from '../../types/producao'
 import { METODOS_PAGAMENTO } from '../../constants'
-import { EstoqueTags } from '../../components/ui/Badge'
 import { useToast } from '../../hooks/useToast'
-import { usePaginatedList } from '../../hooks/usePaginatedList'
-import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
 import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
 import SelecaoProducaoEstoque from '../../components/orcamento/SelecaoProducaoEstoque'
+// Componentes de venda compartilhados com o Caixa (V0.12.0) — antes eram funções locais deste
+// arquivo, o que levou o Caixa a reimplementar cada um deles do zero.
+import {
+  ItemSearch, ItemLinha, ModalCustomizacoes, ModalCalculadoraItem, DescontoBlock,
+  ClienteSelect, SectionCard, ModoToggle,
+  BRL, carregarCalculadoraAvulso, carregarCalculadoraCatalogo,
+} from '../../components/venda'
 
-const BRL = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
-
-// ── Calculadora de preço (ORC-020 REVISÃO/RN-NOVA-22-23, V0.8.4/#399) ───────────────
-// Funções de módulo (não dentro do componente) — reaproveitadas tanto pela adição
-// direta de produto avulso/item de catálogo quanto pela fila de customizações dentro
-// de ModalCustomizacoes (customização é um Produto com ficha técnica própria — mesma
-// mecânica do produto avulso, RN-NOVA-23).
-interface DadosCalculadoraItem {
-  titulo: string
-  sugerido: number
-  precoInicial: number
-  breakdown: { label: string; value: string; sub?: string }[]
-}
-
-// Monta os dados da calculadora para produto avulso/customização — RN-NOVA-23: usa
-// GET /produtos/{id} (detalhe) + GET /configuracoes/precificacao, os dois endpoints já
-// existentes. `sugerido` vem pronto do Backend (precoSugerido) — Frontend não recalcula
-// custo×margem (isso seria regra de negócio replicada no cliente).
-async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Calculadora de Preço'): Promise<DadosCalculadoraItem> {
-  const [detalhe, config] = await Promise.all([
-    produtoService.buscarPorId(produtoId) as Promise<ProdutoDetalheResponse & { precoSugerido: number; margemLucro: number }>,
-    empresaService.getConfiguracao(),
-  ])
-  const custoInsumos = detalhe.fichaTecnica.reduce((s, f) => s + f.quantidade * f.custoUnitario, 0)
-  const maoObra = (detalhe.tempoProducao / 60) * config.valorHora
-  // `margemLucro` do produto é a PORCENTAGEM cadastrada (ex.: 40 = 40%), não um valor em
-  // R$ — o lucro em reais é a diferença entre o sugerido (já pronto do Backend) e o
-  // custo total (insumos + mão de obra). Achado do teste visual desta tarefa: a
-  // primeira versão exibia `margemLucro` direto como moeda (R$ 40,00 em vez de R$ 5,66).
-  const lucro = detalhe.precoSugerido - custoInsumos - maoObra
-  return {
-    titulo,
-    sugerido: detalhe.precoSugerido,
-    precoInicial: detalhe.precoSugerido,
-    breakdown: [
-      { label: 'Custo dos insumos', value: BRL(custoInsumos) },
-      { label: 'Mão de obra', value: BRL(maoObra), sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h` },
-      { label: 'Margem de lucro', value: BRL(lucro), sub: `${detalhe.margemLucro}%` },
-    ],
-  }
-}
-
-// Monta os dados da calculadora para item de catálogo — RN-NOVA-23: combina o
-// breakdown do Produto de origem com a composição JÁ PERSISTIDA do item
-// (quantidadePacote + customizacoesAnexadas + precoSugerido de ItemCatalogoResponse) —
-// não recalcula a composição do zero. RN-NOVA-3 (V0.8.4): se alguma customização
-// anexada não existir mais (excluída/inativa), a composição não é mais a mesma que foi
-// fixada — lança erro aqui, cai no BLOQUEIO único (RN-NOVA-2) do modal chamador.
-async function carregarCalculadoraCatalogo(catalogoId: string, itemId: string): Promise<DadosCalculadoraItem> {
-  const itensDoCatalogo = await itemCatalogoService.listar(catalogoId)
-  const item = itensDoCatalogo.find(i => i.id === itemId)
-  if (!item) throw new Error('Item de catálogo não encontrado — composição pode ter mudado.')
-  // Confirma que a composição persistida ainda é válida (RN-NOVA-3) — cada
-  // customização anexada precisa existir e continuar ativa.
-  await Promise.all(item.customizacoesAnexadas.map(c => produtoService.buscarPorId(c.produtoId).then(p => {
-    if (!p.ativo) throw new Error(`Customização "${c.produtoNome}" não está mais ativa.`)
-  })))
-  // CEN-NOVO-4 (DECISOES_V0.8.4.md) — valor final inicia com o precoSugerido já
-  // calculado (não o precoVenda persistido, que pode já vir de override anterior no
-  // cadastro do Catálogo — aqui é uma nova confirmação, não a herança de uma antiga).
-  return {
-    titulo: 'Calculadora de Preço',
-    sugerido: item.precoSugerido,
-    precoInicial: item.precoSugerido,
-    breakdown: [
-      { label: `Produto (${item.produtoNome}) × ${item.quantidadePacote}`, value: BRL(item.precoSugerido) },
-      ...(item.customizacoesAnexadas.length > 0
-        ? [{ label: 'Customizações anexadas', value: `${item.customizacoesAnexadas.length} item(ns)` }]
-        : []),
-    ],
-  }
-}
 
 // Símbolo exibido na UI ('%' | 'R$') é conceito distinto do valor aceito pela API
 // (enum TipoDesconto do backend, ver TipoDesconto.java) — nunca enviar o símbolo direto.
@@ -135,558 +63,6 @@ interface Item {
   // expõe o dado (item de catálogo, ItemCatalogoBuscaResponse ainda sem esse campo no contrato —
   // achado, ver decisoes-orcamento.md); badge só aparece quando o valor é conhecido de verdade.
   fracionavel?: boolean
-}
-
-// ── QuoteCard ──────────────────────────────────────────────────────────────
-function QuoteCard({ step, label, hint, children }: {
-  step: string
-  label: string
-  hint: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-      <div className="flex items-start gap-3 border-b border-line px-5 py-4">
-        <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg bg-teal/[0.12] text-[13.5px] font-bold text-teal">{step}</span>
-        <div>
-          <div className="text-[15.5px] font-bold text-dark">{label}</div>
-          <div className="mt-0.5 text-[12.5px] text-muted">{hint}</div>
-        </div>
-      </div>
-      {children}
-    </div>
-  )
-}
-
-// ── ClienteSelect ──────────────────────────────────────────────────────
-function ClienteSelect({ cliente, onSelect, onClear }: {
-  cliente: ClienteResponse | null
-  onSelect: (c: ClienteResponse) => void
-  onClear: () => void
-}) {
-  const [q, setQ] = useState('')
-  const [open, setOpen] = useState(false)
-  const [results, setResults] = useState<ClienteResponse[]>([])
-  const [maxHeight, setMaxHeight] = useState<number>()
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [])
-
-  // OpenProject #243 — paridade com ItemSearch (ORC-030): busca dispara ao focar o campo, mesmo
-  // sem digitar nada, trazendo a listagem completa (paginada, backend já correto).
-  const debouncedQ = useDebouncedValue(q, 300)
-  useEffect(() => {
-    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
-    if (!open || debouncedQ !== q) return
-    const load = async () => {
-      try {
-        const data = await clienteService.listar(0, 20, debouncedQ.trim() || undefined)
-        setResults(data.content)
-      } catch (err) {
-        console.error('Erro ao buscar clientes:', err)
-        setResults([])
-      }
-    }
-    load()
-  }, [debouncedQ, open, q])
-
-  // OpenProject #243 — mesma técnica de ItemSearch (ORC-030): altura do painel calculada a partir
-  // da posição real da 8ª linha, em vez de um max-height fixo (era max-h-[248px], cabiam só ~4).
-  // offsetTop/offsetHeight (não getBoundingClientRect) — imune ao scale(0.92→1) do animate-pop,
-  // que distorce a medição por clientRect durante o useLayoutEffect (ver ItemSearch).
-  useLayoutEffect(() => {
-    const el = panelRef.current
-    if (!el) return
-    el.scrollTop = 0
-    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
-    if (linhas.length <= 8) {
-      setMaxHeight(undefined)
-      return
-    }
-    const oitava = linhas[7]
-    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
-  }, [results])
-
-  if (cliente) {
-    return (
-      <div className="px-5 pb-5 pt-3.5">
-        <div className="flex items-center gap-3.5 rounded-xl border border-teal/20 bg-teal/[0.07] px-4 py-3.5">
-          <span className="grid h-[46px] w-[46px] flex-shrink-0 place-items-center rounded-full bg-teal/[0.15] text-lg font-bold text-teal">
-            {cliente.nome.charAt(0)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[15.5px] font-semibold text-dark">{cliente.nome}</div>
-            <div className="mt-0.5 flex items-center gap-1.5 text-[13.5px] text-body">
-              <Phone size={16} className="text-teal" /> {cliente.whatsapp || 'Sem telefone'}
-            </div>
-          </div>
-          <button onClick={onClear} className="flex-shrink-0 cursor-pointer border-none bg-transparent px-2 py-1.5 text-[13px] font-semibold text-teal">
-            Trocar
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="px-5 pb-5 pt-3.5">
-      <div ref={wrapRef} className="relative">
-        <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
-          <Search size={18} />
-        </span>
-        <input
-          value={q}
-          onChange={e => { setQ(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
-          placeholder="Selecionar cliente..."
-          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-        />
-        {open && results.length > 0 && (
-          <div
-            ref={panelRef}
-            style={maxHeight != null ? { maxHeight } : undefined}
-            className="absolute inset-x-0 top-[54px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
-          >
-            {results.map(c => (
-              <button
-                key={c.id}
-                data-search-row
-                onClick={() => { onSelect(c); setOpen(false); setQ('') }}
-                className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
-              >
-                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-teal/[0.12] font-bold text-teal">
-                  {c.nome.charAt(0)}
-                </span>
-                <div>
-                  <div className="text-[14.5px] font-semibold text-dark">{c.nome}</div>
-                  <div className="text-[12.5px] text-muted">{c.whatsapp || 'Sem telefone'}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── ItemRow ────────────────────────────────────────────────────────────────
-function ItemRow({ item, index, simulacao, onQtd, onRemove, onOpenCustom }: {
-  item: Item
-  index: number
-  simulacao?: SimulacaoEstoqueProdutoResponse
-  onQtd: (id: number, v: number) => void
-  onRemove: (id: number) => void
-  onOpenCustom: (item: Item) => void
-}) {
-  const lineTotal = item.preco * item.qtd
-  const origemLabel = item.itemCatalogoId
-    ? item.catalogoNome
-    : item.produtoId
-      ? (item.produtoIdentificador ? `${item.produtoIdentificador} - Venda sem catálogo` : 'Venda sem catálogo')
-      : null
-  // RN-NOVA-11 (revisada) — estoque exibido sempre vem da simulação mais recente (nunca o
-  // snapshot congelado no momento da adição); valores monetários (preço, margem) continuam
-  // congelados. Aviso inline aparece sempre que a situação não é SUFICIENTE, independente de
-  // permitirEstoqueNegativo — a adição/criação do orçamento nunca bloqueia, só a trava real vive
-  // no avanço para Finalizado (RN-059, backend).
-  const estoqueExibido = simulacao?.estoqueAtual ?? item.estoqueAtual
-  const estoqueInsuficiente = simulacao != null && simulacao.situacao !== 'SUFICIENTE'
-
-  return (
-    <div
-      className={clsx('animate-fade-up px-5 py-4', index > 0 && 'border-t border-line')}
-    >
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="min-w-[160px] flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-[15.5px] font-semibold text-dark">{item.nome}</div>
-            {origemLabel && (
-              <span className={clsx(
-                'inline-flex h-[22px] items-center gap-[5px] whitespace-nowrap rounded-full px-[9px] text-[11.5px] font-semibold',
-                item.itemCatalogoId ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim'
-              )}>
-                {item.itemCatalogoId ? <Layers size={11} /> : <Box size={11} />}
-                {origemLabel}
-              </span>
-            )}
-            {estoqueInsuficiente && (
-              <span className="inline-flex h-[22px] items-center gap-[5px] whitespace-nowrap rounded-full bg-orange/10 px-[9px] text-[11.5px] font-semibold text-orange">
-                <AlertTriangle size={11} />
-                Estoque insuficiente
-              </span>
-            )}
-          </div>
-          <div className="mt-0.5 text-[13px] text-muted">{BRL(item.preco)} / unidade</div>
-          <EstoqueTags
-            className="mt-1.5"
-            fracionavel={item.fracionavel ?? true}
-            showFracionavel={item.fracionavel != null}
-            permitirEstoqueNegativo={item.permitirEstoqueNegativo}
-            estoqueAtual={estoqueExibido}
-            variant="busca"
-          />
-        </div>
-        <Stepper value={item.qtd} onChange={v => onQtd(item.id, v)} />
-        <div className="min-w-[108px] text-right">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.04em] text-faint">Subtotal</div>
-          <div className="text-[17px] font-bold text-dark [font-variant-numeric:tabular-nums]">{BRL(lineTotal)}</div>
-        </div>
-        <button
-          onClick={() => onRemove(item.id)}
-          className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2.5">
-        <button
-          onClick={() => onOpenCustom(item)}
-          className={clsx(
-            'inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border px-3 font-[inherit] text-[13px] font-semibold',
-            item.customs.length ? 'border-orange/40 bg-orange/[0.08] text-warning-alt' : 'border-line bg-cream text-body'
-          )}
-        >
-          <SlidersHorizontal size={15} /> Customizações{item.customs.length ? ` (${item.customs.length})` : ''}
-        </button>
-        {item.customs.map((c, k) => (
-          <span key={k} className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line bg-white px-[11px] text-[12.5px] text-dim">
-            <Tag size={17} className="text-orange" />
-            {c.nome} <strong className="font-semibold text-warning-alt">+{BRL(c.valor)}/un</strong>
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── ModalCustomizacoes ─────────────────────────────────────────────────────
-function ModalCustomizacoes({ item, onClose, onConfirm }: {
-  item: Item
-  onClose: () => void
-  onConfirm: (id: number, customs: { id: string; nome: string; valor: number; qtd: number }[]) => void
-}) {
-  const [busca, setBusca] = useState('')
-  const [selecionadas, setSelecionadas] = useState<{ id: string; nome: string; valor: number; qtd: number }[]>(
-    item.customs.map(c => ({ ...c, qtd: c.qtd ?? 1 }))
-  )
-  const [customizacoes, setCustomizacoes] = useState<{
-    id: string; nome: string; valor: number
-    algumInsumoNaoFracionavel: boolean; permitirEstoqueNegativo: boolean; estoqueAtual: number
-    fracionavel: boolean
-  }[]>([])
-  const [loadingCustom, setLoadingCustom] = useState(true)
-  const [errorCustom, setErrorCustom] = useState(false)
-
-  useEffect(() => {
-    setLoadingCustom(true)
-    setErrorCustom(false)
-    produtoService.listar(0, 100, 'CUSTOMIZACAO')
-      .then(data => {
-        setCustomizacoes(data.content.map(p => ({
-          id: p.id,
-          nome: p.nome,
-          valor: p.precoVenda ?? 0,
-          algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
-          permitirEstoqueNegativo: p.permitirEstoqueNegativo,
-          estoqueAtual: p.estoqueAtual,
-          // RN-NOVA-7 (V0.10.0, #461) — ProdutoResponse já traz fracionavel real (RN-NOVA-2/#299).
-          fracionavel: p.fracionavel ?? true,
-        })))
-      })
-      .catch(() => setErrorCustom(true))
-      .finally(() => setLoadingCustom(false))
-  }, [])
-
-  const filtradas = customizacoes.filter(c =>
-    c.nome.toLowerCase().includes(busca.toLowerCase())
-  )
-
-  const toggle = (c: { id: string; nome: string; valor: number }) => {
-    setSelecionadas(prev =>
-      prev.find(x => x.id === c.id)
-        ? prev.filter(x => x.id !== c.id)
-        : [...prev, { ...c, qtd: 1 }]
-    )
-  }
-
-  const setQtd = (id: string, qtd: number) => {
-    setSelecionadas(prev =>
-      prev.map(x => x.id === id ? { ...x, qtd: Math.max(1, qtd) } : x)
-    )
-  }
-
-  const extraTotal = selecionadas.reduce((s, c) => s + c.valor * c.qtd, 0)
-
-  // RN-NOVA-1 (V0.8.4) — cancelar a calculadora de uma customização da fila descarta só
-  // aquela seleção (some do checklist de `selecionadas`), a fila segue com o resto. Se
-  // não sobrar nenhuma, fecha a fila sem chamar onConfirm — a artesã volta pra tela de
-  // seleção, livre pra ajustar ou fechar o modal inteiro.
-  const descartarDaFila = () => {
-    if (!fila) return
-    const [atual, ...resto] = fila
-    setSelecionadas(prev => prev.filter(x => x.id !== atual.id))
-    setFila(resto.length > 0 ? resto : null)
-  }
-
-  const confirmarDaFila = (precoFinal: number) => {
-    if (!fila) return
-    const [atual, ...resto] = fila
-    const novasConfirmadas = [...confirmadas, { ...atual, valor: precoFinal }]
-    if (resto.length > 0) {
-      setConfirmadas(novasConfirmadas)
-      setFila(resto)
-    } else {
-      onConfirm(item.id, novasConfirmadas)
-    }
-  }
-
-  // ORC-020 (REVISÃO)/RN-NOVA-22-23 (V0.8.4/#399) — customização é um Produto com
-  // ficha técnica própria, mesma mecânica do produto avulso (RN-NOVA-23): ao confirmar
-  // a seleção, cada customização escolhida passa pela calculadora, uma de cada vez —
-  // mesmo padrão "modal sequencial" já usado em ModalConfirmacaoVinculoSequencial
-  // (ver CLAUDE.md do Frontend, seção 5). `fila` guarda as que ainda faltam confirmar;
-  // `confirmadas` acumula o preço final de cada uma já confirmada.
-  const [fila, setFila] = useState<typeof selecionadas | null>(null)
-  const [confirmadas, setConfirmadas] = useState<typeof selecionadas>([])
-
-  const iniciarConfirmacao = () => {
-    if (selecionadas.length === 0) { onConfirm(item.id, []); return }
-    setConfirmadas([])
-    setFila([...selecionadas])
-  }
-
-  // Fila ativa: some a modal de seleção, mostra só a calculadora da customização atual
-  // — mesmo espírito do padrão sequencial (uma pergunta/decisão por vez).
-  if (fila && fila.length > 0) {
-    const atual = fila[0]
-    return (
-      // key força remount a cada passo da fila — sem isso, o useEffect de carregamento
-      // (mount-only) não dispara de novo pra próxima customização, ficando com dados
-      // presos na anterior (mesma posição na árvore, React reaproveitaria a instância).
-      <ModalCalculadoraItem
-        key={atual.id}
-        carregar={() => carregarCalculadoraAvulso(atual.id, atual.nome)}
-        onClose={descartarDaFila}
-        onConfirm={confirmarDaFila}
-      />
-    )
-  }
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title={item.nome}
-      subtitle="Customizações"
-      icon={<SlidersHorizontal size={20} />}
-      iconBg="rgba(249,115,22,0.10)"
-      iconColor="#F97316"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={iniciarConfirmacao}>
-            Confirmar {selecionadas.length > 0 ? `(${selecionadas.length})` : ''}
-          </Button>
-        </>
-      }
-    >
-      {/* Campo de busca */}
-      <div className="relative mb-3.5">
-        <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-muted">
-          <Search size={16} />
-        </span>
-        <input
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          placeholder="Buscar customização..."
-          className="h-[42px] w-full rounded-input border-[1.5px] border-line bg-white pl-9 pr-3.5 font-[inherit] text-sm text-dark outline-none transition-colors duration-150 focus:border-teal"
-        />
-      </div>
-
-      {/* Lista de customizações — RN-NOVA-7: até 8 itens visíveis por vez, resto via rolagem.
-          Altura calibrada para a linha de 72px + gap-2 (8px), medida via Playwright: 8*72 + 7*8 = 632px.
-          `flex-shrink-0` em cada linha é obrigatório: sem ele, um flex-col com max-height/overflow-y-auto
-          encolhe os itens para caber em vez de habilitar rolagem (gotcha clássico de flexbox). */}
-      <div className="flex max-h-[632px] flex-col gap-2 overflow-y-auto">
-        {loadingCustom ? (
-          <div className="p-8 text-center text-sm text-muted">
-            Carregando customizações...
-          </div>
-        ) : errorCustom ? (
-          <div className="p-6 text-center text-sm text-danger">
-            Falha ao carregar customizações. Tente novamente.
-          </div>
-        ) : filtradas.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted">
-            {busca ? 'Nenhuma customização encontrada.' : 'Nenhuma customização cadastrada.'}
-          </div>
-        ) : filtradas.map(c => {
-          const sel = selecionadas.find(x => x.id === c.id)
-          const on = !!sel
-
-          return (
-            <div key={c.id} className={clsx(
-              'flex-shrink-0 overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
-              on ? 'border-orange/40 bg-orange/[0.07]' : 'border-line bg-cream'
-            )}>
-              {/* Linha principal */}
-              <button
-                onClick={() => toggle(c)}
-                className="flex w-full items-center justify-between border-none bg-transparent px-3.5 py-3 font-[inherit]"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className={clsx(
-                    'grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
-                    on ? 'border-orange bg-orange' : 'border-[#D4D0C8] bg-transparent'
-                  )}>
-                    {on && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
-                  </span>
-                  <div>
-                    <span className="text-[14.5px] font-semibold text-dark">{c.nome}</span>
-                    <EstoqueTags
-                      className="mt-1"
-                      fracionavel={c.fracionavel}
-                      permitirEstoqueNegativo={c.permitirEstoqueNegativo}
-                      estoqueAtual={c.estoqueAtual}
-                      variant="busca"
-                    />
-                  </div>
-                </div>
-                <span className={clsx('text-sm font-semibold', on ? 'text-orange' : 'text-dim')}>
-                  +{BRL(c.valor)}/un
-                </span>
-              </button>
-
-              {/* Linha de quantidade */}
-              {on && (
-                <div className="flex animate-[fadeUp_.2s_ease_both] items-center justify-between gap-3 px-3.5 pb-3">
-                  <span className="text-[13px] text-muted">Quantidade</span>
-                  <div className="flex items-center overflow-hidden rounded-lg border border-line">
-                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) - 1)} className="grid h-[34px] w-8 place-items-center border-none bg-cream text-base text-body">−</button>
-                    <span className="w-9 border-x border-line text-center text-sm font-bold leading-[34px] text-dark">
-                      {sel?.qtd ?? 1}
-                    </span>
-                    <button onClick={() => setQtd(c.id, (sel?.qtd ?? 1) + 1)} className="grid h-[34px] w-8 place-items-center border-none bg-cream text-base text-teal">+</button>
-                  </div>
-                  <span className="min-w-[72px] text-right text-[13.5px] font-semibold text-orange">
-                    = {BRL(c.valor * (sel?.qtd ?? 1))}
-                  </span>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Rodapé de totais */}
-      {selecionadas.length > 0 && (
-        <div className="mt-4 flex items-center justify-between rounded-input border border-orange/20 bg-orange/[0.08] px-[15px] py-3">
-          <span className="text-[13.5px] font-semibold text-warning-alt">
-            {selecionadas.length} customização{selecionadas.length > 1 ? 'ões' : ''} selecionada{selecionadas.length > 1 ? 's' : ''}
-          </span>
-          <span className="text-[15px] font-bold text-orange">+{BRL(extraTotal)}</span>
-        </div>
-      )}
-    </ModalShell>
-  )
-}
-
-// ── ModalCalculadoraItem ─────────────────────────────────────────────────────
-// RN-NOVA-22 (REVISÃO)/RN-NOVA-23/RN-NOVA-1/RN-NOVA-2 (V0.8.4/#399, DECISOES_V0.8.4.md) —
-// calculadora de preço ao adicionar produto avulso, customização ou item de catálogo ao
-// orçamento. Reaproveita o componente CalculadoraPreco já usado por Produto/Catálogo
-// (RN-NOVA-23: "os dois endpoints já existentes, sem mudança de contrato de Backend").
-//
-// Diferença desta tela para Produto/Catálogo: a comparação de cor aqui é EXATA (sem
-// tolerância de arredondamento) — RN-NOVA-22 (REVISÃO). Produto/Catálogo mantêm suas
-// próprias tolerâncias (0.005/0.001), não alteradas por esta tarefa.
-// (`DadosCalculadoraItem` e as funções `carregarCalculadora*` vivem no escopo de
-// módulo, perto de `BRL` — reaproveitadas também pela fila de customizações abaixo.)
-function ModalCalculadoraItem({ carregar, onClose, onConfirm }: {
-  /** Busca os dados (Backend) e monta o breakdown — lança erro em qualquer falha,
-   *  inclusive composição inconsistente (RN-NOVA-3), pra cair no estado de BLOQUEIO
-   *  único (RN-NOVA-2: sem fallback pro preço cadastrado). */
-  carregar: () => Promise<DadosCalculadoraItem>
-  onClose: () => void
-  onConfirm: (precoFinal: number) => void
-}) {
-  const [estado, setEstado] = useState<'carregando' | 'erro' | 'ok'>('carregando')
-  const [dados, setDados] = useState<DadosCalculadoraItem | null>(null)
-  const [precoFinal, setPrecoFinal] = useState('')
-
-  useEffect(() => {
-    let cancelado = false
-    setEstado('carregando')
-    carregar()
-      .then(d => {
-        if (cancelado) return
-        setDados(d)
-        setPrecoFinal(d.precoInicial.toFixed(2).replace('.', ','))
-        setEstado('ok')
-      })
-      .catch(() => { if (!cancelado) setEstado('erro') })
-    return () => { cancelado = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const numLocal = (v: string) => parseFloat(v.replace(',', '.')) || 0
-  const pf = numLocal(precoFinal)
-  // RN-NOVA-22 (REVISÃO) — comparação exata sobre o valor exibido (2 casas), sem
-  // tolerância — diferente do overrideAtivo de Produto/Catálogo (0.005/0.001).
-  const diff = dados ? Math.round((pf - dados.sugerido) * 100) / 100 : 0
-  const overrideAtivo = diff !== 0
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title={dados?.titulo ?? 'Calculadora de preço'}
-      subtitle="Calculadora de preço"
-      icon={<Calculator size={20} />}
-      footer={estado === 'ok' ? (
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={() => onConfirm(pf)}>Adicionar ao orçamento</Button>
-        </>
-      ) : undefined}
-    >
-      {estado === 'carregando' && (
-        <div className="py-8 text-center text-sm text-muted">Carregando dados de preço…</div>
-      )}
-      {/* RN-NOVA-2 (V0.8.4) — falha ao carregar bloqueia a adição; sem fallback pro
-          preço cadastrado sem calculadora (decisão explícita, evita reintroduzir RN-054
-          silenciosamente). Cobre também RN-NOVA-3 (composição de item de catálogo com
-          customização anexada inativa/excluída — o `carregar()` do item de catálogo
-          lança erro nesse caso). */}
-      {estado === 'erro' && (
-        <div className="py-4 text-center">
-          <div className="text-sm font-semibold text-danger">Não foi possível carregar os dados de preço deste item.</div>
-          <div className="mt-1 text-[13px] text-muted">Tente novamente em instantes.</div>
-        </div>
-      )}
-      {estado === 'ok' && dados && (
-        <CalculadoraPreco
-          titulo={dados.titulo}
-          sugerido={dados.sugerido}
-          precoFinal={precoFinal}
-          onPrecoFinalChange={setPrecoFinal}
-          overrideAtivo={overrideAtivo}
-          diffOverride={overrideAtivo ? diff : null}
-        >
-          {dados.breakdown.map((linha, i) => <LinhaCalculadora key={i} {...linha} />)}
-        </CalculadoraPreco>
-      )}
-    </ModalShell>
-  )
 }
 
 // ── PrazoSection ───────────────────────────────────────────────────────────
@@ -721,22 +97,15 @@ function PrazoSection({
             <div className="mt-px text-[12.5px] text-muted">Define se este pedido tem data prevista de entrega.</div>
           </div>
         </div>
-        <div className="flex flex-shrink-0 overflow-hidden rounded-input border border-line">
-          {(['Não', 'Sim'] as const).map((lbl, i) => {
-            const val = i === 1
-            const on = temPrazoProducao === val
-            return (
-              <button
-                key={lbl}
-                onClick={() => setTemPrazoProducao(val)}
-                className={clsx(
-                  'h-10 w-[60px] border-none font-[inherit] text-sm font-semibold transition-colors duration-150',
-                  on ? (val ? 'bg-teal text-white' : 'bg-line-soft text-body') : 'bg-white text-dim'
-                )}
-              >{lbl}</button>
-            )
-          })}
-        </div>
+        <SegmentedControl
+          options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+          value={temPrazoProducao}
+          onChange={setTemPrazoProducao}
+          height="h-10"
+          optionWidth="w-[60px]"
+          textSize="text-sm"
+          className="flex-shrink-0"
+        />
       </div>
 
       {temPrazoProducao && (
@@ -916,39 +285,29 @@ function PagamentoSection({
               <div className="mt-px text-[12.5px] text-muted">Garante o início da produção.</div>
             </div>
           </div>
-          <div className="flex flex-shrink-0 overflow-hidden rounded-input border border-line">
-            {(['Não', 'Sim'] as const).map((lbl, i) => {
-              const val = i === 1
-              const on = ativo === val
-              return (
-                <button
-                  key={lbl}
-                  onClick={() => setAtivo(val)}
-                  className={clsx(
-                    'h-10 w-[60px] border-none font-[inherit] text-sm font-semibold transition-colors duration-150',
-                    on ? (val ? 'bg-teal text-white' : 'bg-line-soft text-body') : 'bg-white text-dim'
-                  )}
-                >{lbl}</button>
-              )
-            })}
-          </div>
+          <SegmentedControl
+            options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+            value={ativo}
+            onChange={setAtivo}
+            height="h-10"
+            optionWidth="w-[60px]"
+            textSize="text-sm"
+            className="flex-shrink-0"
+          />
         </div>
 
         {ativo && (
           <div className="mt-4 animate-[fadeUp_.25s_ease_both]">
             <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex flex-shrink-0 overflow-hidden rounded-[9px] border border-line">
-                {(['%', 'R$'] as const).map(tp => (
-                  <button
-                    key={tp}
-                    onClick={() => setTipo(tp)}
-                    className={clsx(
-                      'h-[46px] w-[46px] border-none font-[inherit] text-sm font-semibold',
-                      tipo === tp ? 'bg-teal text-white' : 'bg-white text-dim'
-                    )}
-                  >{tp}</button>
-                ))}
-              </div>
+              <SegmentedControl
+                options={[{ value: '%', label: '%' }, { value: 'R$', label: 'R$' }]}
+                value={tipo}
+                onChange={setTipo}
+                height="h-[46px]"
+                optionWidth="w-[46px]"
+                textSize="text-sm"
+                className="flex-shrink-0"
+              />
               <input
                 value={valor}
                 onChange={e => setValor(e.target.value.replace(/[^\d.,]/g, ''))}
@@ -1025,32 +384,13 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
           <span className="font-semibold text-dark [font-variant-numeric:tabular-nums]">{BRL(subtotal)}</span>
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[14.5px] text-body">Desconto</span>
-            <span className="text-[14.5px] font-semibold text-danger [font-variant-numeric:tabular-nums]">− {BRL(descontoAplicado)}</span>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex flex-shrink-0 overflow-hidden rounded-[9px] border border-line">
-              {(['%', 'R$'] as const).map(tp => (
-                <button
-                  key={tp}
-                  onClick={() => setDescTipo(tp)}
-                  className={clsx(
-                    'h-[42px] w-[42px] border-none font-[inherit] text-[13.5px] font-semibold',
-                    descTipo === tp ? 'bg-teal text-white' : 'bg-white text-dim'
-                  )}
-                >{tp}</button>
-              ))}
-            </div>
-            <input
-              value={descValor}
-              onChange={e => setDescValor(e.target.value.replace(/[^\d.,]/g, ''))}
-              inputMode="decimal" placeholder="0"
-              className="h-[42px] min-w-0 flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-            />
-          </div>
-        </div>
+        <DescontoBlock
+          tipo={descTipo}
+          valor={descValor}
+          onTipo={setDescTipo}
+          onValor={setDescValor}
+          descontoAplicado={descontoAplicado}
+        />
 
         <div className="flex items-baseline justify-between rounded-xl border border-teal/[0.18] bg-teal/[0.08] px-4 py-3.5">
           <span className="text-[15px] font-semibold text-dark">Total</span>
@@ -1102,276 +442,6 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
   )
 }
 
-// ── ModoToggle ─────────────────────────────────────────────────────────────
-function ModoToggle({ modo, onChange }: { modo: 'tudo' | 'catalogo' | 'produto'; onChange: (m: 'tudo' | 'catalogo' | 'produto') => void }) {
-  return (
-    <div className="inline-flex flex-shrink-0 overflow-hidden rounded-input border border-line">
-      {([['tudo', 'Tudo'], ['catalogo', 'Catálogo'], ['produto', 'Produto']] as const).map(([val, label]) => {
-        const on = modo === val
-        return (
-          <button
-            key={val}
-            onClick={() => onChange(val)}
-            className={clsx(
-              'h-[38px] whitespace-nowrap border-none px-4 font-[inherit] text-[13.5px] font-semibold transition-colors duration-150',
-              on ? 'bg-teal text-white' : 'bg-white text-body'
-            )}
-          >
-            {label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── ItemSearch ─────────────────────────────────────────────────────────────
-function ItemSearch({ open, onClose, modo, catalogos, catalogoFiltro, onSelectCatalogoFiltro, onSelectCatalogoItem, onSelectProdutoAvulso }: {
-  open: boolean
-  onClose: () => void
-  modo: 'tudo' | 'catalogo' | 'produto'
-  catalogos: CatalogoResponse[]
-  catalogoFiltro: string
-  onSelectCatalogoFiltro: (id: string) => void
-  onSelectCatalogoItem: (item: ItemCatalogoBuscaResponse) => void
-  onSelectProdutoAvulso: (produto: ProdutoResponse) => void
-}) {
-  const [q, setQ] = useState('')
-  const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
-  const [loading, setLoading] = useState(false)
-  const [maxHeight, setMaxHeight] = useState<number>()
-  const wrapRef = useRef<HTMLDivElement>(null)
-
-  // RN-NOVA-18 (V0.8.3) — paginação real do branch de item de catálogo, via usePaginatedList
-  // (mesmo hook/padrão de ListaProducaoPage.tsx). fetcher memoizado por [catalogoFiltro, q] para
-  // não recriar a cada render do componente (produtos/loading/maxHeight mudando não pode disparar
-  // o efeito de busca abaixo de novo — só mudança real de filtro/query).
-  const debouncedQ = useDebouncedValue(q, 300)
-  const fetchItensCatalogo = useCallback(
-    (page: number, size: number) => orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, debouncedQ || undefined, page, size),
-    [catalogoFiltro, debouncedQ]
-  )
-  const {
-    items: itensCatalogo,
-    setItems: setItensCatalogo,
-    hasMore: hasMoreCatalogo,
-    loadingMore: loadingMoreCatalogo,
-    loadMore: handleCarregarMaisCatalogo,
-    reset: carregarCatalogo,
-  } = usePaginatedList<ItemCatalogoBuscaResponse>({
-    fetcher: fetchItensCatalogo,
-    pageSize: 8,
-    errorMessage: 'Não foi possível carregar os itens de catálogo.',
-  })
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [onClose])
-
-  // ORC-030 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calculada a partir
-  // da posição real da 8ª linha (medida via ref, não um px fixo assumido): cobre de uma vez tanto
-  // o caso de 2 rótulos de categoria coexistindo (modo "Tudo" com catálogo + avulso) quanto o caso
-  // de badges de estoque quebrando para 2 linhas (nomes longos) — os dois fazem a linha crescer de
-  // forma que um valor fixo em px não acompanha. Sem isso: bug original de #242, o painel só
-  // orçava espaço para 1 rótulo de categoria, cortando o 8º item quando os dois apareciam juntos.
-  useLayoutEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    el.scrollTop = 0
-    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
-    if (linhas.length <= 8) {
-      setMaxHeight(undefined)
-      return
-    }
-    // offsetTop/offsetHeight (não getBoundingClientRect) — o painel entra com animate-pop
-    // (scale(0.92)→1); medir via clientRect durante o useLayoutEffect (síncrono, antes do
-    // primeiro paint) captura o box ainda na escala inicial da animação, subestimando a altura
-    // necessária. offsetTop/offsetHeight refletem o layout box "real", imune a transform.
-    const oitava = linhas[7]
-    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
-  }, [itensCatalogo, produtos])
-
-  useEffect(() => {
-    if (!open) {
-      setQ('')
-      setItensCatalogo([])
-      setProdutos([])
-      return
-    }
-    // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
-    if (debouncedQ !== q) return
-    let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      try {
-        const tarefas: Promise<void>[] = []
-        if (modo !== 'produto') {
-          tarefas.push(carregarCatalogo())
-        } else if (!cancelled) {
-          setItensCatalogo([])
-        }
-        if (modo === 'tudo' || modo === 'produto') {
-          tarefas.push(
-            produtoService.listar(0, 20, 'PRODUTO', debouncedQ || undefined, modo === 'produto').then(data => {
-              if (!cancelled) setProdutos(data.content)
-            }).catch(() => { if (!cancelled) setProdutos([]) })
-          )
-        } else {
-          if (!cancelled) setProdutos([])
-        }
-        await Promise.all(tarefas)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [debouncedQ, open, q, modo, catalogoFiltro, carregarCatalogo])
-
-  if (!open) return null
-
-  const semResultado = itensCatalogo.length === 0 && produtos.length === 0 && !loading
-
-  return (
-    <div
-      ref={wrapRef}
-      style={maxHeight != null ? { maxHeight } : undefined}
-      className="absolute inset-x-5 top-[62px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
-    >
-      <div className="sticky top-0 z-10 flex gap-1.5 bg-white px-1.5 pt-1.5">
-        <input
-          autoFocus
-          type="text"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          placeholder={
-            modo === 'catalogo' ? 'Buscar item de catálogo...' :
-            modo === 'produto' ? 'Buscar produto...' :
-            'Buscar produto ou item de catálogo...'
-          }
-          className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[1.5px] border-line bg-cream px-3 font-[inherit] text-sm text-dark outline-none"
-        />
-        {modo === 'catalogo' && catalogos.length > 0 && (
-          <div className="relative flex-shrink-0">
-            <select
-              value={catalogoFiltro}
-              onChange={e => onSelectCatalogoFiltro(e.target.value)}
-              className="h-[38px] max-w-[150px] cursor-pointer rounded-[9px] border-[1.5px] border-line bg-cream py-0 pl-8 pr-[30px] font-[inherit] text-[13px] text-dark outline-none"
-            >
-              <option value="">Todos catálogos</option>
-              {catalogos.map(c => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted">
-              <Filter size={14} />
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="mt-1.5">
-        {itensCatalogo.length > 0 && (
-          <div>
-            {modo === 'tudo' && (
-              <div className="px-[11px] pb-0.5 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-                Itens de catálogo
-              </div>
-            )}
-            {itensCatalogo.map(item => (
-              <button
-                key={item.id}
-                data-search-row
-                onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }}
-                className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
-              >
-                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
-                  <Layers size={16} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{item.nomeProduto}</div>
-                  <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
-                  <EstoqueTags
-                    className="mt-1"
-                    fracionavel={item.fracionavel ?? true}
-                    showFracionavel={item.fracionavel != null}
-                    permitirEstoqueNegativo={item.permitirEstoqueNegativo}
-                    estoqueAtual={item.estoqueAtual}
-                    variant="busca"
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-        {produtos.length > 0 && (
-          <div>
-            {modo === 'tudo' && (
-              <div className="px-[11px] pb-0.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-                Produtos
-              </div>
-            )}
-            {produtos.map(p => (
-              <button
-                key={p.id}
-                data-search-row
-                onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }}
-                className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
-              >
-                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-line-soft text-dim">
-                  <Box size={16} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{p.nome}</div>
-                  <div className="text-xs text-muted">{BRL(p.precoVenda ?? 0)} / unidade</div>
-                  <EstoqueTags
-                    className="mt-1"
-                    fracionavel={p.fracionavel ?? true}
-                    permitirEstoqueNegativo={p.permitirEstoqueNegativo}
-                    estoqueAtual={p.estoqueAtual}
-                    variant="busca"
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-        {semResultado && (
-          <div className="p-5 text-center text-sm text-muted">
-            {modo === 'catalogo'
-              ? 'Nenhum item de catálogo encontrado. Cadastre um item de catálogo primeiro.'
-              : modo === 'produto'
-                ? 'Nenhum produto fora de catálogo encontrado.'
-                : 'Nenhum resultado encontrado.'}
-          </div>
-        )}
-      </div>
-      {itensCatalogo.length > 0 && hasMoreCatalogo && (
-        // RN-NOVA-18 — rodapé fixo, simétrico ao "sticky top-0" da barra de busca acima (mesmo
-        // container rolável `wrapRef`): fica sempre visível no rodapé do painel calibrado para 8
-        // linhas, sem exigir rolagem extra dentro do popover para achar o botão (decisão do
-        // usuário, Passo 0 item 4 — ver DECISOES_V0.8.3.md). Sem `data-search-row`: não entra no
-        // cálculo de `maxHeight` (useLayoutEffect acima), que só mede linhas de item real.
-        <div className="sticky bottom-0 z-10 border-t border-line bg-white px-1.5 py-1.5">
-          <button
-            onClick={handleCarregarMaisCatalogo}
-            disabled={loadingMoreCatalogo}
-            className={clsx(
-              'h-9 w-full rounded-lg border-[1.5px] border-line bg-white font-[inherit] text-[13.5px] font-semibold text-body',
-              loadingMoreCatalogo ? 'cursor-default opacity-60' : 'cursor-pointer'
-            )}
-          >
-            {loadingMoreCatalogo ? 'Carregando…' : 'Carregar mais'}
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── CriarOrcamentoPage ─────────────────────────────────────────────────────
 export default function CriarOrcamentoPage() {
   const navigate = useNavigate()
@@ -1402,6 +472,18 @@ export default function CriarOrcamentoPage() {
   const [modoItens, setModoItens] = useState<'tudo' | 'catalogo' | 'produto'>('tudo')
   const [catalogos, setCatalogos] = useState<CatalogoResponse[]>([])
   const [catalogoFiltro, setCatalogoFiltro] = useState('')
+  // Buscas do <ItemSearch> compartilhado. Precisam ser estáveis: entram na dependência do fetcher
+  // paginado e do efeito de busca lá dentro — função nova a cada render viraria busca em laço.
+  const buscarItensCatalogoOrcamento = useCallback(
+    (busca: string | undefined, page: number, size: number) =>
+      orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, busca, page, size),
+    [catalogoFiltro]
+  )
+  const buscarProdutosOrcamento = useCallback(
+    (busca: string | undefined) =>
+      produtoService.listar(0, 20, 'PRODUTO', busca, modoItens === 'produto').then(d => d.content),
+    [modoItens]
+  )
   // #218 (RN-NOVA-8/9/11) — última simulação de estoque conhecida por produtoId (não por item da
   // lista: o backend acumula quantidade quando o mesmo produto aparece em mais de um item).
   const [simulacoes, setSimulacoes] = useState<Record<string, SimulacaoEstoqueProdutoResponse>>({})
@@ -1843,12 +925,12 @@ export default function CriarOrcamentoPage() {
         <div className="flex min-w-0 flex-col gap-[18px]">
 
           {/* Seção 1: Cliente */}
-          <QuoteCard step="1" label="Cliente" hint="Quem vai receber este orçamento?">
+          <SectionCard step="1" label="Cliente" hint="Quem vai receber este orçamento?">
             <ClienteSelect cliente={cliente} onSelect={setCliente} onClear={() => setCliente(null)} />
-          </QuoteCard>
+          </SectionCard>
 
           {/* Seção 2: Itens */}
-          <QuoteCard step="2" label="Itens do orçamento" hint="Produtos e quantidades do pedido.">
+          <SectionCard step="2" label="Itens do orçamento" hint="Produtos e quantidades do pedido.">
             <div className="px-5 pt-3.5">
               <ModoToggle modo={modoItens} onChange={m => { setModoItens(m); setCatalogoFiltro('') }} />
             </div>
@@ -1863,12 +945,12 @@ export default function CriarOrcamentoPage() {
                 </div>
               ) : (
                 items.map((it, i) => (
-                  <ItemRow
-                    key={it.id} item={it} index={i}
+                  <ItemLinha
+                    key={it.id} linha={it} index={i}
                     simulacao={it.produtoId ? simulacoes[it.produtoId] : undefined}
-                    onQtd={(id, v) => setItems(arr => arr.map(x => x.id === id ? { ...x, qtd: v } : x))}
-                    onRemove={id => setItems(arr => arr.filter(x => x.id !== id))}
-                    onOpenCustom={setModalItem}
+                    onQtd={v => setItems(arr => arr.map(x => x.id === it.id ? { ...x, qtd: v } : x))}
+                    onRemove={() => setItems(arr => arr.filter(x => x.id !== it.id))}
+                    onOpenCustom={() => setModalItem(it)}
                   />
                 ))
               )}
@@ -1885,6 +967,8 @@ export default function CriarOrcamentoPage() {
                   open={productOpen}
                   onClose={() => setProductOpen(false)}
                   modo={modoItens}
+                  buscarItensCatalogo={buscarItensCatalogoOrcamento}
+                  buscarProdutos={buscarProdutosOrcamento}
                   catalogos={catalogos}
                   catalogoFiltro={catalogoFiltro}
                   onSelectCatalogoFiltro={setCatalogoFiltro}
@@ -1893,10 +977,10 @@ export default function CriarOrcamentoPage() {
                 />
               </div>
             </div>
-          </QuoteCard>
+          </SectionCard>
 
           {/* Seção 3: Prazo de produção */}
-          <QuoteCard step="3" label="Prazo de produção" hint="Quantos dias úteis para finalizar este pedido.">
+          <SectionCard step="3" label="Prazo de produção" hint="Quantos dias úteis para finalizar este pedido.">
             <PrazoSection
               temPrazoProducao={temPrazoProducao} setTemPrazoProducao={setTemPrazoProducao}
               prazoDias={prazoDias} setPrazoDias={setPrazoDias}
@@ -1904,10 +988,10 @@ export default function CriarOrcamentoPage() {
               dataInicioEstimada={dataInicioEstimada} setDataInicioEstimada={setDataInicioEstimada}
               error={prazoDiasError}
             />
-          </QuoteCard>
+          </SectionCard>
 
           {/* Seção 4: Pagamento */}
-          <QuoteCard step="4" label="Condições de pagamento" hint="Quer pedir um sinal (entrada) para começar?">
+          <SectionCard step="4" label="Condições de pagamento" hint="Quer pedir um sinal (entrada) para começar?">
             <PagamentoSection
               metodoPagamento={metodoPagamento}
               setMetodoPagamento={setMetodoPagamento}
@@ -1919,7 +1003,7 @@ export default function CriarOrcamentoPage() {
               sinalAplicado={sinalAplicado} restante={restante}
               error={sinalError}
             />
-          </QuoteCard>
+          </SectionCard>
 
           {/* Resumo inline mobile */}
           <div className="hidden max-[860px]:block">
@@ -1947,10 +1031,11 @@ export default function CriarOrcamentoPage() {
       {/* Modal customizações */}
       {modalItem && (
         <ModalCustomizacoes
-          item={modalItem}
+          nomeItem={modalItem.nome}
+          customsIniciais={modalItem.customs}
           onClose={() => setModalItem(null)}
-          onConfirm={(id, customs) => {
-            setItems(arr => arr.map(x => x.id === id ? { ...x, customs } : x))
+          onConfirm={customs => {
+            setItems(arr => arr.map(x => x.id === modalItem.id ? { ...x, customs } : x))
             setModalItem(null)
           }}
         />
