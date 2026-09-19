@@ -5,6 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
 import ModalShell from '../../components/ui/ModalShell'
+import SegmentedControl from '../../components/ui/SegmentedControl'
 import SectionTitle from '../../components/shared/SectionTitle'
 import Spinner from '../../components/ui/Spinner'
 import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
@@ -24,7 +25,7 @@ const num = (v: string) => {
   return isNaN(n) ? 0 : n
 }
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 function DesativarModal({ onClose }: { onClose: () => void }) {
   const fichas = [
@@ -301,23 +302,11 @@ export default function FormInsumoPage() {
               hint={fracao ? 'Permite consumo de 0,5g, por exemplo.' : 'Sempre será consumido em quantidades inteiras.'}
               group
             >
-              <div className="flex h-12 overflow-hidden rounded-input border-[1.5px] border-line">
-                {([['Não', false], ['Sim', true]] as [string, boolean][]).map(([lbl, val]) => (
-                  <button
-                    key={lbl}
-                    type="button"
-                    onClick={() => setFracao(val)}
-                    className={clsx(
-                      'flex-1 border-none font-[inherit] text-[14.5px] font-semibold transition-colors duration-150',
-                      fracao === val
-                        ? val ? 'bg-teal text-white' : 'bg-line-soft text-body'
-                        : 'bg-white text-dim'
-                    )}
-                  >
-                    {lbl}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+                value={fracao}
+                onChange={setFracao}
+              />
             </Field>
             {fracao && (
               <Field
@@ -325,21 +314,14 @@ export default function FormInsumoPage() {
                 hint={tipoExibicao === 'FRACAO' ? 'Ex.: ⅓ folha.' : 'Ex.: 1ml de tinta.'}
                 group
               >
-                <div className="flex h-12 overflow-hidden rounded-input border-[1.5px] border-line">
-                  {([['Decimal', 'DECIMAL'], ['Fração', 'FRACAO']] as [string, TipoExibicaoQuantidade][]).map(([lbl, val]) => (
-                    <button
-                      key={lbl}
-                      type="button"
-                      onClick={() => setTipoExibicao(val)}
-                      className={clsx(
-                        'flex-1 border-none font-[inherit] text-[14.5px] font-semibold transition-colors duration-150',
-                        tipoExibicao === val ? 'bg-teal text-white' : 'bg-white text-dim'
-                      )}
-                    >
-                      {lbl}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  options={[
+                    { value: 'DECIMAL' as TipoExibicaoQuantidade, label: 'Decimal' },
+                    { value: 'FRACAO' as TipoExibicaoQuantidade, label: 'Fração' },
+                  ]}
+                  value={tipoExibicao}
+                  onChange={setTipoExibicao}
+                />
               </Field>
             )}
           </div>

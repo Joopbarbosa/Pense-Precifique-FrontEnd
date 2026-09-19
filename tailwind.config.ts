@@ -70,8 +70,15 @@ export default {
         // #204 — ritmo vertical entre seções (mt/gap), documentado no CLAUDE.md
         section: '18px',
       },
+      opacity: {
+        // V0.12.0/#500 — peso do anel de foco (`ring-teal/focus`), unificado com o do Toggle
+        // (`ring-teal/[0.25]`). Antes cada input tinha seu próprio `[0.12]` hardcoded, que a 12%
+        // lia como cinza em vez de reforçar a cor do campo em foco.
+        focus: '0.25',
+      },
       boxShadow: {
         card: '0 2px 8px rgba(0,0,0,0.06)',
+        switch: '0 1px 2px rgba(0,0,0,0.25)',
       },
       keyframes: {
         fadeIn:      { from: { opacity: '0' },                          to: { opacity: '1' } },
