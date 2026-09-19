@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { login } from '../helpers/auth'
+import { login, TEST_SENHA } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { inativarProduto } from '../helpers/producao'
 import {
@@ -11,6 +11,27 @@ import {
  * OpenProject #487 (V0.12.0) — venda de balcão no Caixa/PDV (RN-NOVA-1/2/3/7/10/11,
  * CEN-NOVO-1/2/3/6/7/8/9, UC-NOVO-1).
  */
+
+/** #504/#506 — pagamento abre modal "Escolher forma de pagamento"; marcar o método e confirmar
+ *  faz a linha de valor aparecer na tela principal. Quando Dinheiro é o ÚNICO método marcado, um
+ *  passo extra pergunta "Vai ter troco?" antes de fechar — `troco` resolve esse passo ('sem' =
+ *  Não, preenche o valor com o total sozinho; `{ recebido }` = Sim, com "Total recebido"). */
+async function escolherFormaPagamento(
+  page: import('@playwright/test').Page, nomeMetodo: string | RegExp, troco?: 'sem' | { recebido: string }
+) {
+  await page.getByRole('button', { name: 'Escolher forma de pagamento' }).click()
+  await page.getByRole('button', { name: nomeMetodo }).click()
+  await page.getByRole('button', { name: /^OK/ }).click()
+  if (troco) {
+    if (troco === 'sem') {
+      await page.getByRole('button', { name: 'Não' }).click()
+    } else {
+      await page.getByRole('button', { name: 'Sim' }).click()
+      await page.getByRole('dialog').getByRole('textbox').first().fill(troco.recebido)
+    }
+    await page.getByRole('button', { name: 'Confirmar' }).click()
+  }
+}
 
 test.describe('#487 — Venda rápida no Caixa', () => {
   let criadosProdutoIds: string[] = []
@@ -36,16 +57,18 @@ test.describe('#487 — Venda rápida no Caixa', () => {
     await login(page)
     await page.goto('/caixa')
 
-    await page.getByPlaceholder('Buscar produto por nome ou código de barras...').fill(nome)
+    await page.getByRole('button', { name: 'Adicionar item' }).click()
+    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nome)
     await page.getByRole('button', { name: new RegExp(nome) }).click()
 
-    const dinheiro = page.locator('text=Dinheiro').locator('xpath=following-sibling::div[1]//input')
-    await dinheiro.fill('50,00')
+    await escolherFormaPagamento(page, /Dinheiro/, { recebido: '50,00' })
 
     await page.getByRole('button', { name: /Finalizar venda/ }).click()
 
     await expect(page.getByText(/Venda concluída — CX-\d+/)).toBeVisible()
-    await expect(page.getByText('R$ 30,00', { exact: true })).toBeVisible() // troco: 50 - 20
+    // #504 — VendaConcluidaModal é ModalShell (o carrinho de fundo continua montado por trás),
+    // então "R$ 30,00" também aparece no preview de troco da tela principal — escopar ao dialog.
+    await expect(page.getByRole('dialog').getByText('R$ 30,00', { exact: true })).toBeVisible() // troco: 50 - 20
 
     const produtoAtualizado = await apiBuscarProduto(request, token, produto.id)
     expect(produtoAtualizado.estoqueAtual).toBe(9)
@@ -60,12 +83,12 @@ test.describe('#487 — Venda rápida no Caixa', () => {
     await login(page)
     await page.goto('/caixa')
 
-    await page.getByPlaceholder('Buscar produto por nome ou código de barras...').fill(nome)
+    await page.getByRole('button', { name: 'Adicionar item' }).click()
+    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nome)
     await page.getByRole('button', { name: new RegExp(nome) }).click()
-    await page.getByRole('button', { name: `Aumentar quantidade de ${nome}` }).click() // quantidade 2
+    await page.getByRole('spinbutton').fill('2') // quantidade 2
 
-    const dinheiro = page.locator('text=Dinheiro').locator('xpath=following-sibling::div[1]//input')
-    await dinheiro.fill('20,00')
+    await escolherFormaPagamento(page, /Dinheiro/, { recebido: '20,00' })
     await page.getByRole('button', { name: /Finalizar venda/ }).click()
 
     await expect(page.getByText(/Estoque insuficiente/)).toBeVisible()
@@ -82,12 +105,12 @@ test.describe('#487 — Venda rápida no Caixa', () => {
     await login(page)
     await page.goto('/caixa')
 
-    await page.getByPlaceholder('Buscar produto por nome ou código de barras...').fill(nome)
+    await page.getByRole('button', { name: 'Adicionar item' }).click()
+    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nome)
     await page.getByRole('button', { name: new RegExp(nome) }).click()
-    await page.getByRole('button', { name: `Aumentar quantidade de ${nome}` }).click() // quantidade 2
+    await page.getByRole('spinbutton').fill('2') // quantidade 2
 
-    const dinheiro = page.locator('text=Dinheiro').locator('xpath=following-sibling::div[1]//input')
-    await dinheiro.fill('20,00')
+    await escolherFormaPagamento(page, /Dinheiro/, { recebido: '20,00' })
     await page.getByRole('button', { name: /Finalizar venda/ }).click()
 
     await expect(page.getByText('Estoque ficará negativo')).toBeVisible()
@@ -107,9 +130,11 @@ test.describe('#487 — Venda rápida no Caixa', () => {
 
     await login(page)
     await page.goto('/caixa')
-    await page.getByPlaceholder('Buscar produto por nome ou código de barras...').fill(nome)
+    await page.getByRole('button', { name: 'Adicionar item' }).click()
+    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nome)
     await page.getByRole('button', { name: new RegExp(nome) }).click()
 
+    await escolherFormaPagamento(page, /Pix/)
     const pixInput = page.locator('text=Pix', { exact: true }).locator('xpath=following-sibling::div[1]//input')
     await pixInput.fill('15,00')
     await page.getByRole('button', { name: /Finalizar venda/ }).click()
@@ -126,10 +151,10 @@ test.describe('#487 — Venda rápida no Caixa', () => {
 
     await login(page)
     await page.goto('/caixa')
-    await page.getByPlaceholder('Buscar produto por nome ou código de barras...').fill(nome)
+    await page.getByRole('button', { name: 'Adicionar item' }).click()
+    await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(nome)
     await page.getByRole('button', { name: new RegExp(nome) }).click()
-    const dinheiro = page.locator('text=Dinheiro').locator('xpath=following-sibling::div[1]//input')
-    await dinheiro.fill('8,00')
+    await escolherFormaPagamento(page, /Dinheiro/, 'sem')
     await page.getByRole('button', { name: /Finalizar venda/ }).click()
     await expect(page.getByText(/Venda concluída — CX-\d+/)).toBeVisible()
 
@@ -140,6 +165,8 @@ test.describe('#487 — Venda rápida no Caixa', () => {
     await page.getByRole('button', { name: 'Vendas do turno' }).click()
     await page.getByRole('button', { name: 'Cancelar' }).click()
     await page.getByLabel('Motivo do cancelamento').fill('Cliente desistiu da compra no balcão')
+    await page.getByRole('button', { name: 'Sim' }).click() // estoque deve voltar
+    await page.getByLabel('Confirme sua senha').fill(TEST_SENHA)
     await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
 
     await expect(page.getByText('Cancelada', { exact: true })).toBeVisible()

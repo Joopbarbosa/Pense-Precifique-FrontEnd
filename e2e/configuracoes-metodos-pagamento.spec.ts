@@ -43,20 +43,20 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Métodos de Pagamento' }).click()
 
+    // #506 — o antigo Toggle (role="switch") virou SegmentedControl Não/Sim (2 cores).
     const linhaPix = page.getByText('Pix', { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-input")]')
-    const switchPix = linhaPix.getByRole('switch')
-    await expect(switchPix).toBeChecked()
+    await expect(linhaPix.getByRole('button', { name: 'Sim' })).toHaveClass(/bg-teal/)
 
-    await switchPix.click()
-    await expect(switchPix).not.toBeChecked()
+    await linhaPix.getByRole('button', { name: 'Não' }).click()
+    await expect(linhaPix.getByRole('button', { name: 'Não' })).toHaveClass(/bg-orange/)
 
     const res = await request.get(`${API_URL}/configuracoes/metodos-pagamento`, { headers: { Authorization: `Bearer ${token}` } })
     const metodos = await res.json()
     expect(metodos.find((m: any) => m.tipo === 'PIX').ativo).toBe(false)
 
     // restaura
-    await switchPix.click()
-    await expect(switchPix).toBeChecked()
+    await linhaPix.getByRole('button', { name: 'Sim' }).click()
+    await expect(linhaPix.getByRole('button', { name: 'Sim' })).toHaveClass(/bg-teal/)
   })
 
   test('configura a taxa da maquininha do Cartão Débito e ela persiste após reload', async ({ page, request }) => {
@@ -65,11 +65,11 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Métodos de Pagamento' }).click()
 
-    // Botão único do card (além do switch, que é role="switch") — texto varia entre "Configurar
-    // taxa da maquininha" (nunca configurada) e "Taxa: X%" (já configurada em rodada anterior;
-    // taxaMaquininha nunca é limpa de volta a null, só sobrescrita — não há regressão a testar aqui).
+    // O card tem 3 botões desde #506 (link de taxa + Não/Sim do ativo/inativo) — o link de taxa
+    // varia entre "Configurar taxa da maquininha" (nunca configurada) e "Taxa: X%" (já configurada
+    // em rodada anterior; taxaMaquininha nunca é limpa de volta a null, só sobrescrita).
     const linhaDebito = page.getByText('Cartão Débito', { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-input")]')
-    await linhaDebito.getByRole('button').click()
+    await linhaDebito.getByRole('button', { name: /Configurar taxa da maquininha|Taxa:/ }).click()
 
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByLabel('Taxa cobrada pela operadora').fill('3,9')
@@ -102,5 +102,32 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     await page.getByRole('button', { name: 'Novo método' }).click()
     await page.getByRole('button', { name: 'Criar método' }).click()
     await expect(page.getByText('Informe o nome do método.')).toBeVisible()
+  })
+
+  // Achado da Retomada (#495/#506) — parcelamento do Cartão de Crédito estava implementado e
+  // aprovado no teste manual, mas sem cobertura E2E dedicada (só os 4 testes acima, de #491).
+  test('configura parcela máxima e taxa uniforme do Cartão de Crédito, persiste após reload', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    await restaurarMetodosFixos(request, token)
+    await page.reload()
+    await page.getByRole('button', { name: 'Métodos de Pagamento' }).click()
+
+    const linhaCredito = page.getByText('Cartão Crédito', { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-input")]')
+    await linhaCredito.getByRole('button', { name: /Configurar taxa da maquininha|Taxa:/ }).click()
+
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByLabel('Taxa cobrada pela operadora').fill('2,5')
+    await page.getByLabel('Parcela máxima').fill('6')
+    // `metodos_pagamento` fica fora do TRUNCATE do global-setup (mesma categoria de
+    // usuarios/empresas) — o modo "Uma taxa por parcela" pode já estar selecionado de uma rodada
+    // anterior. Força "Igual para todas" explicitamente, nunca assume o default do primeiro load.
+    await page.getByRole('button', { name: 'Igual para todas' }).click()
+    await page.getByRole('button', { name: 'Salvar' }).click()
+
+    await expect(page.getByText('Taxa: 2,5% · até 6x')).toBeVisible()
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Métodos de Pagamento' }).click()
+    await expect(page.getByText('Taxa: 2,5% · até 6x')).toBeVisible()
   })
 })

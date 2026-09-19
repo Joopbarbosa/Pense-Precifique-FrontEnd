@@ -58,7 +58,7 @@ test.describe('#488 — Turno de Caixa', () => {
     await expect(page.getByText('Movimento registrado com sucesso!')).toBeVisible()
   })
 
-  test('CEN-NOVO-11 — fechamento com diferença não bloqueia', async ({ page }) => {
+  test('CEN-NOVO-25 — fechamento com diferença exige justificativa, mas não bloqueia o valor em si', async ({ page }) => {
     await login(page)
     await page.goto('/caixa')
     await page.getByLabel('Fundo de troco').fill('100,00')
@@ -66,11 +66,34 @@ test.describe('#488 — Turno de Caixa', () => {
 
     await page.getByRole('button', { name: 'Fechar Caixa', exact: true }).click()
     await page.getByLabel('Valor contado na gaveta').fill('80,00')
+
+    // sem justificativa, o fechamento é bloqueado (RN-NOVA-9 revisada, #496)
+    await page.getByRole('dialog').getByRole('button', { name: 'Fechar caixa' }).click()
+    await expect(page.getByText(/justificativa é obrigatória/i)).toBeVisible()
+
+    await page.getByLabel('Justificativa').fill('Contagem divergente, provavelmente erro de troco durante o turno')
     await page.getByRole('dialog').getByRole('button', { name: 'Fechar caixa' }).click()
 
     await expect(page.getByText('R$ 100,00')).toBeVisible() // valor esperado
     await expect(page.getByText('R$ -20,00')).toBeVisible() // diferença
     await expect(page.getByText(/nunca bloqueia|é só informativa/)).toBeVisible()
+
+    await page.getByRole('button', { name: 'Concluir' }).click()
+    await expect(page.getByRole('heading', { name: 'Abrir o Caixa' })).toBeVisible()
+  })
+
+  test('CEN-NOVO-26 — fechamento sem diferença não mostra nem exige justificativa', async ({ page }) => {
+    await login(page)
+    await page.goto('/caixa')
+    await page.getByLabel('Fundo de troco').fill('100,00')
+    await page.getByRole('button', { name: 'Abrir Caixa' }).click()
+
+    await page.getByRole('button', { name: 'Fechar Caixa', exact: true }).click()
+    await page.getByLabel('Valor contado na gaveta').fill('100,00')
+    await expect(page.getByLabel('Justificativa')).not.toBeVisible()
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Fechar caixa' }).click()
+    await expect(page.getByRole('dialog').getByText('R$ 0,00')).toBeVisible() // diferença
 
     await page.getByRole('button', { name: 'Concluir' }).click()
     await expect(page.getByRole('heading', { name: 'Abrir o Caixa' })).toBeVisible()

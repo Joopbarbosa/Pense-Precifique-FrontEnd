@@ -11,9 +11,13 @@ export async function apiTurnoAberto(request: APIRequestContext, token: string) 
 export async function apiFecharTurnoSeAberto(request: APIRequestContext, token: string) {
   const turno = await apiTurnoAberto(request, token)
   if (turno) {
+    // #488 (V0.12.0, RN-NOVA-9 revisada) — fechar com 0 quase sempre diverge do esperado
+    // (fundo/vendas/movimentos do teste anterior), e o backend agora exige justificativa nesse
+    // caso. Manda sempre uma válida (30+ caracteres) — inofensiva quando não há diferença, e
+    // evita o cleanup falhar silenciosamente e deixar o turno aberto pro próximo teste.
     await request.post(`${API_URL}/caixa/turnos/${turno.id}/fechar`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { valorFechamentoInformado: 0 },
+      data: { valorFechamentoInformado: 0, justificativa: 'Fechamento automático de limpeza entre testes E2E' },
     })
   }
 }
@@ -54,4 +58,49 @@ export async function apiCriarProdutoComEstoque(
 export async function apiBuscarProduto(request: APIRequestContext, token: string, id: string) {
   const res = await request.get(`${API_URL}/produtos/${id}`, { headers: { Authorization: `Bearer ${token}` } })
   return res.json()
+}
+
+/** Reabertura de RN-NOVA-1 (V0.12.0) — Produto de tipo livre (PRODUTO ou CUSTOMIZACAO), com
+ *  estoque explícito, para os cenários de item de Catálogo/customização no Caixa. */
+export async function apiCriarProdutoTipo(
+  request: APIRequestContext, token: string, nome: string, tipo: 'PRODUTO' | 'CUSTOMIZACAO',
+  precoVenda: number, estoqueAtual: number
+) {
+  const res = await request.post(`${API_URL}/produtos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome, tipo, tempoProducao: 1, precoVenda, estoqueAtual, permitirEstoqueNegativo: true, fichaTecnica: [] },
+  })
+  if (!res.ok()) throw new Error(`Falha ao criar produto de teste: ${res.status()} ${await res.text()}`)
+  return res.json()
+}
+
+/** Cria um Catálogo com 1 item (produto principal), opcionalmente com 1 customização fixa
+ *  anexada (RN-048). Retorna também os produtos criados, pra checagem de estoque no teste. */
+export async function apiCriarCatalogoComItem(
+  request: APIRequestContext, token: string, nomeProdutoPrincipal: string, precoVendaItem: number,
+  estoqueAtual: number, customizacao?: { nome: string; precoVenda: number; estoqueAtual: number }
+) {
+  const produtoPrincipal = await apiCriarProdutoTipo(request, token, nomeProdutoPrincipal, 'PRODUTO', precoVendaItem, estoqueAtual)
+  const resCatalogo = await request.post(`${API_URL}/catalogos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome: `Catalogo-${nomeProdutoPrincipal}` },
+  })
+  if (!resCatalogo.ok()) throw new Error(`Falha ao criar catálogo de teste: ${resCatalogo.status()} ${await resCatalogo.text()}`)
+  const catalogo = await resCatalogo.json()
+
+  let produtoCustomizacao: any = null
+  const customizacoesAnexadas: any[] = []
+  if (customizacao) {
+    produtoCustomizacao = await apiCriarProdutoTipo(request, token, customizacao.nome, 'CUSTOMIZACAO', customizacao.precoVenda, customizacao.estoqueAtual)
+    customizacoesAnexadas.push({ produtoId: produtoCustomizacao.id, quantidade: 1 })
+  }
+
+  const resItem = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { produtoId: produtoPrincipal.id, quantidadePacote: 1, precoVenda: precoVendaItem, customizacoesAnexadas },
+  })
+  if (!resItem.ok()) throw new Error(`Falha ao criar item de catálogo de teste: ${resItem.status()} ${await resItem.text()}`)
+  const item = await resItem.json()
+
+  return { catalogo, item, produtoPrincipal, produtoCustomizacao }
 }
