@@ -6,7 +6,7 @@ import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
-  Check, AlertTriangle, ChevronRight, Pencil, FileText, Receipt,
+  Check, AlertTriangle, ChevronRight, Pencil, FileText,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
@@ -15,21 +15,7 @@ import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import { FracionavelBadge } from '../../components/ui/Badge'
-import type { Csosn, ProdutoRequest, TipoProduto } from '../../types/produto'
-
-// #489 (V0.12.0) — RN-NOVA-13, lista fechada do Simples Nacional.
-const CSOSN_OPCOES: { valor: Csosn; label: string }[] = [
-  { valor: '101', label: '101 — Tributada pelo Simples com permissão de crédito' },
-  { valor: '102', label: '102 — Tributada pelo Simples sem permissão de crédito' },
-  { valor: '103', label: '103 — Isenção do ICMS para faixa de receita bruta' },
-  { valor: '201', label: '201 — Tributada com permissão de crédito e ICMS ST' },
-  { valor: '202', label: '202 — Tributada sem permissão de crédito e ICMS ST' },
-  { valor: '203', label: '203 — Isenção do ICMS para faixa de receita bruta e ICMS ST' },
-  { valor: '300', label: '300 — Imune' },
-  { valor: '400', label: '400 — Não tributada pelo Simples' },
-  { valor: '500', label: '500 — ICMS cobrado anteriormente por ST ou antecipação' },
-  { valor: '900', label: '900 — Outros' },
-]
+import type { ProdutoRequest, TipoProduto } from '../../types/produto'
 
 const num = (s: string) => {
   const fracao = tentarConverterFracao(s)
@@ -50,7 +36,7 @@ const TIPO_API_TO_LABEL: Record<string, string> = {
   'CUSTOMIZACAO': 'Customização',
 }
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 interface ItemDb {
   id: string
@@ -193,67 +179,6 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
   )
 }
 
-// ---------- DadosFiscais ----------
-//
-// #489 (V0.12.0) — campos fiscais mínimos, todos opcionais (RN-NOVA-12/13). Preparação para
-// emissão futura de NFC-e/NF-e (fora de escopo) — sem cálculo de imposto, sem validação cruzada
-// entre os campos nesta versão. Beneficia igualmente Orçamento e Caixa (não é exclusivo de nenhum).
-
-function DadosFiscais({ st, set, erros }: {
-  st: any; set: (k: string, v: any) => void
-  erros: Record<string, string>
-}) {
-  return (
-    <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-      <p className="mb-6 text-[13px] leading-[1.5] text-muted">
-        Campos opcionais, usados no futuro para emissão de nota fiscal. Nenhum deles é obrigatório
-        para cadastrar ou vender este produto.
-      </p>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-[22px]">
-        <div className="col-span-2">
-          <Field label="Código de barras (GTIN)" opt size="md">
-            <TextInput value={st.codigoBarras} onChange={v => set('codigoBarras', v.replace(/[^\d]/g, ''))} placeholder="7891234567895" inputMode="numeric" />
-            <span className="mt-1.5 block text-xs text-muted">8, 12, 13 ou 14 dígitos. Também usado para busca rápida por leitor no Caixa.</span>
-            {erros.codigoBarras && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{erros.codigoBarras}</span>}
-          </Field>
-        </div>
-        <Field label="NCM" opt size="md">
-          <TextInput value={st.ncm} onChange={v => set('ncm', v.replace(/[^\d]/g, ''))} placeholder="48202000" inputMode="numeric" />
-          <span className="mt-1.5 block text-xs text-muted">8 dígitos.</span>
-          {erros.ncm && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{erros.ncm}</span>}
-        </Field>
-        <Field label="CFOP" opt size="md">
-          <TextInput value={st.cfop} onChange={v => set('cfop', v.replace(/[^\d]/g, ''))} placeholder="5102" inputMode="numeric" />
-          <span className="mt-1.5 block text-xs text-muted">4 dígitos.</span>
-          {erros.cfop && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{erros.cfop}</span>}
-        </Field>
-        <Field label="CEST" opt size="md">
-          <TextInput value={st.cest} onChange={v => set('cest', v)} placeholder="2103200" />
-          <span className="mt-1.5 block text-xs text-muted">Só se o produto tiver Substituição Tributária.</span>
-        </Field>
-        <Field label="Unidade comercial" opt size="md">
-          <TextInput value={st.unidadeComercial} onChange={v => set('unidadeComercial', v.toUpperCase())} placeholder="UN" />
-          <span className="mt-1.5 block text-xs text-muted">Ex.: UN, CX, KG.</span>
-        </Field>
-        <div className="col-span-2">
-          <Field label="CSOSN" opt size="md">
-            <select
-              value={st.csosn}
-              onChange={e => set('csosn', e.target.value)}
-              className={clsx(inputBase, 'cursor-pointer pl-3.5 pr-3.5')}
-            >
-              <option value="">Nenhum</option>
-              {CSOSN_OPCOES.map(o => (
-                <option key={o.valor} value={o.valor}>{o.label}</option>
-              ))}
-            </select>
-            <span className="mt-1.5 block text-xs text-muted">Código de Situação da Operação no Simples Nacional.</span>
-          </Field>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ---------- TipoBadge ----------
 
@@ -701,11 +626,9 @@ export default function CadastrarProdutoPage() {
   const navigate = useNavigate()
   const { id } = useParams()
   const editando = !!id
-  const [aba, setAba] = useState<'dados' | 'ficha' | 'fiscal'>('dados')
+  const [aba, setAba] = useState<'dados' | 'ficha'>('dados')
   const [dados, setDados] = useState({
     nome: '', tipo: 'Produto', descricao: '', tempo: '',
-    // #489 (V0.12.0) — campos fiscais mínimos, todos opcionais.
-    codigoBarras: '', ncm: '', cfop: '', cest: '', unidadeComercial: '', csosn: '',
   })
   const setD = (k: string, v: any) => setDados(d => ({ ...d, [k]: v }))
   const [ficha, setFicha] = useState<FichaItem[]>([])
@@ -788,12 +711,6 @@ export default function CadastrarProdutoPage() {
           tipo: TIPO_API_TO_LABEL[produto.tipo] || 'Produto',
           descricao: produto.descricao || '',
           tempo: produto.tempoProducao.toString(),
-          codigoBarras: produto.codigoBarras || '',
-          ncm: produto.ncm || '',
-          cfop: produto.cfop || '',
-          cest: produto.cest || '',
-          unidadeComercial: produto.unidadeComercial || '',
-          csosn: produto.csosn || '',
         })
         const fichaItems: FichaItem[] = produto.fichaTecnica.map(item => ({
           id: item.insumoId || item.produtoBaseId || '',
@@ -848,12 +765,6 @@ export default function CadastrarProdutoPage() {
       rendimento: rendimentoNum,
       permitirEstoqueNegativo,
       fracionavel,
-      codigoBarras: dados.codigoBarras.trim() || undefined,
-      ncm: dados.ncm.trim() || undefined,
-      cfop: dados.cfop.trim() || undefined,
-      cest: dados.cest.trim() || undefined,
-      unidadeComercial: dados.unidadeComercial.trim() || undefined,
-      csosn: (dados.csosn || undefined) as ProdutoRequest['csosn'],
       fichaTecnica: ficha.map(item => ({
         insumoId: item.tipo === 'insumo' ? item.id : undefined,
         // #462 (achado do teste manual): faltava tratar 'customizacao' aqui — ficava sem
@@ -900,7 +811,6 @@ export default function CadastrarProdutoPage() {
   const ABAS = [
     { id: 'dados' as const, label: 'Dados básicos',  icon: FileText },
     { id: 'ficha' as const, label: 'Ficha Técnica',  icon: Layers },
-    { id: 'fiscal' as const, label: 'Dados Fiscais', icon: Receipt },
   ]
 
   return (
@@ -982,9 +892,6 @@ export default function CadastrarProdutoPage() {
             custoTotalLote={custoTotalLote} custoUnitario={custoUnitario}
           />
         </div>
-      )}
-      {aba === 'fiscal' && (
-        <DadosFiscais st={dados} set={setD} erros={fieldErrors} />
       )}
 
       {/* AÇÕES GLOBAIS */}
