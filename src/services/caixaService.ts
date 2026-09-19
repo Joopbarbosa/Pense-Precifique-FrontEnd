@@ -1,9 +1,11 @@
 import api from './api'
 import type {
-  AbrirCaixaTurnoRequest, CaixaTurnoResponse, FecharCaixaTurnoRequest,
+  AbrirCaixaTurnoRequest, CaixaTurnoResponse, FecharCaixaTurnoRequest, FechamentoPreviaResponse,
   CaixaMovimentoRequest, CaixaMovimentoResponse,
   VendaCaixaRequest, VendaCaixaResponse, CancelarVendaCaixaRequest, RegistrarVendaResultado,
 } from '../types/caixa'
+import type { ItemCatalogoBuscaResponse } from '../types/orcamento'
+import type { PageResponse } from '../types/shared'
 
 export const caixaService = {
   // #488 (V0.12.0)
@@ -24,6 +26,11 @@ export const caixaService = {
 
   fecharTurno: async (id: string, data: FecharCaixaTurnoRequest): Promise<CaixaTurnoResponse> => {
     const response = await api.post<CaixaTurnoResponse>(`/caixa/turnos/${id}/fechar`, data)
+    return response.data
+  },
+
+  previaFechamento: async (id: string): Promise<FechamentoPreviaResponse> => {
+    const response = await api.get<FechamentoPreviaResponse>(`/caixa/turnos/${id}/fechamento-previa`)
     return response.data
   },
 
@@ -55,6 +62,15 @@ export const caixaService = {
 
   cancelarVenda: async (id: string, data: CancelarVendaCaixaRequest): Promise<VendaCaixaResponse> => {
     const response = await api.post<VendaCaixaResponse>(`/caixa/vendas/${id}/cancelar`, data)
+    return response.data
+  },
+
+  /** Reabertura de RN-NOVA-1 (achado do teste manual) — busca de itens de Catálogo disponíveis
+   *  pra venda no Caixa, em paralelo a `produtoService.listar(..., semCatalogo=true)`. */
+  buscarItensCatalogo: async (busca?: string, page = 0, size = 8): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+    const params: Record<string, any> = { page, size }
+    if (busca) params.busca = busca
+    const response = await api.get('/caixa/busca-itens-catalogo', { params })
     return response.data
   },
 }

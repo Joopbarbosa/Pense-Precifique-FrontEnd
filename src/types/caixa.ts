@@ -16,6 +16,8 @@ export interface CaixaTurnoResponse {
   valorFechamentoEsperado?: number | null
   valorFechamentoInformado?: number | null
   diferenca?: number | null
+  /** #488 (V0.12.0) — preenchida só quando o fechamento teve diferença. */
+  fechamentoJustificativa?: string | null
   status: StatusCaixaTurno
 }
 
@@ -25,6 +27,19 @@ export interface AbrirCaixaTurnoRequest {
 
 export interface FecharCaixaTurnoRequest {
   valorFechamentoInformado: number
+  /** Obrigatória (mín. 30 caracteres) só quando o valor informado diverge do esperado — regra
+   *  condicional validada no backend; aqui é só o transporte. */
+  justificativa?: string
+}
+
+/** #488 (V0.12.0) — prévia do fechamento, sem persistir nada (padrão `simular-*`). O Frontend
+ *  precisa do valor esperado ANTES de enviar o fechamento pra saber se deve exigir a justificativa. */
+export interface FechamentoPreviaResponse {
+  valorAbertura: number
+  suprimentos: number
+  sangrias: number
+  vendasDinheiro: number
+  valorEsperado: number
 }
 
 export interface CaixaMovimentoResponse {
@@ -42,14 +57,28 @@ export interface CaixaMovimentoRequest {
   motivo: string
 }
 
-export interface VendaCaixaItemRequest {
+export interface VendaCaixaItemCustomizacaoRequest {
   produtoId: string
   quantidade: number
+}
+
+/** Origem XOR (reabertura de RN-NOVA-1, achado do teste manual): `itemCatalogoId` OU `produtoId`,
+ *  nunca os dois. `customizacoes` funciona para as duas origens (soma-se às fixas do Catálogo,
+ *  expandidas automaticamente pelo Backend). */
+export interface VendaCaixaItemRequest {
+  itemCatalogoId?: string
+  produtoId?: string
+  quantidade: number
+  customizacoes?: VendaCaixaItemCustomizacaoRequest[]
 }
 
 export interface VendaCaixaPagamentoRequest {
   metodoPagamentoId: string
   valor: number
+  /** #506 (V0.12.0) — só aceito em Cartão de Crédito com parcelamento configurado (>1). O
+   *  Backend resolve e congela a taxa aplicada sozinho (`VendaCaixaService#resolverTaxaAplicada`)
+   *  — o Frontend nunca calcula nem envia taxa. */
+  parcelas?: number
 }
 
 export interface VendaCaixaRequest {
@@ -63,9 +92,15 @@ export interface VendaCaixaRequest {
 
 export interface CancelarVendaCaixaRequest {
   cancelamentoMotivo: string
+  /** #497 (V0.12.0) — reautenticação: senha da usuária logada, evita cancelamento num caixa
+   *  desatendido sem derrubar a sessão nem o turno aberto. */
+  senha: string
+  /** #497 (V0.12.0) — até então o estoque sempre voltava; agora é escolha explícita (produto
+   *  danificado/perdido não deve voltar). */
+  retornarEstoque: boolean
 }
 
-export interface VendaCaixaItemResponse {
+export interface VendaCaixaItemCustomizacaoResponse {
   id: string
   produtoId: string
   produtoNome: string
@@ -74,10 +109,23 @@ export interface VendaCaixaItemResponse {
   subtotal: number
 }
 
+export interface VendaCaixaItemResponse {
+  id: string
+  produtoId: string
+  produtoNome: string
+  itemCatalogoId?: string | null
+  quantidade: number
+  precoUnitario: number
+  subtotal: number
+  customizacoes: VendaCaixaItemCustomizacaoResponse[]
+}
+
 export interface VendaCaixaPagamentoResponse {
   id: string
   metodoPagamentoId: string
   valor: number
+  parcelas?: number | null
+  taxaPercentualAplicada?: number | null
 }
 
 export interface VendaCaixaResponse {
