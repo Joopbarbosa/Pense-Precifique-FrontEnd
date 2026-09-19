@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
+import SegmentedControl from '../../components/ui/SegmentedControl'
 import Toast from '../../components/shared/Toast'
 import ModalShell from '../../components/ui/ModalShell'
 import {
@@ -11,7 +12,10 @@ import {
 } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
-import type { EmpresaResponse, ConfiguracaoResponse, MetodoPagamentoConfiguravelResponse, TipoMetodoPagamento } from '../../types/empresa'
+import type {
+  EmpresaResponse, ConfiguracaoResponse, MetodoPagamentoConfiguravelResponse, TipoMetodoPagamento,
+  HorarioFuncionamento,
+} from '../../types/empresa'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
@@ -338,11 +342,89 @@ function SectionHead({ icon, titulo }: { icon: React.ReactNode; titulo: string }
 
 /* ── PerfilEmpresa ───────────────────────────────────────────── */
 
+/* ── HorarioSemanaEditor (#488/#506, V0.12.0) ───────────────────
+   Abrir o caixa fora da faixa configurada gera aviso, nunca bloqueio (ver AbrirCaixaView,
+   CaixaPage.tsx) — aqui é só o cadastro. `diaSemana` segue ISO-8601 (1=segunda...7=domingo, igual
+   ao Backend e a `Date#getDay()` NÃO — getDay() usa 0=domingo, nunca usado direto aqui). */
+
+const DIAS_SEMANA = [
+  { valor: 1, label: 'Segunda-feira' },
+  { valor: 2, label: 'Terça-feira' },
+  { valor: 3, label: 'Quarta-feira' },
+  { valor: 4, label: 'Quinta-feira' },
+  { valor: 5, label: 'Sexta-feira' },
+  { valor: 6, label: 'Sábado' },
+  { valor: 7, label: 'Domingo' },
+] as const
+
+interface HorarioDiaEstado {
+  fechado: boolean
+  abertura: string
+  fechamento: string
+}
+
+function horariosParaEstado(lista?: HorarioFuncionamento[]): Record<number, HorarioDiaEstado> {
+  const porDia = new Map((lista ?? []).map(h => [h.diaSemana, h]))
+  return Object.fromEntries(DIAS_SEMANA.map(d => {
+    const h = porDia.get(d.valor)
+    return [d.valor, {
+      fechado: h?.fechado ?? false,
+      abertura: h?.horaAbertura ?? '08:00',
+      fechamento: h?.horaFechamento ?? '18:00',
+    }]
+  })) as Record<number, HorarioDiaEstado>
+}
+
+function HorarioSemanaEditor({ horarios, onChange }: {
+  horarios: Record<number, HorarioDiaEstado>
+  onChange: (dia: number, patch: Partial<HorarioDiaEstado>) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {DIAS_SEMANA.map(d => {
+        const h = horarios[d.valor]
+        return (
+          <div key={d.valor} className="flex flex-wrap items-center gap-3 rounded-input border-[1.5px] border-line px-3.5 py-3">
+            <span className="w-[118px] flex-shrink-0 text-[13.5px] font-semibold text-dark">{d.label}</span>
+            <SegmentedControl
+              options={[{ value: true, label: 'Fechado' }, { value: false, label: 'Aberto' }]}
+              value={h.fechado}
+              onChange={v => onChange(d.valor, { fechado: v })}
+              height="h-9"
+              optionWidth="w-[76px]"
+              textSize="text-[12.5px]"
+              className="flex-shrink-0"
+            />
+            {!h.fechado && (
+              <div className="flex flex-1 items-center gap-2">
+                <input
+                  type="time"
+                  value={h.abertura}
+                  onChange={e => onChange(d.valor, { abertura: e.target.value })}
+                  className="h-9 w-[110px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-none focus:border-teal"
+                />
+                <span className="text-[12.5px] text-muted">até</span>
+                <input
+                  type="time"
+                  value={h.fechamento}
+                  onChange={e => onChange(d.valor, { fechamento: e.target.value })}
+                  className="h-9 w-[110px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-none focus:border-teal"
+                />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function PerfilEmpresa({
   initialNome,
   initialEmail,
   initialWhatsapp,
   initialEndereco,
+  initialHorarios,
   onSave,
   saving,
 }: {
@@ -350,13 +432,15 @@ function PerfilEmpresa({
   initialEmail: string
   initialWhatsapp: string
   initialEndereco: string
-  onSave: (nome: string, email: string, whatsapp: string, endereco: string) => Promise<void>
+  initialHorarios: HorarioFuncionamento[] | undefined
+  onSave: (nome: string, email: string, whatsapp: string, endereco: string, horarios: HorarioFuncionamento[]) => Promise<void>
   saving: boolean
 }) {
   const [nome, setNome] = useState(initialNome)
   const [email, setEmail] = useState(initialEmail)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
   const [endereco, setEndereco] = useState(initialEndereco)
+  const [horarios, setHorarios] = useState(() => horariosParaEstado(initialHorarios))
   const { toast, setToast } = useToast()
 
   useEffect(() => {
@@ -364,11 +448,32 @@ function PerfilEmpresa({
     setEmail(initialEmail)
     setWhatsapp(initialWhatsapp)
     setEndereco(initialEndereco)
-  }, [initialNome, initialEmail, initialWhatsapp, initialEndereco])
+    setHorarios(horariosParaEstado(initialHorarios))
+  }, [initialNome, initialEmail, initialWhatsapp, initialEndereco, initialHorarios])
+
+  const alterarHorario = (dia: number, patch: Partial<HorarioDiaEstado>) =>
+    setHorarios(prev => ({ ...prev, [dia]: { ...prev[dia], ...patch } }))
 
   const salvar = async () => {
+    const diaInvalido = DIAS_SEMANA.find(d => {
+      const h = horarios[d.valor]
+      return !h.fechado && h.fechamento <= h.abertura
+    })
+    if (diaInvalido) {
+      setToast(`${diaInvalido.label}: o horário de fechamento precisa ser depois do de abertura.`)
+      return
+    }
     try {
-      await onSave(nome, email, whatsapp, endereco)
+      const horariosRequest: HorarioFuncionamento[] = DIAS_SEMANA.map(d => {
+        const h = horarios[d.valor]
+        return {
+          diaSemana: d.valor,
+          fechado: h.fechado,
+          horaAbertura: h.fechado ? undefined : h.abertura,
+          horaFechamento: h.fechado ? undefined : h.fechamento,
+        }
+      })
+      await onSave(nome, email, whatsapp, endereco, horariosRequest)
       setToast('Configurações salvas com sucesso!')
     } catch (err: any) {
       setToast(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
@@ -410,6 +515,14 @@ function PerfilEmpresa({
           <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
             Estas informações aparecem em todos os PDFs gerados pelo sistema (orçamentos, recibos e multas).
           </p>
+        </div>
+
+        <div className="mt-6 border-t border-line pt-[22px]">
+          <h3 className="m-0 mb-1 text-[15px] font-bold text-dark">Horário de funcionamento</h3>
+          <p className="m-0 mb-4 text-[12.5px] text-muted">
+            Abrir o caixa fora do horário configurado só avisa — nunca bloqueia.
+          </p>
+          <HorarioSemanaEditor horarios={horarios} onChange={alterarHorario} />
         </div>
 
         <div className="mt-6 flex justify-end border-t border-line pt-[22px]">
@@ -501,7 +614,7 @@ function ContaSeguranca() {
 /* ── MetodosPagamento (#491, V0.12.0) ────────────────────────── */
 //
 // RN-NOVA-15/16/17 — 4 tipos fixos (semeados na criação da conta, sem nome próprio — rótulo vem
-// do `tipo`) + OUTRO de nome livre. Toggle ativo/inativo em qualquer um; taxa da maquininha só em
+// do `tipo`) + OUTRO de nome livre. Ativo/inativo em qualquer um; taxa da maquininha só em
 // Cartão Crédito/Débito (informativa nesta versão); criação manual só de tipo OUTRO (tentar tipo
 // fixo é sempre rejeitado pelo backend, RN-NOVA-16/CEN-NOVO-12).
 
@@ -510,52 +623,66 @@ const ICON_TIPO_METODO = ICON_TIPO_METODO_PAGAMENTO
 
 const TIPOS_CARTAO: TipoMetodoPagamento[] = ['CARTAO_CREDITO', 'CARTAO_DEBITO']
 
-function AtivoToggle({ ativo, onChange, disabled }: { ativo: boolean; onChange: () => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={ativo}
-      disabled={disabled}
-      onClick={onChange}
-      className={clsx(
-        'relative h-6 w-11 flex-shrink-0 rounded-full border-none transition-colors duration-150 disabled:opacity-50',
-        ativo ? 'bg-teal' : 'bg-line'
-      )}
-    >
-      <span className={clsx(
-        'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-150',
-        ativo ? 'translate-x-[22px]' : 'translate-x-0.5'
-      )} />
-    </button>
-  )
-}
-
-function TaxaMaquininhaModal({ open, onClose, metodo, onSaved }: {
+/**
+ * Taxa da maquininha (Cartão Crédito/Débito) + parcelamento (#506, só Cartão Crédito — mesma
+ * trava do backend, `MetodoPagamentoConfiguravelService#aplicarParcelamento`). "Parcela máxima"
+ * é sempre >= 1 — 1x é o equivalente funcional de "não parcela" (a venda nunca oferece escolha de
+ * parcela quando só existe a opção 1), então não existe um interruptor "ativar/desativar"
+ * separado: o endpoint de atualização não tem como voltar `maxParcelas` para `null` depois de
+ * definido (achado registrado em `DECISOES_V0.12.0.md`), e 1x cobre o mesmo caso de uso sem
+ * depender disso.
+ */
+function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
   open: boolean; onClose: () => void
   metodo: MetodoPagamentoConfiguravelResponse | null
   onSaved: (m: MetodoPagamentoConfiguravelResponse) => void
 }) {
   const [valor, setValor] = useState('')
+  const [maxParcelas, setMaxParcelas] = useState('1')
+  const [uniforme, setUniforme] = useState(true)
+  const [taxasPorParcela, setTaxasPorParcela] = useState<Record<number, string>>({})
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
-    if (metodo) setValor(metodo.taxaMaquininha != null ? formatMargem(metodo.taxaMaquininha) : '')
+    if (!metodo) return
+    setValor(metodo.taxaMaquininha != null ? formatMargem(metodo.taxaMaquininha) : '')
+    setMaxParcelas(String(metodo.maxParcelas ?? 1))
+    setUniforme(metodo.taxaParcelaUniforme !== false)
+    setTaxasPorParcela(Object.fromEntries((metodo.taxasParcela ?? []).map(t => [t.parcela, formatMargem(t.taxa)])))
     setErro(null)
   }, [metodo])
 
   if (!metodo) return null
 
+  const ehCredito = metodo.tipo === 'CARTAO_CREDITO'
+  const max = Math.min(24, Math.max(1, parseInt(maxParcelas, 10) || 1))
+
   const salvar = async () => {
+    if (ehCredito && !uniforme) {
+      const semTaxa = Array.from({ length: max }, (_, i) => i + 1).find(p => !taxasPorParcela[p]?.trim())
+      if (semTaxa) {
+        setErro(`Informe a taxa da parcela ${semTaxa}.`)
+        return
+      }
+    }
     setSalvando(true)
     setErro(null)
     try {
-      const atualizado = await empresaService.atualizarMetodoPagamento(metodo.id, { taxaMaquininha: parseDecimal(valor) })
+      const atualizado = await empresaService.atualizarMetodoPagamento(metodo.id, {
+        taxaMaquininha: parseDecimal(valor),
+        ...(ehCredito ? {
+          maxParcelas: max,
+          taxaParcelaUniforme: uniforme,
+          ...(uniforme ? {} : {
+            taxasParcela: Array.from({ length: max }, (_, i) => ({ parcela: i + 1, taxa: parseDecimal(taxasPorParcela[i + 1]) })),
+          }),
+        } : {}),
+      })
       onSaved(atualizado)
       onClose()
     } catch (err: any) {
-      setErro(extractApiError(err, 'Erro ao salvar a taxa. Tente novamente.'))
+      setErro(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
     } finally {
       setSalvando(false)
     }
@@ -565,8 +692,8 @@ function TaxaMaquininhaModal({ open, onClose, metodo, onSaved }: {
     <ModalShell
       open={open}
       onClose={onClose}
-      title={`Taxa da maquininha — ${LABEL_TIPO_METODO[metodo.tipo]}`}
-      subtitle="Só informativo nesta versão — não desconta nada do valor recebido."
+      title={`Configurar — ${LABEL_TIPO_METODO[metodo.tipo]}`}
+      subtitle="Taxa da maquininha é só informativa — não desconta nada do valor recebido."
       icon={<Percent size={17} />}
       footer={
         <div className="flex justify-end gap-3">
@@ -575,10 +702,56 @@ function TaxaMaquininhaModal({ open, onClose, metodo, onSaved }: {
         </div>
       }
     >
-      <CfgField label="Taxa cobrada pela operadora">
-        <AffixInput value={valor} onChange={setValor} suffix="%" inputMode="decimal" />
-      </CfgField>
-      {erro && <p className="mt-3 text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+      <div className="flex flex-col gap-4">
+        <CfgField label="Taxa cobrada pela operadora">
+          <AffixInput value={valor} onChange={setValor} suffix="%" inputMode="decimal" />
+        </CfgField>
+
+        {ehCredito && (
+          <>
+            <CfgField label="Parcela máxima">
+              <input
+                type="number" min={1} max={24} value={maxParcelas}
+                onChange={e => setMaxParcelas(e.target.value.replace(/[^\d]/g, ''))}
+                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              />
+              <p className="mt-1.5 text-xs text-muted">1x equivale a não oferecer parcelamento — a venda só pergunta o número de parcelas quando a máxima for maior que 1.</p>
+            </CfgField>
+
+            {max > 1 && (
+              <div>
+                <span className="mb-2 block text-[13px] font-semibold text-body">Taxa por parcela</span>
+                <SegmentedControl
+                  options={[{ value: true, label: 'Igual para todas' }, { value: false, label: 'Uma taxa por parcela' }]}
+                  value={uniforme}
+                  onChange={setUniforme}
+                  height="h-10"
+                />
+                {uniforme ? (
+                  <p className="mt-1.5 text-xs text-muted">
+                    Usa a taxa da maquininha acima ({valor || '0'}%) para qualquer parcela escolhida.
+                  </p>
+                ) : (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {Array.from({ length: max }, (_, i) => i + 1).map(p => (
+                      <div key={p} className="flex items-center gap-3">
+                        <span className="w-16 flex-shrink-0 text-[13.5px] text-body">{p}x</span>
+                        <AffixInput
+                          value={taxasPorParcela[p] ?? ''}
+                          onChange={v => setTaxasPorParcela(prev => ({ ...prev, [p]: v }))}
+                          suffix="%" inputMode="decimal"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {erro && <p className="text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+      </div>
     </ModalShell>
   )
 }
@@ -635,12 +808,14 @@ function NovoMetodoOutroModal({ open, onClose, onCreated }: {
 
 function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }: {
   metodo: MetodoPagamentoConfiguravelResponse
-  onToggle: () => void
+  onToggle: (v: boolean) => void
   onConfigurarTaxa: () => void
   atualizando: boolean
 }) {
   const label = metodo.tipo === 'OUTRO' ? (metodo.nome || 'Sem nome') : LABEL_TIPO_METODO[metodo.tipo]
   const podeConfigurarTaxa = TIPOS_CARTAO.includes(metodo.tipo)
+  const parcela = metodo.tipo === 'CARTAO_CREDITO' && (metodo.maxParcelas ?? 1) > 1
+    ? ` · até ${metodo.maxParcelas}x` : ''
 
   return (
     <div className={clsx(
@@ -660,12 +835,20 @@ function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }
           </div>
           {podeConfigurarTaxa && (
             <button onClick={onConfigurarTaxa} className="mt-0.5 border-none bg-transparent p-0 text-[12.5px] font-semibold text-teal underline-offset-2 hover:underline">
-              {metodo.taxaMaquininha != null ? `Taxa: ${formatMargem(metodo.taxaMaquininha)}%` : 'Configurar taxa da maquininha'}
+              {metodo.taxaMaquininha != null ? `Taxa: ${formatMargem(metodo.taxaMaquininha)}%${parcela}` : 'Configurar taxa da maquininha'}
             </button>
           )}
         </div>
       </div>
-      <AtivoToggle ativo={metodo.ativo} onChange={onToggle} disabled={atualizando} />
+      <SegmentedControl
+        options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+        value={metodo.ativo}
+        onChange={onToggle}
+        height="h-9"
+        optionWidth="w-[52px]"
+        textSize="text-[12.5px]"
+        className={clsx('flex-shrink-0', atualizando && 'pointer-events-none opacity-60')}
+      />
     </div>
   )
 }
@@ -683,10 +866,10 @@ function MetodosPagamento({ metodos, onReload }: {
     onReload(metodos.map(m => m.id === atualizado.id ? atualizado : m))
   }
 
-  const toggle = async (m: MetodoPagamentoConfiguravelResponse) => {
+  const toggle = async (m: MetodoPagamentoConfiguravelResponse, ativo: boolean) => {
     setAtualizandoId(m.id)
     try {
-      const atualizado = await empresaService.atualizarMetodoPagamento(m.id, { ativo: !m.ativo })
+      const atualizado = await empresaService.atualizarMetodoPagamento(m.id, { ativo })
       substituir(atualizado)
     } catch (err: any) {
       setToast(extractApiError(err, 'Erro ao atualizar método. Tente novamente.'))
@@ -720,14 +903,14 @@ function MetodosPagamento({ metodos, onReload }: {
               key={m.id}
               metodo={m}
               atualizando={atualizandoId === m.id}
-              onToggle={() => toggle(m)}
+              onToggle={ativo => toggle(m, ativo)}
               onConfigurarTaxa={() => setMetodoTaxa(m)}
             />
           ))}
         </div>
       </div>
 
-      <TaxaMaquininhaModal
+      <MetodoCartaoModal
         open={!!metodoTaxa}
         metodo={metodoTaxa}
         onClose={() => setMetodoTaxa(null)}
@@ -777,10 +960,12 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  const handleSavePerfil = async (nome: string, email: string, whatsapp: string, endereco: string) => {
+  const handleSavePerfil = async (
+    nome: string, email: string, whatsapp: string, endereco: string, horarios: HorarioFuncionamento[]
+  ) => {
     setSavingPerfil(true)
     try {
-      const result = await empresaService.upsertEmpresa({ nome, email, whatsapp, endereco })
+      const result = await empresaService.upsertEmpresa({ nome, email, whatsapp, endereco, horarios })
       setEmpresa(result)
     } finally {
       setSavingPerfil(false)
@@ -827,6 +1012,7 @@ export default function ConfiguracoesPage() {
               initialEmail={empresa?.email ?? ''}
               initialWhatsapp={empresa?.whatsapp ?? ''}
               initialEndereco={empresa?.endereco ?? ''}
+              initialHorarios={empresa?.horarios}
               onSave={handleSavePerfil}
               saving={savingPerfil}
             />
