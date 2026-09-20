@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check } from 'lucide-react'
+import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check, ImagePlus, X } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { insumoService } from '../../services/insumoService'
 import { catalogoService } from '../../services/catalogoService'
@@ -288,6 +288,14 @@ export default function NovoItemCatalogoPage() {
   const [precoEditadoManualmente, setPrecoEditadoManualmente] = useState(false)
   const [itemId, setItemId] = useState<string | null>(null)
 
+  // RN-NOVA-6/7 (#518) — foto e descrição são opcionais. Foto só pode ser anexada depois que o
+  // item já existe (endpoint dedicado exige itemId) — em criação, o card fica desabilitado até o
+  // primeiro "Adicionar item ao catálogo".
+  const [descricao, setDescricao] = useState('')
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [fotoEnviando, setFotoEnviando] = useState(false)
+  const [fotoErro, setFotoErro] = useState<string | null>(null)
+
   const [nomeErro, setNomeErro] = useState<string | null>(null)
   const [componentesErro, setComponentesErro] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -336,6 +344,8 @@ export default function NovoItemCatalogoPage() {
 
             setNome(item.nome)
             setItemId(item.id)
+            setDescricao(item.descricao ?? '')
+            setFotoUrl(item.fotoUrl)
             setTempoProducao(item.tempoProducao.toString())
             setMargem((item.margemLucro ?? 0).toString())
             setModoMargem('personalizar')
@@ -386,8 +396,9 @@ export default function NovoItemCatalogoPage() {
       tempoProducao: Math.round(num(tempoProducao)) || 0,
       margemLucro: num(margem),
       precoVenda: precoEditadoManualmente && precoVenda ? num(precoVenda) : undefined,
+      descricao: descricao.trim() || undefined,
     }
-  }, [nome, componentes, tempoProducao, margem, precoVenda, precoEditadoManualmente, buildComponentesRequest])
+  }, [nome, componentes, tempoProducao, margem, precoVenda, precoEditadoManualmente, descricao, buildComponentesRequest])
 
   // Só simula (POST /itens/preview-preco), nunca cria/edita o ItemCatalogo real — mesmo padrão
   // já usado por esta tela antes da reforma (RN-NOVA-8).
@@ -428,6 +439,34 @@ export default function NovoItemCatalogoPage() {
 
   const cancelar = () => {
     navigate(catalogoId ? `/catalogos/${catalogoId}` : '/catalogos')
+  }
+
+  const handleFotoSelecionada = async (arquivo: File | undefined) => {
+    if (!arquivo || !catalogoId || !itemId) return
+    setFotoErro(null)
+    setFotoEnviando(true)
+    try {
+      const atualizado = await itemCatalogoService.uploadFoto(catalogoId, itemId, arquivo)
+      setFotoUrl(atualizado.fotoUrl)
+    } catch (err: any) {
+      setFotoErro(extractApiError(err, 'Não foi possível enviar a foto. Tente novamente.'))
+    } finally {
+      setFotoEnviando(false)
+    }
+  }
+
+  const handleRemoverFoto = async () => {
+    if (!catalogoId || !itemId) return
+    setFotoErro(null)
+    setFotoEnviando(true)
+    try {
+      const atualizado = await itemCatalogoService.removerFoto(catalogoId, itemId)
+      setFotoUrl(atualizado.fotoUrl)
+    } catch (err: any) {
+      setFotoErro(extractApiError(err, 'Não foi possível remover a foto. Tente novamente.'))
+    } finally {
+      setFotoEnviando(false)
+    }
   }
 
   const salvar = async () => {
@@ -605,6 +644,64 @@ export default function NovoItemCatalogoPage() {
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* Foto e descrição — RN-NOVA-6/7 (#518), ambos opcionais */}
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="mb-3.5 flex items-center gap-[9px]">
+              <ImagePlus size={18} className="text-teal" />
+              <h3 className="m-0 text-[15.5px] font-bold text-dark">Foto e descrição</h3>
+              <span className="text-xs font-medium text-muted">opcional</span>
+            </div>
+
+            <div className="grid grid-cols-[140px_1fr] gap-5 max-[560px]:grid-cols-1">
+              {!itemId ? (
+                <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted max-[560px]:w-full">
+                  Salve o item para adicionar uma foto
+                </div>
+              ) : fotoUrl ? (
+                <div className="relative h-[110px] w-[140px] max-[560px]:w-full">
+                  <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+                  <button
+                    onClick={handleRemoverFoto}
+                    disabled={fotoEnviando}
+                    aria-label="Remover foto"
+                    className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-line bg-white text-dim shadow-[0_2px_6px_rgba(0,0,0,0.15)] hover:text-danger-deep"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className={clsx(
+                  'grid h-[110px] w-[140px] cursor-pointer place-items-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line bg-cream text-center text-[11.5px] font-semibold text-teal transition-colors duration-150 hover:border-teal max-[560px]:w-full',
+                  fotoEnviando && 'pointer-events-none opacity-60'
+                )}>
+                  {fotoEnviando
+                    ? <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
+                    : <><ImagePlus size={20} /> Adicionar foto</>
+                  }
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    className="hidden"
+                    onChange={e => { handleFotoSelecionada(e.target.files?.[0]); e.target.value = '' }}
+                  />
+                </label>
+              )}
+
+              <Field label="Descrição" size="md">
+                <textarea
+                  value={descricao}
+                  onChange={e => setDescricao(e.target.value.slice(0, 150))}
+                  maxLength={150}
+                  rows={3}
+                  placeholder="Aparece também no PDF do catálogo"
+                  className="w-full resize-none rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                />
+                <span className="mt-1 block text-right text-[11px] text-dim">{descricao.length}/150</span>
+              </Field>
+            </div>
+            {fotoErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{fotoErro}</span>}
           </div>
 
           {/* AÇÕES */}

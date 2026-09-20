@@ -28,6 +28,8 @@ export interface ItemCatalogoRequest {
   tempoProducao: number
   margemLucro?: number
   precoVenda?: number
+  /** RN-NOVA-7 — texto opcional, máx. 150 caracteres, também exibido no PDF do catálogo (#519). */
+  descricao?: string
 }
 
 export interface ItemCatalogoResponse {
@@ -43,6 +45,10 @@ export interface ItemCatalogoResponse {
   /** RN-NOVA-4 — true quando qualquer componente está inativo/excluído (generaliza RN-045, antes
    *  só o produto principal bloqueava). */
   bloqueadoParaVenda: boolean
+  /** RN-NOVA-6 — URL pública do objeto no R2; null quando o item não tem foto. Só alterável via
+   *  itemCatalogoService.uploadFoto/removerFoto, nunca por adicionar/editar. */
+  fotoUrl: string | null
+  descricao: string | null
 }
 
 export interface PreviewPrecoRequest {
