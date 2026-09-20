@@ -115,7 +115,10 @@ export interface ComponenteVinculadoResponse {
   produtoNome: string
 }
 
-export type TipoVinculoProduto = 'ITEM_CATALOGO_PRINCIPAL' | 'CUSTOMIZACAO_ANEXADA' | 'COMPONENTE_FICHA_TECNICA'
+// V0.13.0 (DT-NOVA-1) — ITEM_CATALOGO_PRINCIPAL e CUSTOMIZACAO_ANEXADA foram unificados: desde
+// RN-NOVA-1, um Item de Catálogo tem N componentes genéricos (sem distinção "produto
+// principal"/"customização anexada"), então o vínculo também deixou de ter 2 tipos.
+export type TipoVinculoProduto = 'ITEM_CATALOGO_COMPONENTE' | 'COMPONENTE_FICHA_TECNICA'
 
 export type AcaoResolucaoVinculo = 'REMOVER_VINCULOS' | 'SUBSTITUIR'
 
