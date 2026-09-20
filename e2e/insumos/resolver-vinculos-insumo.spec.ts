@@ -1,8 +1,28 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Locator, Page } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin, criarInsumo, inativarInsumo } from '../helpers/api'
 import { criarProdutoComFicha } from '../helpers/producao'
 import { API_URL } from '../helpers/auth'
+
+/**
+ * O `ActionMenu` compartilhado fecha o menu em qualquer evento de scroll na janela (captura) —
+ * inclui o auto-scroll que o próprio Playwright dispara ao garantir visibilidade antes do clique,
+ * gerando uma corrida ocasional (menu abre e fecha antes do clique alcançar o item). Mesmo achado
+ * e mesmo workaround de `resolver-vinculos-produto.spec.ts` (`abrirAcaoNoCard`) — não é flakiness
+ * introduzida por #517/#518/#519.
+ */
+async function abrirAcaoNaLinha(page: Page, linha: Locator, itemLabel: string) {
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    await linha.getByRole('button', { name: 'Mais ações' }).click()
+    try {
+      await page.getByText(itemLabel, { exact: true }).click({ timeout: 2000 })
+      return
+    } catch {
+      // menu pode ter se fechado sozinho por um scroll espúrio — tenta de novo
+    }
+  }
+  throw new Error(`Não foi possível clicar em "${itemLabel}" após múltiplas tentativas`)
+}
 
 /**
  * OpenProject #228, #237 — Resolução de vínculos ao inativar/excluir insumo vinculado a ficha
@@ -69,8 +89,7 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
     await expect(page.getByText(insumoInativarNome, { exact: true }).first()).toBeVisible()
 
     const linha = page.getByText(insumoInativarNome, { exact: true }).first().locator('xpath=../..')
-    await linha.getByRole('button', { name: 'Mais ações' }).click()
-    await page.getByText('Inativar', { exact: true }).click()
+    await abrirAcaoNaLinha(page, linha, 'Inativar')
     await page.getByRole('button', { name: 'Inativar insumo' }).click()
 
     await expect(page.getByText('Não foi possível inativar')).toBeVisible()
@@ -90,8 +109,7 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
     await expect(page.getByText(insumoExcluirNome, { exact: true }).first()).toBeVisible()
 
     const linha = page.getByText(insumoExcluirNome, { exact: true }).first().locator('xpath=../..')
-    await linha.getByRole('button', { name: 'Mais ações' }).click()
-    await page.getByText('Excluir', { exact: true }).click()
+    await abrirAcaoNaLinha(page, linha, 'Excluir')
     await page.getByRole('button', { name: 'Excluir insumo' }).click()
 
     await expect(page.getByText('Não foi possível excluir')).toBeVisible()
