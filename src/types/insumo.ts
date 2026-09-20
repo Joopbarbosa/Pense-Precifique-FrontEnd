@@ -82,9 +82,28 @@ export interface SubstituicaoInsumoRequest {
   novoInsumoId: string
 }
 
-export interface ResolverVinculosInsumoRequest {
+// V0.13.0 (#516, DT-NOVA-1) — reestruturado em 2 blocos independentes (mesmo formato de
+// ResolverVinculosProdutoRequest), porque o Insumo passou a ter 2 tipos de vínculo: ficha técnica
+// (já existia) e componente de Item de Catálogo (novo, RN-NOVA-1 — antes Insumo nunca podia ser
+// componente de item de catálogo). Cada bloco só é obrigatório se o insumo tiver vínculo daquele tipo.
+export interface SubstituicaoVinculoCatalogoInsumoRequest {
+  vinculoId: string
+  novoInsumoId: string
+}
+
+export interface ResolucaoVinculoFichaTecnicaInsumoRequest {
   acao: 'REMOVER_VINCULOS' | 'SUBSTITUIR'
-  operacao: 'INATIVAR' | 'EXCLUIR'
   substituicoes?: SubstituicaoInsumoRequest[]
+}
+
+export interface ResolucaoVinculoCatalogoInsumoRequest {
+  acao: 'REMOVER_VINCULOS' | 'SUBSTITUIR'
+  substituicoes?: SubstituicaoVinculoCatalogoInsumoRequest[]
+}
+
+export interface ResolverVinculosInsumoRequest {
+  operacao: 'INATIVAR' | 'EXCLUIR'
+  fichaTecnica?: ResolucaoVinculoFichaTecnicaInsumoRequest
+  catalogo?: ResolucaoVinculoCatalogoInsumoRequest
 }
 
