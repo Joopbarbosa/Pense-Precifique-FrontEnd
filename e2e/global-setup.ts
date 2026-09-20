@@ -44,7 +44,15 @@ const TABELAS_DOMINIO = [
   'historico_status_producao',
   'insumos',
   'itens_catalogo',
-  'itens_catalogo_customizacao',
+  // V0.13.0 (#516) — itens_catalogo_customizacao foi DROPADA (migration V51): Item de Catálogo
+  // deixou de ser "1 produto + N customizações anexadas" e virou composição livre de N
+  // componentes (item_catalogo_componentes/orcamento_item_componentes/
+  // venda_caixa_item_componentes) — todas alcançadas por CASCADE a partir de itens_catalogo/
+  // orcamento_itens/venda_caixa_item, listadas aqui só por clareza (mesmo padrão já usado nas
+  // demais tabelas desta lista).
+  'item_catalogo_componentes',
+  'orcamento_item_componentes',
+  'venda_caixa_item_componentes',
   'lotes_compra',
   'movimentacoes_insumo',
   'movimentacoes_produto',
