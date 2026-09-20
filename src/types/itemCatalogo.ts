@@ -1,49 +1,59 @@
-export interface CustomizacaoAnexadaRequest {
-  produtoId: string
+// V0.13.0 (#516/#517, RN-NOVA-1 a 4) — Item de Catálogo deixou de ser "1 produto + quantidade de
+// pacote + N customizações anexadas precificadas" e passou a ser composição livre de N componentes
+// (Insumo XOR Produto-base, mesmo par XOR de FichaTecnicaItemRequest/Response de Produto), com
+// nome/tempo de produção/margem/preço próprios (calculado+override, mesmo padrão de Produto).
+
+export interface ItemCatalogoComponenteRequest {
+  insumoId?: string
+  produtoBaseId?: string
   quantidade: number
 }
 
-export interface CustomizacaoAnexadaResponse {
+export interface ItemCatalogoComponenteResponse {
   id: string
-  produtoId: string
-  produtoNome: string
+  insumoId?: string | null
+  nomeInsumo?: string | null
+  produtoBaseId?: string | null
+  nomeProdutoBase?: string | null
+  tipoProdutoBase?: 'PRODUTO' | 'CUSTOMIZACAO' | null
   quantidade: number
-  /** #487 (V0.12.0) — preço de venda do produto da customização, usado pelo Caixa para montar o
-   *  preview do carrinho sem round-trip extra. */
-  precoVenda?: number
+  custoUnitario: number
+  custoTotal: number
+  ativo: boolean
 }
 
 export interface ItemCatalogoRequest {
-  produtoId: string
-  quantidadePacote: number
+  nome: string
+  componentes: ItemCatalogoComponenteRequest[]
+  tempoProducao: number
+  margemLucro?: number
   precoVenda?: number
-  customizacoesAnexadas: CustomizacaoAnexadaRequest[]
 }
 
 export interface ItemCatalogoResponse {
   id: string
-  produtoId: string
-  produtoNome: string
-  quantidadePacote: number
+  nome: string
+  componentes: ItemCatalogoComponenteResponse[]
+  tempoProducao: number
+  margemLucro: number | null
+  custoTotal: number
   precoVenda: number
   precoSugerido: number
   override: boolean
+  /** RN-NOVA-4 — true quando qualquer componente está inativo/excluído (generaliza RN-045, antes
+   *  só o produto principal bloqueava). */
   bloqueadoParaVenda: boolean
-  customizacoesAnexadas: CustomizacaoAnexadaResponse[]
-  algumInsumoNaoFracionavel: boolean
-  permitirEstoqueNegativo: boolean
-  estoqueAtual: number
 }
 
 export interface PreviewPrecoRequest {
-  produtoId: string
-  quantidadePacote: number
-  customizacoesAnexadas: CustomizacaoAnexadaRequest[]
+  componentes: ItemCatalogoComponenteRequest[]
+  tempoProducao: number
+  margemLucro?: number
 }
 
 export interface PreviewPrecoResponse {
-  precoVendaProduto: number
-  quantidadePacote: number
-  precoVendaCustomizacoes: number
+  custoComponentes: number
+  custoMaoDeObra: number
+  custoTotal: number
   precoSugerido: number
 }

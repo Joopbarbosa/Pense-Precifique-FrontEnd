@@ -6,13 +6,12 @@ import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus } from 'lucide-react'
+import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus, Layers } from 'lucide-react'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
 import { extractApiError } from '../../utils/apiError'
-import { EstoqueTags } from '../../components/ui/Badge'
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -38,7 +37,7 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[14.5px] font-semibold text-dark">{item.produtoNome}</span>
+          <span className="text-[14.5px] font-semibold text-dark">{item.nome}</span>
           {item.override && (() => {
             const diff = item.precoVenda - item.precoSugerido
             return (
@@ -54,25 +53,23 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
             </span>
           )}
         </div>
-        <div className="mt-[3px] text-[12.5px] text-muted">
-          {item.quantidadePacote} un/pacote
+        <div className="mt-[3px] flex items-center gap-1 text-[12.5px] text-muted">
+          <Layers size={13} className="text-dim" />
+          {item.componentes.length} componente{item.componentes.length !== 1 ? 's' : ''}
         </div>
-        <EstoqueTags
-          className="mt-1.5"
-          fracionavel={!item.algumInsumoNaoFracionavel}
-          permitirEstoqueNegativo={item.permitirEstoqueNegativo}
-          estoqueAtual={item.estoqueAtual}
-          variant="busca"
-        />
-        {item.customizacoesAnexadas.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {item.customizacoesAnexadas.map(c => (
-              <span key={c.produtoId} className="rounded-full bg-line-soft px-2.5 py-[3px] text-[11.5px] font-medium text-subtle">
-                + {c.produtoNome} × {c.quantidade}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {item.componentes.map(c => (
+            <span
+              key={c.id}
+              className={clsx(
+                'rounded-full px-2.5 py-[3px] text-[11.5px] font-medium',
+                c.ativo ? 'bg-line-soft text-subtle' : 'bg-danger-bg text-danger'
+              )}
+            >
+              {c.nomeInsumo ?? c.nomeProdutoBase} × {c.quantidade}
+            </span>
+          ))}
+        </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-2.5" onClick={e => e.stopPropagation()}>
         <span className="whitespace-nowrap text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">
@@ -236,7 +233,7 @@ export default function DetalheCatalogoPage() {
         onClose={() => setItemParaRemover(null)}
         onConfirm={handleRemoverConfirm}
         variant="danger"
-        title={`Remover "${itemParaRemover?.produtoNome}"?`}
+        title={`Remover "${itemParaRemover?.nome}"?`}
         icon={<Trash2 size={16} />}
         width={440}
         confirmLabel="Remover item"
