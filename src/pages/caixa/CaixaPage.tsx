@@ -954,15 +954,16 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
     setItens(prev => {
       const existente = prev.find(i => i.itemCatalogoId === item.id)
       if (existente) return prev.map(i => i.key === existente.key ? { ...i, qtd: i.qtd + 1 } : i)
-      const fixas: CustomizacaoLinha[] = (item.customizacoesFixas ?? []).map(c => ({
-        id: c.produtoId, nome: c.produtoNome, valor: c.precoVenda ?? 0, qtd: c.quantidade,
-      }))
+      // V0.13.0 — componentes do catálogo deixaram de ser precificados individualmente (RN-NOVA-2):
+      // o preço do item já reflete tudo, não há mais "customizações fixas" separadas para somar.
+      // Não há mais estoque/fracionável agregado na busca (item pode ter N componentes) — achado
+      // registrado em decisoes-catalogo.md.
       return [...prev, {
-        key: item.id, itemCatalogoId: item.id, produtoId: item.produtoId, nome: item.nomeProduto,
-        preco: item.precoVenda, qtd: 1, customs: [], customsFixas: fixas,
+        key: item.id, itemCatalogoId: item.id, nome: item.nome,
+        preco: item.precoVenda, qtd: 1, customs: [], customsFixas: [],
         catalogoNome: item.catalogoNome,
-        permitirEstoqueNegativo: item.permitirEstoqueNegativo, estoqueAtual: item.estoqueAtual,
-        fracionavel: item.fracionavel ?? undefined,
+        permitirEstoqueNegativo: true, estoqueAtual: null,
+        fracionavel: item.algumComponenteNaoFracionavel ? false : undefined,
       }]
     })
   }
