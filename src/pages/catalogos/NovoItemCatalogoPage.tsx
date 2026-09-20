@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus } from 'lucide-react'
+import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { insumoService } from '../../services/insumoService'
 import { catalogoService } from '../../services/catalogoService'
@@ -65,11 +65,53 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
   )
 }
 
+// ---------- Filtro de tipo (checkbox multi-seleção, UC-NOVO-1 passo 2 — diferente do seletor único de Orçamento) ----------
+
+const TIPOS_COMPONENTE: { v: 'produto' | 'customizacao' | 'insumo'; label: string }[] = [
+  { v: 'produto', label: 'Produto' },
+  { v: 'customizacao', label: 'Customização' },
+  { v: 'insumo', label: 'Insumo' },
+]
+
+function FiltroTipoComponente({ ativos, onToggle }: { ativos: Set<'insumo' | 'produto' | 'customizacao'>; onToggle: (t: 'insumo' | 'produto' | 'customizacao') => void }) {
+  return (
+    <div className="mb-2.5 flex flex-wrap gap-[7px]">
+      {TIPOS_COMPONENTE.map(({ v, label }) => {
+        const on = ativos.has(v)
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onToggle(v)}
+            aria-pressed={on}
+            className={clsx(
+              'flex h-8 items-center gap-[6px] rounded-full border-[1.5px] px-3 font-[inherit] text-[12.5px] font-semibold transition-colors duration-150',
+              on ? 'border-teal bg-teal/10 text-teal' : 'border-line bg-white text-muted hover:border-teal/40'
+            )}
+          >
+            {on && <Check size={13} />}
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ---------- ComponenteSearch (Insumo + Produto + Customização, mesmo padrão de InsumoSearch em CadastrarProdutoPage.tsx) ----------
 
 function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<ComponenteLinha, 'qtd'>) => void; jaAdicionados: string[] }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
+  const [tiposAtivos, setTiposAtivos] = useState<Set<'insumo' | 'produto' | 'customizacao'>>(
+    new Set(['insumo', 'produto', 'customizacao'])
+  )
+  const toggleTipo = (t: 'insumo' | 'produto' | 'customizacao') =>
+    setTiposAtivos(prev => {
+      const next = new Set(prev)
+      if (next.has(t)) next.delete(t); else next.add(t)
+      return next
+    })
   const [insumos, setInsumos] = useState<Omit<ComponenteLinha, 'qtd'>[]>([])
   const [produtos, setProdutos] = useState<Omit<ComponenteLinha, 'qtd'>[]>([])
   const [customizacoes, setCustomizacoes] = useState<Omit<ComponenteLinha, 'qtd'>[]>([])
@@ -123,7 +165,10 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
     })()
   }, [debouncedQ, open, q, jaAdicionados])
 
-  const total = insumos.length + produtos.length + customizacoes.length
+  const insumosVis = tiposAtivos.has('insumo') ? insumos : []
+  const produtosVis = tiposAtivos.has('produto') ? produtos : []
+  const customizacoesVis = tiposAtivos.has('customizacao') ? customizacoes : []
+  const total = insumosVis.length + produtosVis.length + customizacoesVis.length
 
   const grupo = (titulo: string, itens: Omit<ComponenteLinha, 'qtd'>[]) => itens.length === 0 ? null : (
     <div key={titulo}>
@@ -157,7 +202,8 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
 
   return (
     <div ref={ref} className="relative">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
+      <FiltroTipoComponente ativos={tiposAtivos} onToggle={toggleTipo} />
+      <span className="pointer-events-none absolute left-3.5 top-[46px] flex -translate-y-1/2 text-muted">
         <Search size={18} />
       </span>
       <input
@@ -168,18 +214,20 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
         className={clsx(inputClass(), 'pl-[42px]')}
       />
       {open && (
-        <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
+        <div className="absolute inset-x-0 top-[80px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
           ) : erroBusca ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-danger-deep">Não foi possível buscar componentes. Tente novamente.</div>
+          ) : tiposAtivos.size === 0 ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-muted">Selecione ao menos um tipo para buscar</div>
           ) : total === 0 ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum componente encontrado</div>
           ) : (
             <>
-              {grupo('Insumos', insumos)}
-              {grupo('Produtos', produtos)}
-              {grupo('Customizações', customizacoes)}
+              {grupo('Insumos', insumosVis)}
+              {grupo('Produtos', produtosVis)}
+              {grupo('Customizações', customizacoesVis)}
             </>
           )}
         </div>
