@@ -33,6 +33,9 @@ export default function ItemLinha({ linha, index, simulacao, onQtd, onRemove, on
   // no avanço para Finalizado (RN-059, backend).
   const estoqueExibido = simulacao?.estoqueAtual ?? linha.estoqueAtual
   const estoqueInsuficiente = simulacao != null && simulacao.situacao !== 'SUFICIENTE'
+  // V0.13.0 — item de catálogo com N componentes não tem mais um único estoque agregado
+  // (estoqueExibido null quando não há simulação nem valor de origem) — sem dado, sem badge.
+  const mostrarEstoque = estoqueExibido != null
 
   return (
     <div
@@ -59,14 +62,16 @@ export default function ItemLinha({ linha, index, simulacao, onQtd, onRemove, on
             )}
           </div>
           <div className="mt-0.5 text-[13px] text-muted">{BRL(linha.preco)} / unidade</div>
-          <EstoqueTags
-            className="mt-1.5"
-            fracionavel={linha.fracionavel ?? true}
-            showFracionavel={linha.fracionavel != null}
-            permitirEstoqueNegativo={linha.permitirEstoqueNegativo}
-            estoqueAtual={estoqueExibido}
-            variant="busca"
-          />
+          {mostrarEstoque && (
+            <EstoqueTags
+              className="mt-1.5"
+              fracionavel={linha.fracionavel ?? true}
+              showFracionavel={linha.fracionavel != null}
+              permitirEstoqueNegativo={linha.permitirEstoqueNegativo}
+              estoqueAtual={estoqueExibido}
+              variant="busca"
+            />
+          )}
         </div>
         <Stepper value={linha.qtd} onChange={onQtd} />
         <div className="min-w-[108px] text-right">

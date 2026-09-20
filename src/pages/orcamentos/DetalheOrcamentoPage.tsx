@@ -1927,16 +1927,21 @@ export default function DetalheOrcamentoPage() {
                           : "Venda sem catálogo"}
                       </span>
                     </div>
-                    <EstoqueTags
-                      className="mt-1.5"
-                      // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — antes usava
-                      // !algumInsumoNaoFracionavel (proxy indireto, campo de gate de negócio, não
-                      // o fracionável de verdade do Produto); agora lê o campo correto, ao vivo.
-                      fracionavel={it.fracionavel ?? true}
-                      permitirEstoqueNegativo={it.permitirEstoqueNegativo}
-                      estoqueAtual={it.estoqueAtual}
-                      variant="busca"
-                    />
+                    {/* V0.13.0 — item de origem Catálogo tem N componentes, cada um com seu
+                        próprio estoque: `estoqueAtual` vem null (achado, ver decisoes-catalogo.md/
+                        decisoes-orcamento.md) e não há mais um único valor agregado pra exibir. */}
+                    {it.estoqueAtual != null && (
+                      <EstoqueTags
+                        className="mt-1.5"
+                        // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — antes usava
+                        // !algumInsumoNaoFracionavel (proxy indireto, campo de gate de negócio, não
+                        // o fracionável de verdade do Produto); agora lê o campo correto, ao vivo.
+                        fracionavel={it.fracionavel ?? true}
+                        permitirEstoqueNegativo={it.permitirEstoqueNegativo}
+                        estoqueAtual={it.estoqueAtual}
+                        variant="busca"
+                      />
+                    )}
                     {it.customizacoes.length > 0 && (
                       <div className="mt-1.5 inline-flex h-[22px] items-center gap-[5px] rounded-full bg-line-soft px-[9px] text-[11.5px] font-semibold text-body">
                         <SlidersHorizontal size={11} />
