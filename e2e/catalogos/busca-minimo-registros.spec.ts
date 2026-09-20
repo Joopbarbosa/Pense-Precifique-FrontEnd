@@ -8,9 +8,12 @@ const API_URL = 'http://localhost:8080'
 
 /**
  * OpenProject #216 — Busca de produto/customização em Novo Item de Catálogo exibe registros ao
- * focar campo vazio (sem exigir texto digitado), cada um com custo e preço de venda.
- * CEN-NOVO-10 (DECISOES_V0.7.md, RN-NOVA-6). `ProdutoSearch` (NovoItemCatalogoPage.tsx:79-95) —
- * fetch dispara com `busca=''` no focus, `delay=0`; sem "mínimo 6" hardcoded, reflexo de `size=20`.
+ * focar campo vazio (sem exigir texto digitado), cada um com o custo unitário.
+ * CEN-NOVO-10 (DECISOES_V0.7.md, RN-NOVA-6). `ProdutoSearch` (componente antigo, pré-V0.13.0) foi
+ * substituído por `ComponenteSearch` (#516/#517, NovoItemCatalogoPage.tsx) — mesmo comportamento de
+ * fetch com `busca=''` no focus, `delay=0`, sem "mínimo 6" hardcoded (reflexo de `size=20`), mas
+ * unificado com Insumo/Customização (não existe mais resultado exibindo "venda" separado do
+ * "custo" — cada linha mostra só o custo unitário, `R$ X,XX / un`).
  */
 test.describe('OpenProject #216 — Busca de produto em Novo Item de Catálogo mostra registros ao focar campo vazio', () => {
   let criadosProdutoIds: string[] = []
@@ -63,19 +66,19 @@ test.describe('OpenProject #216 — Busca de produto em Novo Item de Catálogo m
     await login(page)
     await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)
 
-    const busca = page.getByPlaceholder('Buscar produto...')
+    const busca = page.getByPlaceholder('Buscar insumo, produto ou customização...')
     await busca.click() // foca sem digitar nada
 
-    const dropdown = page.locator('div.absolute.inset-x-0.top-\\[50px\\]').first()
+    const dropdown = page.locator('div.absolute.inset-x-0.top-\\[80px\\]').first()
     await expect(dropdown).toBeVisible({ timeout: 5000 })
     const resultados = dropdown.locator('button')
     await expect(async () => {
       expect(await resultados.count()).toBeGreaterThanOrEqual(6)
     }).toPass({ timeout: 5000 })
 
-    // Cada resultado mostra custo — e venda, já que todo produto com custo calculado também tem precoVenda.
+    // Cada resultado mostra o custo unitário (R$ X,XX / un) — ComponenteSearch não exibe mais
+    // preço de venda separado (isso é conceito do Item de Catálogo/Produto, não do componente).
     const primeiro = resultados.first()
-    await expect(primeiro.getByText(/custo/)).toBeVisible()
-    await expect(primeiro.getByText(/venda/)).toBeVisible()
+    await expect(primeiro.getByText(/R\$\s?[\d.,]+\s?\/\s?un/)).toBeVisible()
   })
 })

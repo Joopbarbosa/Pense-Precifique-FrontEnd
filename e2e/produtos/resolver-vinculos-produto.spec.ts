@@ -62,10 +62,14 @@ async function criarCatalogo(request: APIRequestContext, token: string, nome: st
   return res.json()
 }
 
-async function adicionarItemCatalogo(request: APIRequestContext, token: string, catalogoId: string, produtoId: string) {
+// V0.13.0 (#516) — Item de Catálogo deixou de ser `{ produtoId, quantidadePacote,
+// customizacoesAnexadas }` e passou a ser composição livre (`componentes: [{ produtoBaseId,
+// quantidade }]`, `nome`/`tempoProducao` próprios) — `produtoId` aqui sempre já tem ficha técnica
+// real (via criarProdutoComFicha), então tem custo > 0 e passa em RN-044.
+async function adicionarItemCatalogo(request: APIRequestContext, token: string, catalogoId: string, produtoId: string, nome: string) {
   const res = await request.post(`${API_URL}/catalogos/${catalogoId}/itens`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { produtoId, quantidadePacote: 1, customizacoesAnexadas: [] },
+    data: { nome, tempoProducao: 5, componentes: [{ produtoBaseId: produtoId, quantidade: 1 }] },
   })
   if (!res.ok()) throw new Error(`Falha ao adicionar item de catálogo: ${res.status()} ${await res.text()}`)
   return res.json()
@@ -86,7 +90,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     const produtoNome = `E2E237P ProdCatalogo ${ts}`
     const produto = await criarProdutoComFicha(request, token, produtoNome, [{ insumoId: insumo.id, quantidade: 1 }])
     const catalogo = await criarCatalogo(request, token, `E2E237P Catalogo ${ts}`)
-    await adicionarItemCatalogo(request, token, catalogo.id, produto.id)
+    await adicionarItemCatalogo(request, token, catalogo.id, produto.id, `Item ${produtoNome}`)
 
     await login(page)
     await page.goto('/produtos')
@@ -155,7 +159,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     await criarProdutoComComponente(request, token, produtoPaiNome, produto.id)
 
     const catalogo = await criarCatalogo(request, token, `E2E237P CatalogoDuplo ${ts}`)
-    await adicionarItemCatalogo(request, token, catalogo.id, produto.id)
+    await adicionarItemCatalogo(request, token, catalogo.id, produto.id, `Item ${produtoNome}`)
 
     const substitutoNome = `E2E237P ProdSubstituto ${ts}`
     const substituto = await criarProdutoSemFicha(request, token, substitutoNome)
@@ -196,11 +200,17 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     expect(produtoPaiDetalhe.fichaTecnica.map((f: { produtoBaseId: string }) => f.produtoBaseId)).toContain(substituto.id)
     expect(produtoPaiDetalhe.fichaTecnica.map((f: { produtoBaseId: string }) => f.produtoBaseId)).not.toContain(produto.id)
 
+    // V0.13.0 (DT-NOVA-1) — "Remover" no bloco de catálogo remove só o componente
+    // (ItemCatalogoComponente), não mais o ItemCatalogo inteiro (que, com N componentes,
+    // pode ter outros); RN-NOVA-1 (mínimo 1 componente) não é reforçada aqui de volta —
+    // decisão documentada em ProdutoService#removerVinculosCatalogo. O item persiste com
+    // `componentes: []`, estado que a tela de edição do item detecta e cobra ao salvar.
     const itensCatalogoRes = await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const itensCatalogo = await itensCatalogoRes.json()
-    expect(itensCatalogo).toHaveLength(0)
+    expect(itensCatalogo).toHaveLength(1)
+    expect(itensCatalogo[0].componentes).toEqual([])
   })
 
   test('botão Excluir também aciona o modal de vínculos', async ({ page, request }) => {
@@ -212,7 +222,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     const produtoNome = `E2E237P ProdExcluir ${ts}`
     const produto = await criarProdutoComFicha(request, token, produtoNome, [{ insumoId: insumo.id, quantidade: 1 }])
     const catalogo = await criarCatalogo(request, token, `E2E237P CatalogoExcluir ${ts}`)
-    await adicionarItemCatalogo(request, token, catalogo.id, produto.id)
+    await adicionarItemCatalogo(request, token, catalogo.id, produto.id, `Item ${produtoNome}`)
 
     await login(page)
     await page.goto('/produtos')

@@ -48,10 +48,16 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
     await apiFecharTurnoSeAberto(request, token)
   })
 
-  test('vende item de Catálogo com customização fixa expandida automaticamente', async ({ page, request }) => {
+  test('vende item de Catálogo com 2 componentes — preço é só o do item, estoque debita todos os componentes (RN-NOVA-9)', async ({ page, request }) => {
+    // V0.13.0 (#516/RN-NOVA-1/2/9) — reescrito: "customização fixa anexada" com preço próprio
+    // somado ao total não existe mais (item de catálogo passou a ter preço próprio único,
+    // componentes sem preço individual) — e componentes de Item de Catálogo não aparecem mais
+    // como linha de customização no carrinho (isso ficou exclusivo de customização ad-hoc,
+    // RN-030); o que continua a mesma regra de sempre é: vender o item debita o estoque de cada
+    // componente, generalizado de "1 produto principal" para "N componentes" (RN-NOVA-9).
     const token = await apiLogin(request)
     const sufixo = Date.now()
-    const { item, produtoPrincipal, produtoCustomizacao } = await apiCriarCatalogoComItem(
+    const { produtoPrincipal, produtoCustomizacao } = await apiCriarCatalogoComItem(
       request, token, `QA-Cat-Bombom-${sufixo}`, 20.00, 10,
       { nome: `QA-Cat-Laco-${sufixo}`, precoVenda: 5.00, estoqueAtual: 10 })
     criadosProdutoIds.push(produtoPrincipal.id, produtoCustomizacao.id)
@@ -62,10 +68,8 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
     await page.getByPlaceholder('Buscar produto ou item de catálogo...').fill(`QA-Cat-Bombom-${sufixo}`)
     await page.getByRole('button', { name: new RegExp(`QA-Cat-Bombom-${sufixo}`) }).click()
 
-    // Customização fixa aparece automaticamente, sem ação da usuária.
-    await expect(page.getByText(`QA-Cat-Laco-${sufixo}`)).toBeVisible()
     const totalLinha = page.locator('text="Total"').locator('xpath=following-sibling::span[1]')
-    await expect(totalLinha).toHaveText('R$ 25,00') // 20 (item) + 5 (fixa)
+    await expect(totalLinha).toHaveText('R$ 20,00') // preço próprio do item (override) — não soma mais preço de componente
 
     await escolherFormaPagamento(page, /Dinheiro/, 'sem')
     await page.getByRole('button', { name: /Finalizar venda/ }).click()
@@ -75,7 +79,7 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
     const resPrincipal = await request.get(`http://localhost:8080/produtos/${produtoPrincipal.id}`, { headers: { Authorization: `Bearer ${token}` } })
     const resCustomizacao = await request.get(`http://localhost:8080/produtos/${produtoCustomizacao.id}`, { headers: { Authorization: `Bearer ${token}` } })
     expect((await resPrincipal.json()).estoqueAtual).toBe(9)
-    expect((await resCustomizacao.json()).estoqueAtual).toBe(9)
+    expect((await resCustomizacao.json()).estoqueAtual).toBe(9) // RN-NOVA-9 — todos os componentes debitam, não só "o principal"
   })
 
   test('anexa customização ad-hoc a um Produto direto (fora de Catálogo)', async ({ page, request }) => {

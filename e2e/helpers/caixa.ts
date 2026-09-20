@@ -64,23 +64,46 @@ export async function apiBuscarProduto(request: APIRequestContext, token: string
  *  estoque explícito, para os cenários de item de Catálogo/customização no Caixa. */
 export async function apiCriarProdutoTipo(
   request: APIRequestContext, token: string, nome: string, tipo: 'PRODUTO' | 'CUSTOMIZACAO',
-  precoVenda: number, estoqueAtual: number
+  precoVenda: number, estoqueAtual: number,
+  // V0.13.0 — opcional, default `[]` (comportamento antigo inalterado para quem já chamava sem
+  // este parâmetro). Só precisa de ficha técnica real (custo > 0) quem for usar o produto como
+  // componente de Item de Catálogo (RN-044) — ver apiCriarCatalogoComItem.
+  fichaTecnica: Array<{ insumoId: string; quantidade: number }> = []
 ) {
   const res = await request.post(`${API_URL}/produtos`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { nome, tipo, tempoProducao: 1, precoVenda, estoqueAtual, permitirEstoqueNegativo: true, fichaTecnica: [] },
+    data: { nome, tipo, tempoProducao: 1, rendimento: 1, precoVenda, estoqueAtual, permitirEstoqueNegativo: true, fichaTecnica },
   })
   if (!res.ok()) throw new Error(`Falha ao criar produto de teste: ${res.status()} ${await res.text()}`)
   return res.json()
 }
 
-/** Cria um Catálogo com 1 item (produto principal), opcionalmente com 1 customização fixa
- *  anexada (RN-048). Retorna também os produtos criados, pra checagem de estoque no teste. */
+/**
+ * Cria um Catálogo com 1 item, opcionalmente com um 2º componente (RN-048). Retorna também os
+ * produtos criados, pra checagem de estoque no teste.
+ *
+ * V0.13.0 (#516/RN-NOVA-1/2/9) — Item de Catálogo deixou de ser `{ produtoId, quantidadePacote,
+ * customizacoesAnexadas: [{produtoId, quantidade}] }` (cada componente com preço próprio, somado
+ * ao total do item) e passou a ser composição livre (`componentes: [{ produtoBaseId, quantidade
+ * }]`, sem preço por componente) — o item ganha `precoVenda` própria (aqui sempre override, via
+ * `precoVendaItem`). Produto-base como componente exige custo calculado (RN-044), por isso os 2
+ * produtos ganham ficha técnica com 1 insumo (não mais `fichaTecnica: []` de `apiCriarProdutoTipo`
+ * — sobrescrita aqui via `PUT /produtos/{id}` depois de criados, pra não alterar a assinatura de
+ * `apiCriarProdutoTipo`, usada também por produtos vendidos direto, sem ficha técnica).
+ */
 export async function apiCriarCatalogoComItem(
   request: APIRequestContext, token: string, nomeProdutoPrincipal: string, precoVendaItem: number,
   estoqueAtual: number, customizacao?: { nome: string; precoVenda: number; estoqueAtual: number }
 ) {
-  const produtoPrincipal = await apiCriarProdutoTipo(request, token, nomeProdutoPrincipal, 'PRODUTO', precoVendaItem, estoqueAtual)
+  const resInsumo = await request.post(`${API_URL}/insumos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome: `QA-insumo-base-${nomeProdutoPrincipal}`, unidadeMedida: 'unidade', fracionavel: false, precoTotalCompraInicial: 10, quantidadeCompradaInicial: 10 },
+  })
+  if (!resInsumo.ok()) throw new Error(`Falha ao criar insumo de teste: ${resInsumo.status()} ${await resInsumo.text()}`)
+  const insumo = await resInsumo.json()
+
+  const produtoPrincipal = await apiCriarProdutoTipo(request, token, nomeProdutoPrincipal, 'PRODUTO', precoVendaItem, estoqueAtual, [{ insumoId: insumo.id, quantidade: 1 }])
+
   const resCatalogo = await request.post(`${API_URL}/catalogos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: { nome: `Catalogo-${nomeProdutoPrincipal}` },
@@ -88,16 +111,16 @@ export async function apiCriarCatalogoComItem(
   if (!resCatalogo.ok()) throw new Error(`Falha ao criar catálogo de teste: ${resCatalogo.status()} ${await resCatalogo.text()}`)
   const catalogo = await resCatalogo.json()
 
+  const componentes: Array<{ produtoBaseId: string; quantidade: number }> = [{ produtoBaseId: produtoPrincipal.id, quantidade: 1 }]
   let produtoCustomizacao: any = null
-  const customizacoesAnexadas: any[] = []
   if (customizacao) {
-    produtoCustomizacao = await apiCriarProdutoTipo(request, token, customizacao.nome, 'CUSTOMIZACAO', customizacao.precoVenda, customizacao.estoqueAtual)
-    customizacoesAnexadas.push({ produtoId: produtoCustomizacao.id, quantidade: 1 })
+    produtoCustomizacao = await apiCriarProdutoTipo(request, token, customizacao.nome, 'CUSTOMIZACAO', customizacao.precoVenda, customizacao.estoqueAtual, [{ insumoId: insumo.id, quantidade: 1 }])
+    componentes.push({ produtoBaseId: produtoCustomizacao.id, quantidade: 1 })
   }
 
   const resItem = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { produtoId: produtoPrincipal.id, quantidadePacote: 1, precoVenda: precoVendaItem, customizacoesAnexadas },
+    data: { nome: nomeProdutoPrincipal, tempoProducao: 1, componentes, precoVenda: precoVendaItem },
   })
   if (!resItem.ok()) throw new Error(`Falha ao criar item de catálogo de teste: ${resItem.status()} ${await resItem.text()}`)
   const item = await resItem.json()
