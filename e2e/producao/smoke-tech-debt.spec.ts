@@ -61,13 +61,13 @@ test.describe('Smoke tech debt — #127 (obs 30 chars) e #148 (motivo real)', ()
     for (const motivo of MOTIVOS_REAIS) {
       const ok = await request.post(`${INSUMO_URL}/${insumo.id}/baixa-manual`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { quantidade: 1, motivo, observacao: OBS_30 },
+        data: { tipo: 'SAIDA', quantidade: 1, motivo, observacao: OBS_30 },
       })
       expect(ok.status(), `insumo/${motivo}/obs30`).toBe(201)
 
       const rejeitado = await request.post(`${INSUMO_URL}/${insumo.id}/baixa-manual`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { quantidade: 1, motivo, observacao: OBS_29 },
+        data: { tipo: 'SAIDA', quantidade: 1, motivo, observacao: OBS_29 },
       })
       expect(rejeitado.status(), `insumo/${motivo}/obs29`).toBe(400)
     }
@@ -105,7 +105,9 @@ test.describe('Smoke tech debt — #127 (obs 30 chars) e #148 (motivo real)', ()
 
     await login(page)
     await page.goto(`/insumos/${insumo.id}`)
-    await page.getByRole('button', { name: 'Baixa manual', exact: true }).click()
+    // #514 (V0.14.0) — botão renomeado para "Edição manual" (virou bidirecional); modal abre com
+    // Baixa (SAIDA) selecionada por padrão, comportamento equivalente ao anterior.
+    await page.getByRole('button', { name: 'Edição manual', exact: true }).click()
     // getByPlaceholder('3') sem exact colide com a textarea de observação (placeholder de exemplo
     // contém "3 folhas...") — exact:true escopa só o input de quantidade.
     await page.getByPlaceholder('3', { exact: true }).fill('1')

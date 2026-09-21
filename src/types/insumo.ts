@@ -52,6 +52,9 @@ export interface InsumoContagensResponse {
 }
 
 export interface BaixaManualInsumoRequest {
+  /** #514 (V0.14.0) — "Edição manual" vira bidirecional; mesmos motivos/observação (INS-007)
+   *  servem tanto para ENTRADA (acréscimo) quanto para SAIDA (baixa, comportamento anterior). */
+  tipo: 'ENTRADA' | 'SAIDA'
   quantidade: number
   motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO'
   observacao: string  // mín. 30 chars

@@ -106,7 +106,9 @@ export async function baixaManualInsumo(
 ) {
   const res = await request.post(`${API_URL}/insumos/${id}/baixa-manual`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { quantidade, motivo, observacao },
+    // #514 (V0.14.0) — endpoint virou bidirecional; `tipo` agora obrigatório. Este helper sempre
+    // registrou saída, mantém o mesmo comportamento explícito.
+    data: { tipo: 'SAIDA', quantidade, motivo, observacao },
   })
   if (!res.ok()) {
     throw new Error(`Falha ao registrar baixa manual (${motivo}) de teste: ${res.status()} ${await res.text()}`)
