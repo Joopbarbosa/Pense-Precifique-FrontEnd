@@ -5,7 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
-import { Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Pencil, History, Layers } from 'lucide-react'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers } from 'lucide-react'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
@@ -470,9 +470,17 @@ export default function DetalheInsumoPage() {
             </div>
           </div>
         </div>
-        <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
-          Editar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/insumos')}>
+            Voltar
+          </Button>
+          <Button variant="ghost" icon={<Plus size={16} />} onClick={() => navigate('/insumos/novo')}>
+            Novo insumo
+          </Button>
+          <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
+            Editar
+          </Button>
+        </div>
       </div>
 
       <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">

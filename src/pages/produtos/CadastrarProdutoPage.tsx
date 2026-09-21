@@ -817,7 +817,7 @@ export default function CadastrarProdutoPage() {
         </span>
         <ChevronRight size={15} className="text-dim" />
         <span className="whitespace-nowrap font-semibold text-body">
-          {editando ? dados.nome || 'Editar Produto' : 'Novo Produto'}
+          {dados.nome || (editando ? 'Editar Produto' : 'Novo Produto')}
         </span>
       </div>
 
@@ -827,7 +827,7 @@ export default function CadastrarProdutoPage() {
           {editando ? <Pencil size={26} /> : <Box size={26} />}
         </span>
         <h1 className="m-0 whitespace-nowrap text-[26px] font-bold tracking-[-0.02em] text-dark">
-          {editando ? 'Editar Produto' : 'Novo Produto'}
+          {dados.nome || (editando ? 'Editar Produto' : 'Novo Produto')}
         </h1>
       </div>
 
