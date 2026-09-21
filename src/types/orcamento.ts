@@ -23,9 +23,9 @@ export interface OrcamentoItemRequest {
 // V0.13.0 (#516, RN-NOVA-1) — produtoId/nomeProduto/fracionavel/estoqueAtual/permitirEstoqueNegativo
 // removidos (não fazem mais sentido para um item com N componentes, cada um com seu próprio
 // estoque). `nome` (nome do próprio item, também alvo do filtro `busca`) e `componentes`
-// substituem. Sem agregado de estoque na busca — a única sinalização de estoque insuficiente
-// acontece depois de adicionar ao carrinho, via simulação (SimulacaoEstoqueProdutoResponse) —
-// achado registrado em decisoes-catalogo.md para a Retomada avaliar se falta um campo agregado.
+// substituem. A sinalização fina de estoque insuficiente continua só depois de adicionar ao
+// carrinho, via simulação (SimulacaoEstoqueProdutoResponse) — `algumComponenteSemEstoque` (#527)
+// é só o sinal grosseiro pra busca (bloqueio duro atual, sem considerar quantidade do pedido).
 export interface ItemCatalogoBuscaResponse {
   id: string;
   /** RN-NOVA-23 (#313/#399) — id do Catálogo dono do item, usado pra montar a
@@ -39,6 +39,10 @@ export interface ItemCatalogoBuscaResponse {
   /** true se qualquer componente Insumo não é fracionável (não recursa na ficha técnica de um
    *  componente Produto-base). */
   algumComponenteNaoFracionavel: boolean;
+  /** OpenProject #527 — true se algum componente (Insumo ou Produto-base) está com estoque
+   *  zerado/negativo e não permite estoque negativo (bloqueio duro agora, sem a quantidade que a
+   *  usuária ainda vai digitar no carrinho). */
+  algumComponenteSemEstoque: boolean;
 }
 
 // #218 — POST /orcamentos/simular-alertas (RN-NOVA-8/9): simula situação de estoque por Produto

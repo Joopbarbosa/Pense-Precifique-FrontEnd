@@ -38,7 +38,9 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
   useEffect(() => {
     setLoading(true)
     setErro(false)
-    produtoService.listar(0, 100, 'CUSTOMIZACAO')
+    // OpenProject #529 — sem o filtro ativo=true, customização inativada por qualquer teardown de
+    // teste (padrão: inativar, nunca excluir) continuava aparecendo aqui.
+    produtoService.listar(0, 100, 'CUSTOMIZACAO', undefined, undefined, true)
       .then(data => {
         setCustomizacoes(data.content.map(p => ({
           id: p.id,

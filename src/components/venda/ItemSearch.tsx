@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import clsx from 'clsx'
 import { Layers, Box, Filter } from 'lucide-react'
-import { EstoqueTags, FracionavelBadge } from '../ui/Badge'
+import { EstoqueTags, FracionavelBadge, EstoqueInsuficienteBadge } from '../ui/Badge'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import type { PageResponse } from '../../types/shared'
@@ -196,11 +196,14 @@ export default function ItemSearch({
                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{item.nome}</div>
                   <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
                   {/* V0.13.0 — item de catálogo passou a ter N componentes, cada um com seu próprio
-                      estoque; não há mais um estoque agregado único para mostrar na busca (achado
-                      registrado em decisoes-catalogo.md). Só o aviso de fracionamento sobrevive,
-                      porque continua sendo um agregado bem definido (algumComponenteNaoFracionavel). */}
-                  {item.algumComponenteNaoFracionavel && (
-                    <div className="mt-1"><FracionavelBadge fracionavel={false} variant="busca" /></div>
+                      estoque; não há badge de quantidade exata única pra mostrar na busca. Os dois
+                      agregados abaixo (fracionamento e bloqueio duro de estoque, #527) continuam
+                      bem definidos mesmo com N componentes. */}
+                  {(item.algumComponenteNaoFracionavel || item.algumComponenteSemEstoque) && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {item.algumComponenteNaoFracionavel && <FracionavelBadge fracionavel={false} variant="busca" />}
+                      {item.algumComponenteSemEstoque && <EstoqueInsuficienteBadge variant="busca" />}
+                    </div>
                   )}
                 </div>
               </button>

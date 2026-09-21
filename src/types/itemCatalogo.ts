@@ -13,6 +13,8 @@ export interface ItemCatalogoComponenteResponse {
   id: string
   insumoId?: string | null
   nomeInsumo?: string | null
+  /** OpenProject #528 — só preenchido quando o componente é Insumo; null quando é Produto-base. */
+  fracionavelInsumo?: boolean | null
   produtoBaseId?: string | null
   nomeProdutoBase?: string | null
   tipoProdutoBase?: 'PRODUTO' | 'CUSTOMIZACAO' | null
