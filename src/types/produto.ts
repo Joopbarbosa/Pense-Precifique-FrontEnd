@@ -64,6 +64,8 @@ export interface ProdutoResponse {
   permitirEstoqueNegativo: boolean
   ativo: boolean
   algumInsumoNaoFracionavel?: boolean
+  /** #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (R2StorageClient). */
+  fotoUrl?: string
   /** RN-NOVA-2 (V0.10.0, #299) — persistido+editável, padrão calculado+override. NUNCA usar para
    *  gate de negócio (travamento de quantidade em Produção) — isso continua em `algumInsumoNaoFracionavel`. */
   fracionavel?: boolean
@@ -86,6 +88,13 @@ export interface ProdutoDetalheResponse extends ProdutoResponse {
   descricao?: string
   tempoProducao: number
   fichaTecnica: FichaTecnicaItemResponse[]
+  /** #294 (V0.14.0) — calculados ao vivo, nunca persistidos (DT-NOVA-1), mesmo padrão de
+   *  custoUnitario/custoTotalLote. precoInsumo = soma dos componentes; precoMaoDeObra = custo de
+   *  mão de obra isolado; precoLucro = precoVenda - custoUnitario (pode ser negativo). */
+  precoInsumo?: number
+  precoMaoDeObra?: number
+  precoLucro?: number
+  precoSugerido?: number
 }
 
 export interface BaixaManualProdutoRequest {

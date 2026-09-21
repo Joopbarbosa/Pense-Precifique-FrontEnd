@@ -317,15 +317,24 @@ export default function DetalheProdutoPage() {
 
   const precoCustoTotal = produto.fichaTecnica.reduce((s, i) => s + i.custoTotal, 0)
 
+  // RN-NOVA-1 (V0.14.0, #294) — ordem final pedida pelo usuário: Estoque atual, Preço do
+  // insumo, Preço da mão de obra, Preço do lucro (abs + margem% abaixo), Custo unitário,
+  // Custo total do lote, Preço sugerido (editável), Preço de venda (destacado). "Tipo" removido
+  // da fila (já exibido no badge ao lado do nome).
   const cells = [
-    { k: 'Tipo', v: tipoLabel },
     { k: 'Estoque atual', v: `${produto.estoqueAtual} unidades`, big: true, danger: produto.estoqueAtual === 0 },
     ...(produto.estoqueMinimo != null ? [{ k: 'Estoque mínimo', v: `${produto.estoqueMinimo} unidades` }] : []),
-    { k: 'Preço de custo', v: moeda(produto.precoCusto), accent: true, hint: 'calculado pela ficha técnica' },
-    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+    ...(produto.precoInsumo != null ? [{ k: 'Preço do insumo', v: moeda(produto.precoInsumo) }] : []),
+    ...(produto.precoMaoDeObra != null ? [{ k: 'Preço da mão de obra', v: moeda(produto.precoMaoDeObra) }] : []),
+    ...(produto.precoLucro != null ? [{
+      k: 'Preço do lucro', v: moeda(produto.precoLucro), danger: produto.precoLucro < 0,
+      hint: produto.margemLucro != null ? `${produto.margemLucro}% de margem` : undefined,
+    }] : []),
+    ...(produto.custoUnitario != null ? [{ k: 'Custo Unitário', v: moeda(produto.custoUnitario), blue: true }] : []),
     ...(produto.rendimento != null ? [{ k: 'Rendimento', v: `${produto.rendimento} unidades` }] : []),
     ...(produto.custoTotalLote != null ? [{ k: 'Custo Total do lote', v: moeda(produto.custoTotalLote), blue: true }] : []),
-    ...(produto.custoUnitario != null ? [{ k: 'Custo Unitário', v: moeda(produto.custoUnitario), blue: true }] : []),
+    ...(produto.precoSugerido != null ? [{ k: 'Preço sugerido', v: moeda(produto.precoSugerido), accent: true, hint: 'editável ao editar o produto' }] : []),
+    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
   ]
 
   const ABAS = [
