@@ -6,13 +6,14 @@ import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
-  Check, AlertTriangle, ChevronRight, Pencil, FileText,
+  Check, AlertTriangle, ChevronRight, Pencil, FileText, ImagePlus, X,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
+import { extractApiError } from '../../utils/apiError'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import { FracionavelBadge } from '../../components/ui/Badge'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
@@ -139,9 +140,87 @@ function DescTextarea({ value, onChange }: { value: string; onChange: (v: string
 
 // ---------- DadosBasicos ----------
 
-function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro }: {
+function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
+  produtoId?: string; nome: string; fotoUrl: string | null; onFotoUrlChange: (url: string | null) => void
+}) {
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  const handleSelecionar = async (arquivo: File | undefined) => {
+    if (!arquivo || !produtoId) return
+    setErro(null)
+    setEnviando(true)
+    try {
+      const atualizado = await produtoService.uploadFoto(produtoId, arquivo)
+      onFotoUrlChange(atualizado.fotoUrl ?? null)
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Não foi possível enviar a foto. Tente novamente.'))
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const handleRemover = async () => {
+    if (!produtoId) return
+    setErro(null)
+    setEnviando(true)
+    try {
+      const atualizado = await produtoService.removerFoto(produtoId)
+      onFotoUrlChange(atualizado.fotoUrl ?? null)
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Não foi possível remover a foto. Tente novamente.'))
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="col-span-2">
+      <span className="mb-[7px] block text-[13px] font-semibold text-body">Foto</span>
+      <div className="flex items-start gap-5">
+        {!produtoId ? (
+          <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted">
+            Salve o produto para adicionar uma foto
+          </div>
+        ) : fotoUrl ? (
+          <div className="relative h-[110px] w-[140px]">
+            <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+            <button
+              onClick={handleRemover}
+              disabled={enviando}
+              aria-label="Remover foto"
+              className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-line bg-white text-dim shadow-[0_2px_6px_rgba(0,0,0,0.15)] hover:text-danger-deep"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <label className={clsx(
+            'grid h-[110px] w-[140px] cursor-pointer place-items-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line bg-cream text-center text-[11.5px] font-semibold text-teal transition-colors duration-150 hover:border-teal',
+            enviando && 'pointer-events-none opacity-60'
+          )}>
+            {enviando
+              ? <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
+              : <><ImagePlus size={20} /> Adicionar foto</>
+            }
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={e => { handleSelecionar(e.target.files?.[0]); e.target.value = '' }}
+            />
+          </label>
+        )}
+      </div>
+      {erro && <span className="mt-2 block text-[12.5px] text-danger-deep">{erro}</span>}
+    </div>
+  )
+}
+
+function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl }: {
   st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
+  produtoId?: string; fotoUrl: string | null; setFotoUrl: (url: string | null) => void
 }) {
   return (
     <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -169,6 +248,9 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
           </Field>
         </div>
+        {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518); exige
+            produtoId, então só habilita o upload de fato na edição de um produto já salvo. */}
+        <FotoProduto produtoId={produtoId} nome={st.nome} fotoUrl={fotoUrl} onFotoUrlChange={setFotoUrl} />
       </div>
       <div className="mt-7 flex justify-end border-t border-line pt-[22px]">
         <Button variant="primary" iconRight={<ArrowRight size={17} />} onClick={onNext}>
@@ -640,6 +722,7 @@ export default function CadastrarProdutoPage() {
   // RN-NOVA-2 (V0.10.0, #299) — calculado+override, mesmo padrão de precoFinal/precoFinalManual acima.
   const [fracionavel, setFracionavel] = useState(true)
   const [fracionavelManual, setFracionavelManual] = useState(false)
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
 
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
@@ -723,6 +806,7 @@ export default function CadastrarProdutoPage() {
         setEstoqueAtualExistente(produto.estoqueAtual)
         setFracionavel(produto.fracionavel ?? !produto.algumInsumoNaoFracionavel)
         setFracionavelManual(produto.fracionavelOverride ?? false)
+        setFotoUrl(produto.fotoUrl ?? null)
         if (produto.margemLucro != null) {
           setMargem(produto.margemLucro.toString())
         }
@@ -862,6 +946,7 @@ export default function CadastrarProdutoPage() {
         <DadosBasicos
           st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome}
           permitirEstoqueNegativo={permitirEstoqueNegativo} setPermitirEstoqueNegativo={setPermitirEstoqueNegativo} estoqueNegativoErro={estoqueNegativoErro}
+          produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl}
         />
       )}
       {aba === 'ficha' && (

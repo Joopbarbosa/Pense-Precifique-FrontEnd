@@ -89,4 +89,19 @@ export const produtoService = {
     return response.data
   },
 
+  // #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (itemCatalogoService.uploadFoto/removerFoto).
+  uploadFoto: async (id: string, arquivo: File): Promise<ProdutoDetalheResponse> => {
+    const formData = new FormData()
+    formData.append('arquivo', arquivo)
+    const response = await api.post(`/produtos/${id}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  removerFoto: async (id: string): Promise<ProdutoDetalheResponse> => {
+    const response = await api.delete(`/produtos/${id}/foto`)
+    return response.data
+  },
+
 }

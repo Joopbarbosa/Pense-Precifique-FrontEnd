@@ -131,11 +131,17 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
       {/* FOTO */}
       <div className="relative">
         <div className="relative aspect-square w-full overflow-hidden bg-[linear-gradient(135deg,#F6F4F0,#EEEBE5)]">
-          <div className="absolute inset-0 [background-image:repeating-linear-gradient(45deg,transparent,transparent_13px,rgba(0,0,0,0.018)_13px,rgba(0,0,0,0.018)_26px)]" />
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-[#C2BEB5]">
-            <Camera size={22} />
-            <span className="text-[11.5px] font-semibold tracking-[0.02em]">Sem foto</span>
-          </div>
+          {p.fotoUrl ? (
+            <img src={p.fotoUrl} alt={p.nome} className="h-full w-full object-cover" />
+          ) : (
+            <>
+              <div className="absolute inset-0 [background-image:repeating-linear-gradient(45deg,transparent,transparent_13px,rgba(0,0,0,0.018)_13px,rgba(0,0,0,0.018)_26px)]" />
+              <div className="flex h-full flex-col items-center justify-center gap-2 text-[#C2BEB5]">
+                <Camera size={22} />
+                <span className="text-[11.5px] font-semibold tracking-[0.02em]">Sem foto</span>
+              </div>
+            </>
+          )}
         </div>
         {inativo && (
           <div className="pointer-events-none absolute inset-0 bg-[#787670]/20" />
