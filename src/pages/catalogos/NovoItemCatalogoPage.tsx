@@ -203,16 +203,18 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
   return (
     <div ref={ref} className="relative">
       <FiltroTipoComponente ativos={tiposAtivos} onToggle={toggleTipo} />
-      <span className="pointer-events-none absolute left-3.5 top-[46px] flex -translate-y-1/2 text-muted">
-        <Search size={18} />
-      </span>
-      <input
-        value={q}
-        onChange={e => { setQ(e.target.value); setOpen(true) }}
-        onFocus={() => setOpen(true)}
-        placeholder="Buscar insumo, produto ou customização..."
-        className={clsx(inputClass(), 'pl-[42px]')}
-      />
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
+          <Search size={18} />
+        </span>
+        <input
+          value={q}
+          onChange={e => { setQ(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Buscar insumo, produto ou customização..."
+          className={clsx(inputClass(), 'pl-[42px]')}
+        />
+      </div>
       {open && (
         <div className="absolute inset-x-0 top-[80px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
@@ -483,10 +485,14 @@ export default function NovoItemCatalogoPage() {
     try {
       if (itemId) {
         await itemCatalogoService.editar(catalogoId, itemId, request)
+        navigate(`/catalogos/${catalogoId}`)
       } else {
-        await itemCatalogoService.adicionar(catalogoId, request)
+        const criado = await itemCatalogoService.adicionar(catalogoId, request)
+        // Fica na mesma tela, agora em modo edição do item recém-criado — upload de foto
+        // (RN-NOVA-6) exige itemId e só faria sentido depois de um 2º acesso via listagem.
+        setToast('Item adicionado. Agora você pode adicionar uma foto, se quiser.')
+        navigate(`/catalogos/itens/novo?catalogoId=${catalogoId}&itemId=${criado.id}`, { replace: true })
       }
-      navigate(`/catalogos/${catalogoId}`)
     } catch (err: any) {
       const msg = extractApiError(err, 'Erro ao salvar item do catálogo.')
       if (/custo calculado/i.test(msg)) {
