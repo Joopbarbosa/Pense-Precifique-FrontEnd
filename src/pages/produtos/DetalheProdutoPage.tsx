@@ -8,7 +8,7 @@ import Spinner from '../../components/ui/Spinner'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import {
   Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
-  Pencil, Factory, History,
+  Pencil, Factory, History, Plus,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
@@ -378,9 +378,14 @@ export default function DetalheProdutoPage() {
             </div>
           </div>
         </div>
-        <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/produtos/${id}/editar`)}>
-          Editar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" icon={<Plus size={16} />} onClick={() => navigate('/produtos/novo')}>
+            Novo produto
+          </Button>
+          <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/produtos/${id}/editar`)}>
+            Editar
+          </Button>
+        </div>
       </div>
 
       <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">

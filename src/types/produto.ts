@@ -33,6 +33,9 @@ export interface ProdutoRequest {
   descricao?: string
   tempoProducao: number
   precoVenda?: number
+  /** #509 — backend já aceitava este campo (ProdutoRequest.java); nunca era enviado, então toda
+   *  criação persistia a margem padrão da conta, ignorando o valor escolhido na calculadora. */
+  margemLucro?: number
   rendimento?: number
   estoqueMinimo?: number
   permitirEstoqueNegativo?: boolean
@@ -50,6 +53,9 @@ export interface ProdutoResponse {
   tipo: TipoProduto
   precoVenda?: number
   precoCusto: number
+  /** #509 — já era retornado pela API (ProdutoResponse.java) mas nunca declarado aqui; sem o
+   *  campo, o Frontend não tinha como carregar a margem persistida ao editar um produto. */
+  margemLucro?: number
   rendimento?: number
   custoTotalLote?: number
   custoUnitario?: number

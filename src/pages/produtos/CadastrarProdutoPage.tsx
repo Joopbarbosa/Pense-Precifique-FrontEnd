@@ -388,10 +388,9 @@ function FracionavelToggle({ value, onChange }: { value: boolean; onChange: (v: 
 
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo, fracionavel, onFracionavelChange }: {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, fracionavel, onFracionavelChange }: {
   ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
   rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
-  mostrarBotaoCatalogo: boolean; salvandoCatalogo: boolean; botaoCatalogoDisabled: boolean; onCriarCatalogo: () => void
   fracionavel: boolean; onFracionavelChange: (v: boolean) => void
 }) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
@@ -453,14 +452,6 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               <span className="mt-1.5 block text-xs text-muted">Quantidade de unidades que este lote produz.</span>
               {rendimentoErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{rendimentoErro}</span>}
             </div>
-            {mostrarBotaoCatalogo && (
-              <Button variant="primary" iconRight={!salvandoCatalogo ? <ArrowRight size={17} /> : undefined} onClick={onCriarCatalogo} disabled={botaoCatalogoDisabled}>
-                {salvandoCatalogo
-                  ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" />Criando…</span>
-                  : 'Criar produto catálogo'
-                }
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -639,7 +630,7 @@ export default function CadastrarProdutoPage() {
   const [modoMargem, setModoMargem] = useState('padrao')
   const [precoFinal, setPrecoFinal] = useState('')
   const [precoFinalManual, setPrecoFinalManual] = useState(false)
-  const [salvando, setSalvando] = useState<'padrao' | 'catalogo' | null>(null)
+  const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [valorHora, setValorHora] = useState(0)
@@ -732,6 +723,9 @@ export default function CadastrarProdutoPage() {
         setEstoqueAtualExistente(produto.estoqueAtual)
         setFracionavel(produto.fracionavel ?? !produto.algumInsumoNaoFracionavel)
         setFracionavelManual(produto.fracionavelOverride ?? false)
+        if (produto.margemLucro != null) {
+          setMargem(produto.margemLucro.toString())
+        }
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
           setPrecoFinalManual(true)
@@ -741,7 +735,7 @@ export default function CadastrarProdutoPage() {
       .catch(console.error)
   }, [editando, id])
 
-  const salvar = async (destino: 'padrao' | 'catalogo' = 'padrao') => {
+  const salvar = async () => {
     setErro(null)
     setFieldErrors({})
 
@@ -755,6 +749,7 @@ export default function CadastrarProdutoPage() {
 
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
     const precoVendaNum = mostrarPrecoMargem ? (num(precoFinal) || undefined) : undefined
+    const margemLucroNum = mostrarPrecoMargem ? num(margem) : undefined
 
     const request: ProdutoRequest = {
       nome: dados.nome.trim(),
@@ -762,6 +757,7 @@ export default function CadastrarProdutoPage() {
       descricao: dados.descricao.trim() || undefined,
       tempoProducao: Math.round(num(dados.tempo)) || 1,
       precoVenda: precoVendaNum,
+      margemLucro: margemLucroNum,
       rendimento: rendimentoNum,
       permitirEstoqueNegativo,
       fracionavel,
@@ -775,7 +771,7 @@ export default function CadastrarProdutoPage() {
       })),
     }
 
-    setSalvando(destino)
+    setSalvando(true)
     try {
       const result = editando && id
         ? await produtoService.editar(id, request)
@@ -786,9 +782,7 @@ export default function CadastrarProdutoPage() {
         setPrecoFinalManual(true)
       }
 
-      if (destino === 'catalogo') {
-        navigate(`/catalogos/itens/novo?produtoId=${result.id}`)
-      } else if (editando) {
+      if (editando) {
         navigate(`/produtos/${id}`)
       } else {
         navigate('/produtos')
@@ -804,7 +798,7 @@ export default function CadastrarProdutoPage() {
         setErro(data?.message || 'Erro ao salvar produto. Verifique os campos obrigatórios.')
       }
     } finally {
-      setSalvando(null)
+      setSalvando(false)
     }
   }
 
@@ -875,8 +869,6 @@ export default function CadastrarProdutoPage() {
           <FichaTecnica
             ficha={ficha} setFicha={setFicha}
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento || rendimentoErroInline}
-            mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
-            botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido} onCriarCatalogo={() => salvar('catalogo')}
             fracionavel={fracionavel}
             onFracionavelChange={v => { setFracionavelManual(true); setFracionavel(v) }}
           />
@@ -914,8 +906,8 @@ export default function CadastrarProdutoPage() {
             <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
               Cancelar
             </Button>
-            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido}>
-              {salvando === 'padrao'
+            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar()} disabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido}>
+              {salvando
                 ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
                 : (editando ? 'Salvar alterações' : 'Salvar produto')
               }
