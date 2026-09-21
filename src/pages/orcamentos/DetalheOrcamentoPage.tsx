@@ -10,7 +10,7 @@ import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
   Check, Wallet, AlertCircle, Receipt, Ban, Calendar, Info, FileText,
   Download, ArrowLeft, ArrowRight, Phone, Layers, Box, SlidersHorizontal, Tag, Clock, Factory, Zap,
-  AlertTriangle, Pencil, Copy, StickyNote,
+  AlertTriangle, Pencil, Copy, StickyNote, Unlink,
 } from "lucide-react";
 import { orcamentoService } from "../../services/orcamentoService";
 import { clienteService } from "../../services/clienteService";
@@ -1117,6 +1117,10 @@ export default function DetalheOrcamentoPage() {
   // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — fila de vínculos (produções) pendentes de confirmação
   // "desfazer vínculo?" exibida logo após o cancelamento ser confirmado com sucesso, um por vez.
   const [filaVinculos, setFilaVinculos] = useState<VinculoPendente[] | null>(null);
+  // #401 (DT-NOVA-3) — confirmação antes de desvincular uma produção específica (reaproveita
+  // ConfirmacaoModal genérico, mesmo componente já usado por outras ações destrutivas do sistema).
+  const [confirmandoDesvincular, setConfirmandoDesvincular] = useState<OrcamentoProducaoResponse | null>(null);
+  const [desvinculando, setDesvinculando] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
 
@@ -1298,6 +1302,25 @@ export default function DetalheOrcamentoPage() {
       handleAvancar();
     } else {
       setToast("Produção vinculada a este orçamento.");
+    }
+  };
+
+  // #401 (DT-NOVA-3) — endpoint já existia (RN-ORC-VINC-03), consumido até aqui só pelo fluxo de
+  // cancelamento sequencial; este é o 1º consumidor de UI fora desse fluxo.
+  const handleConfirmarDesvincular = async () => {
+    if (!id || !confirmandoDesvincular) return;
+    setDesvinculando(true);
+    try {
+      await orcamentoService.desvincularProducao(id, confirmandoDesvincular.producaoId);
+      setOrcamento((prev) => prev
+        ? { ...prev, producoesVinculadas: prev.producoesVinculadas.filter((v) => v.id !== confirmandoDesvincular.id) }
+        : prev);
+      setToast("Produção desvinculada.");
+      setConfirmandoDesvincular(null);
+    } catch (err) {
+      setToast(extractApiError(err, "Erro ao desvincular produção. Tente novamente."));
+    } finally {
+      setDesvinculando(false);
     }
   };
 
@@ -1749,10 +1772,24 @@ export default function DetalheOrcamentoPage() {
                   <span className="mt-0.5 flex flex-shrink-0 text-teal">
                     <Check size={16} />
                   </span>
-                  <p className="m-0 text-[13px] leading-[1.5] text-body">
-                    Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:{" "}
-                    <strong>{producoesVinculadas.map((v) => v.identificadorProducao).join(", ")}</strong>
-                  </p>
+                  <div className="flex flex-col gap-1">
+                    <p className="m-0 text-[13px] leading-[1.5] text-body">
+                      Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      {producoesVinculadas.map((v) => (
+                        <div key={v.id} className="flex items-center gap-2">
+                          <strong className="text-[13px] text-body">{v.identificadorProducao}</strong>
+                          <button
+                            onClick={() => setConfirmandoDesvincular(v)}
+                            className="inline-flex items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[12px] font-semibold text-danger/80 transition-colors duration-150 hover:text-danger"
+                          >
+                            <Unlink size={12} /> Desvincular
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
@@ -2282,6 +2319,20 @@ export default function DetalheOrcamentoPage() {
       {filaVinculos && filaVinculos.length > 0 && (
         <ModalConfirmacaoVinculoSequencial fila={filaVinculos} onConcluir={handleConcluirFilaVinculos} direcao="orcamento" />
       )}
+
+      <ConfirmacaoModal
+        open={confirmandoDesvincular != null}
+        onClose={() => setConfirmandoDesvincular(null)}
+        onConfirm={handleConfirmarDesvincular}
+        variant="danger"
+        title={`Desvincular ${confirmandoDesvincular?.identificadorProducao}?`}
+        icon={<Unlink size={16} />}
+        width={440}
+        confirmLabel="Desvincular"
+        confirmingLabel="Desvinculando…"
+        confirming={desvinculando}
+        description="O orçamento deixa de estar vinculado a esta produção. Os produtos já lançados na produção não são removidos automaticamente."
+      />
     </AppLayout>
   );
 }
