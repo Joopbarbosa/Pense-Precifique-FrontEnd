@@ -35,15 +35,27 @@ async function escolherFormaPagamento(
 
 test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa', () => {
   let criadosProdutoIds: string[] = []
+  let criadosItensCatalogo: { catalogoId: string; itemId: string }[] = []
 
   test.beforeEach(async ({ request }) => {
     criadosProdutoIds = []
+    criadosItensCatalogo = []
     const token = await apiLogin(request)
     await apiAbrirTurno(request, token, 100)
   })
 
   test.afterEach(async ({ request }) => {
     const token = await apiLogin(request)
+    // OpenProject #529 — inativarProduto (DELETE /produtos/{id}) falha com 400 se o produto ainda
+    // está vinculado a um Item de Catálogo (bloqueio de negócio, não bug); o .catch(() => {}) do
+    // helper engolia esse erro silenciosamente, deixando a customização órfã e ativa no banco pra
+    // sempre — exatamente o tipo de dado que o filtro ativo=true (#529) não consegue esconder,
+    // porque nunca chegava a ser inativado. Apaga o Item de Catálogo primeiro (remove o vínculo),
+    // só então inativa os produtos.
+    for (const { catalogoId, itemId } of criadosItensCatalogo) {
+      await request.delete(`http://localhost:8080/catalogos/${catalogoId}/itens/${itemId}`,
+        { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+    }
     for (const id of criadosProdutoIds) await inativarProduto(request, token, id)
     await apiFecharTurnoSeAberto(request, token)
   })
@@ -57,10 +69,11 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
     // componente, generalizado de "1 produto principal" para "N componentes" (RN-NOVA-9).
     const token = await apiLogin(request)
     const sufixo = Date.now()
-    const { produtoPrincipal, produtoCustomizacao } = await apiCriarCatalogoComItem(
+    const { catalogo, item, produtoPrincipal, produtoCustomizacao } = await apiCriarCatalogoComItem(
       request, token, `QA-Cat-Bombom-${sufixo}`, 20.00, 10,
       { nome: `QA-Cat-Laco-${sufixo}`, precoVenda: 5.00, estoqueAtual: 10 })
     criadosProdutoIds.push(produtoPrincipal.id, produtoCustomizacao.id)
+    criadosItensCatalogo.push({ catalogoId: catalogo.id, itemId: item.id })
 
     await login(page)
     await page.goto('/caixa')
