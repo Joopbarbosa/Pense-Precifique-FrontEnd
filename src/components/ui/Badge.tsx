@@ -144,6 +144,21 @@ export function EstoqueAtualBadge({ estoqueAtual, fracionavel, unidade, variant 
   )
 }
 
+interface EstoqueInsuficienteBadgeProps {
+  variant?: 'cadastro' | 'busca'
+}
+
+/** OpenProject #527 — sinal grosseiro de "algum componente sem estoque" pra item de catálogo na
+ *  busca (mesmo componente compartilhado, mesma paleta de {@link EstoqueNegativoBadge} bloqueado). */
+export function EstoqueInsuficienteBadge({ variant = 'busca' }: EstoqueInsuficienteBadgeProps) {
+  const s = ESTOQUE_NEGATIVO_SIZE[variant]
+  return (
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/[0.12] font-semibold text-[#EF4444]', s.pill)}>
+      <AlertCircle size={s.icon} /> Estoque insuficiente em algum item
+    </span>
+  )
+}
+
 interface EstoqueTagsProps {
   fracionavel: boolean
   permitirEstoqueNegativo: boolean

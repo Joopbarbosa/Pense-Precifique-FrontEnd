@@ -6,7 +6,6 @@ import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
 import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check, ImagePlus, X } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
-import { insumoService } from '../../services/insumoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { empresaService } from '../../services/empresaService'
@@ -355,21 +354,19 @@ export default function NovoItemCatalogoPage() {
             setPrecoEditadoManualmente(item.override)
             setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
-            // ItemCatalogoComponenteResponse não expõe `fracionável` do componente (achado desta
-            // tarefa, registrado em decisoes-catalogo.md) — busca detalhe por componente só para
-            // restringir corretamente o QtyInput na edição (mesmo custo/quantidade já vêm prontos).
-            const linhas = await Promise.all(item.componentes.map(async (c): Promise<ComponenteLinha> => {
+            // OpenProject #528 — ItemCatalogoComponenteResponse agora expõe fracionavelInsumo
+            // (mesmo padrão de FichaTecnicaItemResponse), eliminando o round-trip por componente
+            // que existia só para restringir corretamente o QtyInput na edição.
+            const linhas: ComponenteLinha[] = item.componentes.map((c): ComponenteLinha => {
               if (c.insumoId) {
-                const detalhe = await insumoService.buscarPorId(c.insumoId).catch(() => null)
-                return { id: c.insumoId, nome: c.nomeInsumo ?? '', marca: '', un: detalhe?.unidadeMedida || 'un', custo: c.custoUnitario, tipo: 'insumo', fracionavel: detalhe?.fracionavel ?? true, qtd: c.quantidade }
+                return { id: c.insumoId, nome: c.nomeInsumo ?? '', marca: '', un: 'un', custo: c.custoUnitario, tipo: 'insumo', fracionavel: c.fracionavelInsumo ?? true, qtd: c.quantidade }
               }
-              const detalhe = await produtoService.buscarPorId(c.produtoBaseId!).catch(() => null)
               return {
                 id: c.produtoBaseId!, nome: c.nomeProdutoBase ?? '', marca: '', un: 'un', custo: c.custoUnitario,
                 tipo: c.tipoProdutoBase === 'CUSTOMIZACAO' ? 'customizacao' : 'produto',
-                fracionavel: detalhe?.fracionavel ?? true, qtd: c.quantidade,
+                fracionavel: true, qtd: c.quantidade,
               }
-            }))
+            })
             setComponentes(linhas)
           })
           .catch(() => setErro('Não foi possível carregar o item do catálogo.'))
