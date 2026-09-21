@@ -212,48 +212,34 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await expect(page.getByText('Nenhum produto adicionado')).toBeVisible()
   })
 
-  test('CEN-NOVO-9/RN-NOVA-3 — item de catálogo com customização anexada inativa bloqueia a adição', async ({ page, request }) => {
+  test('CEN-NOVO-9/RN-NOVA-3/4 — item de catálogo com componente inativo bloqueia a adição', async ({ page, request }) => {
+    // V0.13.0 (#516) — reescrito: "customização anexada" com estado `ativo` fetchado ao vivo por
+    // produto não existe mais; RN-NOVA-4 generalizou o bloqueio para "qualquer componente
+    // inativo/excluído" via campo `bloqueadoParaVenda`, já pronto na resposta de
+    // `GET /catalogos/{catalogoId}/itens` (`carregarCalculadoraCatalogo`,
+    // components/venda/calculadoraItem.ts — lê o campo pronto, não recalcula nada no Frontend).
+    //
+    // Precondição (componente que já foi vinculado ficar inativo) continua não alcançável pelo
+    // fluxo normal de inativação — Backend bloqueia inativar/excluir produto/insumo vinculado a
+    // catálogo(s) ("Resolva os vínculos antes de continuar", 400, confirmado via API real nesta
+    // sessão) — mesmo achado já registrado em DECISOES_V0.8.4.md, agora migrado pra cá: testamos
+    // só o comportamento do FRONTEND diante desse dado (via mock da resposta de
+    // `GET /catalogos/{catalogoId}/itens`, chamada de novo ao abrir a calculadora), não a
+    // alcançabilidade real da precondição via API.
     const token = await apiLogin(request)
     const ts = Date.now()
-    const [customizacao] = await criarCustomizacoes(request, token, [`QA-399g-Custom-${ts}`])
-    produtoIds.push(customizacao.id)
-    const resProduto = await request.post(`${API_URL}/produtos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { nome: `QA-399g-Base-${ts}`, tipo: 'PRODUTO', tempoProducao: 10, fichaTecnica: [] },
-    })
-    const produtoBase = await resProduto.json()
-    produtoIds.push(produtoBase.id)
-    const resCatalogo = await request.post(`${API_URL}/catalogos`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { nome: `QA-399g-Catalogo-${ts}` },
-    })
-    const catalogo = await resCatalogo.json()
+    const { catalogo, itens } = await criarCatalogoComItens(request, token, `QA-399g-Catalogo-${ts}`, [
+      `QA-399g-Item-${ts}`,
+    ])
     catalogoIds.push(catalogo.id)
-    const resItem = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        produtoId: produtoBase.id,
-        quantidadePacote: 1,
-        precoVenda: 10,
-        customizacoesAnexadas: [{ produtoId: customizacao.id, quantidade: 1 }],
-      },
-    })
-    await resItem.json()
+    const item = itens[0] as { id: string; nome: string }
 
-    // Achado (2026-09-11): o Backend BLOQUEIA inativar um produto vinculado a catálogo(s)
-    // ("Resolva os vínculos antes de continuar", 400) — confirmado nesta sessão via API real.
-    // Ou seja, a precondição de RN-NOVA-3 (customização anexada inativa DEPOIS de a
-    // composição já ter sido persistida) não é alcançável pelo fluxo normal de inativação —
-    // só via inconsistência de dado (migração, edge case não coberto aqui) ou removendo o
-    // vínculo primeiro (o que mudaria a composição, não deixaria ela "desatualizada").
-    // Registrado em DECISOES_V0.8.4.md para o Gestor decidir se RN-NOVA-3 é defesa em
-    // profundidade (mantém) ou código morto (remove) — não decidido aqui.
-    // Testamos aqui só o comportamento do FRONTEND diante desse dado (via mock de rede),
-    // não a alcançabilidade real da precondição via API.
-    await page.route(`${API_URL}/produtos/${customizacao.id}`, async route => {
+    await page.route(`${API_URL}/catalogos/${catalogo.id}/itens`, async route => {
       const res = await route.fetch()
       const body = await res.json()
-      await route.fulfill({ response: res, json: { ...body, ativo: false } })
+      const atualizado = (body as Array<Record<string, unknown>>).map(i =>
+        i.id === item.id ? { ...i, bloqueadoParaVenda: true } : i)
+      await route.fulfill({ response: res, json: atualizado })
     })
 
     const cliente = await criarCliente(request, token, `QA-399g-Cliente-${ts}`)
@@ -263,8 +249,11 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
-    await page.getByText(produtoBase.nome, { exact: true }).click()
+    await page.getByText(item.nome, { exact: true }).click()
 
+    // ModalCalculadoraItem descarta a mensagem específica do erro lançado por
+    // carregarCalculadoraCatalogo e sempre mostra o mesmo texto genérico, tanto pra esta falha
+    // quanto pra CEN-NOVO-8 (RN-NOVA-2) — decisão já existente, não alterada por #516.
     await expect(page.getByText('Não foi possível carregar os dados de preço deste item.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Adicionar ao orçamento' })).toHaveCount(0)
   })

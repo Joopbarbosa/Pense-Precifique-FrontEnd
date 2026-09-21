@@ -20,27 +20,25 @@ export interface OrcamentoItemRequest {
   customizacoes: OrcamentoItemCustomizacaoRequest[];
 }
 
+// V0.13.0 (#516, RN-NOVA-1) — produtoId/nomeProduto/fracionavel/estoqueAtual/permitirEstoqueNegativo
+// removidos (não fazem mais sentido para um item com N componentes, cada um com seu próprio
+// estoque). `nome` (nome do próprio item, também alvo do filtro `busca`) e `componentes`
+// substituem. Sem agregado de estoque na busca — a única sinalização de estoque insuficiente
+// acontece depois de adicionar ao carrinho, via simulação (SimulacaoEstoqueProdutoResponse) —
+// achado registrado em decisoes-catalogo.md para a Retomada avaliar se falta um campo agregado.
 export interface ItemCatalogoBuscaResponse {
   id: string;
-  produtoId: string;
   /** RN-NOVA-23 (#313/#399) — id do Catálogo dono do item, usado pra montar a
-   *  calculadora de preço via GET /catalogos/{catalogoId}/itens. Campo já existia no
-   *  Backend (ItemCatalogoBuscaResponse.java) desde V0.8.3, mas nunca tinha sido
-   *  espelhado aqui — achado de sincronia de contrato desta tarefa. */
+   *  calculadora de preço via GET /catalogos/{catalogoId}/itens. */
   catalogoId: string;
-  nomeProduto: string;
+  nome: string;
   precoVenda: number;
   catalogoNome: string;
   catalogoNumero: number;
-  algumInsumoNaoFracionavel: boolean;
-  /** #461/#473 — fracionavel do Produto vendido (valor final calculado+override), mesmo campo
-   *  já usado em OrcamentoItemResponse. Gap de contrato fechado nesta mesma rodada. */
-  fracionavel?: boolean | null;
-  permitirEstoqueNegativo: boolean;
-  estoqueAtual: number;
-  /** #487 (V0.12.0) — customizações fixas anexadas ao item, com preço; usado pelo Caixa para
-   *  montar o preview do carrinho sem round-trip extra. Orçamento não usa este campo. */
-  customizacoesFixas?: import('./itemCatalogo').CustomizacaoAnexadaResponse[];
+  componentes: import('./itemCatalogo').ItemCatalogoComponenteResponse[];
+  /** true se qualquer componente Insumo não é fracionável (não recursa na ficha técnica de um
+   *  componente Produto-base). */
+  algumComponenteNaoFracionavel: boolean;
 }
 
 // #218 — POST /orcamentos/simular-alertas (RN-NOVA-8/9): simula situação de estoque por Produto
@@ -100,10 +98,13 @@ export interface OrcamentoItemResponse {
   quantidade: number;
   precoUnitario: number;
   subtotal: number;
+  // V0.13.0 — para item de origem Catálogo, customizacoes() só traz ad-hoc (RN-030); os
+  // componentes do catálogo (não precificados, não editáveis por pedido) nunca aparecem aqui.
   customizacoes: OrcamentoItemCustomizacaoResponse[];
   algumInsumoNaoFracionavel: boolean;
   permitirEstoqueNegativo: boolean;
-  estoqueAtual: number;
+  // V0.13.0 — null para item de origem Catálogo (N componentes, sem estoque agregado único).
+  estoqueAtual: number | null;
   // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — fracionável do Produto vendido, ao vivo
   // (não é snapshot). Null quando o item não referencia Produto diretamente.
   fracionavel?: boolean | null;

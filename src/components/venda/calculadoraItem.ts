@@ -38,21 +38,17 @@ export async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Cal
   }
 }
 
-// Monta os dados da calculadora para item de catálogo — RN-NOVA-23: combina o
-// breakdown do Produto de origem com a composição JÁ PERSISTIDA do item
-// (quantidadePacote + customizacoesAnexadas + precoSugerido de ItemCatalogoResponse) —
-// não recalcula a composição do zero. RN-NOVA-3 (V0.8.4): se alguma customização
-// anexada não existir mais (excluída/inativa), a composição não é mais a mesma que foi
-// fixada — lança erro aqui, cai no BLOQUEIO único (RN-NOVA-2) do modal chamador.
+// Monta os dados da calculadora para item de catálogo — V0.13.0: combina o precoSugerido JÁ
+// PERSISTIDO do item (custo dos componentes + mão de obra + margem própria, calculado no
+// Backend) com a composição de componentes de ItemCatalogoResponse — não recalcula a composição
+// do zero. RN-NOVA-4: `bloqueadoParaVenda` já vem pronto do Backend (true quando qualquer
+// componente está inativo/excluído) — substitui a checagem manual por customização que existia
+// antes da reforma de composição.
 export async function carregarCalculadoraCatalogo(catalogoId: string, itemId: string): Promise<DadosCalculadoraItem> {
   const itensDoCatalogo = await itemCatalogoService.listar(catalogoId)
   const item = itensDoCatalogo.find(i => i.id === itemId)
   if (!item) throw new Error('Item de catálogo não encontrado — composição pode ter mudado.')
-  // Confirma que a composição persistida ainda é válida (RN-NOVA-3) — cada
-  // customização anexada precisa existir e continuar ativa.
-  await Promise.all(item.customizacoesAnexadas.map(c => produtoService.buscarPorId(c.produtoId).then(p => {
-    if (!p.ativo) throw new Error(`Customização "${c.produtoNome}" não está mais ativa.`)
-  })))
+  if (item.bloqueadoParaVenda) throw new Error(`Item "${item.nome}" tem componente inativo/excluído e não pode ser vendido.`)
   // CEN-NOVO-4 (DECISOES_V0.8.4.md) — valor final inicia com o precoSugerido já
   // calculado (não o precoVenda persistido, que pode já vir de override anterior no
   // cadastro do Catálogo — aqui é uma nova confirmação, não a herança de uma antiga).
@@ -61,10 +57,7 @@ export async function carregarCalculadoraCatalogo(catalogoId: string, itemId: st
     sugerido: item.precoSugerido,
     precoInicial: item.precoSugerido,
     breakdown: [
-      { label: `Produto (${item.produtoNome}) × ${item.quantidadePacote}`, value: BRL(item.precoSugerido) },
-      ...(item.customizacoesAnexadas.length > 0
-        ? [{ label: 'Customizações anexadas', value: `${item.customizacoesAnexadas.length} item(ns)` }]
-        : []),
+      { label: `${item.nome} × ${item.componentes.length} componente(s)`, value: BRL(item.precoSugerido) },
     ],
   }
 }

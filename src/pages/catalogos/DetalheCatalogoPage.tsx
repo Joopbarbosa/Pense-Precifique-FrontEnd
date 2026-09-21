@@ -6,13 +6,15 @@ import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus } from 'lucide-react'
+import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus, Layers, FileDown } from 'lucide-react'
+import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
+import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
 import { extractApiError } from '../../utils/apiError'
-import { EstoqueTags } from '../../components/ui/Badge'
+import { dispararDownloadBlob } from '../../utils/download'
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -33,12 +35,16 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
       onClick={onClick}
       className="flex cursor-pointer items-start gap-3.5 border-t border-line px-5 py-4 transition-colors duration-100 hover:bg-line"
     >
-      <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
-        <Box size={20} />
-      </span>
+      {item.fotoUrl ? (
+        <img src={item.fotoUrl} alt={item.nome} className="h-10 w-10 flex-shrink-0 rounded-[11px] object-cover" />
+      ) : (
+        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+          <Box size={20} />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[14.5px] font-semibold text-dark">{item.produtoNome}</span>
+          <span className="text-[14.5px] font-semibold text-dark">{item.nome}</span>
           {item.override && (() => {
             const diff = item.precoVenda - item.precoSugerido
             return (
@@ -54,25 +60,26 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
             </span>
           )}
         </div>
-        <div className="mt-[3px] text-[12.5px] text-muted">
-          {item.quantidadePacote} un/pacote
+        <div className="mt-[3px] flex items-center gap-1 text-[12.5px] text-muted">
+          <Layers size={13} className="text-dim" />
+          {item.componentes.length} componente{item.componentes.length !== 1 ? 's' : ''}
         </div>
-        <EstoqueTags
-          className="mt-1.5"
-          fracionavel={!item.algumInsumoNaoFracionavel}
-          permitirEstoqueNegativo={item.permitirEstoqueNegativo}
-          estoqueAtual={item.estoqueAtual}
-          variant="busca"
-        />
-        {item.customizacoesAnexadas.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {item.customizacoesAnexadas.map(c => (
-              <span key={c.produtoId} className="rounded-full bg-line-soft px-2.5 py-[3px] text-[11.5px] font-medium text-subtle">
-                + {c.produtoNome} × {c.quantidade}
-              </span>
-            ))}
-          </div>
+        {item.descricao && (
+          <div className="mt-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[12.5px] text-muted">{item.descricao}</div>
         )}
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {item.componentes.map(c => (
+            <span
+              key={c.id}
+              className={clsx(
+                'rounded-full px-2.5 py-[3px] text-[11.5px] font-medium',
+                c.ativo ? 'bg-line-soft text-subtle' : 'bg-danger-bg text-danger'
+              )}
+            >
+              {c.nomeInsumo ?? c.nomeProdutoBase} × {c.quantidade}
+            </span>
+          ))}
+        </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-2.5" onClick={e => e.stopPropagation()}>
         <span className="whitespace-nowrap text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">
@@ -96,6 +103,7 @@ export default function DetalheCatalogoPage() {
   const [itemParaRemover, setItemParaRemover] = useState<ItemCatalogoResponse | null>(null)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [processando, setProcessando] = useState(false)
+  const pdfRetry = useRetryCooldown()
 
   const carregar = useCallback(() => {
     if (!id) return
@@ -131,6 +139,14 @@ export default function DetalheCatalogoPage() {
     } finally {
       setProcessando(false)
     }
+  }
+
+  const handleBaixarPdf = () => {
+    if (!catalogo || pdfRetry.executando || pdfRetry.cooldownRestante > 0) return
+    pdfRetry.executar(async () => {
+      const blob = await catalogoService.baixarPdf(catalogo.id)
+      dispararDownloadBlob(blob, `catalogo-${catalogo.numero}.pdf`)
+    }, 'Erro ao gerar PDF do catálogo.')
   }
 
   if (loading || (!catalogo && !erroCarregar)) {
@@ -205,9 +221,19 @@ export default function DetalheCatalogoPage() {
 
       <div className="mb-3 mt-[26px] flex flex-wrap items-center justify-between gap-3">
         <h2 className="m-0 text-[17px] font-bold text-dark">Itens do catálogo</h2>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)}>
-          Adicionar item
-        </Button>
+        <div className="flex flex-wrap gap-[11px]">
+          <Button
+            variant="ghost"
+            icon={<FileDown size={16} />}
+            onClick={handleBaixarPdf}
+            disabled={!catalogo.ativo || pdfRetry.executando || pdfRetry.cooldownRestante > 0}
+          >
+            {pdfRetry.executando ? 'Gerando PDF…' : 'Gerar PDF'}
+          </Button>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)}>
+            Adicionar item
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -236,13 +262,22 @@ export default function DetalheCatalogoPage() {
         onClose={() => setItemParaRemover(null)}
         onConfirm={handleRemoverConfirm}
         variant="danger"
-        title={`Remover "${itemParaRemover?.produtoNome}"?`}
+        title={`Remover "${itemParaRemover?.nome}"?`}
         icon={<Trash2 size={16} />}
         width={440}
         confirmLabel="Remover item"
         confirmingLabel="Removendo…"
         confirming={processando}
         description="Este item será removido do catálogo. Esta ação não pode ser desfeita."
+      />
+
+      <RetryCooldownModal
+        open={!!pdfRetry.erro}
+        mensagem={pdfRetry.erro ?? ''}
+        cooldownRestante={pdfRetry.cooldownRestante}
+        executando={pdfRetry.executando}
+        onTentarNovamente={pdfRetry.tentarNovamente}
+        onClose={pdfRetry.dispensarErro}
       />
 
     </AppLayout>

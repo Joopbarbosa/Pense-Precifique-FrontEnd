@@ -1,18 +1,43 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Locator, Page } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin, criarInsumo, inativarInsumo } from '../helpers/api'
 import { criarProdutoComFicha } from '../helpers/producao'
 import { API_URL } from '../helpers/auth'
 
 /**
+ * O `ActionMenu` compartilhado fecha o menu em qualquer evento de scroll na janela (captura) —
+ * inclui o auto-scroll que o próprio Playwright dispara ao garantir visibilidade antes do clique,
+ * gerando uma corrida ocasional (menu abre e fecha antes do clique alcançar o item). Mesmo achado
+ * e mesmo workaround de `resolver-vinculos-produto.spec.ts` (`abrirAcaoNoCard`) — não é flakiness
+ * introduzida por #517/#518/#519.
+ */
+async function abrirAcaoNaLinha(page: Page, linha: Locator, itemLabel: string) {
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    await linha.getByRole('button', { name: 'Mais ações' }).click()
+    try {
+      await page.getByText(itemLabel, { exact: true }).click({ timeout: 2000 })
+      return
+    } catch {
+      // menu pode ter se fechado sozinho por um scroll espúrio — tenta de novo
+    }
+  }
+  throw new Error(`Não foi possível clicar em "${itemLabel}" após múltiplas tentativas`)
+}
+
+/**
  * OpenProject #228, #237 — Resolução de vínculos ao inativar/excluir insumo vinculado a ficha
- * técnica: modal evoluído com 2 opções ("Inativar produtos vinculados" / "Substituir insumo"),
- * acionado tanto por "Inativar" quanto por "Excluir" (POST /insumos/{id}/resolver-vinculos).
+ * técnica, acionado tanto por "Inativar" quanto por "Excluir" (POST /insumos/{id}/resolver-vinculos).
+ *
+ * V0.13.0 (#517) — `InsumoResolverVinculosModal` foi reescrito de um wizard de 2 passos (opções
+ * "Inativar produtos vinculados"/"Substituir insumo") para 1 modal com uma seção por tipo de
+ * vínculo (aqui só "Vínculo de ficha técnica", já que o insumo não tem vínculo de catálogo),
+ * cada seção com um toggle "Remover"/"Substituir" (default "Remover") e um único botão
+ * "Confirmar" no rodapé do modal — mesma mecânica de resolver-vínculos usada em Produto.
  *
  * Dado um insumo vinculado à ficha técnica de um produto
- * Quando a artesã tenta inativá-lo e escolhe "Inativar produtos vinculados"
+ * Quando a artesã tenta inativá-lo e confirma com a ação padrão ("Remover")
  * Então o insumo e o produto vinculado ficam inativos
- * Quando a artesã tenta excluir outro insumo vinculado e escolhe "Substituir insumo"
+ * Quando a artesã tenta excluir outro insumo vinculado e alterna para "Substituir"
  * Então a ficha técnica do produto passa a referenciar o insumo substituto e o insumo original é excluído
  */
 test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir insumo', () => {
@@ -59,43 +84,42 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
     await inativarInsumo(request, token, insumoSubstitutoId).catch(() => {})
   })
 
-  test('inativar insumo vinculado — escolher "Inativar produtos vinculados"', async ({ page }) => {
+  test('inativar insumo vinculado — confirma com a ação padrão ("Remover")', async ({ page }) => {
     await page.getByPlaceholder('Buscar por nome ou marca…').fill(insumoInativarNome)
     await expect(page.getByText(insumoInativarNome, { exact: true }).first()).toBeVisible()
 
     const linha = page.getByText(insumoInativarNome, { exact: true }).first().locator('xpath=../..')
-    await linha.getByRole('button', { name: 'Mais ações' }).click()
-    await page.getByText('Inativar', { exact: true }).click()
+    await abrirAcaoNaLinha(page, linha, 'Inativar')
     await page.getByRole('button', { name: 'Inativar insumo' }).click()
 
     await expect(page.getByText('Não foi possível inativar')).toBeVisible()
     await expect(page.getByText(produtoInativarNome)).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Substituir insumo' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Substituir', exact: true })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Inativar produtos vinculados' }).click()
+    // Ação padrão da seção já é "Remover" — só confirmar.
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
     await expect(page.getByText('Insumo inativado.')).toBeVisible()
 
     await page.getByRole('button', { name: /^Ativos\b/ }).click()
     await expect(page.getByText(insumoInativarNome, { exact: true })).toHaveCount(0)
   })
 
-  test('excluir insumo vinculado — modal aparece igual, escolher "Substituir insumo" atualiza ficha técnica', async ({ page, request }) => {
+  test('excluir insumo vinculado — modal aparece igual, alternar para "Substituir" atualiza ficha técnica', async ({ page, request }) => {
     await page.getByPlaceholder('Buscar por nome ou marca…').fill(insumoExcluirNome)
     await expect(page.getByText(insumoExcluirNome, { exact: true }).first()).toBeVisible()
 
     const linha = page.getByText(insumoExcluirNome, { exact: true }).first().locator('xpath=../..')
-    await linha.getByRole('button', { name: 'Mais ações' }).click()
-    await page.getByText('Excluir', { exact: true }).click()
+    await abrirAcaoNaLinha(page, linha, 'Excluir')
     await page.getByRole('button', { name: 'Excluir insumo' }).click()
 
     await expect(page.getByText('Não foi possível excluir')).toBeVisible()
     await expect(page.getByText(produtoExcluirNome)).toBeVisible()
 
-    await page.getByRole('button', { name: 'Substituir insumo' }).click()
+    await page.getByRole('button', { name: 'Substituir', exact: true }).click()
     await page.getByPlaceholder('Buscar insumo substituto…').fill(insumoSubstitutoNome)
     await page.getByText(insumoSubstitutoNome, { exact: true }).click()
 
-    const confirmar = page.getByRole('button', { name: 'Confirmar substituição' })
+    const confirmar = page.getByRole('button', { name: 'Confirmar', exact: true })
     await expect(confirmar).toBeEnabled()
     await confirmar.click()
     await expect(page.getByText('Insumo excluído.')).toBeVisible()

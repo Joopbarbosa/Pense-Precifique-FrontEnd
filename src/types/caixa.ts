@@ -111,7 +111,8 @@ export interface VendaCaixaItemCustomizacaoResponse {
 
 export interface VendaCaixaItemResponse {
   id: string
-  produtoId: string
+  // V0.13.0 — null para item de origem Catálogo (produtoNome vem do nome do próprio item nesse caso).
+  produtoId: string | null
   produtoNome: string
   itemCatalogoId?: string | null
   quantidade: number

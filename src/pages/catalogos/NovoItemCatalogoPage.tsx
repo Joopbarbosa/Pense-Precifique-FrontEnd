@@ -4,17 +4,19 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
-import { Search, ChevronRight, Files, X, Box, SlidersHorizontal } from 'lucide-react'
+import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check, ImagePlus, X } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
+import { insumoService } from '../../services/insumoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
+import { empresaService } from '../../services/empresaService'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import Toast from '../../components/shared/Toast'
-import { EstoqueTags } from '../../components/ui/Badge'
-import { CustomizacaoSeletor } from '../../components/venda'
-import type { CustomizacaoLinha } from '../../components/venda'
+import { FracionavelBadge } from '../../components/ui/Badge'
+import { tipoProdutoBadge } from '../../utils/badges'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import type { CatalogoResponse } from '../../types/catalogo'
-import type { ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
+import type { ItemCatalogoComponenteRequest, ItemCatalogoRequest, PreviewPrecoRequest, PreviewPrecoResponse } from '../../types/itemCatalogo'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 
@@ -24,43 +26,97 @@ const num = (s: string) =>
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-const SEM_EXCLUSOES: string[] = []
-
-interface ProdutoSelecionado {
-  id: string
-  nome: string
-  precoCusto: number
-  ativo: boolean
-  algumInsumoNaoFracionavel: boolean
-  permitirEstoqueNegativo: boolean
-  estoqueAtual: number
-}
-
 const inputClass = (hasError?: boolean) => clsx(
   'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
   hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
 )
 
-// ---------- ProdutoSearch (busca de produtos tipo PRODUTO ou CUSTOMIZACAO) ----------
+// ---------- Componente (Insumo XOR Produto-base, mesmo par de FichaTecnicaItem em Produto) ----------
 
-interface ProdutoSearchResultado {
+interface ComponenteLinha {
   id: string
   nome: string
-  precoCusto: number
-  precoVenda?: number
-  ativo: boolean
-  algumInsumoNaoFracionavel: boolean
-  permitirEstoqueNegativo: boolean
-  estoqueAtual: number
+  marca: string
+  un: string
+  custo: number
+  tipo: 'insumo' | 'produto' | 'customizacao'
+  fracionavel: boolean
+  qtd: number
 }
 
-function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
-  tipo: 'PRODUTO' | 'CUSTOMIZACAO'; placeholder: string; jaAdicionados: string[]
-  onSelect: (p: ProdutoSearchResultado) => void
-}) {
+// ---------- TipoBadge ----------
+
+function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
+  if (tipo === 'produto' || tipo === 'customizacao') {
+    const b = tipoProdutoBadge(tipo === 'produto' ? 'PRODUTO' : 'CUSTOMIZACAO')
+    return (
+      <span
+        className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
+        style={{ background: b.bg, color: b.fg }}
+      >
+        {b.label}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full bg-line-soft px-[7px] text-[10.5px] font-semibold tracking-[0.01em] text-subtle">
+      Insumo
+    </span>
+  )
+}
+
+// ---------- Filtro de tipo (checkbox multi-seleção, UC-NOVO-1 passo 2 — diferente do seletor único de Orçamento) ----------
+
+const TIPOS_COMPONENTE: { v: 'produto' | 'customizacao' | 'insumo'; label: string }[] = [
+  { v: 'produto', label: 'Produto' },
+  { v: 'customizacao', label: 'Customização' },
+  { v: 'insumo', label: 'Insumo' },
+]
+
+function FiltroTipoComponente({ ativos, onToggle }: { ativos: Set<'insumo' | 'produto' | 'customizacao'>; onToggle: (t: 'insumo' | 'produto' | 'customizacao') => void }) {
+  return (
+    <div className="mb-2.5 flex flex-wrap gap-[7px]">
+      {TIPOS_COMPONENTE.map(({ v, label }) => {
+        const on = ativos.has(v)
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onToggle(v)}
+            aria-pressed={on}
+            className={clsx(
+              'flex h-8 items-center gap-[6px] rounded-full border-[1.5px] px-3 font-[inherit] text-[12.5px] font-semibold transition-colors duration-150',
+              on ? 'border-teal bg-teal/10 text-teal' : 'border-line bg-white text-muted hover:border-teal/40'
+            )}
+          >
+            {on && <Check size={13} />}
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ---------- ComponenteSearch (Insumo + Produto + Customização, mesmo padrão de InsumoSearch em CadastrarProdutoPage.tsx) ----------
+
+function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<ComponenteLinha, 'qtd'>) => void; jaAdicionados: string[] }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [resultados, setResultados] = useState<ProdutoSearchResultado[]>([])
+  const [tiposAtivos, setTiposAtivos] = useState<Set<'insumo' | 'produto' | 'customizacao'>>(
+    new Set(['insumo', 'produto', 'customizacao'])
+  )
+  const toggleTipo = (t: 'insumo' | 'produto' | 'customizacao') =>
+    setTiposAtivos(prev => {
+      const next = new Set(prev)
+      if (next.has(t)) next.delete(t); else next.add(t)
+      return next
+    })
+  const [insumos, setInsumos] = useState<Omit<ComponenteLinha, 'qtd'>[]>([])
+  const [produtos, setProdutos] = useState<Omit<ComponenteLinha, 'qtd'>[]>([])
+  const [customizacoes, setCustomizacoes] = useState<Omit<ComponenteLinha, 'qtd'>[]>([])
+  const [loadingBusca, setLoadingBusca] = useState(false)
+  const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -69,75 +125,139 @@ function ProdutoSearch({ tipo, placeholder, jaAdicionados, onSelect }: {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  // Buscadores de seleção exibem no mínimo 6 registros ao focar/clicar sem digitar nada — mesmo
-  // padrão de "Registrar Compra" (Insumo, INS-008) e "Ficha Técnica" (Produto, PDT-010), ver
-  // DECISOES_GLOBAIS.md. `busca` vazia é aceita direto pelo backend (GET /produtos sem `busca`
-  // retorna os primeiros N por `sort=nome`), sem precisar de endpoint novo.
+  const debouncedQ = useDebouncedValue(q, q.trim() ? 300 : 0)
   useEffect(() => {
-    if (!open) return
-    const termo = q.trim()
+    if (!open || debouncedQ !== q) return
+    const termo = debouncedQ.trim()
     const qLower = termo.toLowerCase()
-    const delay = termo ? 300 : 0
-    const timer = setTimeout(async () => {
+    setLoadingBusca(true)
+    setErroBusca(false)
+    ;(async () => {
       try {
-        const data = await produtoService.listar(0, 20, tipo, termo)
-        setResultados(
-          data.content
-            .filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
-            .map(p => ({
-              id: p.id,
-              nome: p.nome,
-              precoCusto: p.precoCusto ?? 0,
-              precoVenda: p.precoVenda ?? undefined,
-              ativo: p.ativo,
-              algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
-              permitirEstoqueNegativo: p.permitirEstoqueNegativo,
-              estoqueAtual: p.estoqueAtual,
-            }))
+        const [ins, prods] = await Promise.all([
+          produtoService.buscarInsumos(termo),
+          produtoService.buscarProdutosComponente(termo),
+        ])
+        setInsumos(
+          ins
+            .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
+            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
+        )
+        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id) && p.ativo)
+        setProdutos(
+          prodsFiltrados
+            .filter(p => p.tipo === 'PRODUTO')
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true }))
+        )
+        setCustomizacoes(
+          prodsFiltrados
+            .filter(p => p.tipo === 'CUSTOMIZACAO')
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true }))
         )
       } catch {
-        // silent
+        setInsumos([])
+        setProdutos([])
+        setCustomizacoes([])
+        setErroBusca(true)
+      } finally {
+        setLoadingBusca(false)
       }
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [q, open, tipo, jaAdicionados])
+    })()
+  }, [debouncedQ, open, q, jaAdicionados])
+
+  const insumosVis = tiposAtivos.has('insumo') ? insumos : []
+  const produtosVis = tiposAtivos.has('produto') ? produtos : []
+  const customizacoesVis = tiposAtivos.has('customizacao') ? customizacoes : []
+  const total = insumosVis.length + produtosVis.length + customizacoesVis.length
+
+  const grupo = (titulo: string, itens: Omit<ComponenteLinha, 'qtd'>[]) => itens.length === 0 ? null : (
+    <div key={titulo}>
+      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
+      {itens.map(i => (
+        <button
+          key={i.id}
+          onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
+          className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
+        >
+          <span className={clsx(
+            'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
+            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal'
+              : i.tipo === 'customizacao' ? 'bg-[#2A9D8F]/[0.12] text-[#2A9D8F]'
+              : 'bg-line-soft text-dim'
+          )}>
+            <Box size={16} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-[7px]">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{i.nome}</span>
+              <TipoBadge tipo={i.tipo} />
+            </span>
+            <span className="block text-xs text-muted">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
+          </span>
+          <Plus size={16} className="flex-shrink-0 text-teal" />
+        </button>
+      ))}
+    </div>
+  )
 
   return (
-    <div ref={ref} className="group relative">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted group-focus-within:text-teal">
-        <Search size={16} />
-      </span>
-      <input
-        value={q}
-        onChange={e => { setQ(e.target.value); setOpen(true) }}
-        onFocus={() => setOpen(true)}
-        placeholder={placeholder}
-        className={clsx(inputClass(), 'pl-10')}
-      />
-      {open && resultados.length > 0 && (
-        <div className="absolute inset-x-0 top-[50px] z-30 max-h-[280px] overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
-          {resultados.map(p => (
-            <button
-              key={p.id}
-              onClick={() => { onSelect(p); setQ(''); setOpen(false); setResultados([]) }}
-              className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
-            >
-              <span className="flex w-full items-center justify-between gap-[11px]">
-                <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{p.nome}</span>
-                <span className="flex-shrink-0 text-xs text-muted">
-                  {moeda(p.precoCusto)} custo{p.precoVenda != null ? ` · ${moeda(p.precoVenda)} venda` : ''}
-                </span>
-              </span>
-              <EstoqueTags
-                fracionavel={!p.algumInsumoNaoFracionavel}
-                permitirEstoqueNegativo={p.permitirEstoqueNegativo}
-                estoqueAtual={p.estoqueAtual}
-                variant="busca"
-              />
-            </button>
-          ))}
+    <div ref={ref} className="relative">
+      <FiltroTipoComponente ativos={tiposAtivos} onToggle={toggleTipo} />
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
+          <Search size={18} />
+        </span>
+        <input
+          value={q}
+          onChange={e => { setQ(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Buscar insumo, produto ou customização..."
+          className={clsx(inputClass(), 'pl-[42px]')}
+        />
+      </div>
+      {open && (
+        <div className="absolute inset-x-0 top-[80px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
+          {loadingBusca ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
+          ) : erroBusca ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-danger-deep">Não foi possível buscar componentes. Tente novamente.</div>
+          ) : tiposAtivos.size === 0 ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-muted">Selecione ao menos um tipo para buscar</div>
+          ) : total === 0 ? (
+            <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum componente encontrado</div>
+          ) : (
+            <>
+              {grupo('Insumos', insumosVis)}
+              {grupo('Produtos', produtosVis)}
+              {grupo('Customizações', customizacoesVis)}
+            </>
+          )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------- QtyInput ----------
+
+function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: string; fracionavel: boolean; onChange: (v: string) => void }) {
+  const maxFrac = fracionavel ? 2 : 0
+  const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
+
+  return (
+    <div className="relative">
+      <input
+        value={display}
+        onChange={e => {
+          const permitidos = fracionavel ? /[^\d.,]/g : /[^\d]/g
+          const cleaned = e.target.value.replace(permitidos, '')
+          setDisplay(cleaned)
+          onChange(cleaned)
+        }}
+        inputMode={fracionavel ? 'decimal' : 'numeric'}
+        className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
+      />
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-dim">{un}</span>
     </div>
   )
 }
@@ -157,28 +277,33 @@ export default function NovoItemCatalogoPage() {
   const [catalogos, setCatalogos] = useState<CatalogoResponse[]>([])
   const [loadingContexto, setLoadingContexto] = useState(true)
 
-  const [produto, setProduto] = useState<ProdutoSelecionado | null>(null)
-  const [customizacoes, setCustomizacoes] = useState<CustomizacaoLinha[]>([])
-  const [quantidade, setQuantidade] = useState('1')
-  const [quantidadeErro, setQuantidadeErro] = useState<string | null>(null)
+  const [nome, setNome] = useState('')
+  const [componentes, setComponentes] = useState<ComponenteLinha[]>([])
+  const [tempoProducao, setTempoProducao] = useState('')
+  const [margem, setMargem] = useState('0')
+  const [modoMargem, setModoMargem] = useState<'padrao' | 'personalizar'>('padrao')
+  const [margemPadrao, setMargemPadrao] = useState(0)
 
   const [precoVenda, setPrecoVenda] = useState('')
   const [precoSugerido, setPrecoSugerido] = useState<number | null>(null)
   const [previewDetalhe, setPreviewDetalhe] = useState<PreviewPrecoResponse | null>(null)
-  // true só quando o preço exibido reflete um ajuste manual real (edição do usuário
-  // ou item carregado já com override) — evita sobrescrever o preço "por inércia" a cada
-  // preview e também é a única fonte de verdade de "override" agora que o preview não
-  // persiste nada e não devolve esse flag (ele é sempre derivado, ver `overrideAtivo` abaixo).
   const [precoEditadoManualmente, setPrecoEditadoManualmente] = useState(false)
   const [itemId, setItemId] = useState<string | null>(null)
 
-  const [produtoErro, setProdutoErro] = useState<string | null>(null)
+  // RN-NOVA-6/7 (#518) — foto e descrição são opcionais. Foto só pode ser anexada depois que o
+  // item já existe (endpoint dedicado exige itemId) — em criação, o card fica desabilitado até o
+  // primeiro "Adicionar item ao catálogo".
+  const [descricao, setDescricao] = useState('')
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [fotoEnviando, setFotoEnviando] = useState(false)
+  const [fotoErro, setFotoErro] = useState<string | null>(null)
+
+  const [nomeErro, setNomeErro] = useState<string | null>(null)
+  const [componentesErro, setComponentesErro] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [calculandoPreview, setCalculandoPreview] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const { toast, setToast } = useToast()
-
-  const produtoBloqueadoRef = useRef<string | null>(null)
 
   // Contexto: catálogo (fixo via query param, ou lista para escolher) + produto pré-selecionado
   useEffect(() => {
@@ -198,15 +323,16 @@ export default function NovoItemCatalogoPage() {
       )
     }
 
+    tarefas.push(
+      empresaService.getConfiguracao()
+        .then(cfg => { setMargemPadrao(cfg.margemPadrao ?? 0); if (!itemIdParam) setMargem((cfg.margemPadrao ?? 0).toString()) })
+        .catch(() => {})
+    )
+
     if (produtoIdParam) {
       tarefas.push(
         produtoService.buscarPorId(produtoIdParam)
-          .then(p => setProduto({
-            id: p.id, nome: p.nome, precoCusto: p.precoCusto, ativo: p.ativo,
-            algumInsumoNaoFracionavel: p.algumInsumoNaoFracionavel ?? false,
-            permitirEstoqueNegativo: p.permitirEstoqueNegativo,
-            estoqueAtual: p.estoqueAtual,
-          }))
+          .then(p => setComponentes([{ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: p.tipo === 'CUSTOMIZACAO' ? 'customizacao' : 'produto', fracionavel: p.fracionavel ?? true, qtd: 1 }]))
           .catch(() => setErro('Não foi possível carregar o produto informado.'))
       )
     }
@@ -218,26 +344,33 @@ export default function NovoItemCatalogoPage() {
             const item = itens.find(i => i.id === itemIdParam)
             if (!item) { setErro('Item não encontrado neste catálogo.'); return }
 
-            const produtoDet = await produtoService.buscarPorId(item.produtoId)
-            setProduto({
-              id: produtoDet.id, nome: produtoDet.nome, precoCusto: produtoDet.precoCusto, ativo: produtoDet.ativo,
-              algumInsumoNaoFracionavel: produtoDet.algumInsumoNaoFracionavel ?? false,
-              permitirEstoqueNegativo: produtoDet.permitirEstoqueNegativo,
-              estoqueAtual: produtoDet.estoqueAtual,
-            })
-            setQuantidade(item.quantidadePacote.toString())
+            setNome(item.nome)
             setItemId(item.id)
+            setDescricao(item.descricao ?? '')
+            setFotoUrl(item.fotoUrl)
+            setTempoProducao(item.tempoProducao.toString())
+            setMargem((item.margemLucro ?? 0).toString())
+            setModoMargem('personalizar')
             setPrecoSugerido(item.precoSugerido)
             setPrecoEditadoManualmente(item.override)
             setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
-            if (item.customizacoesAnexadas.length > 0) {
-              const custs = await Promise.all(item.customizacoesAnexadas.map(async c => {
-                const p = await produtoService.buscarPorId(c.produtoId)
-                return { id: c.produtoId, nome: c.produtoNome, valor: p.precoVenda ?? 0, qtd: c.quantidade }
-              }))
-              setCustomizacoes(custs)
-            }
+            // ItemCatalogoComponenteResponse não expõe `fracionável` do componente (achado desta
+            // tarefa, registrado em decisoes-catalogo.md) — busca detalhe por componente só para
+            // restringir corretamente o QtyInput na edição (mesmo custo/quantidade já vêm prontos).
+            const linhas = await Promise.all(item.componentes.map(async (c): Promise<ComponenteLinha> => {
+              if (c.insumoId) {
+                const detalhe = await insumoService.buscarPorId(c.insumoId).catch(() => null)
+                return { id: c.insumoId, nome: c.nomeInsumo ?? '', marca: '', un: detalhe?.unidadeMedida || 'un', custo: c.custoUnitario, tipo: 'insumo', fracionavel: detalhe?.fracionavel ?? true, qtd: c.quantidade }
+              }
+              const detalhe = await produtoService.buscarPorId(c.produtoBaseId!).catch(() => null)
+              return {
+                id: c.produtoBaseId!, nome: c.nomeProdutoBase ?? '', marca: '', un: 'un', custo: c.custoUnitario,
+                tipo: c.tipoProdutoBase === 'CUSTOMIZACAO' ? 'customizacao' : 'produto',
+                fracionavel: detalhe?.fracionavel ?? true, qtd: c.quantidade,
+              }
+            }))
+            setComponentes(linhas)
           })
           .catch(() => setErro('Não foi possível carregar o item do catálogo.'))
       )
@@ -247,65 +380,54 @@ export default function NovoItemCatalogoPage() {
   }, [catalogoIdParam, produtoIdParam, itemIdParam])
 
   useEffect(() => {
-    const qtd = parseInt(quantidade, 10)
-    if (quantidade.trim() !== '' && (!Number.isFinite(qtd) || qtd < 1)) {
-      setQuantidadeErro('A quantidade do pacote deve ser um número inteiro maior ou igual a 1.')
-    } else {
-      setQuantidadeErro(null)
-    }
-  }, [quantidade])
+    if (componentes.length > 0) setComponentesErro(null)
+  }, [componentes])
+
+  const buildComponentesRequest = useCallback((): ItemCatalogoComponenteRequest[] =>
+    componentes.map(c => ({
+      insumoId: c.tipo === 'insumo' ? c.id : undefined,
+      produtoBaseId: c.tipo === 'produto' || c.tipo === 'customizacao' ? c.id : undefined,
+      quantidade: c.qtd,
+    })), [componentes])
 
   const buildRequest = useCallback((): ItemCatalogoRequest | null => {
-    if (!produto) return null
-    const qtd = parseInt(quantidade, 10)
-    if (!Number.isFinite(qtd) || qtd < 1) return null
+    if (!nome.trim() || componentes.length === 0) return null
     return {
-      produtoId: produto.id,
-      quantidadePacote: qtd,
+      nome: nome.trim(),
+      componentes: buildComponentesRequest(),
+      tempoProducao: Math.round(num(tempoProducao)) || 0,
+      margemLucro: num(margem),
       precoVenda: precoEditadoManualmente && precoVenda ? num(precoVenda) : undefined,
-      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.id, quantidade: c.qtd })),
+      descricao: descricao.trim() || undefined,
     }
-  }, [produto, quantidade, precoVenda, precoEditadoManualmente, customizacoes])
+  }, [nome, componentes, tempoProducao, margem, precoVenda, precoEditadoManualmente, descricao, buildComponentesRequest])
 
-  // RN-NOVA-8 — só simula (POST /itens/preview-preco), nunca cria/edita o ItemCatalogo real.
-  // Único ponto que persiste é `salvar()`, mais abaixo.
+  // Só simula (POST /itens/preview-preco), nunca cria/edita o ItemCatalogo real — mesmo padrão
+  // já usado por esta tela antes da reforma (RN-NOVA-8).
   const atualizarPreview = useCallback(async () => {
-    if (!catalogoId || !produto) return
-    const qtd = parseInt(quantidade, 10)
-    if (!Number.isFinite(qtd) || qtd < 1) return
+    if (!catalogoId || componentes.length === 0) return
 
     const request: PreviewPrecoRequest = {
-      produtoId: produto.id,
-      quantidadePacote: qtd,
-      customizacoesAnexadas: customizacoes.map(c => ({ produtoId: c.id, quantidade: c.qtd })),
+      componentes: buildComponentesRequest(),
+      tempoProducao: Math.round(num(tempoProducao)) || 0,
+      margemLucro: num(margem),
     }
-    if (produtoBloqueadoRef.current === request.produtoId) return
 
     setCalculandoPreview(true)
     try {
       const resp = await itemCatalogoService.previewPreco(catalogoId, request)
       setPrecoSugerido(resp.precoSugerido)
       setPreviewDetalhe(resp)
-      // Sem override ativo, o preço de venda acompanha o sugerido ao vivo; com override,
-      // o valor digitado pela usuária é preservado (preview não devolve precoVenda/override).
       if (!precoEditadoManualmente) {
         setPrecoVenda(resp.precoSugerido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
       }
-      setProdutoErro(null)
       setErro(null)
     } catch (err: any) {
-      const msg = extractApiError(err, 'Não foi possível calcular o preço sugerido. Tente novamente.')
-      if (/custo calculado/i.test(msg)) {
-        produtoBloqueadoRef.current = request.produtoId
-        setProdutoErro(msg)
-        setToast(msg)
-      } else {
-        setErro(msg)
-      }
+      setErro(extractApiError(err, 'Não foi possível calcular o preço sugerido. Tente novamente.'))
     } finally {
       setCalculandoPreview(false)
     }
-  }, [catalogoId, produto, quantidade, customizacoes, precoEditadoManualmente, setToast])
+  }, [catalogoId, componentes, tempoProducao, margem, precoEditadoManualmente, buildComponentesRequest])
 
   useEffect(() => {
     if (loadingContexto) return
@@ -313,44 +435,70 @@ export default function NovoItemCatalogoPage() {
     return () => clearTimeout(t)
   }, [loadingContexto, atualizarPreview])
 
-  const toggleCustomizacao = (c: { id: string; nome: string; valor: number }) => {
-    setCustomizacoes(cs => cs.find(x => x.id === c.id) ? cs.filter(x => x.id !== c.id) : [...cs, { ...c, qtd: 1 }])
-  }
-  const setCustomizacaoQtd = (id: string, qtd: number) => {
-    setCustomizacoes(cs => cs.map(c => c.id === id ? { ...c, qtd: Math.max(1, qtd) } : c))
-  }
+  const addComponente = (c: Omit<ComponenteLinha, 'qtd'>) => setComponentes(cs => [...cs, { ...c, qtd: 1 }])
+  const removeComponente = (id: string) => setComponentes(cs => cs.filter(c => c.id !== id))
+  const setComponenteQtd = (id: string, v: string) => setComponentes(cs => cs.map(c => c.id === id ? { ...c, qtd: num(v) } : c))
 
-  // RN-NOVA-8 — preview nunca persiste nada, então não há mais o que desfazer aqui.
   const cancelar = () => {
     navigate(catalogoId ? `/catalogos/${catalogoId}` : '/catalogos')
   }
 
+  const handleFotoSelecionada = async (arquivo: File | undefined) => {
+    if (!arquivo || !catalogoId || !itemId) return
+    setFotoErro(null)
+    setFotoEnviando(true)
+    try {
+      const atualizado = await itemCatalogoService.uploadFoto(catalogoId, itemId, arquivo)
+      setFotoUrl(atualizado.fotoUrl)
+    } catch (err: any) {
+      setFotoErro(extractApiError(err, 'Não foi possível enviar a foto. Tente novamente.'))
+    } finally {
+      setFotoEnviando(false)
+    }
+  }
+
+  const handleRemoverFoto = async () => {
+    if (!catalogoId || !itemId) return
+    setFotoErro(null)
+    setFotoEnviando(true)
+    try {
+      const atualizado = await itemCatalogoService.removerFoto(catalogoId, itemId)
+      setFotoUrl(atualizado.fotoUrl)
+    } catch (err: any) {
+      setFotoErro(extractApiError(err, 'Não foi possível remover a foto. Tente novamente.'))
+    } finally {
+      setFotoEnviando(false)
+    }
+  }
+
   const salvar = async () => {
     setErro(null)
+    setNomeErro(null)
+    setComponentesErro(null)
     if (!catalogoId) { setErro('Selecione um catálogo.'); return }
-    if (!produto) { setErro('Selecione um produto.'); return }
+    if (!nome.trim()) { setNomeErro('Informe o nome do item.'); return }
+    if (componentes.length === 0) { setComponentesErro('Adicione ao menos um componente.'); return }
     const request = buildRequest()
-    if (!request) {
-      setQuantidadeErro('A quantidade do pacote deve ser um número inteiro maior ou igual a 1.')
-      return
-    }
+    if (!request) return
 
     setSalvando(true)
     try {
       if (itemId) {
         await itemCatalogoService.editar(catalogoId, itemId, request)
+        navigate(`/catalogos/${catalogoId}`)
       } else {
-        await itemCatalogoService.adicionar(catalogoId, request)
+        const criado = await itemCatalogoService.adicionar(catalogoId, request)
+        // Fica na mesma tela, agora em modo edição do item recém-criado — upload de foto
+        // (RN-NOVA-6) exige itemId e só faria sentido depois de um 2º acesso via listagem.
+        setToast('Item adicionado. Agora você pode adicionar uma foto, se quiser.')
+        navigate(`/catalogos/itens/novo?catalogoId=${catalogoId}&itemId=${criado.id}`, { replace: true })
       }
-      navigate(`/catalogos/${catalogoId}`)
     } catch (err: any) {
       const msg = extractApiError(err, 'Erro ao salvar item do catálogo.')
       if (/custo calculado/i.test(msg)) {
-        produtoBloqueadoRef.current = request.produtoId
-        setProdutoErro(msg)
-      } else {
-        setErro(msg)
+        setToast(msg)
       }
+      setErro(msg)
     } finally {
       setSalvando(false)
     }
@@ -367,8 +515,7 @@ export default function NovoItemCatalogoPage() {
     )
   }
 
-  const podeSalvar = !!produto && !!catalogoId && !quantidadeErro && !produtoErro
-  // Derivado localmente — o preview não devolve um flag de override (ver `atualizarPreview`).
+  const podeSalvar = !!nome.trim() && componentes.length > 0 && !!catalogoId
   const overrideAtivo = precoEditadoManualmente && precoSugerido != null && Math.abs(num(precoVenda) - precoSugerido) > 0.001
   const diffOverride = overrideAtivo && precoSugerido != null ? num(precoVenda) - precoSugerido : null
 
@@ -434,66 +581,133 @@ export default function NovoItemCatalogoPage() {
             )}
           </div>
 
-          {/* Produto */}
+          {/* Nome do item */}
           <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <Field label="Produto" required size="md">
-              {produto ? (
-                <div className="flex items-center justify-between gap-2.5 rounded-input border-[1.5px] border-line bg-cream px-3.5 py-[11px]">
-                  <div className="min-w-0">
-                    <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{produto.nome}</div>
-                    <div className="text-xs text-muted">{moeda(produto.precoCusto)} de custo</div>
-                    <EstoqueTags
-                      className="mt-1.5"
-                      fracionavel={!produto.algumInsumoNaoFracionavel}
-                      permitirEstoqueNegativo={produto.permitirEstoqueNegativo}
-                      estoqueAtual={produto.estoqueAtual}
-                      variant="busca"
-                    />
+            <Field label="Nome do item" required size="md">
+              <input
+                value={nome}
+                onChange={e => setNome(e.target.value)}
+                placeholder="Ex: Kit Presente Dia das Mães"
+                className={inputClass(!!nomeErro)}
+              />
+              {nomeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{nomeErro}</span>}
+            </Field>
+          </div>
+
+          {/* Tempo de produção */}
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <Field label="Tempo de produção" required size="md">
+              <div className="relative max-w-[200px]">
+                <input
+                  value={tempoProducao}
+                  onChange={e => setTempoProducao(e.target.value.replace(/[^\d]/g, ''))}
+                  inputMode="numeric"
+                  placeholder="15"
+                  className={clsx(inputClass(), 'pr-16')}
+                />
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">minutos</span>
+              </div>
+              <span className="mt-1.5 block text-xs text-muted">Tempo para produzir este item, além dos componentes.</span>
+            </Field>
+          </div>
+
+          {/* Componentes — composição livre de N insumos/produtos/customizações (RN-NOVA-1) */}
+          <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="px-[22px] pb-4 pt-5">
+              <div className="mb-3.5 flex items-center gap-[9px]">
+                <Layers size={18} className="text-teal" />
+                <h3 className="m-0 whitespace-nowrap text-[15.5px] font-bold text-dark">Componentes do item</h3>
+                <span className="text-xs font-medium text-muted">obrigatório, ao menos 1</span>
+              </div>
+              <ComponenteSearch onAdd={addComponente} jaAdicionados={componentes.map(c => c.id)} />
+              {componentesErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{componentesErro}</span>}
+            </div>
+            <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
+              <span>Componente</span><span>Quantidade</span><span className="text-right">Custo</span><span></span>
+            </div>
+            {componentes.length === 0 ? (
+              <div className="border-t border-line px-[22px] py-[34px] text-center text-[13.5px] text-muted">
+                Nenhum componente ainda. Use a busca acima para adicionar.
+              </div>
+            ) : componentes.map((row) => (
+              <div key={row.id} className="grid animate-row-in grid-cols-[1fr_132px_96px_44px] items-center gap-3 border-t border-line px-[22px] py-[13px]">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-[7px]">
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{row.nome}</span>
+                    <TipoBadge tipo={row.tipo} />
+                    <FracionavelBadge fracionavel={row.fracionavel} variant="busca" />
                   </div>
+                  <div className="text-xs text-muted">{moeda(row.custo)}/{row.un}</div>
+                </div>
+                <QtyInput value={row.qtd} un={row.un} fracionavel={row.fracionavel} onChange={v => setComponenteQtd(row.id, v)} />
+                <div className="text-right text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(row.qtd * row.custo)}</div>
+                <button
+                  onClick={() => removeComponente(row.id)}
+                  aria-label="Remover componente"
+                  className="grid h-[34px] w-[34px] place-items-center justify-self-end rounded-[9px] border-none bg-transparent text-[#BDB9B1] hover:bg-danger-bg hover:text-danger-deep"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Foto e descrição — RN-NOVA-6/7 (#518), ambos opcionais */}
+          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="mb-3.5 flex items-center gap-[9px]">
+              <ImagePlus size={18} className="text-teal" />
+              <h3 className="m-0 text-[15.5px] font-bold text-dark">Foto e descrição</h3>
+              <span className="text-xs font-medium text-muted">opcional</span>
+            </div>
+
+            <div className="grid grid-cols-[140px_1fr] gap-5 max-[560px]:grid-cols-1">
+              {!itemId ? (
+                <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted max-[560px]:w-full">
+                  Salve o item para adicionar uma foto
+                </div>
+              ) : fotoUrl ? (
+                <div className="relative h-[110px] w-[140px] max-[560px]:w-full">
+                  <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
                   <button
-                    onClick={() => { setProduto(null); produtoBloqueadoRef.current = null; setProdutoErro(null) }}
-                    aria-label="Trocar produto"
-                    className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg border-none bg-transparent text-[#BDB9B1]"
+                    onClick={handleRemoverFoto}
+                    disabled={fotoEnviando}
+                    aria-label="Remover foto"
+                    className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-line bg-white text-dim shadow-[0_2px_6px_rgba(0,0,0,0.15)] hover:text-danger-deep"
                   >
-                    <X size={15} />
+                    <X size={14} />
                   </button>
                 </div>
               ) : (
-                <ProdutoSearch tipo="PRODUTO" placeholder="Buscar produto..." jaAdicionados={SEM_EXCLUSOES} onSelect={p => { setProduto(p); produtoBloqueadoRef.current = null; setProdutoErro(null) }} />
+                <label className={clsx(
+                  'grid h-[110px] w-[140px] cursor-pointer place-items-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line bg-cream text-center text-[11.5px] font-semibold text-teal transition-colors duration-150 hover:border-teal max-[560px]:w-full',
+                  fotoEnviando && 'pointer-events-none opacity-60'
+                )}>
+                  {fotoEnviando
+                    ? <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
+                    : <><ImagePlus size={20} /> Adicionar foto</>
+                  }
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    className="hidden"
+                    onChange={e => { handleFotoSelecionada(e.target.files?.[0]); e.target.value = '' }}
+                  />
+                </label>
               )}
-              {produtoErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{produtoErro}</span>}
-            </Field>
-          </div>
 
-          {/* Quantidade do pacote */}
-          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <Field label="Quantidade do pacote" required hint="Quantas unidades do produto compõem este item do catálogo." size="md">
-              <div className="relative max-w-[160px]">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
-                  <Box size={16} />
-                </span>
-                <input
-                  value={quantidade}
-                  onChange={e => setQuantidade(e.target.value.replace(/[^\d]/g, ''))}
-                  inputMode="numeric"
-                  placeholder="1"
-                  className={clsx(inputClass(!!quantidadeErro), 'pl-10')}
+              <Field label="Descrição" size="md">
+                <textarea
+                  value={descricao}
+                  onChange={e => setDescricao(e.target.value.slice(0, 150))}
+                  maxLength={150}
+                  rows={3}
+                  placeholder="Aparece também no PDF do catálogo"
+                  className="w-full resize-none rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
                 />
-              </div>
-              {quantidadeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{quantidadeErro}</span>}
-            </Field>
-          </div>
-
-          {/* Customizações anexadas — núcleo compartilhado com Orçamento/Caixa (#502, V0.12.0),
-              embutido direto na página, sem embrulho de modal (única entre os 3 consumidores). */}
-          <div className="rounded-card border border-[#F0EEE9] bg-white px-6 pb-5 pt-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <div className="mb-1 flex items-center gap-[9px]">
-              <SlidersHorizontal size={16} className="text-orange" />
-              <h3 className="m-0 text-[15.5px] font-bold text-dark">Customizações anexadas</h3>
-              <span className="text-xs font-medium text-muted">(opcional)</span>
+                <span className="mt-1 block text-right text-[11px] text-dim">{descricao.length}/150</span>
+              </Field>
             </div>
-            <p className="mb-3.5 mt-0 text-[12.5px] text-muted">Extras opcionais que somam ao custo e ao preço sugerido deste item.</p>
-            <CustomizacaoSeletor selecionadas={customizacoes} onToggle={toggleCustomizacao} onQtd={setCustomizacaoQtd} />
+            {fotoErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{fotoErro}</span>}
           </div>
 
           {/* AÇÕES */}
@@ -524,21 +738,51 @@ export default function NovoItemCatalogoPage() {
             onPrecoFinalChange={v => { setPrecoVenda(v); setPrecoEditadoManualmente(true) }}
             overrideAtivo={overrideAtivo}
             diffOverride={diffOverride}
-            disabledInput={!produto}
+            disabledInput={componentes.length === 0}
           >
             {previewDetalhe && (
               <>
-                <LinhaCalculadora
-                  label={`Produto${produto ? ` (${produto.nome})` : ''} × ${previewDetalhe.quantidadePacote}`}
-                  value={moeda(previewDetalhe.precoVendaProduto * previewDetalhe.quantidadePacote)}
-                  sub={`${previewDetalhe.quantidadePacote}× ${moeda(previewDetalhe.precoVendaProduto)}`}
-                />
-                {previewDetalhe.precoVendaCustomizacoes > 0 && (
-                  <LinhaCalculadora label="Customizações anexadas" value={moeda(previewDetalhe.precoVendaCustomizacoes)} />
-                )}
+                <LinhaCalculadora label="Custo dos componentes" value={moeda(previewDetalhe.custoComponentes)} />
+                <LinhaCalculadora label="Mão de obra" value={moeda(previewDetalhe.custoMaoDeObra)} sub={`${num(tempoProducao)} min`} />
                 <div className="my-1 h-px bg-line" />
+                <div className="flex items-baseline justify-between gap-2.5 py-2.5">
+                  <span className="whitespace-nowrap text-[13.5px] font-semibold text-dark">Custo total</span>
+                  <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(previewDetalhe.custoTotal)}</span>
+                </div>
               </>
             )}
+
+            <div className="mt-2 rounded-xl border border-line bg-cream p-3.5">
+              <div className={clsx('flex gap-[3px] rounded-[9px] bg-line-soft p-[3px]', modoMargem === 'personalizar' ? 'mb-3' : 'mb-0')}>
+                {([['padrao', `Margem padrão (${margemPadrao ?? 0}%)`], ['personalizar', 'Personalizar']] as [typeof modoMargem, string][]).map(([v, l]) => {
+                  const on = modoMargem === v
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => { setModoMargem(v); if (v === 'padrao') setMargem((margemPadrao ?? 0).toString()) }}
+                      className={clsx(
+                        'h-[34px] flex-1 whitespace-nowrap rounded-[7px] border-none font-[inherit] text-xs font-semibold',
+                        on ? 'bg-white text-dark shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-dim'
+                      )}
+                    >{l}</button>
+                  )
+                })}
+              </div>
+              {modoMargem === 'personalizar' && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-semibold text-body">Margem de lucro</span>
+                  <div className="relative w-[92px]">
+                    <input
+                      value={margem}
+                      onChange={e => setMargem(e.target.value.replace(/[^\d]/g, ''))}
+                      inputMode="numeric"
+                      className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-dim">%</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </CalculadoraPreco>
         </div>
 

@@ -26,4 +26,19 @@ export const itemCatalogoService = {
   remover: async (catalogoId: string, itemId: string): Promise<void> => {
     await api.delete(`/catalogos/${catalogoId}/itens/${itemId}`)
   },
+
+  /** RN-NOVA-6/DT-NOVA-4 — Backend valida formato/tamanho antes de subir pro R2. */
+  uploadFoto: async (catalogoId: string, itemId: string, arquivo: File): Promise<ItemCatalogoResponse> => {
+    const formData = new FormData()
+    formData.append('arquivo', arquivo)
+    const response = await api.post(`/catalogos/${catalogoId}/itens/${itemId}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  removerFoto: async (catalogoId: string, itemId: string): Promise<ItemCatalogoResponse> => {
+    const response = await api.delete(`/catalogos/${catalogoId}/itens/${itemId}/foto`)
+    return response.data
+  },
 }

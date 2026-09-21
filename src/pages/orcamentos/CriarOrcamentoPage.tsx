@@ -58,10 +58,11 @@ interface Item {
   catalogoNome?: string
   algumInsumoNaoFracionavel: boolean
   permitirEstoqueNegativo: boolean
-  estoqueAtual: number
+  // V0.13.0 — null para item de origem Catálogo: com N componentes, deixou de existir um único
+  // "estoque atual" para o item (achado, ver decisoes-orcamento.md/decisoes-catalogo.md).
+  estoqueAtual: number | null
   // RN-NOVA-7 (V0.10.0, #461, reversão de RN-NOVA-6) — undefined quando a origem do item não
-  // expõe o dado (item de catálogo, ItemCatalogoBuscaResponse ainda sem esse campo no contrato —
-  // achado, ver decisoes-orcamento.md); badge só aparece quando o valor é conhecido de verdade.
+  // expõe o dado; badge só aparece quando o valor é conhecido de verdade.
   fracionavel?: boolean
 }
 
@@ -549,7 +550,7 @@ export default function CriarOrcamentoPage() {
           qtd: it.quantidade,
           preco: it.precoUnitario,
           customs: it.customizacoes.map(c => ({ id: c.produtoId, nome: c.nomeProduto, valor: c.precoUnitario, qtd: c.quantidade })),
-          produtoId: it.produtoId,
+          produtoId: it.produtoId ?? undefined,
           itemCatalogoId: it.itemCatalogoId,
           catalogoNome: it.catalogoNome,
           algumInsumoNaoFracionavel: it.algumInsumoNaoFracionavel,
@@ -1073,18 +1074,18 @@ export default function CriarOrcamentoPage() {
               const item = calculadoraPendente.item
               setItems(arr => [...arr, {
                 id: Date.now(),
-                nome: item.nomeProduto,
+                nome: item.nome,
                 qtd: 1,
                 preco: precoFinal,
                 customs: [],
                 itemCatalogoId: item.id,
-                produtoId: item.produtoId,
                 catalogoNome: item.catalogoNome,
-                algumInsumoNaoFracionavel: item.algumInsumoNaoFracionavel,
-                permitirEstoqueNegativo: item.permitirEstoqueNegativo,
-                estoqueAtual: item.estoqueAtual,
-                // #461/#473 — ItemCatalogoBuscaResponse agora expõe fracionavel (gap fechado).
-                fracionavel: item.fracionavel ?? undefined,
+                // V0.13.0 — sem estoque/fracionável agregado na busca (N componentes, cada um com
+                // o seu); achado registrado em decisoes-catalogo.md.
+                algumInsumoNaoFracionavel: item.algumComponenteNaoFracionavel,
+                permitirEstoqueNegativo: true,
+                estoqueAtual: null,
+                fracionavel: item.algumComponenteNaoFracionavel ? false : undefined,
               }])
             }
             setCalculadoraPendente(null)

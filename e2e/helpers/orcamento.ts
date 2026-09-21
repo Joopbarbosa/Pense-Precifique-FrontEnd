@@ -137,9 +137,15 @@ export async function criarOrcamentoComNumeroDeDoisDigitos(
 }
 
 /**
- * RN-NOVA-6/RN-NOVA-7 (#217) — cria um catálogo ativo com N itens (1 produto cada), todos
- * disponíveis para a busca de `ItemSearch` (`GET /orcamentos/itens-catalogo`). `nomesProdutos`
- * define a quantidade e o nome de cada item.
+ * RN-NOVA-6/RN-NOVA-7 (#217) — cria um catálogo ativo com N itens (1 componente Produto cada),
+ * todos disponíveis para a busca de `ItemSearch` (`GET /orcamentos/itens-catalogo`).
+ * `nomesProdutos` define a quantidade e o nome de cada item — o nome do item de catálogo é o
+ * mesmo nome (V0.13.0/#516: `nome` é campo próprio do item, não mais herdado do produto).
+ *
+ * V0.13.0 (#516) — Item de Catálogo deixou de ser `{ produtoId, quantidadePacote }` e passou a
+ * ser composição livre (`componentes: [{ produtoBaseId, quantidade }]`); Produto-base como
+ * componente exige custo calculado (RN-044), por isso cada produto ganha ficha técnica com 1
+ * insumo (não mais `fichaTecnica: []`), diferente do padrão antigo que não precisava de custo.
  */
 export async function criarCatalogoComItens(
   request: APIRequestContext,
@@ -156,12 +162,27 @@ export async function criarCatalogoComItens(
   }
   const catalogo = await resCatalogo.json()
 
+  const resInsumo = await request.post(`${API_URL}/insumos`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      nome: `QA-insumo-base-${nomeCatalogo}`,
+      unidadeMedida: 'unidade',
+      fracionavel: false,
+      precoTotalCompraInicial: 10,
+      quantidadeCompradaInicial: 10,
+    },
+  })
+  if (!resInsumo.ok()) {
+    throw new Error(`Falha ao criar insumo de teste: ${resInsumo.status()} ${await resInsumo.text()}`)
+  }
+  const insumo = await resInsumo.json()
+
   const itens: Array<{ id: string; [k: string]: unknown }> = []
   const produtoIds: string[] = []
   for (const nomeProduto of nomesProdutos) {
     const resProduto = await request.post(`${API_URL}/produtos`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { nome: nomeProduto, tipo: 'PRODUTO', tempoProducao: 10, fichaTecnica: [] },
+      data: { nome: nomeProduto, tipo: 'PRODUTO', tempoProducao: 10, rendimento: 1, fichaTecnica: [{ insumoId: insumo.id, quantidade: 1 }] },
     })
     if (!resProduto.ok()) {
       throw new Error(`Falha ao criar produto de teste: ${resProduto.status()} ${await resProduto.text()}`)
@@ -171,7 +192,12 @@ export async function criarCatalogoComItens(
 
     const resItem = await request.post(`${API_URL}/catalogos/${catalogo.id}/itens`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { produtoId: produto.id, quantidadePacote: 1, precoVenda: 10 },
+      data: {
+        nome: nomeProduto,
+        tempoProducao: 10,
+        componentes: [{ produtoBaseId: produto.id, quantidade: 1 }],
+        precoVenda: 10,
+      },
     })
     if (!resItem.ok()) {
       throw new Error(`Falha ao criar item de catálogo de teste: ${resItem.status()} ${await resItem.text()}`)

@@ -30,7 +30,10 @@ export interface LinhaVendaView {
   itemCatalogoId?: string
   catalogoNome?: string
   permitirEstoqueNegativo: boolean
-  estoqueAtual: number
+  /** V0.13.0 — `null` para item de origem Catálogo: com N componentes (cada um com seu próprio
+   *  estoque), deixou de existir um único "estoque atual" para o item — o badge de estoque só
+   *  aparece com valor conhecido (ver ItemLinha). */
+  estoqueAtual: number | null
   /** `undefined` quando a origem não expõe o dado — o badge só aparece com valor conhecido. */
   fracionavel?: boolean
 }

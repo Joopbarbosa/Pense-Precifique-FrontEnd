@@ -1,6 +1,7 @@
 import api from './api'
 import type { CatalogoRequest, CatalogoResponse } from '../types/catalogo'
 import type { PageResponse } from '../types/shared'
+import { normalizarErroBlob } from '../utils/apiError'
 
 export interface CatalogoListarParams {
   busca?: string
@@ -43,5 +44,15 @@ export const catalogoService = {
   reativar: async (id: string): Promise<CatalogoResponse> => {
     const response = await api.post(`/catalogos/${id}/reativar`)
     return response.data
+  },
+
+  /** RN-NOVA-8 — bloqueia (400) se o catálogo estiver inativo. */
+  baixarPdf: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/catalogos/${id}/pdf`, { responseType: 'blob' })
+      return response.data
+    } catch (err) {
+      throw await normalizarErroBlob(err)
+    }
   },
 }

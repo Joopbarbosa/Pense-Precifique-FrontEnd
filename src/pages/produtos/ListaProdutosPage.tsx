@@ -17,7 +17,8 @@ import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
-import type { ProdutoResponse, ProdutoContagensResponse, ComponenteVinculadoResponse, AcaoResolucaoVinculo, TipoVinculoProduto, ResolverVinculosProdutoRequest } from '../../types/produto'
+import type { ProdutoResponse, ProdutoContagensResponse, ComponenteVinculadoResponse, AcaoResolucaoVinculo, ResolverVinculosProdutoRequest } from '../../types/produto'
+import type { TipoProduto } from '../../types/index'
 
 const CATS = ['Todos', 'Produto', 'Customização', 'Inativos']
 
@@ -54,15 +55,18 @@ const contagemPorCategoria = (contadores: ProdutoContagensResponse | null, c: st
 const BRL = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+// V0.13.0 (DT-NOVA-1) — ITEM_CATALOGO_PRINCIPAL/CUSTOMIZACAO_ANEXADA foram unificados em
+// ITEM_CATALOGO_COMPONENTE (ver types/produto.ts); `tipoProdutoBase` (só de exibição/filtro do
+// substituto, nunca enviado ao Backend) substitui a antiga distinção de `tipo`.
 interface VinculoCatalogoUI {
   vinculoId: string
-  tipo: Extract<TipoVinculoProduto, 'ITEM_CATALOGO_PRINCIPAL' | 'CUSTOMIZACAO_ANEXADA'>
+  tipoProdutoBase: TipoProduto
   catalogoNome: string
   catalogoIdentificador: string
 }
 
-/** #237 — catalogosVinculados só traz o catálogo (união item principal + customização); o vinculoId
- * por item vem de itemCatalogoService.listar (mesmo endpoint que DetalheCatalogoPage já usa). */
+/** #237 — catalogosVinculados só traz o catálogo; o vinculoId por componente (ItemCatalogoComponente.id)
+ * vem de itemCatalogoService.listar (mesmo endpoint que DetalheCatalogoPage já usa). */
 async function carregarVinculosCatalogo(produtoId: string): Promise<VinculoCatalogoUI[]> {
   const catalogos = await produtoService.catalogosVinculados(produtoId)
   const listas = await Promise.all(
@@ -71,19 +75,11 @@ async function carregarVinculosCatalogo(produtoId: string): Promise<VinculoCatal
   const vinculos: VinculoCatalogoUI[] = []
   for (const { catalogo, itens } of listas) {
     for (const item of itens) {
-      if (item.produtoId === produtoId) {
-        vinculos.push({
-          vinculoId: item.id,
-          tipo: 'ITEM_CATALOGO_PRINCIPAL',
-          catalogoNome: catalogo.nome,
-          catalogoIdentificador: catalogo.identificador,
-        })
-      }
-      for (const cz of item.customizacoesAnexadas) {
-        if (cz.produtoId === produtoId) {
+      for (const comp of item.componentes) {
+        if (comp.produtoBaseId === produtoId) {
           vinculos.push({
-            vinculoId: cz.id,
-            tipo: 'CUSTOMIZACAO_ANEXADA',
+            vinculoId: comp.id,
+            tipoProdutoBase: comp.tipoProdutoBase ?? 'PRODUTO',
             catalogoNome: catalogo.nome,
             catalogoIdentificador: catalogo.identificador,
           })
@@ -390,7 +386,7 @@ function ProdutoResolverVinculosModal({ produto, operacao, catalogoVinculos, com
         request.catalogo = {
           acao: acaoCatalogo,
           substituicoes: acaoCatalogo === 'SUBSTITUIR'
-            ? catalogoVinculos.map(v => ({ tipo: v.tipo, vinculoId: v.vinculoId, novoProdutoId: substitutosCatalogo[v.vinculoId]!.id }))
+            ? catalogoVinculos.map(v => ({ tipo: 'ITEM_CATALOGO_COMPONENTE' as const, vinculoId: v.vinculoId, novoProdutoId: substitutosCatalogo[v.vinculoId]!.id }))
             : undefined,
         }
       }
@@ -459,15 +455,15 @@ function ProdutoResolverVinculosModal({ produto, operacao, catalogoVinculos, com
                 <ListaVinculosInformativa itens={catalogoVinculos.map(v => ({
                   key: v.vinculoId,
                   titulo: v.catalogoNome,
-                  subtitulo: v.tipo === 'ITEM_CATALOGO_PRINCIPAL' ? 'Item principal' : 'Customização anexada',
+                  subtitulo: 'Componente do item',
                 }))} />
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {catalogoVinculos.map(v => (
                     <SeletorProdutoSubstituto
                       key={v.vinculoId}
-                      label={`${v.catalogoNome} · ${v.tipo === 'ITEM_CATALOGO_PRINCIPAL' ? 'Item principal' : 'Customização anexada'}`}
-                      tipoFiltro={v.tipo === 'CUSTOMIZACAO_ANEXADA' ? 'CUSTOMIZACAO' : 'PRODUTO'}
+                      label={`${v.catalogoNome} · Componente do item`}
+                      tipoFiltro={v.tipoProdutoBase === 'CUSTOMIZACAO' ? 'CUSTOMIZACAO' : 'PRODUTO'}
                       produtoAtualId={produto.id}
                       selecionado={substitutosCatalogo[v.vinculoId] ?? null}
                       onSelect={p => setSubstitutosCatalogo(prev => ({ ...prev, [v.vinculoId]: p }))}
