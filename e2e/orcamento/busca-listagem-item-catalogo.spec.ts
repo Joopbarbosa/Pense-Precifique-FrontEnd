@@ -165,6 +165,14 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
       await expect(page.getByText(nome)).toBeAttached()
     }
 
+    // OpenProject #530 — ModalShell anima a entrada do dialog (`animate-scale-in`, 220ms,
+    // scale(0.94)→scale(1) com overshoot). `waitFor({ state: 'visible' })` só garante presença
+    // no DOM, não que a animação terminou — medir boundingBox() antes disso pega o container
+    // ainda em transição de tamanho, contagem de linhas "dentro do viewport" fica instável
+    // (achado ao verificar #529: 2 de 4 execuções contaram 7 em vez de 8). Espera folgada além
+    // dos 220ms da animação antes de qualquer medição de geometria abaixo.
+    await page.waitForTimeout(300)
+
     const listWrap = dialog.locator('.flex.flex-col.gap-2').first()
     const rows = listWrap.locator('> div')
     await expect(rows).toHaveCount(10)
