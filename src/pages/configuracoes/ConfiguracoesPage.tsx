@@ -111,10 +111,11 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
 
 /* ── PerfilCard ──────────────────────────────────────────────── */
 
-function PerfilCard({ nome, email, configurada, onEditarPerfil }: {
+function PerfilCard({ nome, email, configurada, logoUrl, onEditarPerfil }: {
   nome?: string
   email?: string
   configurada: boolean
+  logoUrl?: string
   onEditarPerfil: () => void
 }) {
   const dots: [string, string, number, string][] = [
@@ -134,7 +135,10 @@ function PerfilCard({ nome, email, configurada, onEditarPerfil }: {
       <div className="-mt-8 px-5 pb-5 text-center">
         <div className="mx-auto grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[0_4px_14px_-4px_rgba(0,0,0,0.2)]">
           <span className="grid h-full w-full place-items-center bg-cream">
-            <img src="/logo.png" width={42} height={42} alt="Logo" className="object-contain" />
+            {logoUrl
+              ? <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+              : <img src="/logo.png" width={42} height={42} alt="Logo" className="object-contain" />
+            }
           </span>
         </div>
         {configurada ? (
@@ -179,6 +183,7 @@ function Precificacao({
   empresaNome,
   empresaEmail,
   empresaConfigurada,
+  empresaLogoUrl,
   onEditarPerfil,
 }: {
   initialValorHora: number
@@ -188,6 +193,7 @@ function Precificacao({
   empresaNome?: string
   empresaEmail?: string
   empresaConfigurada: boolean
+  empresaLogoUrl?: string
   onEditarPerfil: () => void
 }) {
   const [hora, setHora] = useState(formatHora(initialValorHora))
@@ -286,7 +292,7 @@ function Precificacao({
         </div>
       </div>
 
-      <PerfilCard nome={empresaNome} email={empresaEmail} configurada={empresaConfigurada} onEditarPerfil={onEditarPerfil} />
+      <PerfilCard nome={empresaNome} email={empresaEmail} configurada={empresaConfigurada} logoUrl={empresaLogoUrl} onEditarPerfil={onEditarPerfil} />
       <Toast message={toast} />
     </div>
   )
@@ -425,6 +431,8 @@ function PerfilEmpresa({
   initialWhatsapp,
   initialEndereco,
   initialHorarios,
+  logoUrl,
+  onLogoChange,
   onSave,
   saving,
 }: {
@@ -433,6 +441,8 @@ function PerfilEmpresa({
   initialWhatsapp: string
   initialEndereco: string
   initialHorarios: HorarioFuncionamento[] | undefined
+  logoUrl?: string
+  onLogoChange: (logoUrl: string | undefined) => void
   onSave: (nome: string, email: string, whatsapp: string, endereco: string, horarios: HorarioFuncionamento[]) => Promise<void>
   saving: boolean
 }) {
@@ -441,7 +451,34 @@ function PerfilEmpresa({
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
   const [endereco, setEndereco] = useState(initialEndereco)
   const [horarios, setHorarios] = useState(() => horariosParaEstado(initialHorarios))
+  const [logoEnviando, setLogoEnviando] = useState(false)
   const { toast, setToast } = useToast()
+
+  // #532 (V0.14.0) — mesmo padrão de upload de foto do Item de Catálogo/Produto.
+  const handleLogoSelecionada = async (arquivo: File | undefined) => {
+    if (!arquivo) return
+    setLogoEnviando(true)
+    try {
+      const atualizado = await empresaService.uploadLogo(arquivo)
+      onLogoChange(atualizado.logoUrl)
+    } catch (err: any) {
+      setToast(extractApiError(err, 'Não foi possível enviar o logo. Tente novamente.'))
+    } finally {
+      setLogoEnviando(false)
+    }
+  }
+
+  const handleRemoverLogo = async () => {
+    setLogoEnviando(true)
+    try {
+      const atualizado = await empresaService.removerLogo()
+      onLogoChange(atualizado.logoUrl)
+    } catch (err: any) {
+      setToast(extractApiError(err, 'Não foi possível remover o logo. Tente novamente.'))
+    } finally {
+      setLogoEnviando(false)
+    }
+  }
 
   useEffect(() => {
     setNome(initialNome)
@@ -487,10 +524,31 @@ function PerfilEmpresa({
 
         <div className="mb-[22px] flex flex-wrap items-center gap-[18px] border-b border-line pb-[22px]">
           <span className="grid h-[84px] w-[84px] flex-shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-cream shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <img src="/logo.png" width={50} height={50} alt="Logo" className="object-contain" />
+            {logoUrl
+              ? <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+              : <img src="/logo.png" width={50} height={50} alt="Logo" className="object-contain" />
+            }
           </span>
           <div>
-            <Button variant="ghost">Alterar logo</Button>
+            <div className="flex items-center gap-2.5">
+              <label className={clsx(
+                'inline-flex h-[46px] cursor-pointer items-center justify-center whitespace-nowrap rounded-btn border-[1.5px] border-line bg-white px-5 font-[inherit] text-[14.5px] font-semibold text-body transition-colors duration-150 hover:bg-cream',
+                logoEnviando && 'pointer-events-none opacity-50'
+              )}>
+                {logoEnviando ? 'Enviando…' : 'Alterar logo'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={e => { handleLogoSelecionada(e.target.files?.[0]); e.target.value = '' }}
+                />
+              </label>
+              {logoUrl && (
+                <Button variant="ghost" disabled={logoEnviando} onClick={handleRemoverLogo}>
+                  Remover
+                </Button>
+              )}
+            </div>
             <p className="mt-[9px] text-[12.5px] leading-[1.5] text-dim">PNG ou JPG, fundo transparente recomendado.</p>
           </div>
         </div>
@@ -1003,6 +1061,7 @@ export default function ConfiguracoesPage() {
               empresaNome={empresa?.nome}
               empresaEmail={empresa?.email}
               empresaConfigurada={!!empresa}
+              empresaLogoUrl={empresa?.logoUrl}
               onEditarPerfil={() => setAba('perfil')}
             />
           )}
@@ -1013,6 +1072,8 @@ export default function ConfiguracoesPage() {
               initialWhatsapp={empresa?.whatsapp ?? ''}
               initialEndereco={empresa?.endereco ?? ''}
               initialHorarios={empresa?.horarios}
+              logoUrl={empresa?.logoUrl}
+              onLogoChange={logoUrl => setEmpresa(prev => prev ? { ...prev, logoUrl } : prev)}
               onSave={handleSavePerfil}
               saving={savingPerfil}
             />
