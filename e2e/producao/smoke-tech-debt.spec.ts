@@ -81,13 +81,13 @@ test.describe('Smoke tech debt — #127 (obs 30 chars) e #148 (motivo real)', ()
     for (const motivo of MOTIVOS_REAIS) {
       const ok = await request.post(`${PRODUTO_URL}/${produto.id}/baixa-manual`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { quantidade: 1, motivo, observacao: OBS_30 },
+        data: { tipo: 'SAIDA', quantidade: 1, motivo, observacao: OBS_30 },
       })
       expect(ok.status(), `produto/${motivo}/obs30`).toBe(201)
 
       const rejeitado = await request.post(`${PRODUTO_URL}/${produto.id}/baixa-manual`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { quantidade: 1, motivo, observacao: OBS_29 },
+        data: { tipo: 'SAIDA', quantidade: 1, motivo, observacao: OBS_29 },
       })
       expect(rejeitado.status(), `produto/${motivo}/obs29`).toBe(400)
     }
@@ -135,7 +135,8 @@ test.describe('Smoke tech debt — #127 (obs 30 chars) e #148 (motivo real)', ()
 
     await login(page)
     await page.goto(`/produtos/${produto.id}`)
-    await page.getByRole('button', { name: 'Baixa manual', exact: true }).click()
+    // #534 (V0.14.0) — botão renomeado para "Edição manual" (virou bidirecional, réplica de #514).
+    await page.getByRole('button', { name: 'Edição manual', exact: true }).click()
     await page.getByPlaceholder('1', { exact: true }).fill('1')
     // Trigger e opções do dropdown de motivo vivem dentro do mesmo <label> (DetalheProdutoPage.tsx:172-204)
     // — .first() pega o botão-gatilho (rótulo atual), nunca uma das opções da lista aberta.

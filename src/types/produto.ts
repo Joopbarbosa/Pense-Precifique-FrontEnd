@@ -98,6 +98,8 @@ export interface ProdutoDetalheResponse extends ProdutoResponse {
 }
 
 export interface BaixaManualProdutoRequest {
+  /** #534 (V0.14.0, réplica de #514) — "Edição manual" vira bidirecional. */
+  tipo: 'ENTRADA' | 'SAIDA'
   quantidade: number
   motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO'
   observacao: string

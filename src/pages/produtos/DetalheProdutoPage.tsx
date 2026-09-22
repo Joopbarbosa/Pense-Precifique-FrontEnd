@@ -5,6 +5,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
+import SegmentedControl from '../../components/ui/SegmentedControl'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import {
   Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
@@ -92,12 +93,16 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
 
 const HIST_COLS = 'grid-cols-[110px_1fr_88px_minmax(120px,180px)_1fr]'
 
-function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
+function EdicaoManualProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   produtoId: string
   nomeProduto: string
   onClose: () => void
   onSuccess: () => void
 }) {
+  // #534 (V0.14.0, réplica de #514) — "Baixa manual" virou "Edição manual", bidirecional
+  // (ENTRADA/SAIDA), mesmos motivos/observação. SAIDA continua o padrão — comportamento anterior
+  // preservado.
+  const [tipo, setTipo] = useState<BaixaManualProdutoRequest['tipo']>('SAIDA')
   const [qtd, setQtd] = useState('')
   const [motivo, setMotivo] = useState<BaixaManualProdutoRequest['motivo']>('PERDA')
   const [motivoLabel, setMotivoLabel] = useState('Perda')
@@ -106,6 +111,8 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const selRef = useRef<HTMLDivElement>(null)
+
+  const isSaida = tipo === 'SAIDA'
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -125,13 +132,14 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
     setSalvando(true)
     try {
       await produtoService.baixaManual(produtoId, {
+        tipo,
         quantidade: qtdNum,
         motivo,
         observacao: obs.trim(),
       })
       onSuccess()
     } catch (err: any) {
-      setErro(extractApiError(err, 'Erro ao registrar baixa.'))
+      setErro(extractApiError(err, 'Erro ao registrar movimentação.'))
     } finally {
       setSalvando(false)
     }
@@ -141,25 +149,38 @@ function BaixaProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }: {
     <ModalShell
       open
       onClose={onClose}
-      title={`Baixa manual — ${nomeProduto}`}
-      subtitle="Registra uma saída fora de produção."
-      icon={<Minus size={17} />}
-      iconBg="rgba(249,115,22,0.12)"
-      iconColor="#F97316"
+      title={`Edição manual — ${nomeProduto}`}
+      subtitle={isSaida ? 'Registra uma saída fora de produção.' : 'Registra uma entrada fora de produção.'}
+      icon={isSaida ? <Minus size={17} /> : <Plus size={17} />}
+      iconBg={isSaida ? 'rgba(249,115,22,0.12)' : 'rgba(42,157,143,0.12)'}
+      iconColor={isSaida ? '#F97316' : '#2A9D8F'}
       width={500}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
-          <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar} onClick={registrar}>
-            {salvando ? 'Registrando…' : 'Registrar baixa'}
+          <Button
+            variant="secondary"
+            icon={isSaida ? <Minus size={17} /> : <Plus size={17} />}
+            disabled={!podeRegistrar}
+            onClick={registrar}
+          >
+            {salvando ? 'Registrando…' : isSaida ? 'Registrar baixa' : 'Registrar entrada'}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
+        <label>
+          <span className="mb-[7px] block text-[13px] font-semibold text-body">Tipo *</span>
+          <SegmentedControl
+            options={[{ value: 'SAIDA' as const, label: 'Baixa' }, { value: 'ENTRADA' as const, label: 'Acréscimo' }]}
+            value={tipo}
+            onChange={setTipo}
+          />
+        </label>
         <div className="grid grid-cols-2 gap-4">
           <label>
-            <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade a subtrair *</span>
+            <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade *</span>
             <div className="relative">
               <input
                 value={qtd}
@@ -320,7 +341,10 @@ export default function DetalheProdutoPage() {
   // RN-NOVA-1 (V0.14.0, #294) — ordem final pedida pelo usuário: Estoque atual, Preço do
   // insumo, Preço da mão de obra, Preço do lucro (abs + margem% abaixo), Custo unitário,
   // Custo total do lote, Preço sugerido (editável), Preço de venda (destacado). "Tipo" removido
-  // da fila (já exibido no badge ao lado do nome).
+  // da fila (já exibido no badge ao lado do nome). "Rendimento" nunca fez parte da lista aprovada
+  // — achado do teste manual (grade de 9 cartões com auto-fit sobrava numa 2ª linha desproporcional,
+  // só 2 cartões esticados) — virou legenda de "Custo Total do lote" em vez de cartão próprio, e a
+  // grade passou de `auto-fit` para largura fixa (2/4 colunas) para nunca mais esticar sozinha.
   const cells = [
     { k: 'Estoque atual', v: `${produto.estoqueAtual} unidades`, big: true, danger: produto.estoqueAtual === 0 },
     ...(produto.estoqueMinimo != null ? [{ k: 'Estoque mínimo', v: `${produto.estoqueMinimo} unidades` }] : []),
@@ -331,8 +355,10 @@ export default function DetalheProdutoPage() {
       hint: produto.margemLucro != null ? `${produto.margemLucro}% de margem` : undefined,
     }] : []),
     ...(produto.custoUnitario != null ? [{ k: 'Custo Unitário', v: moeda(produto.custoUnitario), blue: true }] : []),
-    ...(produto.rendimento != null ? [{ k: 'Rendimento', v: `${produto.rendimento} unidades` }] : []),
-    ...(produto.custoTotalLote != null ? [{ k: 'Custo Total do lote', v: moeda(produto.custoTotalLote), blue: true }] : []),
+    ...(produto.custoTotalLote != null ? [{
+      k: 'Custo Total do lote', v: moeda(produto.custoTotalLote), blue: true,
+      hint: produto.rendimento != null ? `para ${produto.rendimento} unidades` : undefined,
+    }] : []),
     ...(produto.precoSugerido != null ? [{ k: 'Preço sugerido', v: moeda(produto.precoSugerido), accent: true, hint: 'editável ao editar o produto' }] : []),
     ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
   ]
@@ -401,7 +427,7 @@ export default function DetalheProdutoPage() {
       </div>
 
       <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
+        <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-4">
           {cells.map((c, i) => (
             <div key={i} className="bg-white px-5 py-[18px]">
               <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
@@ -421,7 +447,7 @@ export default function DetalheProdutoPage() {
             Registrar produção
           </Button>
           <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
-            Baixa manual
+            Edição manual
           </Button>
         </div>
       </div>
@@ -596,7 +622,7 @@ export default function DetalheProdutoPage() {
       )}
 
       {modal === 'baixa' && id && (
-        <BaixaProdutoModal
+        <EdicaoManualProdutoModal
           produtoId={id}
           nomeProduto={produto.nome}
           onClose={() => setModal(null)}
