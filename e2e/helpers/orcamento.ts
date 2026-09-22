@@ -1,5 +1,6 @@
 import { APIRequestContext, Page } from '@playwright/test'
 import { API_URL } from './auth'
+import { resolverUnidadeMedidaId } from './unidadeMedida'
 
 export async function criarCliente(request: APIRequestContext, token: string, nome: string) {
   const res = await request.post(`${API_URL}/clientes`, {
@@ -162,11 +163,12 @@ export async function criarCatalogoComItens(
   }
   const catalogo = await resCatalogo.json()
 
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const resInsumo = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: {
       nome: `QA-insumo-base-${nomeCatalogo}`,
-      unidadeMedida: 'unidade',
+      unidadeMedidaId,
       fracionavel: false,
       precoTotalCompraInicial: 10,
       quantidadeCompradaInicial: 10,

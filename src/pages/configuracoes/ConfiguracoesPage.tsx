@@ -8,17 +8,20 @@ import Toast from '../../components/shared/Toast'
 import ModalShell from '../../components/ui/ModalShell'
 import {
   Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings,
-  Wallet, Tag, Plus, Percent,
+  Wallet, Tag, Plus, Percent, Ruler, Pencil, Trash2,
 } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
+import { unidadeMedidaService } from '../../services/unidadeMedidaService'
 import type {
   EmpresaResponse, ConfiguracaoResponse, MetodoPagamentoConfiguravelResponse, TipoMetodoPagamento,
   HorarioFuncionamento,
 } from '../../types/empresa'
+import type { UnidadeMedidaResponse } from '../../types/unidadeMedida'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -80,6 +83,7 @@ const SUBABAS = [
   { id: 'precificacao' as const, label: 'Precificação',        icon: SlidersHorizontal, size: 15 },
   { id: 'perfil' as const,       label: 'Perfil da empresa',   icon: Building2,         size: 17 },
   { id: 'pagamento' as const,    label: 'Métodos de Pagamento', icon: Wallet,           size: 17 },
+  { id: 'unidades' as const,     label: 'Unidades de medida',  icon: Ruler,             size: 17 },
   { id: 'conta' as const,        label: 'Conta',               icon: ShieldCheck,       size: 17 },
 ]
 
@@ -984,6 +988,212 @@ function MetodosPagamento({ metodos, onReload }: {
   )
 }
 
+/* ── UnidadesMedida (#298, V0.14.0) ─────────────────────────────
+   RN-NOVA-8/UC-NOVO-1/CEN-NOVO-8/CEN-NOVO-9 — CRUD simples (nome+sigla), unicidade case-
+   insensitive validada pelo Backend, exclusão bloqueada (400) se algum insumo ainda usa a
+   unidade — mensagem de bloqueio vem pronta da API, exibida como veio (front não decide). */
+
+function UnidadeMedidaModal({ open, onClose, unidade, onSaved }: {
+  open: boolean; onClose: () => void
+  unidade: UnidadeMedidaResponse | null
+  onSaved: (u: UnidadeMedidaResponse) => void
+}) {
+  const [nome, setNome] = useState('')
+  const [sigla, setSigla] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setNome(unidade?.nome ?? '')
+    setSigla(unidade?.sigla ?? '')
+    setErro(null)
+  }, [open, unidade])
+
+  const salvar = async () => {
+    if (!nome.trim() || !sigla.trim()) {
+      setErro('Informe nome e sigla.')
+      return
+    }
+    setSalvando(true)
+    setErro(null)
+    try {
+      const salvo = unidade
+        ? await unidadeMedidaService.editar(unidade.id, { nome: nome.trim(), sigla: sigla.trim() })
+        : await unidadeMedidaService.cadastrar({ nome: nome.trim(), sigla: sigla.trim() })
+      onSaved(salvo)
+      onClose()
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title={unidade ? 'Editar unidade de medida' : 'Nova unidade de medida'}
+      subtitle="Ex.: Grama (g), Metro (m), Unidade (un)."
+      icon={<Ruler size={17} />}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+          <Button variant="primary" onClick={salvar} disabled={salvando}>
+            {salvando ? 'Salvando…' : unidade ? 'Salvar alterações' : 'Criar unidade'}
+          </Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <CfgField label="Nome">
+          <CfgInput value={nome} onChange={setNome} placeholder="Grama" />
+        </CfgField>
+        <CfgField label="Sigla">
+          <CfgInput value={sigla} onChange={setSigla} placeholder="g" />
+        </CfgField>
+        {erro && <p className="m-0 text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+      </div>
+    </ModalShell>
+  )
+}
+
+function UnidadesMedida() {
+  const [unidades, setUnidades] = useState<UnidadeMedidaResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [modalAberto, setModalAberto] = useState(false)
+  const [editando, setEditando] = useState<UnidadeMedidaResponse | null>(null)
+  const [excluindo, setExcluindo] = useState<UnidadeMedidaResponse | null>(null)
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null)
+  const [removendo, setRemovendo] = useState(false)
+  const { toast, setToast } = useToast()
+
+  useEffect(() => {
+    unidadeMedidaService.listar()
+      .then(setUnidades)
+      .catch(() => setToast('Erro ao carregar unidades de medida.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const abrirNova = () => { setEditando(null); setModalAberto(true) }
+  const abrirEdicao = (u: UnidadeMedidaResponse) => { setEditando(u); setModalAberto(true) }
+
+  const salvo = (u: UnidadeMedidaResponse) => {
+    setUnidades(prev => {
+      const existe = prev.some(p => p.id === u.id)
+      const lista = existe ? prev.map(p => p.id === u.id ? u : p) : [...prev, u]
+      return [...lista].sort((a, b) => a.nome.localeCompare(b.nome))
+    })
+  }
+
+  const confirmarExclusao = async () => {
+    if (!excluindo) return
+    setRemovendo(true)
+    setErroExclusao(null)
+    try {
+      await unidadeMedidaService.excluir(excluindo.id)
+      setUnidades(prev => prev.filter(u => u.id !== excluindo.id))
+      setExcluindo(null)
+    } catch (err: any) {
+      // CEN-NOVO-9 — mensagem de bloqueio vem pronta da API, exibida como veio.
+      setErroExclusao(extractApiError(err, 'Erro ao excluir. Tente novamente.'))
+    } finally {
+      setRemovendo(false)
+    }
+  }
+
+  return (
+    <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
+      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="mb-[5px] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-[11px]">
+            <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+              <Ruler size={16} />
+            </span>
+            <h2 className="m-0 text-lg font-bold tracking-[-0.01em] text-dark">Unidades de medida</h2>
+          </div>
+          <Button variant="ghost" icon={<Plus size={14} />} onClick={abrirNova}>Nova unidade</Button>
+        </div>
+        <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
+          Usadas no cadastro de Insumos — ex.: Grama, Metro, Unidade.
+        </p>
+
+        {loading ? (
+          <div className="flex items-center gap-2.5 py-6 text-sm text-muted">
+            <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+            Carregando…
+          </div>
+        ) : unidades.length === 0 ? (
+          <div className="rounded-input border border-dashed border-line px-4 py-6 text-center text-[13.5px] text-muted">
+            Nenhuma unidade cadastrada ainda.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {unidades.map(u => (
+              <div key={u.id} className="flex items-center justify-between gap-4 rounded-input border-[1.5px] border-line bg-white px-4 py-3.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+                    <Ruler size={16} />
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-[14.5px] font-semibold text-dark">{u.nome}</span>
+                    <span className="block text-[12.5px] text-muted">{u.sigla}</span>
+                  </div>
+                </div>
+                <div className="flex flex-shrink-0 items-center gap-1.5">
+                  <button
+                    onClick={() => abrirEdicao(u)}
+                    aria-label="Editar"
+                    className="grid h-9 w-9 place-items-center rounded-[9px] border-none bg-transparent text-dim hover:bg-cream hover:text-teal"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => { setExcluindo(u); setErroExclusao(null) }}
+                    aria-label="Excluir"
+                    className="grid h-9 w-9 place-items-center rounded-[9px] border-none bg-transparent text-dim hover:bg-danger-bg hover:text-danger-deep"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <UnidadeMedidaModal
+        open={modalAberto}
+        onClose={() => setModalAberto(false)}
+        unidade={editando}
+        onSaved={salvo}
+      />
+
+      <ConfirmacaoModal
+        open={!!excluindo}
+        onClose={() => setExcluindo(null)}
+        onConfirm={confirmarExclusao}
+        variant="danger"
+        title={`Excluir "${excluindo?.nome}"?`}
+        icon={<Trash2 size={16} />}
+        confirmLabel="Excluir"
+        confirmingLabel="Excluindo…"
+        confirming={removendo}
+        description="Esta ação não pode ser desfeita."
+      >
+        {erroExclusao && (
+          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13px] text-danger-deep">
+            {erroExclusao}
+          </p>
+        )}
+      </ConfirmacaoModal>
+
+      <Toast message={toast} />
+    </div>
+  )
+}
+
 /* ── ConfiguracoesPage ───────────────────────────────────────── */
 
 export default function ConfiguracoesPage() {
@@ -1081,6 +1291,7 @@ export default function ConfiguracoesPage() {
           {aba === 'pagamento' && (
             <MetodosPagamento metodos={metodosPagamento} onReload={setMetodosPagamento} />
           )}
+          {aba === 'unidades' && <UnidadesMedida />}
           {aba === 'conta' && <ContaSeguranca />}
         </>
       )}

@@ -1,5 +1,6 @@
 import { APIRequestContext } from '@playwright/test'
 import { API_URL, TEST_EMAIL, TEST_SENHA } from './auth'
+import { resolverUnidadeMedidaId } from './unidadeMedida'
 
 export async function apiLogin(request: APIRequestContext): Promise<string> {
   const res = await request.post(`${API_URL}/auth/login`, {
@@ -10,11 +11,12 @@ export async function apiLogin(request: APIRequestContext): Promise<string> {
 }
 
 export async function criarInsumo(request: APIRequestContext, token: string, nome: string) {
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: {
       nome,
-      unidadeMedida: 'unidade',
+      unidadeMedidaId,
       fracionavel: false,
       estoqueMinimo: 1,
       precoTotalCompraInicial: 10,

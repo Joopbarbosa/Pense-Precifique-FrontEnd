@@ -2,6 +2,7 @@ import { test, expect, APIRequestContext } from '@playwright/test'
 import { login, API_URL } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
+import { resolverUnidadeMedidaId } from '../helpers/unidadeMedida'
 
 /**
  * OpenProject #210+231+234 — Eliminação do tipo PRODUTO_BASE / unificação do modelo de preço.
@@ -23,11 +24,12 @@ import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
  */
 
 async function criarInsumoBarato(request: APIRequestContext, token: string, nome: string) {
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: {
       nome,
-      unidadeMedida: 'unidade',
+      unidadeMedidaId,
       fracionavel: false,
       estoqueMinimo: 1,
       precoTotalCompraInicial: 10, // custoUnitario inicial = 1

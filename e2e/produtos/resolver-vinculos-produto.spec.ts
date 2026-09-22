@@ -3,6 +3,7 @@ import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComFicha, criarProdutoSemFicha } from '../helpers/producao'
 import { API_URL } from '../helpers/auth'
+import { resolverUnidadeMedidaId } from '../helpers/unidadeMedida'
 
 /**
  * O `ActionMenu` compartilhado (`components/shared/ActionMenu.tsx`) fecha o menu em qualquer
@@ -26,11 +27,12 @@ async function abrirAcaoNoCard(page: Page, card: Locator, itemLabel: string) {
 }
 
 async function criarInsumoSimples(request: APIRequestContext, token: string, nome: string) {
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: {
       nome,
-      unidadeMedida: 'unidade',
+      unidadeMedidaId,
       fracionavel: false,
       estoqueMinimo: 1,
       precoTotalCompraInicial: 10,
