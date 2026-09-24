@@ -9,18 +9,8 @@ const INSUMO_URL = 'http://localhost:8080/insumos'
  * #514 (V0.14.0, RN-NOVA-5) — direção ENTRADA (toggle "Acréscimo") do modal "Edição manual" de
  * Insumo (`DetalheInsumoPage.tsx`, `EdicaoManualModal`). `e2e/producao/smoke-tech-debt.spec.ts`
  * (#127/#148) já cobre a direção SAIDA via UI — este spec é o 1º E2E da direção ENTRADA, só
- * testada manualmente no navegador até aqui.
- *
- * ACHADO (não corrigido, só documentado — instrução da skill `teste`): `tituloMovimentacao()`
- * (`DetalheInsumoPage.tsx`) usa um mapa local `labelsEntrada = { COMPRA: 'Compra' }` para o título
- * de movimentações ENTRADA no histórico, em vez do `MOTIVO_LABEL` compartilhado (que já tem
- * PERDA/AVARIA/USO_EXTRA/CORRECAO/OUTRO). Resultado: uma Entrada manual registrada com motivo
- * "Perda" aparece no histórico como **"Entrada — PERDA"** (código bruto do enum), não "Entrada —
- * Perda" (label) — só a direção SAIDA usa o label certo (`MOTIVO_LABEL[m.motivo]`, função
- * `tituloMovimentacao` mesma função, ramo de baixo). `DetalheProdutoPage.tsx` (réplica #534) NÃO
- * tem esse bug — `MovTitulo()` usa `MOTIVO_LABEL` também para ENTRADA corretamente (ver
- * `e2e/produtos/edicao-manual-entrada.spec.ts`, que já assere o label certo). A asserção abaixo
- * documenta o texto real (com o código bruto) em vez de mascarar o achado.
+ * testada manualmente no navegador até aqui. Histórico deve mostrar o label do motivo, não o
+ * código do enum ("Entrada — Perda", não "Entrada — PERDA" — regressão corrigida em #551).
  */
 test.describe('#514 — Edição manual, direção ENTRADA (Insumo)', () => {
   let criadosInsumoIds: string[] = []
@@ -76,11 +66,9 @@ test.describe('#514 — Edição manual, direção ENTRADA (Insumo)', () => {
     await expect(saldoValor).toHaveText(`25 ${insumo.unidadeMedida}`)
 
     await page.getByRole('button', { name: 'Histórico de movimentações', exact: true }).click()
-    // Achado documentado no comentário do describe: motivo aparece como código bruto ("PERDA"),
-    // não o label ("Perda") — só na direção ENTRADA de Insumo.
     // HistRows renderiza a linha 2x (desktop + mobile, uma delas escondida via CSS) — .first() evita
     // strict mode violation, mesmo padrão de outras specs que leem o histórico de movimentações.
-    await expect(page.getByText('Entrada — PERDA').first()).toBeVisible()
+    await expect(page.getByText('Entrada — Perda').first()).toBeVisible()
 
     const insumoDepois = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
       headers: { Authorization: `Bearer ${token}` },

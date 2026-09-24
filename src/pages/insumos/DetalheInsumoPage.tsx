@@ -45,7 +45,7 @@ const hexA = (hex: string, a: number) => {
 function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; tipoDisplay: 'entrada' | 'saida' | 'estorno' } {
   if (m.motivo === 'ESTORNO_PRODUCAO') return { titulo: 'Estorno — Cancelamento Produção', tipoDisplay: 'estorno' }
   const labelsEntrada: Record<string, string> = { COMPRA: 'Compra' }
-  if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
+  if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
   return { titulo: `Saída — ${MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
 }
 
