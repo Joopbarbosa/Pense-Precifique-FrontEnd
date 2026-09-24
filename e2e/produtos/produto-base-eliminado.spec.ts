@@ -19,8 +19,10 @@ import { resolverUnidadeMedidaId } from '../helpers/unidadeMedida'
  * substitui `ProdutoService.java:490` nesse fluxo) — usuária confirmou explicitamente o caso de
  * uso real (ex. reaproveitar uma Customização já configurada como componente de outro Produto).
  * A mensagem de erro para componente inativo também mudou de texto (`"Apenas produtos/
- * customizações ativos podem ser usados..."`, `FichaTecnicaService.java:60`). O bloqueio tardio
- * (rejeitado só ao salvar, não na busca) continua o mesmo padrão de antes.
+ * customizações ativos podem ser usados..."`, `FichaTecnicaService.java:60`).
+ *
+ * [Atualização V0.14.0 — #347] A busca de componente passou a enviar `ativo=true`: PRODUTO
+ * inativo não aparece mais na busca (antes aparecia e só era barrado ao salvar).
  */
 
 async function criarInsumoBarato(request: APIRequestContext, token: string, nome: string) {
@@ -111,7 +113,7 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await expect(page.getByText(/Você ajustou o preço manualmente/)).toBeVisible()
   })
 
-  test('CEN-NOVO-2 (revisado V0.10.0/#462) — busca de componente aceita Customização ativa; PRODUTO inativo aparece mas é rejeitado só ao salvar', async ({ page, request }) => {
+  test('CEN-NOVO-2 (revisado V0.10.0/#462, V0.14.0/#347) — busca de componente aceita Customização ativa; PRODUTO inativo não aparece na busca', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
 
@@ -145,16 +147,8 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await itemCustom.click()
     await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeEnabled()
 
-    // PRODUTO inativo continua aparecendo normalmente na busca (achado da auditoria original —
-    // gap de filtro inline, não alterado por #462) e continua rejeitado só ao salvar.
     await busca.fill(nomeComponenteInativo)
-    const itemInativo = page.getByText(nomeComponenteInativo, { exact: true })
-    await expect(itemInativo).toBeVisible({ timeout: 5000 })
-    await itemInativo.click()
-
-    // Só é rejeitado ao tentar salvar — banner genérico no topo do form, não erro inline na busca.
-    // Mensagem trocada por #462: cita "produtos/customizações", não mais só "tipo Produto".
-    await page.getByRole('button', { name: 'Salvar alterações' }).click()
-    await expect(page.getByText('Apenas produtos/customizações ativos podem ser usados como componente de ficha técnica.')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Nenhum componente encontrado')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(nomeComponenteInativo, { exact: true })).toHaveCount(0)
   })
 })
