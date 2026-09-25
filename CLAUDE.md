@@ -4,7 +4,7 @@
 > achado seguranca-resiliencia, GHSA-337j-9hxr-rhxg/GHSA-wrjc-x8rr-h8h6 só corrigiam
 > em v7+) · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Última atualização: 20/09/2026 (Retomada V0.13.0) · Branch padrão atual: `feature/V0.13.0`
+> Última atualização: 24/09/2026 (Retomada V0.14.0) · Branch padrão atual: `feature/V0.14.0`
 > Se este arquivo e o prompt da sessão divergirem, este arquivo vence.
 >
 > Histórico de versões (V0.6 a V0.8.2) migrado para `docs-pense-precifique/version/[VX.Y]/
@@ -32,6 +32,12 @@ reportar como concluída.
 rodar sempre pelo Playwright (`npx playwright test`), nunca specs direto, senão o reset não
 dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 
+**Unidade de medida em E2E** (V0.14.0/#298): `POST/PUT /insumos` exige `unidadeMedidaId` (FK), não
+mais texto livre. `global-setup.ts` semeia 1 unidade padrão ("unidade") logo após o `TRUNCATE` —
+sem ela, specs que dirigem `/insumos/novo` pela UI travam ("Salvar insumo" nunca habilita). Todo
+helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/unidadeMedida.ts`)
+— nunca montar payload de insumo com a sigla em texto.
+
 ---
 
 ## 2. Onde cada coisa vai
@@ -53,7 +59,11 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 - **Service novo?** Conferir `src/services/` primeiro — todo módulo já tem o seu (`authService`,
   `caixaService` (V0.12.0), `catalogoService`, `clienteService`, `dashboardService`,
   `empresaService`, `insumoService`, `itemCatalogoService`, `loteCompraService`, `orcamentoService`,
-  `producaoService`, `produtoService`, `usuarioService`).
+  `producaoService`, `produtoService`, `unidadeMedidaService` (V0.14.0), `usuarioService`).
+- **Upload de imagem novo?** Já existem 3 cópias inline do mesmo bloco (foto de item de catálogo,
+  foto de produto, logo da empresa) — o 4º ponto dispara a extração do componente compartilhado
+  (OpenProject #556), não uma 4ª cópia. Validação de formato/tamanho é só do backend; o frontend
+  usa `accept="image/jpeg,image/png"` como dica e exibe a mensagem que vier da API.
 - **Componente de UI novo?** Conferir `components/ui/`/`components/shared/`/`components/venda/`
   (este último para qualquer coisa de busca/carrinho/customização/cliente que sirva Orçamento **e**
   Caixa) — wrapper de label+input é sempre `Field` (`components/ui/Field.tsx`, prop
@@ -216,6 +226,11 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
   usuário não-root (`USER nginx`), que não pode bindar porta <1024. Porta externa continua 3000
   (`docker-compose.yml` mapeia `3000:8080`) — não afeta `localhost:3000`, só o `EXPOSE`/`listen`
   interno do container.
+- **Modal de Edição manual duplicado entre Insumo e Produto — débito conhecido, não padrão**
+  (`EdicaoManualModal` em `DetalheInsumoPage.tsx`, `EdicaoManualProdutoModal` em
+  `DetalheProdutoPage.tsx`, V0.14.0/#514,#534). A divergência entre as cópias já gerou o bug #551.
+  Qualquer mudança de comportamento em um dos dois dispara a extração (OpenProject #555) — nunca
+  alterar só uma cópia.
 - Rastreamento de tarefas migrou de ClickUp para OpenProject — commits antigos com
   `ClickUp <código> / <task-id>` são histórico, não o padrão atual.
 
@@ -237,4 +252,5 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 | Reaproveitar padrão visual ≠ reaproveitar componente | Mesma UI em contexto editável e somente-leitura: recriar o padrão visual isolado, não importar o componente inteiro (que pode vir acoplado a estado editável) |
 | Docker: reconstruir o ambiente é responsabilidade do Claude Code, sem perguntar | `docker compose up --build` sozinho — só pedir ajuda se o rebuild falhar por motivo diferente de "já está rodando" (porta ocupada, permissão) |
 | Find-replace mecânico entre 2 variáveis que soam parecidas mas têm semântica diferente | V0.10.0/#466: reordenar `PAGO`/`ENTREGUE` exigiu trocar `PAGO`→`ENTREGUE` em `finalizado` (correto — segue status terminal) **e** em `cancelavel` (errado — `cancelKind()` nunca tratou os dois como equivalentes; regressão real, só achada pela suíte E2E completa no fechamento do pocket). Ao editar 2+ variáveis juntas num mesmo commit "por analogia", conferir se cada uma reflete o mesmo conceito de negócio antes de aplicar a mesma mudança às duas |
+| `SegmentedControl` (ou qualquer grupo de botões) dentro de `<label>` | O navegador associa o label ao 1º botão e o nome acessível vira "Rótulo Opção2" — leitor de tela anuncia errado e `getByRole('button', { name })` falha no E2E (V0.14.0). Usar `<div>` + rótulo separado; usos existentes em OpenProject #557 |
 | Helper de teste E2E fica desatualizado quando o efeito colateral de um endpoint muda | V0.10.0/#442: `criarInsumoComEstoque` assumia que `POST /insumos` populava `estoqueAtual` — parou de ser verdade quando RN-NOVA-1 tirou a movimentação automática, e ~40 specs passaram a testar silenciosamente contra estoque 0. Ao mudar o efeito colateral de um endpoint (não só o payload), rodar varredura pelos helpers de teste que dependem desse efeito, não só pelos specs que chamam o endpoint diretamente |

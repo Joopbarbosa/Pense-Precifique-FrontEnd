@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, inativarInsumo } from './helpers/api'
 import { criarInsumoComEstoque } from './helpers/insumo'
+import { resolverUnidadeMedidaId } from './helpers/unidadeMedida'
 
 const API_URL = 'http://localhost:8080'
 
@@ -28,10 +29,11 @@ test.describe('OpenProject #238 — Tag EstoqueTags: cor semântica + estoque ne
     const ts = Date.now()
 
     const nomeFrac = `QA-CEN17-InsumoFrac-${ts}`
+    const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
     const fracRes = await request.post(`${API_URL}/insumos`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        nome: nomeFrac, unidadeMedida: 'unidade', fracionavel: true, tipoExibicaoQuantidade: 'DECIMAL',
+        nome: nomeFrac, unidadeMedidaId, fracionavel: true, tipoExibicaoQuantidade: 'DECIMAL',
         estoqueMinimo: 0.1, precoTotalCompraInicial: 100, quantidadeCompradaInicial: 10, permitirEstoqueNegativo: true,
       },
     })

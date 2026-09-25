@@ -33,6 +33,9 @@ export interface ProdutoRequest {
   descricao?: string
   tempoProducao: number
   precoVenda?: number
+  /** #509 — backend já aceitava este campo (ProdutoRequest.java); nunca era enviado, então toda
+   *  criação persistia a margem padrão da conta, ignorando o valor escolhido na calculadora. */
+  margemLucro?: number
   rendimento?: number
   estoqueMinimo?: number
   permitirEstoqueNegativo?: boolean
@@ -50,6 +53,9 @@ export interface ProdutoResponse {
   tipo: TipoProduto
   precoVenda?: number
   precoCusto: number
+  /** #509 — já era retornado pela API (ProdutoResponse.java) mas nunca declarado aqui; sem o
+   *  campo, o Frontend não tinha como carregar a margem persistida ao editar um produto. */
+  margemLucro?: number
   rendimento?: number
   custoTotalLote?: number
   custoUnitario?: number
@@ -58,6 +64,8 @@ export interface ProdutoResponse {
   permitirEstoqueNegativo: boolean
   ativo: boolean
   algumInsumoNaoFracionavel?: boolean
+  /** #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (R2StorageClient). */
+  fotoUrl?: string
   /** RN-NOVA-2 (V0.10.0, #299) — persistido+editável, padrão calculado+override. NUNCA usar para
    *  gate de negócio (travamento de quantidade em Produção) — isso continua em `algumInsumoNaoFracionavel`. */
   fracionavel?: boolean
@@ -80,9 +88,18 @@ export interface ProdutoDetalheResponse extends ProdutoResponse {
   descricao?: string
   tempoProducao: number
   fichaTecnica: FichaTecnicaItemResponse[]
+  /** #294 (V0.14.0) — calculados ao vivo, nunca persistidos (DT-NOVA-1), mesmo padrão de
+   *  custoUnitario/custoTotalLote. precoInsumo = soma dos componentes; precoMaoDeObra = custo de
+   *  mão de obra isolado; precoLucro = precoVenda - custoUnitario (pode ser negativo). */
+  precoInsumo?: number
+  precoMaoDeObra?: number
+  precoLucro?: number
+  precoSugerido?: number
 }
 
 export interface BaixaManualProdutoRequest {
+  /** #534 (V0.14.0, réplica de #514) — "Edição manual" vira bidirecional. */
+  tipo: 'ENTRADA' | 'SAIDA'
   quantidade: number
   motivo: 'PERDA' | 'AVARIA' | 'USO_EXTRA' | 'CORRECAO' | 'OUTRO'
   observacao: string

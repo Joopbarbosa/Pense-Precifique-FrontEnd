@@ -222,7 +222,7 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     // montado — RN-NOVA-11 exige que a tag reflita o valor vivo, não o congelado no clique de adicionar.
     const resBaixa = await request.post(`${API_URL}/produtos/${produto.id}/baixa-manual`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { quantidade: 7, motivo: 'OUTRO', observacao: 'QA218 ORC-CEN-065 — baixa manual para forçar estoque vivo divergir do snapshot de adição' },
+      data: { tipo: 'SAIDA', quantidade: 7, motivo: 'OUTRO', observacao: 'QA218 ORC-CEN-065 — baixa manual para forçar estoque vivo divergir do snapshot de adição' },
     })
     if (!resBaixa.ok()) throw new Error(`Falha na baixa manual de teste: ${resBaixa.status()} ${await resBaixa.text()}`)
 

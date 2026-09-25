@@ -20,6 +20,21 @@ export const empresaService = {
     return response.data
   },
 
+  // #532 (V0.14.0) — mesmo padrão de foto do Item de Catálogo/Produto (R2StorageClient).
+  uploadLogo: async (arquivo: File): Promise<EmpresaResponse> => {
+    const formData = new FormData()
+    formData.append('arquivo', arquivo)
+    const response = await api.post<EmpresaResponse>('/empresa/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  removerLogo: async (): Promise<EmpresaResponse> => {
+    const response = await api.delete<EmpresaResponse>('/empresa/logo')
+    return response.data
+  },
+
   getConfiguracao: async (): Promise<ConfiguracaoResponse> => {
     const response = await api.get<ConfiguracaoResponse>('/configuracoes/precificacao')
     return response.data

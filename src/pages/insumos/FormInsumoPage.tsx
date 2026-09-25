@@ -10,13 +10,11 @@ import SectionTitle from '../../components/shared/SectionTitle'
 import Spinner from '../../components/ui/Spinner'
 import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
 import { insumoService } from '../../services/insumoService'
+import { unidadeMedidaService } from '../../services/unidadeMedidaService'
 import type { InsumoRequest, NovoInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
+import type { UnidadeMedidaResponse } from '../../types/unidadeMedida'
 import { extractApiError } from '../../utils/apiError'
 import { tentarConverterFracao } from '../../utils/quantidade'
-
-const UNIDADES = ['Unidade', 'cm', 'g', 'ml', 'Folha']
-
-const unLabel = (u: string) => u === 'Unidade' ? 'un' : u === 'Folha' ? 'folha' : u
 
 const num = (v: string) => {
   const fracao = tentarConverterFracao(v)
@@ -77,7 +75,9 @@ export default function FormInsumoPage() {
 
   const [nome, setNome] = useState('')
   const [marca, setMarca] = useState('')
-  const [unidade, setUnidade] = useState('Folha')
+  const [unidades, setUnidades] = useState<UnidadeMedidaResponse[]>([])
+  const [loadingUnidades, setLoadingUnidades] = useState(true)
+  const [unidadeMedidaId, setUnidadeMedidaId] = useState('')
   const [unidadeOpen, setUnidadeOpen] = useState(false)
   const [fracao, setFracao] = useState(false)
   const [tipoExibicao, setTipoExibicao] = useState<TipoExibicaoQuantidade>('DECIMAL')
@@ -96,14 +96,25 @@ export default function FormInsumoPage() {
   const unRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    unidadeMedidaService.listar()
+      .then(lista => {
+        setUnidades(lista)
+        // Cadastro novo: pré-seleciona a primeira unidade cadastrada (nenhuma equivalência a
+        // adivinhar — a artesã já tem suas unidades cadastradas em Configurações, #298).
+        if (!editando && lista.length > 0) setUnidadeMedidaId(lista[0].id)
+      })
+      .catch(() => setError('Não foi possível carregar as unidades de medida.'))
+      .finally(() => setLoadingUnidades(false))
+  }, [editando])
+
+  useEffect(() => {
     if (editando && id) {
       setLoadingData(true)
       insumoService.buscarPorId(id)
         .then(data => {
           setNome(data.nome)
           setMarca(data.marca ?? '')
-          const u = UNIDADES.find(u => u === data.unidadeMedida) ?? data.unidadeMedida
-          setUnidade(u)
+          setUnidadeMedidaId(data.unidadeMedidaId)
           setFracao(data.fracionavel ?? true)
           setTipoExibicao(data.tipoExibicaoQuantidade ?? 'DECIMAL')
           setEstoque(data.estoqueAtual.toString())
@@ -123,6 +134,9 @@ export default function FormInsumoPage() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  const unidadeSelecionada = unidades.find(u => u.id === unidadeMedidaId)
+  const siglaAtual = unidadeSelecionada?.sigla ?? ''
 
   const preco = num(precoCompra)
   const qComprada = num(qtdCompra)
@@ -148,7 +162,7 @@ export default function FormInsumoPage() {
   const estoqueNegativoErro = bloqueioEstoqueNegativo
     ? 'Não é possível desmarcar "Permitir estoque negativo" pois este insumo está com estoque negativo. Regularize o estoque antes de desmarcar esta opção.'
     : undefined
-  const podeSubmeter = editando ? !bloqueioEstoqueNegativo : (precoValido && qtdValida)
+  const podeSubmeter = !!unidadeMedidaId && (editando ? !bloqueioEstoqueNegativo : (precoValido && qtdValida))
 
   const handleSubmit = async () => {
     if (!editando && !podeSubmeter) {
@@ -166,7 +180,7 @@ export default function FormInsumoPage() {
         const data: InsumoRequest = {
           nome: nome.trim(),
           marca: marca.trim() || undefined,
-          unidadeMedida: unidade,
+          unidadeMedidaId,
           fracionavel: fracao,
           tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
@@ -178,7 +192,7 @@ export default function FormInsumoPage() {
         const data: NovoInsumoRequest = {
           nome: nome.trim(),
           marca: marca.trim() || undefined,
-          unidadeMedida: unidade,
+          unidadeMedidaId,
           fracionavel: fracao,
           tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
@@ -265,37 +279,46 @@ export default function FormInsumoPage() {
           <SectionTitle number="2" title="Medida e fracionamento" subtitle="Como este insumo é medido e consumido." />
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
             <Field label="Unidade de medida *">
-              <div ref={unRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setUnidadeOpen(o => !o)}
-                  className={clsx(
-                    inputBase,
-                    'flex cursor-pointer items-center justify-between text-left',
-                    unidadeOpen && 'border-teal ring-4 ring-teal/[0.12]'
+              {!loadingUnidades && unidades.length === 0 ? (
+                <div className="flex items-center gap-[9px] rounded-[11px] border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13px] text-danger-deep">
+                  <AlertCircle size={15} className="flex-shrink-0" />
+                  Nenhuma unidade cadastrada.{' '}
+                  <a href="/configuracoes" className="font-semibold underline underline-offset-2">Cadastre em Configurações</a>.
+                </div>
+              ) : (
+                <div ref={unRef} className="relative">
+                  <button
+                    type="button"
+                    disabled={loadingUnidades}
+                    onClick={() => setUnidadeOpen(o => !o)}
+                    className={clsx(
+                      inputBase,
+                      'flex cursor-pointer items-center justify-between text-left',
+                      unidadeOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                    )}
+                  >
+                    {loadingUnidades ? 'Carregando…' : (unidadeSelecionada ? `${unidadeSelecionada.nome} (${unidadeSelecionada.sigla})` : 'Selecione')}
+                    <span className="flex text-muted"><ChevronDown size={16} /></span>
+                  </button>
+                  {unidadeOpen && (
+                    <div className="absolute inset-x-0 top-[52px] z-30 max-h-64 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+                      {unidades.map(u => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => { setUnidadeMedidaId(u.id); setUnidadeOpen(false) }}
+                          className={clsx(
+                            'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
+                            u.id === unidadeMedidaId ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
+                          )}
+                        >
+                          {u.nome} ({u.sigla})
+                        </button>
+                      ))}
+                    </div>
                   )}
-                >
-                  {unidade}
-                  <span className="flex text-muted"><ChevronDown size={16} /></span>
-                </button>
-                {unidadeOpen && (
-                  <div className="absolute inset-x-0 top-[52px] z-30 animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-                    {UNIDADES.map(u => (
-                      <button
-                        key={u}
-                        type="button"
-                        onClick={() => { setUnidade(u); setUnidadeOpen(false) }}
-                        className={clsx(
-                          'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          u === unidade ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
-                        )}
-                      >
-                        {u}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </Field>
             <Field
               label="Este item pode ser fracionado?"
@@ -341,7 +364,7 @@ export default function FormInsumoPage() {
                     className={clsx(inputBase, 'pr-16 bg-cream text-subtle')}
                   />
                   <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                    {unLabel(unidade)}
+                    {siglaAtual}
                   </span>
                 </div>
               </Field>
@@ -371,7 +394,7 @@ export default function FormInsumoPage() {
                       className={clsx(inputBase, 'pr-16', qtdErro && 'border-danger-deep focus:border-danger-deep focus:ring-danger-deep/10')}
                     />
                     <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                      {unLabel(unidade)}
+                      {siglaAtual}
                     </span>
                   </div>
                 </Field>
@@ -382,7 +405,7 @@ export default function FormInsumoPage() {
               <div className="relative">
                 <input placeholder="10" {...numBind(minimo, setMinimo)} className={clsx(inputBase, 'pr-16')} />
                 <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                  {unLabel(unidade)}
+                  {siglaAtual}
                 </span>
               </div>
             </Field>
@@ -408,7 +431,7 @@ export default function FormInsumoPage() {
                   <span className="text-2xl font-bold tracking-[-0.01em] text-teal [font-variant-numeric:tabular-nums]">
                     {custoFmt}
                   </span>
-                  {custoUnit != null && <span className="text-[15px] font-semibold text-body">/ {unLabel(unidade)}</span>}
+                  {custoUnit != null && <span className="text-[15px] font-semibold text-body">/ {siglaAtual}</span>}
                 </div>
                 {custoUnit == null && (
                   <div className="mt-0.5 text-[12.5px] text-muted">

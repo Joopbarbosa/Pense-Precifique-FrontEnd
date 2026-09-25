@@ -64,15 +64,18 @@ export const produtoService = {
     await api.post(`/produtos/${id}/resolver-vinculos`, data)
   },
 
+  // #347 — ativo=true filtra já na busca (antes só bloqueava ao salvar a ficha técnica, deixando
+  // inativos aparecerem/serem selecionáveis na lista de resultados).
   buscarInsumos: async (busca: string): Promise<InsumoResponse[]> => {
-    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome' } })
+    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome', ativo: true } })
     return response.data.content
   },
 
   // RN-NOVA-8 (V0.10.0, #462, altera PDT-015) — sem filtro de tipo: Produto e Customização, ambos
   // ativos, agora podem ser componente de ficha técnica. Antes só tipo=PRODUTO.
+  // #347 — ativo=true filtra já na busca (mesmo motivo de buscarInsumos acima).
   buscarProdutosComponente: async (busca: string): Promise<ProdutoResponse[]> => {
-    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome' } })
+    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome', ativo: true } })
     return response.data.content
   },
 
@@ -83,6 +86,21 @@ export const produtoService = {
 
   listarMovimentacoes: async (id: string, page: number, size = 20): Promise<PageResponse<MovimentacaoProdutoResponse>> => {
     const response = await api.get(`/produtos/${id}/movimentacoes`, { params: { page, size } })
+    return response.data
+  },
+
+  // #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (itemCatalogoService.uploadFoto/removerFoto).
+  uploadFoto: async (id: string, arquivo: File): Promise<ProdutoDetalheResponse> => {
+    const formData = new FormData()
+    formData.append('arquivo', arquivo)
+    const response = await api.post(`/produtos/${id}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  removerFoto: async (id: string): Promise<ProdutoDetalheResponse> => {
+    const response = await api.delete(`/produtos/${id}/foto`)
     return response.data
   },
 

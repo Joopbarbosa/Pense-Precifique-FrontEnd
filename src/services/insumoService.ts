@@ -5,8 +5,10 @@ import type { PageResponse } from '../types/shared'
 export const insumoService = {
   // #336 (V0.10.0) — `ativo` filtra server-side (era client-side sobre a janela paginada, causa
   // raiz do bug original de #336: insumo inativado fora da 1ª página não aparecia no filtro).
-  listar: async (page: number, size = 20, busca?: string, ativo?: boolean): Promise<PageResponse<InsumoResponse>> => {
-    const params: Record<string, unknown> = { page, size, sort: 'nome' }
+  // #295 (V0.14.0, RN-NOVA-2) — `sort` agora é parâmetro, default `numero,desc` (identificador
+  // decrescente) quando o chamador não passa nada — antes era sempre `nome` fixo.
+  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc'): Promise<PageResponse<InsumoResponse>> => {
+    const params: Record<string, unknown> = { page, size, sort }
     if (busca) params.busca = busca
     if (ativo != null) params.ativo = ativo
     const response = await api.get('/insumos', { params })

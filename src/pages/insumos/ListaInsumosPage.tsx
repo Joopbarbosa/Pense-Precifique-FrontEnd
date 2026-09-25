@@ -9,6 +9,7 @@ import Spinner from '../../components/ui/Spinner'
 import ActionMenu from '../../components/shared/ActionMenu'
 import { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import SortableHeader from '../../components/shared/SortableHeader'
 import Toast from '../../components/shared/Toast'
 import { EstoqueTags } from '../../components/ui/Badge'
 import {
@@ -40,6 +41,21 @@ interface ItemCarrinho {
 }
 
 const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo', 'Estoque negativo', 'Estoque positivo']
+
+// #295 (V0.14.0, RN-NOVA-2) — mesmo allowlist de `InsumoService.CAMPOS_ORDENACAO_INSUMO`
+// (backend). Default (sem interação do usuário): 'numero' decrescente.
+type CampoOrdenacaoInsumo = 'numero' | 'nome' | 'custoUnitario' | 'estoqueAtual'
+
+const COLUNAS: { label: string; campo: CampoOrdenacaoInsumo | null }[] = [
+  { label: 'Identificador', campo: 'numero' },
+  { label: 'Insumo', campo: 'nome' },
+  { label: 'Unidade', campo: null },
+  { label: 'Estoque atual', campo: 'estoqueAtual' },
+  { label: 'Estoque mín.', campo: null },
+  { label: 'Custo unitário', campo: 'custoUnitario' },
+  { label: 'Status', campo: null },
+  { label: '', campo: null },
+]
 
 const isLow = (o: InsumoResponse) =>
   o.ativo && o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
@@ -917,6 +933,10 @@ export default function ListaInsumosPage() {
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState('Todos')
   const isFirstFiltro = useRef(true)
+  // #295 (V0.14.0, RN-NOVA-2) — default identificador decrescente, sem interação do usuário.
+  const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacaoInsumo>('numero')
+  const [direcao, setDirecao] = useState<'ASC' | 'DESC'>('DESC')
+  const isFirstSort = useRef(true)
   const [modalCompra, setModalCompra] = useState(false)
   const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
   const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
@@ -938,7 +958,7 @@ export default function ListaInsumosPage() {
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro]),
+    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`),
   })
 
   const carregarContadores = () => {
@@ -954,6 +974,21 @@ export default function ListaInsumosPage() {
     carregar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtro])
+
+  useEffect(() => {
+    if (isFirstSort.current) { isFirstSort.current = false; return }
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordenarPor, direcao])
+
+  const handleSort = (campo: CampoOrdenacaoInsumo) => {
+    if (ordenarPor === campo) {
+      setDirecao(prev => prev === 'ASC' ? 'DESC' : 'ASC')
+    } else {
+      setOrdenarPor(campo)
+      setDirecao('ASC')
+    }
+  }
 
   const handleQueryChange = (novaQuery: string) => {
     setQuery(novaQuery)
@@ -1147,9 +1182,17 @@ export default function ListaInsumosPage() {
 
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <div className="hidden grid-cols-[0.7fr_2fr_0.55fr_0.85fr_0.8fr_1fr_1fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
-              {['Identificador', 'Insumo', 'Unidade', 'Estoque atual', 'Estoque mín.', 'Custo unitário', 'Status', ''].map((h, k) => (
-                <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">
-                  {h}
+              {COLUNAS.map((col, k) => (
+                <div key={k} className={clsx(!col.campo && 'flex items-center text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim')}>
+                  {col.campo ? (
+                    <SortableHeader
+                      label={col.label}
+                      field={col.campo}
+                      activeField={ordenarPor}
+                      dir={direcao === 'ASC' ? 'asc' : 'desc'}
+                      onSort={handleSort}
+                    />
+                  ) : col.label}
                 </div>
               ))}
             </div>

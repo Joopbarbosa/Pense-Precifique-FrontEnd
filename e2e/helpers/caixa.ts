@@ -1,5 +1,6 @@
 import { APIRequestContext } from '@playwright/test'
 import { API_URL } from './auth'
+import { resolverUnidadeMedidaId } from './unidadeMedida'
 
 /** #487/#488 (V0.12.0) — helpers de API para os specs de Caixa/PDV. */
 
@@ -95,9 +96,10 @@ export async function apiCriarCatalogoComItem(
   request: APIRequestContext, token: string, nomeProdutoPrincipal: string, precoVendaItem: number,
   estoqueAtual: number, customizacao?: { nome: string; precoVenda: number; estoqueAtual: number }
 ) {
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const resInsumo = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { nome: `QA-insumo-base-${nomeProdutoPrincipal}`, unidadeMedida: 'unidade', fracionavel: false, precoTotalCompraInicial: 10, quantidadeCompradaInicial: 10 },
+    data: { nome: `QA-insumo-base-${nomeProdutoPrincipal}`, unidadeMedidaId, fracionavel: false, precoTotalCompraInicial: 10, quantidadeCompradaInicial: 10 },
   })
   if (!resInsumo.ok()) throw new Error(`Falha ao criar insumo de teste: ${resInsumo.status()} ${await resInsumo.text()}`)
   const insumo = await resInsumo.json()

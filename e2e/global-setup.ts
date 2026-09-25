@@ -31,6 +31,12 @@ const DB_USER = 'pense_user'
 // onboarding já feito" (mesmo motivo de sempre); metodos_pagamento entra na mesma categoria — só é
 // semeada em `POST /auth/register`, nunca re-semeada depois de um TRUNCATE, então incluí-la aqui
 // deixaria a conta de teste sem nenhum método de pagamento até a suíte inteira rodar de novo.
+// unidades_medida (V0.14.0, #298) — mesma categoria de metodos_pagamento (sobrevive a `insumos` ser
+// truncado, já que TRUNCATE...CASCADE só alcança quem referencia a tabela truncada, nunca o
+// inverso), mas SEM seed automático em `POST /auth/register` — via SQL abaixo, garante pelo menos
+// 1 unidade sempre disponível (achado: rodar `tipo-exibicao-quantidade.spec.ts` sozinho depois de
+// esvaziar a tabela manualmente travava em "Salvar insumo" para sempre — nenhuma unidade para
+// pré-selecionar, `podeSubmeter` nunca vira `true`).
 // caixa_turnos/caixa_movimentos/venda_caixa* são achado de #487/#488 (V0.12.0) — sem FK para
 // nenhuma tabela já listada aqui, então nunca eram truncadas antes desta linha (só venda_caixa*
 // era truncada de forma transitiva, via CASCADE a partir de `produtos`) — turno ABERTO de uma
@@ -70,6 +76,8 @@ const TABELAS_DOMINIO = [
   'venda_caixa_pagamento',
 ]
 
+const TEST_EMAIL = 'penseprecifique@admin.com'
+
 export default async function globalSetup() {
   console.log('[global-setup] Resetando dados de domínio antes da suíte E2E (TRUNCATE, mantém conta de teste)...')
   const sql = `TRUNCATE ${TABELAS_DOMINIO.join(', ')} CASCADE;`
@@ -77,5 +85,23 @@ export default async function globalSetup() {
     `docker exec ${CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -c "${sql}"`,
     { stdio: 'inherit' }
   )
+
+  // #298 — garante 1 unidade de medida sempre disponível (ver comentário de TABELAS_DOMINIO acima).
+  // nome/sigla = 'unidade' (minúsculo) de propósito — mesmo valor que `resolverUnidadeMedidaId`
+  // (e2e/helpers/unidadeMedida.ts) usa como default em toda a suíte; um valor diferente aqui
+  // colide (unicidade de `nome` é case-insensitive) quando o helper tenta criar a sua própria.
+  const seedUnidade = `
+    INSERT INTO unidades_medida (usuario_id, nome, sigla)
+    SELECT u.id, 'unidade', 'unidade' FROM usuarios u
+    WHERE u.email = '${TEST_EMAIL}'
+      AND NOT EXISTS (
+        SELECT 1 FROM unidades_medida um WHERE um.usuario_id = u.id AND um.deleted_at IS NULL
+      );
+  `.replace(/\s+/g, ' ').trim()
+  execSync(
+    `docker exec ${CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -c "${seedUnidade}"`,
+    { stdio: 'inherit' }
+  )
+
   console.log('[global-setup] Banco limpo.')
 }

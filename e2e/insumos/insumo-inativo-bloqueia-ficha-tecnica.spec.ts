@@ -9,16 +9,11 @@ const API_URL = 'http://localhost:8080'
  * OpenProject #228 — Insumo inativo não pode ser adicionado a nova ficha técnica (INS-011).
  * CEN-NOVO-12 (DECISOES_V0.7.md, RN-NOVA-8).
  *
- * Achado de auditoria (não corrigido aqui, ver DECISOES_V0.7.md): a leitura literal do BDD original
- * ("insumo inativo não aparece como opção válida na busca") não é o que o código faz — `GET
- * /insumos` (usado por `InsumoSearch` na ficha técnica de Produto) não filtra por `ativo`
- * (`InsumoService.listar():67-73`, só filtra `deletedAt IS NULL`), confirmado via curl direto na
- * API antes de escrever este spec. O insumo inativo aparece normalmente nos resultados da busca e
- * só é rejeitado ao tentar SALVAR o produto, com a mensagem de `FichaTecnicaService.java:47-49`
- * ("Este insumo está inativo e não pode ser adicionado. Reative-o para continuar."). Mesmo padrão
- * de bloqueio tardio já encontrado para CEN-NOVO-2 (produto inativo como componente).
+ * Desde #347 (V0.14.0) a busca de componente envia `ativo=true` — o insumo inativo não aparece mais
+ * na busca (antes aparecia e só era barrado ao salvar). O bloqueio ao salvar continua no backend
+ * (`FichaTecnicaService`), mas não é mais alcançável pela UI.
  */
-test.describe('OpenProject #228 — Insumo inativo bloqueado ao salvar ficha técnica', () => {
+test.describe('OpenProject #228/#347 — Insumo inativo fora da busca de ficha técnica', () => {
   let insumoId: string
   let insumoNome: string
   let produtoId: string | null = null
@@ -37,7 +32,7 @@ test.describe('OpenProject #228 — Insumo inativo bloqueado ao salvar ficha té
     await inativarInsumo(request, token, insumoId) // soft-delete permanente — limpeza final
   })
 
-  test('CEN-NOVO-12 — insumo inativo aparece na busca (achado) mas é rejeitado ao salvar o produto', async ({ page }) => {
+  test('CEN-NOVO-12 — insumo inativo não aparece na busca de componente da ficha técnica', async ({ page }) => {
     await login(page)
     await page.goto('/produtos/novo')
     await page.getByPlaceholder('Ex: Kit Convite Casamento').fill(`QA-CEN12-Produto-${Date.now()}`)
@@ -46,11 +41,7 @@ test.describe('OpenProject #228 — Insumo inativo bloqueado ao salvar ficha té
 
     const busca = page.getByPlaceholder('Buscar insumo ou produto...')
     await busca.fill(insumoNome)
-    const item = page.getByText(insumoNome, { exact: true })
-    await expect(item).toBeVisible({ timeout: 5000 })
-    await item.click()
-
-    await page.getByRole('button', { name: 'Salvar produto' }).click()
-    await expect(page.getByText('Este insumo está inativo e não pode ser adicionado. Reative-o para continuar.')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Nenhum componente encontrado')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(insumoNome, { exact: true })).toHaveCount(0)
   })
 })

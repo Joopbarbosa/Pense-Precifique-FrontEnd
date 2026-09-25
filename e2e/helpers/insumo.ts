@@ -1,5 +1,6 @@
 import { APIRequestContext } from '@playwright/test'
 import { API_URL } from './auth'
+import { resolverUnidadeMedidaId } from './unidadeMedida'
 
 /**
  * Achado da suíte QA (RN-NOVA-1/#442, V0.10.0): `POST /insumos` deixou de gerar movimentação de
@@ -18,11 +19,12 @@ export async function criarInsumoComEstoque(
   estoqueInicial: number,
   permitirEstoqueNegativo = false
 ) {
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: {
       nome,
-      unidadeMedida: 'unidade',
+      unidadeMedidaId,
       fracionavel: false,
       estoqueMinimo: 1,
       precoTotalCompraInicial: Math.max(estoqueInicial, 1) * 10,
@@ -61,11 +63,12 @@ export async function criarInsumoFracionavel(
   tipoExibicaoQuantidade: 'FRACAO' | 'DECIMAL',
   permitirEstoqueNegativo = false
 ) {
+  const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
     data: {
       nome,
-      unidadeMedida: 'unidade',
+      unidadeMedidaId,
       fracionavel: true,
       tipoExibicaoQuantidade,
       estoqueMinimo: 0.1,
@@ -106,7 +109,9 @@ export async function baixaManualInsumo(
 ) {
   const res = await request.post(`${API_URL}/insumos/${id}/baixa-manual`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { quantidade, motivo, observacao },
+    // #514 (V0.14.0) — endpoint virou bidirecional; `tipo` agora obrigatório. Este helper sempre
+    // registrou saída, mantém o mesmo comportamento explícito.
+    data: { tipo: 'SAIDA', quantidade, motivo, observacao },
   })
   if (!res.ok()) {
     throw new Error(`Falha ao registrar baixa manual (${motivo}) de teste: ${res.status()} ${await res.text()}`)
@@ -114,7 +119,7 @@ export async function baixaManualInsumo(
   return res.json()
 }
 
-/** PUT exige o corpo completo (nome/unidadeMedida obrigatórios de novo) — busca o insumo atual antes de mesclar. */
+/** PUT exige o corpo completo (nome/unidadeMedidaId obrigatórios de novo) — busca o insumo atual antes de mesclar. */
 export async function definirPermitirNegativo(
   request: APIRequestContext,
   token: string,
@@ -130,7 +135,7 @@ export async function definirPermitirNegativo(
     data: {
       nome: insumo.nome,
       marca: insumo.marca,
-      unidadeMedida: insumo.unidadeMedida,
+      unidadeMedidaId: insumo.unidadeMedidaId,
       fracionavel: insumo.fracionavel,
       estoqueAtual: insumo.estoqueAtual,
       estoqueMinimo: insumo.estoqueMinimo,

@@ -5,7 +5,8 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
-import { Minus, ChevronDown, AlertCircle, ArrowDown, Box, ChevronRight, Pencil, History, Layers } from 'lucide-react'
+import SegmentedControl from '../../components/ui/SegmentedControl'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers } from 'lucide-react'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
@@ -44,7 +45,7 @@ const hexA = (hex: string, a: number) => {
 function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; tipoDisplay: 'entrada' | 'saida' | 'estorno' } {
   if (m.motivo === 'ESTORNO_PRODUCAO') return { titulo: 'Estorno — Cancelamento Produção', tipoDisplay: 'estorno' }
   const labelsEntrada: Record<string, string> = { COMPRA: 'Compra' }
-  if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
+  if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
   return { titulo: `Saída — ${MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
 }
 
@@ -54,12 +55,15 @@ function refText(m: MovimentacaoInsumoResponse): string {
   return ''
 }
 
-function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
+function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
   insumoId: string
   unidade: string
   onClose: () => void
   onSuccess: () => void
 }) {
+  // #514 (V0.14.0) — "Baixa manual" virou "Edição manual", bidirecional (ENTRADA/SAIDA), mesmos
+  // motivos/observação (INS-007). SAIDA continua o padrão — comportamento anterior preservado.
+  const [tipo, setTipo] = useState<BaixaManualInsumoRequest['tipo']>('SAIDA')
   const [qtd, setQtd] = useState('')
   const [motivo, setMotivo] = useState<BaixaManualInsumoRequest['motivo']>('PERDA')
   const [motivoLabel, setMotivoLabel] = useState('Perda')
@@ -69,6 +73,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
   const [error, setError] = useState('')
   const selRef = useRef<HTMLDivElement>(null)
 
+  const isSaida = tipo === 'SAIDA'
   const podeRegistrar = qtd.trim() !== '' && numQtd(qtd) > 0 && obs.trim().length >= 30
 
   useEffect(() => {
@@ -84,6 +89,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     setError('')
     try {
       await insumoService.baixaManual(insumoId, {
+        tipo,
         quantidade: numQtd(qtd),
         motivo,
         observacao: obs.trim(),
@@ -91,7 +97,7 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
       onSuccess()
       onClose()
     } catch (err: any) {
-      setError(extractApiError(err, 'Erro ao registrar baixa. Tente novamente.'))
+      setError(extractApiError(err, 'Erro ao registrar movimentação. Tente novamente.'))
       setLoading(false)
     }
   }
@@ -100,22 +106,35 @@ function BaixaModal({ insumoId, unidade, onClose, onSuccess }: {
     <ModalShell
       open
       onClose={onClose}
-      title="Baixa manual"
-      subtitle="Registra uma saída fora de produção."
-      icon={<Minus size={17} />}
-      iconBg={hexA('#C8721F', 0.12)}
-      iconColor="#C8721F"
+      title="Edição manual"
+      subtitle={isSaida ? 'Registra uma saída fora de produção.' : 'Registra uma entrada fora de compra.'}
+      icon={isSaida ? <Minus size={17} /> : <Plus size={17} />}
+      iconBg={hexA(isSaida ? '#C8721F' : '#2A9D8F', 0.12)}
+      iconColor={isSaida ? '#C8721F' : '#2A9D8F'}
       width={500}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="secondary" icon={<Minus size={17} />} disabled={!podeRegistrar || loading} onClick={handleSubmit}>
-            {loading ? 'Registrando…' : 'Registrar baixa'}
+          <Button
+            variant="secondary"
+            icon={isSaida ? <Minus size={17} /> : <Plus size={17} />}
+            disabled={!podeRegistrar || loading}
+            onClick={handleSubmit}
+          >
+            {loading ? 'Registrando…' : isSaida ? 'Registrar baixa' : 'Registrar entrada'}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
+        <label>
+          <span className="mb-[7px] block text-[13px] font-semibold text-body">Tipo *</span>
+          <SegmentedControl
+            options={[{ value: 'SAIDA' as const, label: 'Baixa' }, { value: 'ENTRADA' as const, label: 'Acréscimo' }]}
+            value={tipo}
+            onChange={setTipo}
+          />
+        </label>
         <div className="grid grid-cols-2 gap-4">
           <label>
             <span className="mb-[7px] block text-[13px] font-semibold text-body">Quantidade *</span>
@@ -470,9 +489,17 @@ export default function DetalheInsumoPage() {
             </div>
           </div>
         </div>
-        <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
-          Editar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/insumos')}>
+            Voltar
+          </Button>
+          <Button variant="ghost" icon={<Plus size={16} />} onClick={() => navigate('/insumos/novo')}>
+            Novo insumo
+          </Button>
+          <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
+            Editar
+          </Button>
+        </div>
       </div>
 
       <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -497,7 +524,7 @@ export default function DetalheInsumoPage() {
         </div>
         <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
           <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
-            Baixa manual
+            Edição manual
           </Button>
         </div>
       </div>
@@ -567,7 +594,7 @@ export default function DetalheInsumoPage() {
       )}
 
       {modal === 'baixa' && (
-        <BaixaModal
+        <EdicaoManualModal
           insumoId={id!}
           unidade={insumo.unidadeMedida}
           onClose={() => setModal(null)}

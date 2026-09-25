@@ -6,13 +6,14 @@ import { Button, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
-  Check, AlertTriangle, ChevronRight, Pencil, FileText,
+  Check, AlertTriangle, ChevronRight, Pencil, FileText, ImagePlus, X,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
+import { extractApiError } from '../../utils/apiError'
 import CalculadoraPreco, { LinhaCalculadora } from '../../components/shared/CalculadoraPreco'
 import { FracionavelBadge } from '../../components/ui/Badge'
 import type { ProdutoRequest, TipoProduto } from '../../types/produto'
@@ -139,9 +140,87 @@ function DescTextarea({ value, onChange }: { value: string; onChange: (v: string
 
 // ---------- DadosBasicos ----------
 
-function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro }: {
+function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
+  produtoId?: string; nome: string; fotoUrl: string | null; onFotoUrlChange: (url: string | null) => void
+}) {
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  const handleSelecionar = async (arquivo: File | undefined) => {
+    if (!arquivo || !produtoId) return
+    setErro(null)
+    setEnviando(true)
+    try {
+      const atualizado = await produtoService.uploadFoto(produtoId, arquivo)
+      onFotoUrlChange(atualizado.fotoUrl ?? null)
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Não foi possível enviar a foto. Tente novamente.'))
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const handleRemover = async () => {
+    if (!produtoId) return
+    setErro(null)
+    setEnviando(true)
+    try {
+      const atualizado = await produtoService.removerFoto(produtoId)
+      onFotoUrlChange(atualizado.fotoUrl ?? null)
+    } catch (err: any) {
+      setErro(extractApiError(err, 'Não foi possível remover a foto. Tente novamente.'))
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="col-span-2">
+      <span className="mb-[7px] block text-[13px] font-semibold text-body">Foto</span>
+      <div className="flex items-start gap-5">
+        {!produtoId ? (
+          <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted">
+            Salve o produto para adicionar uma foto
+          </div>
+        ) : fotoUrl ? (
+          <div className="relative h-[110px] w-[140px]">
+            <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+            <button
+              onClick={handleRemover}
+              disabled={enviando}
+              aria-label="Remover foto"
+              className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-line bg-white text-dim shadow-[0_2px_6px_rgba(0,0,0,0.15)] hover:text-danger-deep"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <label className={clsx(
+            'grid h-[110px] w-[140px] cursor-pointer place-items-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line bg-cream text-center text-[11.5px] font-semibold text-teal transition-colors duration-150 hover:border-teal',
+            enviando && 'pointer-events-none opacity-60'
+          )}>
+            {enviando
+              ? <span className="block h-5 w-5 animate-spin rounded-full border-2 border-line border-t-teal" />
+              : <><ImagePlus size={20} /> Adicionar foto</>
+            }
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={e => { handleSelecionar(e.target.files?.[0]); e.target.value = '' }}
+            />
+          </label>
+        )}
+      </div>
+      {erro && <span className="mt-2 block text-[12.5px] text-danger-deep">{erro}</span>}
+    </div>
+  )
+}
+
+function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl }: {
   st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
+  produtoId?: string; fotoUrl: string | null; setFotoUrl: (url: string | null) => void
 }) {
   return (
     <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -169,6 +248,9 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
           </Field>
         </div>
+        {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518); exige
+            produtoId, então só habilita o upload de fato na edição de um produto já salvo. */}
+        <FotoProduto produtoId={produtoId} nome={st.nome} fotoUrl={fotoUrl} onFotoUrlChange={setFotoUrl} />
       </div>
       <div className="mt-7 flex justify-end border-t border-line pt-[22px]">
         <Button variant="primary" iconRight={<ArrowRight size={17} />} onClick={onNext}>
@@ -388,10 +470,9 @@ function FracionavelToggle({ value, onChange }: { value: boolean; onChange: (v: 
 
 // ---------- FichaTecnica ----------
 
-function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, mostrarBotaoCatalogo, salvandoCatalogo, botaoCatalogoDisabled, onCriarCatalogo, fracionavel, onFracionavelChange }: {
+function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoErro, fracionavel, onFracionavelChange }: {
   ficha: FichaItem[]; setFicha: React.Dispatch<React.SetStateAction<FichaItem[]>>
   rendimento: string; setRendimento: (v: string) => void; rendimentoErro?: string
-  mostrarBotaoCatalogo: boolean; salvandoCatalogo: boolean; botaoCatalogoDisabled: boolean; onCriarCatalogo: () => void
   fracionavel: boolean; onFracionavelChange: (v: boolean) => void
 }) {
   const add = (i: ItemDb) => setFicha(f => [...f, { ...i, qtd: 1 }])
@@ -453,14 +534,6 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
               <span className="mt-1.5 block text-xs text-muted">Quantidade de unidades que este lote produz.</span>
               {rendimentoErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{rendimentoErro}</span>}
             </div>
-            {mostrarBotaoCatalogo && (
-              <Button variant="primary" iconRight={!salvandoCatalogo ? <ArrowRight size={17} /> : undefined} onClick={onCriarCatalogo} disabled={botaoCatalogoDisabled}>
-                {salvandoCatalogo
-                  ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" />Criando…</span>
-                  : 'Criar produto catálogo'
-                }
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -639,7 +712,7 @@ export default function CadastrarProdutoPage() {
   const [modoMargem, setModoMargem] = useState('padrao')
   const [precoFinal, setPrecoFinal] = useState('')
   const [precoFinalManual, setPrecoFinalManual] = useState(false)
-  const [salvando, setSalvando] = useState<'padrao' | 'catalogo' | null>(null)
+  const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [valorHora, setValorHora] = useState(0)
@@ -649,6 +722,7 @@ export default function CadastrarProdutoPage() {
   // RN-NOVA-2 (V0.10.0, #299) — calculado+override, mesmo padrão de precoFinal/precoFinalManual acima.
   const [fracionavel, setFracionavel] = useState(true)
   const [fracionavelManual, setFracionavelManual] = useState(false)
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
 
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
@@ -732,6 +806,10 @@ export default function CadastrarProdutoPage() {
         setEstoqueAtualExistente(produto.estoqueAtual)
         setFracionavel(produto.fracionavel ?? !produto.algumInsumoNaoFracionavel)
         setFracionavelManual(produto.fracionavelOverride ?? false)
+        setFotoUrl(produto.fotoUrl ?? null)
+        if (produto.margemLucro != null) {
+          setMargem(produto.margemLucro.toString())
+        }
         if (produto.precoVenda != null) {
           setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
           setPrecoFinalManual(true)
@@ -741,7 +819,7 @@ export default function CadastrarProdutoPage() {
       .catch(console.error)
   }, [editando, id])
 
-  const salvar = async (destino: 'padrao' | 'catalogo' = 'padrao') => {
+  const salvar = async () => {
     setErro(null)
     setFieldErrors({})
 
@@ -755,6 +833,7 @@ export default function CadastrarProdutoPage() {
 
     const tipoApi = TIPO_LABEL_TO_API[dados.tipo]
     const precoVendaNum = mostrarPrecoMargem ? (num(precoFinal) || undefined) : undefined
+    const margemLucroNum = mostrarPrecoMargem ? num(margem) : undefined
 
     const request: ProdutoRequest = {
       nome: dados.nome.trim(),
@@ -762,6 +841,7 @@ export default function CadastrarProdutoPage() {
       descricao: dados.descricao.trim() || undefined,
       tempoProducao: Math.round(num(dados.tempo)) || 1,
       precoVenda: precoVendaNum,
+      margemLucro: margemLucroNum,
       rendimento: rendimentoNum,
       permitirEstoqueNegativo,
       fracionavel,
@@ -775,7 +855,7 @@ export default function CadastrarProdutoPage() {
       })),
     }
 
-    setSalvando(destino)
+    setSalvando(true)
     try {
       const result = editando && id
         ? await produtoService.editar(id, request)
@@ -786,9 +866,7 @@ export default function CadastrarProdutoPage() {
         setPrecoFinalManual(true)
       }
 
-      if (destino === 'catalogo') {
-        navigate(`/catalogos/itens/novo?produtoId=${result.id}`)
-      } else if (editando) {
+      if (editando) {
         navigate(`/produtos/${id}`)
       } else {
         navigate('/produtos')
@@ -804,7 +882,7 @@ export default function CadastrarProdutoPage() {
         setErro(data?.message || 'Erro ao salvar produto. Verifique os campos obrigatórios.')
       }
     } finally {
-      setSalvando(null)
+      setSalvando(false)
     }
   }
 
@@ -823,7 +901,7 @@ export default function CadastrarProdutoPage() {
         </span>
         <ChevronRight size={15} className="text-dim" />
         <span className="whitespace-nowrap font-semibold text-body">
-          {editando ? dados.nome || 'Editar Produto' : 'Novo Produto'}
+          {dados.nome || (editando ? 'Editar Produto' : 'Novo Produto')}
         </span>
       </div>
 
@@ -833,7 +911,7 @@ export default function CadastrarProdutoPage() {
           {editando ? <Pencil size={26} /> : <Box size={26} />}
         </span>
         <h1 className="m-0 whitespace-nowrap text-[26px] font-bold tracking-[-0.02em] text-dark">
-          {editando ? 'Editar Produto' : 'Novo Produto'}
+          {dados.nome || (editando ? 'Editar Produto' : 'Novo Produto')}
         </h1>
       </div>
 
@@ -868,6 +946,7 @@ export default function CadastrarProdutoPage() {
         <DadosBasicos
           st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome}
           permitirEstoqueNegativo={permitirEstoqueNegativo} setPermitirEstoqueNegativo={setPermitirEstoqueNegativo} estoqueNegativoErro={estoqueNegativoErro}
+          produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl}
         />
       )}
       {aba === 'ficha' && (
@@ -875,8 +954,6 @@ export default function CadastrarProdutoPage() {
           <FichaTecnica
             ficha={ficha} setFicha={setFicha}
             rendimento={rendimento} setRendimento={setRendimento} rendimentoErro={fieldErrors.rendimento || rendimentoErroInline}
-            mostrarBotaoCatalogo={isProduto} salvandoCatalogo={salvando === 'catalogo'}
-            botaoCatalogoDisabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido} onCriarCatalogo={() => salvar('catalogo')}
             fracionavel={fracionavel}
             onFracionavelChange={v => { setFracionavelManual(true); setFracionavel(v) }}
           />
@@ -914,8 +991,8 @@ export default function CadastrarProdutoPage() {
             <Button variant="ghost" onClick={() => navigate(editando ? `/produtos/${id}` : '/produtos')} disabled={!!salvando}>
               Cancelar
             </Button>
-            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar('padrao')} disabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido}>
-              {salvando === 'padrao'
+            <Button variant={isProduto ? 'secondary' : 'primary'} onClick={() => salvar()} disabled={!!salvando || bloqueioEstoqueNegativo || rendimentoInvalido}>
+              {salvando
                 ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" />{editando ? 'Salvando…' : 'Cadastrando…'}</span>
                 : (editando ? 'Salvar alterações' : 'Salvar produto')
               }
