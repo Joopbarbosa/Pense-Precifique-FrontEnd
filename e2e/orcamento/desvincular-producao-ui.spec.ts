@@ -68,7 +68,7 @@ test.describe('#401 — Desvincular produção via UI (CEN-NOVO-1/2)', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByText(`Desvincular ${producao.identificador}?`)).toBeVisible()
     await expect(
-      dialog.getByText('O orçamento deixa de estar vinculado a esta produção. Os produtos já lançados na produção não são removidos automaticamente.')
+      dialog.getByText('O orçamento deixa de estar vinculado a esta produção e as quantidades que ele adicionou são retiradas da produção.')
     ).toBeVisible()
 
     await Promise.all([

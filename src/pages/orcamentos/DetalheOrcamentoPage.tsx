@@ -2331,7 +2331,7 @@ export default function DetalheOrcamentoPage() {
         confirmLabel="Desvincular"
         confirmingLabel="Desvinculando…"
         confirming={desvinculando}
-        description="O orçamento deixa de estar vinculado a esta produção. Os produtos já lançados na produção não são removidos automaticamente."
+        description="O orçamento deixa de estar vinculado a esta produção e as quantidades que ele adicionou são retiradas da produção."
       />
     </AppLayout>
   );
