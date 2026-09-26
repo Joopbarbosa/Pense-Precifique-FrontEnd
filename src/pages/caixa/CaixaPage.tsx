@@ -7,7 +7,7 @@ import type { CustomizacaoLinha, LinhaVendaView } from '../../components/venda'
 import Toast from '../../components/shared/Toast'
 import {
   Wallet, Lock, Check, AlertTriangle, Receipt, Clock, History, Ban, ShoppingCart, Plus,
-  ArrowDownCircle, ArrowUpCircle, Users, Search,
+  ArrowDownCircle, ArrowUpCircle, Users, Search, RotateCw,
 } from 'lucide-react'
 import { caixaService } from '../../services/caixaService'
 import { empresaService } from '../../services/empresaService'
@@ -837,12 +837,19 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
     if (!open) setQ('')
   }, [open])
 
+  const [estado, setEstado] = useState<'carregando' | 'pronto' | 'erro'>('carregando')
+  const [tentativa, setTentativa] = useState(0)
+
+  // V0.15.0: só ativos com papel Cliente (#539) e estados carregando/vazio/erro (#342, mesmo padrão do ClienteSelect).
   useEffect(() => {
     if (!open || debouncedQ !== q) return
-    clienteService.listar(0, 20, debouncedQ.trim() || undefined)
-      .then(data => setResultados(data.content))
-      .catch(() => setResultados([]))
-  }, [open, debouncedQ, q])
+    let cancelado = false
+    setEstado('carregando')
+    clienteService.listar(0, 20, debouncedQ.trim() || undefined, { papel: 'CLIENTE' })
+      .then(data => { if (!cancelado) { setResultados(data.content); setEstado('pronto') } })
+      .catch(() => { if (!cancelado) { setResultados([]); setEstado('erro') } })
+    return () => { cancelado = true }
+  }, [open, debouncedQ, q, tentativa])
 
   return (
     <ModalShell open={open} onClose={onClose} title="Selecionar cliente" icon={<Users size={17} />}>
@@ -860,8 +867,20 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
           />
         </div>
         <div className="flex max-h-[360px] flex-col gap-0.5 overflow-y-auto">
-          {resultados.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted">Nenhum cliente encontrado.</div>
+          {estado === 'erro' ? (
+            <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center text-sm text-danger-deep">
+              Não foi possível carregar os clientes.
+              <button type="button" onClick={() => setTentativa(t => t + 1)}
+                className="inline-flex items-center gap-1.5 border-none bg-transparent font-[inherit] text-[13px] font-semibold text-teal">
+                <RotateCw size={14} /> Tentar de novo
+              </button>
+            </div>
+          ) : estado === 'carregando' && resultados.length === 0 ? (
+            <div role="status" className="flex items-center justify-center gap-2.5 py-8 text-sm text-muted">
+              <Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Buscando clientes…
+            </div>
+          ) : resultados.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted">Nenhum cliente encontrado</div>
           ) : resultados.map(c => (
             <button
               key={c.id}
