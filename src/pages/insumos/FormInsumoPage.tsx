@@ -253,7 +253,7 @@ export default function FormInsumoPage() {
       </div>
 
       {/* CARD FORM */}
-      <div className="max-w-[760px] animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
         {/* SEÇÃO 1 — Identificação */}
         <div className="border-b border-line px-[26px] py-6">
