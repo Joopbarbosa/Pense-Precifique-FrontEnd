@@ -11,6 +11,9 @@ import ComprasPage from '../pages/compras/ComprasPage'
 import FormCompraPage from '../pages/compras/FormCompraPage'
 import DetalheCompraPage from '../pages/compras/DetalheCompraPage'
 import PreviewPdfCompraPage from '../pages/compras/PreviewPdfCompraPage'
+import ListaComprasPage from '../pages/compras/ListaComprasPage'
+import DetalheListaCompraPage from '../pages/compras/DetalheListaCompraPage'
+import PreviewPdfListaCompraPage from '../pages/compras/PreviewPdfListaCompraPage'
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
 import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
@@ -68,6 +71,9 @@ export const router = createBrowserRouter([
 
       { path: '/compras',              element: <ComprasPage /> },
       { path: '/compras/nova',         element: <FormCompraPage /> },
+      { path: '/compras/lista',        element: <ListaComprasPage /> },
+      { path: '/compras/lista/:id',    element: <DetalheListaCompraPage /> },
+      { path: '/compras/lista/:id/pdf', element: <PreviewPdfListaCompraPage /> },
       { path: '/compras/:id/editar',   element: <FormCompraPage /> },
       { path: '/compras/:id',          element: <DetalheCompraPage /> },
       { path: '/compras/:id/pdf',      element: <PreviewPdfCompraPage /> },
