@@ -202,7 +202,7 @@ export default function ClientesPage() {
 
   const openNova = () => navigate('/clientes/novo')
   const openEdit = (c: ClienteResponse) => navigate(`/clientes/${c.id}/editar`)
-  const openDetalhe = (c: ClienteResponse) => navigate(`/clientes/${c.id}/editar`)
+  const openDetalhe = (c: ClienteResponse) => navigate(`/clientes/${c.id}`)
 
   // Estado "primeiro uso": nenhum cadastro na conta (ativo ou inativo).
   const semCadastros = contagens != null && contagens.ativos === 0 && contagens.inativos === 0 && !loading && !query.trim()

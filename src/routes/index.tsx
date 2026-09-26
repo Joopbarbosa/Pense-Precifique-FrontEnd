@@ -6,6 +6,7 @@ import OnboardingPage from '../pages/auth/OnboardingPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
 import ClientesPage from '../pages/clientes/ClientesPage'
 import FormClientePage from '../pages/clientes/FormClientePage'
+import DetalheClientePage from '../pages/clientes/DetalheClientePage'
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
 import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: '/clientes',            element: <ClientesPage /> },
       { path: '/clientes/novo',       element: <FormClientePage /> },
       { path: '/clientes/:id/editar', element: <FormClientePage /> },
+      { path: '/clientes/:id',        element: <DetalheClientePage /> },
 
       { path: '/orcamentos',                          element: <ListaOrcamentosPage /> },
       { path: '/orcamentos/novo',                     element: <CriarOrcamentoPage /> },

@@ -1,5 +1,8 @@
 import api from './api'
-import type { ClienteContagensResponse, ClienteFiltros, ClienteRequest, ClienteResponse } from '../types/cliente'
+import type {
+  ClienteContagensResponse, ClienteFiltros, ClienteRequest, ClienteResponse, CompraFornecedorHistoricoResponse,
+  GraficosClienteResponse, IndicadoresCadastroResponse, PedidoClienteResponse,
+} from '../types/cliente'
 import type { PageResponse } from '../types/shared'
 
 export const clienteService = {
@@ -39,5 +42,27 @@ export const clienteService = {
 
   reativar: async (id: string): Promise<void> => {
     await api.post(`/clientes/${id}/reativar`)
+  },
+
+  // ---------- Detalhe (#560, #451) ----------
+
+  indicadores: async (id: string): Promise<IndicadoresCadastroResponse> => {
+    const response = await api.get(`/clientes/${id}/indicadores`)
+    return response.data
+  },
+
+  historicoPedidos: async (id: string, page: number, size = 10): Promise<PageResponse<PedidoClienteResponse>> => {
+    const response = await api.get(`/clientes/${id}/historico/pedidos`, { params: { page, size } })
+    return response.data
+  },
+
+  historicoCompras: async (id: string, page: number, size = 10): Promise<PageResponse<CompraFornecedorHistoricoResponse>> => {
+    const response = await api.get(`/clientes/${id}/historico/compras`, { params: { page, size } })
+    return response.data
+  },
+
+  graficos: async (id: string, de?: string, ate?: string): Promise<GraficosClienteResponse> => {
+    const response = await api.get(`/clientes/${id}/graficos`, { params: { de, ate } })
+    return response.data
   },
 }

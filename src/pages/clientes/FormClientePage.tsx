@@ -144,9 +144,8 @@ export default function FormClientePage() {
         endereco: opcional(form.endereco),
         observacoes: opcional(form.observacoes),
       }
-      if (editando) await clienteService.editar(id!, req)
-      else await clienteService.cadastrar(req)
-      navigate('/clientes', { state: { toast: editando ? 'Cadastro atualizado com sucesso!' : 'Cadastro salvo com sucesso!' } })
+      const salvo = editando ? await clienteService.editar(id!, req) : await clienteService.cadastrar(req)
+      navigate(`/clientes/${salvo.id}`, { state: { toast: editando ? 'Cadastro atualizado com sucesso!' : 'Cadastro salvo com sucesso!' } })
     } catch (err: any) {
       const fe: Record<string, string> = err.response?.data?.fieldErrors ?? {}
       setFieldErrors(fe)
