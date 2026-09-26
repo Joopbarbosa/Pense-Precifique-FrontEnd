@@ -22,7 +22,7 @@ test.describe('Cenário 160 — Scroll trava ao abrir drawer de clientes (#95)',
     await expect(page.locator('body')).not.toHaveClass(/drawer-open/)
     await expect.poll(overflow).toBe('visible')
 
-    await page.getByRole('button', { name: 'Nova Cliente' }).click()
+    await page.getByRole('button', { name: 'Novo cadastro' }).click()
     await expect(page.locator('body')).toHaveClass(/drawer-open/)
     await expect.poll(overflow).toBe('hidden')
 

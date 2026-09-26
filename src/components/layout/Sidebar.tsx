@@ -24,7 +24,7 @@ const GRUPO_VENDAS = {
 } as const
 
 const NAV_RESTANTE = [
-  { id: 'clientes',  label: 'Clientes',      icon: Users,    size: 20, href: '/clientes' },
+  { id: 'clientes',  label: 'Clientes e Fornecedores', icon: Users, size: 20, href: '/clientes' },
   { id: 'insumos',   label: 'Insumos',       icon: Package,  size: 20, href: '/insumos' },
   { id: 'produtos',  label: 'Produtos',      icon: Box,      size: 20, href: '/produtos' },
   { id: 'catalogos', label: 'Catálogos',     icon: Files,    size: 22, href: '/catalogos' },
