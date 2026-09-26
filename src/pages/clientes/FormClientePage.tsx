@@ -201,17 +201,21 @@ export default function FormClientePage() {
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="1" title="Identificação" subtitle="Quem é e qual papel tem para você." />
           <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
+            <div className="lg:col-span-2">
             <Field label="Este cadastro é" group size="md" required>
-              <div className="flex flex-col gap-2.5 sm:flex-row">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:gap-[18px]">
                 <PapelOpcao label="Cliente" descricao="Compra de você" marcado={form.ehCliente} onClick={() => set('ehCliente', !form.ehCliente)} />
                 <PapelOpcao label="Fornecedor" descricao="Vende para você" marcado={form.ehFornecedor} onClick={() => set('ehFornecedor', !form.ehFornecedor)} />
               </div>
             </Field>
+            </div>
 
+            <div className="lg:col-span-2">
             <Field label="Nome" required size="md" erro={fieldErrors.nome}>
               <input className={inputClass('nome')} maxLength={255} placeholder="Beatriz Santos ou Papelaria Central"
                 value={form.nome} onChange={e => set('nome', e.target.value)} />
             </Field>
+            </div>
 
             <Field label="Tipo de pessoa" group size="md">
               <SegmentedControl options={TIPOS_PESSOA} value={form.tipoPessoa} onChange={trocarTipo} textSize="text-[13.5px]" />
