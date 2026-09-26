@@ -195,12 +195,12 @@ export default function FormClientePage() {
         <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">{titulo}</h1>
       </div>
 
-      <div className="max-w-[760px] animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
         {/* SEÇÃO 1 — Identificação */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="1" title="Identificação" subtitle="Quem é e qual papel tem para você." />
-          <div className="flex flex-col gap-[18px]">
+          <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
             <Field label="Este cadastro é" group size="md" required>
               <div className="flex flex-col gap-2.5 sm:flex-row">
                 <PapelOpcao label="Cliente" descricao="Compra de você" marcado={form.ehCliente} onClick={() => set('ehCliente', !form.ehCliente)} />
@@ -213,23 +213,22 @@ export default function FormClientePage() {
                 value={form.nome} onChange={e => set('nome', e.target.value)} />
             </Field>
 
-            <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
-              <Field label="Tipo de pessoa" group size="md">
-                <SegmentedControl options={TIPOS_PESSOA} value={form.tipoPessoa} onChange={trocarTipo} textSize="text-[13.5px]" />
-              </Field>
-              <Field label={ROTULO_DOCUMENTO[form.tipoPessoa]} opt size="md" erro={fieldErrors.documento}>
-                <input className={clsx(inputClass('documento'), '[font-variant-numeric:tabular-nums]')} maxLength={30}
-                  placeholder={PLACEHOLDER_DOCUMENTO[form.tipoPessoa]}
-                  value={form.documento} onChange={e => set('documento', mascararDocumento(e.target.value, form.tipoPessoa))} />
-              </Field>
-            </div>
+            <Field label="Tipo de pessoa" group size="md">
+              <SegmentedControl options={TIPOS_PESSOA} value={form.tipoPessoa} onChange={trocarTipo} textSize="text-[13.5px]" />
+            </Field>
+
+            <Field label={ROTULO_DOCUMENTO[form.tipoPessoa]} opt size="md" erro={fieldErrors.documento}>
+              <input className={clsx(inputClass('documento'), '[font-variant-numeric:tabular-nums]')} maxLength={30}
+                placeholder={PLACEHOLDER_DOCUMENTO[form.tipoPessoa]}
+                value={form.documento} onChange={e => set('documento', mascararDocumento(e.target.value, form.tipoPessoa))} />
+            </Field>
           </div>
         </div>
 
         {/* SEÇÃO 2 — Contato */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="2" title="Contato" subtitle="Como falar com esta pessoa ou empresa." />
-          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
             <Field label="WhatsApp" opt size="md" erro={fieldErrors.whatsapp} hint="Usado para enviar orçamentos diretamente.">
               <input className={inputClass('whatsapp')} type="tel" placeholder="(11) 99999-0000"
                 value={form.whatsapp} onChange={e => set('whatsapp', mascararTelefone(e.target.value))} />
@@ -252,7 +251,7 @@ export default function FormClientePage() {
         {/* SEÇÃO 3 — Endereço e observações */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="3" title="Endereço e observações" />
-          <div className="flex flex-col gap-[18px]">
+          <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
             <Field label="Endereço" opt size="md">
               <TextArea value={form.endereco} onChange={v => set('endereco', v)} erro={fieldErrors.endereco}
                 minHeight="min-h-[64px]" placeholder="Rua, número, bairro, cidade" />
