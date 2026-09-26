@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
-import { ClipboardList, Plus, ShoppingCart } from 'lucide-react'
+import { ClipboardList, Plus, ShoppingCart, Users } from 'lucide-react'
+import DashboardCompras from '../../components/compra/DashboardCompras'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -66,11 +67,15 @@ export default function ComprasPage() {
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">O que você comprou, de quem e quanto pagou.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista')}>Lista de compras</Button>
+          <Button variant="ghost" icon={<Users size={16} />} onClick={() => navigate('/clientes')}>Clientes e Fornecedores</Button>
+          <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista')}>Gerar lista de compras</Button>
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/compras/nova')}>Registrar compra</Button>
         </div>
       </div>
 
+      <div className="mb-7"><DashboardCompras /></div>
+
+      <h2 className="mb-3 mt-0 text-[18px] font-bold text-dark">Compras</h2>
       <div className="mb-[18px] flex flex-col gap-3.5">
         <div className="flex flex-wrap gap-2">
           {FILTROS_STATUS.map(f => {
