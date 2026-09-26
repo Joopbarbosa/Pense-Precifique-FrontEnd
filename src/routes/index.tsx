@@ -10,6 +10,7 @@ import DetalheClientePage from '../pages/clientes/DetalheClientePage'
 import ComprasPage from '../pages/compras/ComprasPage'
 import FormCompraPage from '../pages/compras/FormCompraPage'
 import DetalheCompraPage from '../pages/compras/DetalheCompraPage'
+import PreviewPdfCompraPage from '../pages/compras/PreviewPdfCompraPage'
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
 import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
       { path: '/compras/nova',         element: <FormCompraPage /> },
       { path: '/compras/:id/editar',   element: <FormCompraPage /> },
       { path: '/compras/:id',          element: <DetalheCompraPage /> },
+      { path: '/compras/:id/pdf',      element: <PreviewPdfCompraPage /> },
 
       { path: '/insumos',              element: <ListaInsumosPage /> },
       { path: '/insumos/novo',         element: <FormInsumoPage /> },

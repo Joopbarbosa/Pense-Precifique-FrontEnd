@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { ArrowLeft, Ban, Check, ChevronRight, CreditCard, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Ban, Check, ChevronRight, Copy, CreditCard, FileText, Pencil, Trash2 } from 'lucide-react'
+import ModalCancelarCompra from '../../components/compra/ModalCancelarCompra'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field, ModalShell, SegmentedControl } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -18,7 +19,7 @@ import { extractApiError } from '../../utils/apiError'
 import type { CompraResponse, ImpactoCompraResponse } from '../../types/compra'
 
 // V0.15.0 — detalhe da compra (#541, #550). RASCUNHO: editar, excluir, confirmar. CONFIRMADA: só o
-// pagamento muda (Decisão 14). Cancelar/duplicar/PDF: #544/#545.
+// pagamento muda (Decisão 14). Cancelar e duplicar: #544 (RN-NOVA-9/10). PDF: #545 (RN-NOVA-11).
 
 function Info({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
@@ -77,16 +78,17 @@ export default function DetalheCompraPage() {
 
   const [compra, setCompra] = useState<CompraResponse | null>(null)
   const [erroCarga, setErroCarga] = useState<string | null>(null)
-  const [modal, setModal] = useState<'excluir' | 'confirmar' | 'pagamento' | null>(null)
+  const [modal, setModal] = useState<'excluir' | 'confirmar' | 'pagamento' | 'cancelar' | null>(null)
   const [processando, setProcessando] = useState(false)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [impacto, setImpacto] = useState<{ titulo: string; impacto: ImpactoCompraResponse } | null>(null)
 
+  // Por navegação (location.key), não só na montagem: duplicar leva de um detalhe a outro sem remontar.
   useEffect(() => {
     const msg = (location.state as { toast?: string } | null)?.toast
     if (msg) { setToast(msg); navigate(location.pathname, { replace: true, state: null }) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [location.key])
 
   useEffect(() => {
     if (!id) return
@@ -117,6 +119,19 @@ export default function DetalheCompraPage() {
       setImpacto({ titulo: `Compra ${r.compra.identificador} confirmada`, impacto: r.impacto })
     } catch (err) {
       setErroAcao(extractApiError(err, 'Não foi possível confirmar a compra.'))
+    } finally {
+      setProcessando(false)
+    }
+  }
+
+  const duplicar = async () => {
+    if (!compra) return
+    setProcessando(true)
+    try {
+      const nova = await compraService.duplicar(compra.id)
+      navigate(`/compras/${nova.id}`, { state: { toast: `Rascunho ${nova.identificador} criado a partir de ${compra.identificador}. Revise e confirme.` } })
+    } catch (err) {
+      setToast(extractApiError(err, 'Não foi possível duplicar a compra.'))
     } finally {
       setProcessando(false)
     }
@@ -172,9 +187,14 @@ export default function DetalheCompraPage() {
               Confirmar compra
             </Button>
           </>}
-          {confirmada && (
-            <Button variant="ghost" icon={<CreditCard size={16} />} onClick={() => setModal('pagamento')}>Alterar pagamento</Button>
+          <Button variant="ghost" icon={<FileText size={16} />} onClick={() => navigate(`/compras/${compra.id}/pdf`)}>PDF</Button>
+          {posConfirmacao && (
+            <Button variant="ghost" icon={processando ? <Spinner size={15} /> : <Copy size={16} />} disabled={processando} onClick={duplicar}>Duplicar</Button>
           )}
+          {confirmada && <>
+            <Button variant="ghost" icon={<CreditCard size={16} />} onClick={() => setModal('pagamento')}>Alterar pagamento</Button>
+            <Button variant="danger" icon={<Ban size={16} />} onClick={() => setModal('cancelar')}>Cancelar compra</Button>
+          </>}
         </div>
       </div>
 
@@ -264,6 +284,10 @@ export default function DetalheCompraPage() {
       />
       {modal === 'pagamento' && (
         <ModalPagamento compra={compra} onClose={() => setModal(null)} onSalvo={c => { setCompra(c); setModal(null); setToast('Pagamento atualizado.') }} />
+      )}
+      {modal === 'cancelar' && (
+        <ModalCancelarCompra compra={compra} onClose={() => setModal(null)}
+          onCancelada={r => { setCompra(r.compra); setModal(null); setImpacto({ titulo: `Compra ${r.compra.identificador} cancelada`, impacto: r.impacto }) }} />
       )}
       {impacto && <ModalImpactoCompra titulo={impacto.titulo} impacto={impacto.impacto} onClose={() => setImpacto(null)} />}
     </AppLayout>
