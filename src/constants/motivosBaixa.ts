@@ -18,6 +18,8 @@ export const MOTIVO_LABEL: Record<string, string> = {
   PRODUCAO:         'Produção',
   ORCAMENTO:        'Orçamento',
   ESTORNO_PRODUCAO: 'Cancelamento de produção',
+  COMPRA:           'Compra',
+  ESTORNO_COMPRA:   'Cancelamento de compra',
   PERDA:            'Perda',
   AVARIA:           'Avaria',
   USO_EXTRA:        'Uso extra',

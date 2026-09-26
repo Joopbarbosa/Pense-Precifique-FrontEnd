@@ -1,6 +1,7 @@
 import { APIRequestContext } from '@playwright/test'
 import { API_URL } from './auth'
 import { resolverUnidadeMedidaId } from './unidadeMedida'
+import { registrarCompraConfirmada } from './compra'
 
 /**
  * Achado da suíte QA (RN-NOVA-1/#442, V0.10.0): `POST /insumos` deixou de gerar movimentação de
@@ -8,7 +9,7 @@ import { resolverUnidadeMedidaId } from './unidadeMedida'
  * `precoTotalCompraInicial`/`quantidadeCompradaInicial` preenchidos (esses dois campos hoje só
  * alimentam o cálculo de `custoUnitario`, não mais estoque — ver `decisoes-insumo.md`). Este
  * helper cria o insumo (para obter `custoUnitario`/id) e, quando `estoqueInicial > 0`, repõe o
- * estoque de verdade via `POST /lotes-compra` (mesmo mecanismo de `reporEstoque`, abaixo) — sem
+ * estoque de verdade via compra confirmada (`POST /compras/confirmar` desde a V0.15.0; era `POST /lotes-compra`) — sem
  * essa 2ª chamada, todo spec que dependia de `estoqueInicial > 0` para popular estoque real
  * silenciosamente passava a testar contra estoque `0`, mascarando o cenário pretendido.
  */
@@ -37,13 +38,7 @@ export async function criarInsumoComEstoque(
   }
   const insumo = await res.json()
   if (estoqueInicial > 0) {
-    const loteRes = await request.post(`${API_URL}/lotes-compra`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { itens: [{ insumoId: insumo.id, quantidadeComprada: estoqueInicial, precoTotalPago: 1 }] },
-    })
-    if (!loteRes.ok()) {
-      throw new Error(`Falha ao repor estoque inicial via lote de compra: ${loteRes.status()} ${await loteRes.text()}`)
-    }
+    await registrarCompraConfirmada(request, token, [{ insumoId: insumo.id, quantidade: estoqueInicial, precoTotal: 1 }])
     insumo.estoqueAtual = estoqueInicial
   }
   return insumo
@@ -82,13 +77,7 @@ export async function criarInsumoFracionavel(
   }
   const insumo = await res.json()
   if (estoqueInicial > 0) {
-    const loteRes = await request.post(`${API_URL}/lotes-compra`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { itens: [{ insumoId: insumo.id, quantidadeComprada: estoqueInicial, precoTotalPago: 1 }] },
-    })
-    if (!loteRes.ok()) {
-      throw new Error(`Falha ao repor estoque inicial via lote de compra: ${loteRes.status()} ${await loteRes.text()}`)
-    }
+    await registrarCompraConfirmada(request, token, [{ insumoId: insumo.id, quantidade: estoqueInicial, precoTotal: 1 }])
     insumo.estoqueAtual = estoqueInicial
   }
   return insumo
@@ -153,8 +142,8 @@ export async function definirPermitirNegativo(
  * bloqueante entre trava e retomada. `PUT /insumos/{id}` inclui `estoqueAtual` no DTO mas
  * IGNORA silenciosamente esse campo na atualização (confirmado empiricamente: enviar
  * estoqueAtual=50 não muda o valor persistido) — estoque só se move por endpoint de movimentação.
- * `POST /lotes-compra` é o caminho real de entrada de estoque (mesmo usado por loteCompraService
- * no frontend), então aqui calculamos o delta necessário e registramos um lote de compra.
+ * Compra confirmada (`POST /compras/confirmar`, V0.15.0 — antes `POST /lotes-compra`) é o caminho real
+ * de entrada de estoque, então aqui calculamos o delta necessário e registramos uma compra.
  */
 export async function reporEstoque(
   request: APIRequestContext,
@@ -169,13 +158,7 @@ export async function reporEstoque(
   const delta = novoEstoqueAtual - insumo.estoqueAtual
   if (delta <= 0) return insumo // já está no alvo ou acima — nada a repor
 
-  const res = await request.post(`${API_URL}/lotes-compra`, {
-    headers: { Authorization: `Bearer ${token}` },
-    data: { itens: [{ insumoId: id, quantidadeComprada: delta, precoTotalPago: 1 }] },
-  })
-  if (!res.ok()) {
-    throw new Error(`Falha ao repor estoque via lote de compra: ${res.status()} ${await res.text()}`)
-  }
+  await registrarCompraConfirmada(request, token, [{ insumoId: id, quantidade: delta, precoTotal: 1 }])
   const atualizado = await request.get(`${API_URL}/insumos/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   })

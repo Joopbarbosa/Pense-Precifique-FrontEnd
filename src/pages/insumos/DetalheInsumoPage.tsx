@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -7,7 +7,8 @@ import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
 import TextArea from '../../components/ui/TextArea'
-import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers } from 'lucide-react'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers, Truck } from 'lucide-react'
+import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
@@ -45,15 +46,27 @@ const hexA = (hex: string, a: number) => {
 
 function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; tipoDisplay: 'entrada' | 'saida' | 'estorno' } {
   if (m.motivo === 'ESTORNO_PRODUCAO') return { titulo: 'Estorno — Cancelamento Produção', tipoDisplay: 'estorno' }
+  if (m.motivo === 'ESTORNO_COMPRA') return { titulo: 'Estorno — Cancelamento Compra', tipoDisplay: 'estorno' }
   const labelsEntrada: Record<string, string> = { COMPRA: 'Compra' }
   if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
   return { titulo: `Saída — ${MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
 }
 
-function refText(m: MovimentacaoInsumoResponse): string {
-  const labels: Record<string, string> = { PRODUCAO: 'Produção', ORCAMENTO: 'Orçamento', LOTE_COMPRA: 'Compra' }
-  if (m.referenciaTipo && m.referenciaId) return `${labels[m.referenciaTipo] ?? m.referenciaTipo} #${m.referenciaId.slice(0, 8)}`
-  return ''
+// V0.15.0 (#542, RN-NOVA-7) — a referência é o identificador legível que vem pronto da API
+// (`referencia`), nunca o ID interno; leva ao detalhe da origem. Venda do Caixa (CX-N) não tem
+// página de detalhe, então fica só o texto.
+const ROTA_REFERENCIA: Record<string, (id: string) => string> = {
+  PRODUCAO: id => `/producao/${id}`,
+  ORCAMENTO: id => `/orcamentos/${id}`,
+  COMPRA: id => `/compras/${id}`,
+}
+
+function Referencia({ m }: { m: MovimentacaoInsumoResponse }) {
+  if (!m.referencia) return null
+  const rota = m.referenciaTipo && m.referenciaId ? ROTA_REFERENCIA[m.referenciaTipo] : undefined
+  return rota
+    ? <Link to={rota(m.referenciaId!)} className="font-semibold text-teal no-underline hover:underline">{m.referencia}</Link>
+    : <span>{m.referencia}</span>
 }
 
 function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
@@ -239,7 +252,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
         const deltaClass = positivo && !isEstorno ? 'text-success' : 'text-danger'
         const deltaT = (positivo ? '+ ' : '− ') + formatQuantidade(m.quantidade, fracionavel, tipoExibicaoQuantidade) + ` ${unidade}`
         const riscado = m.estornada
-        const ref = refText(m)
+        const ref = m.referencia ? <Referencia m={m} /> : null
 
         return (
           <React.Fragment key={m.id}>
@@ -360,7 +373,7 @@ export default function DetalheInsumoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [modal, setModal] = useState<'baixa' | null>(null)
-  const [aba, setAba] = useState<'historico' | 'fichas'>('historico')
+  const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores'>('historico')
   const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
   const [histPage, setHistPage] = useState(0)
@@ -373,6 +386,7 @@ export default function DetalheInsumoPage() {
   const ABAS = [
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: History, size: 17 },
     { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Layers, size: 18 },
+    { id: 'fornecedores' as const, label: 'Fornecedores', icon: Truck, size: 17 },
   ]
 
   useEffect(() => {
@@ -554,8 +568,10 @@ export default function DetalheInsumoPage() {
               <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida} fracionavel={insumo.fracionavel} tipoExibicaoQuantidade={insumo.tipoExibicaoQuantidade} />
             )}
           </>
-        ) : (
+        ) : aba === 'fichas' ? (
           <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
+        ) : (
+          <VinculosFornecedorInsumo modo="insumo" id={insumo.id} />
         )}
       </div>
 

@@ -73,6 +73,8 @@ export interface MovimentacaoInsumoResponse {
   observacao?: string
   referenciaId?: string
   referenciaTipo?: string
+  /** V0.15.0 (#542, RN-NOVA-7) — identificador legível da origem (PRD-N, ORC-N, COM-N, CX-N), pronto do backend. */
+  referencia?: string | null
   estornada: boolean
   createdAt: string
 }

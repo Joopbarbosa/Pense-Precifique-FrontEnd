@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Field, ModalShell, SegmentedControl, Spinner, Tag, TextArea } from '../../components/ui'
+import { Button, Field, ModalShell, MoneyInput, SegmentedControl, Spinner, Tag, TextArea } from '../../components/ui'
 import { ItemSearch, ItemLinha, ModalCustomizacoes, DescontoBlock, SectionCard, ModoToggle } from '../../components/venda'
 import type { CustomizacaoLinha, LinhaVendaView } from '../../components/venda'
 import Toast from '../../components/shared/Toast'
@@ -46,7 +46,6 @@ const moeda = (n: number) =>
 
 const paraCampoMoeda = (n: number) => n.toFixed(2).replace('.', ',')
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 const TIPO_DESCONTO_API: Record<'%' | 'R$', 'PERCENTUAL' | 'VALOR'> = { '%': 'PERCENTUAL', 'R$': 'VALOR' }
 
@@ -65,28 +64,6 @@ interface ItemCarrinho extends LinhaVendaView {
 }
 
 /* ── MoneyInput ──────────────────────────────────────────────── */
-
-function MoneyInput({ value, onChange, autoFocus, size = 'md' }: {
-  value: string; onChange: (v: string) => void; autoFocus?: boolean; size?: 'md' | 'lg'
-}) {
-  return (
-    <div className="relative">
-      <span className="pointer-events-none absolute inset-y-0 left-0 grid w-12 place-items-center rounded-l-input border-r border-line bg-cream text-[13px] font-semibold text-dim">
-        R$
-      </span>
-      <input
-        value={value}
-        onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
-        inputMode="decimal"
-        autoFocus={autoFocus}
-        className={clsx(
-          inputBase, 'pl-14 pr-3.5 [font-variant-numeric:tabular-nums]',
-          size === 'lg' && 'h-[54px] text-[18px] font-semibold'
-        )}
-      />
-    </div>
-  )
-}
 
 /* ── AbrirCaixaView (#488) ───────────────────────────────────── */
 

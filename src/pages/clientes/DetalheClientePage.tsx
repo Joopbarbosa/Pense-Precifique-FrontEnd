@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import {
-  ArrowLeft, Ban, BarChart3, ChevronRight, ClipboardList, Info, Monitor, Pencil, Power, User,
+  ArrowLeft, Ban, BarChart3, ChevronRight, ClipboardList, Info, Monitor, Package, Pencil, Power, User,
 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import AppLayout from '../../components/layout/AppLayout'
@@ -11,6 +11,7 @@ import Spinner from '../../components/ui/Spinner'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
+import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import { BRL } from '../../components/venda/formato'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
@@ -28,7 +29,7 @@ import type {
 // V0.15.0 — página de detalhe do cadastro (#560, RN-NOVA-19) com gráficos do cliente (#451, RN-NOVA-20).
 // Todo número vem pronto do backend (indicadores/gráficos agregados em DT-NOVA-9); aqui só formatação.
 
-type Aba = 'detalhes' | 'historico'
+type Aba = 'detalhes' | 'historico' | 'insumos'
 
 const TIPO_PESSOA_LABEL: Record<TipoPessoa, string> = { FISICA: 'Pessoa física', JURIDICA: 'Pessoa jurídica', ESTRANGEIRO: 'Estrangeiro' }
 
@@ -437,6 +438,8 @@ export default function DetalheClientePage() {
   const ABAS: { id: Aba; label: string; icon: typeof User }[] = [
     { id: 'detalhes', label: 'Detalhes', icon: User },
     { id: 'historico', label: 'Histórico', icon: ClipboardList },
+    // #540 (RN-NOVA-6) — insumos que este fornecedor vende, com preço de referência.
+    ...(mostraFornecedor ? [{ id: 'insumos' as const, label: 'Insumos que fornece', icon: Package }] : []),
   ]
 
   return (
@@ -520,6 +523,10 @@ export default function DetalheClientePage() {
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <DadosCadastrais c={cadastro} />
           </div>
+        ) : aba === 'insumos' ? (
+          <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <VinculosFornecedorInsumo modo="fornecedor" id={cadastro.id} />
+          </div>
         ) : (
           <>
             {mostraCliente && <GraficosCliente clienteId={cadastro.id} />}
@@ -566,7 +573,7 @@ export default function DetalheClientePage() {
                 renderLinha={c => {
                   const s = STATUS_COMPRA[c.status]
                   return (
-                    <div key={c.id} data-testid="linha-compra" className={linhaHistorico}>
+                    <div key={c.id} data-testid="linha-compra" onClick={() => navigate(`/compras/${c.id}`)} className={clsx(linhaHistorico, 'cursor-pointer hover:bg-cream')}>
                       <div className="font-semibold text-dark">{c.identificador}</div>
                       <div className="text-right text-body md:text-left">{formatarData(c.dataCompra)}</div>
                       <div className="flex flex-wrap gap-1.5">

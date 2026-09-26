@@ -14,30 +14,22 @@ import Toast from '../../components/shared/Toast'
 import { EstoqueTags } from '../../components/ui/Badge'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
-  ArrowRight, Layers, ArrowDown, Box, CheckCircle, ChevronRight, Repeat,
+  Layers, Box, CheckCircle, ChevronRight, Repeat,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { InsumoContagensResponse, InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
-import type { ImpactoAgregadoResponse } from '../../types/loteCompra'
 import { insumoService } from '../../services/insumoService'
-import { loteCompraService } from '../../services/loteCompraService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
-import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { formatQuantidade } from '../../utils/quantidade'
 import { extractApiError } from '../../utils/apiError'
 
 const TIPO_PRODUTO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
   PRODUTO_BASE: 'Produto base',
   CUSTOMIZACAO: 'Customização',
-}
-
-interface ItemCarrinho {
-  insumo: InsumoResponse
-  qtd: string
-  preco: string
 }
 
 const FILTERS = ['Todos', 'Ativos', 'Inativos', 'Estoque baixo', 'Estoque negativo', 'Estoque positivo']
@@ -64,13 +56,6 @@ const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
 
 const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
 
-const num = (s: string) => parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
-
-const numQtd = (s: string) => {
-  const fracao = tentarConverterFracao(s)
-  if (fracao !== null) return fracao
-  return num(s)
-}
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', {
@@ -243,275 +228,6 @@ function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, on
         </div>
       </div>
     </div>
-  )
-}
-
-function CompraLoteModal({ onClose, onSuccess }: {
-  onClose: () => void
-  onSuccess: (impacto: ImpactoAgregadoResponse) => void
-}) {
-  const [itens, setItens] = useState<ItemCarrinho[]>([])
-  const [busca, setBusca] = useState('')
-  const [resultadosBusca, setResultadosBusca] = useState<InsumoResponse[]>([])
-  const [openList, setOpenList] = useState(false)
-  const [loadingBusca, setLoadingBusca] = useState(false)
-  const [loadingConfirm, setLoadingConfirm] = useState(false)
-  const buscaInputRef = useRef<HTMLInputElement>(null)
-
-  const focarBusca = () => {
-    buscaInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    buscaInputRef.current?.focus()
-  }
-
-  useEffect(() => {
-    if (!openList) return
-    setLoadingBusca(true)
-    const delay = busca.trim() ? 300 : 0
-    const timer = setTimeout(() => {
-      insumoService.buscarParaCarrinho(busca.trim())
-        .then(data => setResultadosBusca(data))
-        .catch(() => setResultadosBusca([]))
-        .finally(() => setLoadingBusca(false))
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [busca, openList])
-
-  const disponiveis = resultadosBusca.filter(i =>
-    i.ativo && !itens.find(it => it.insumo.id === i.id)
-  )
-
-  const addItem = (insumo: InsumoResponse) => {
-    setItens(prev => [...prev, { insumo, qtd: '', preco: '' }])
-    setBusca('')
-    setOpenList(false)
-    setResultadosBusca([])
-  }
-
-  const updateItem = (id: string, field: 'qtd' | 'preco', value: string) => {
-    const allowed = field === 'qtd' ? /[^\d.,/]/g : /[^\d.,]/g
-    setItens(prev => prev.map(it =>
-      it.insumo.id === id ? { ...it, [field]: value.replace(allowed, '') } : it
-    ))
-  }
-
-  const removeItem = (id: string) => setItens(prev => prev.filter(it => it.insumo.id !== id))
-
-  const podeConfirmar = itens.length > 0 && itens.every(it => numQtd(it.qtd) > 0 && num(it.preco) > 0)
-
-  const confirmar = async () => {
-    setLoadingConfirm(true)
-    try {
-      const response = await loteCompraService.registrar({
-        itens: itens.map(it => ({
-          insumoId: it.insumo.id,
-          quantidadeComprada: numQtd(it.qtd),
-          precoTotalPago: num(it.preco),
-        })),
-      })
-      onSuccess(response)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoadingConfirm(false)
-    }
-  }
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title="Registrar compras"
-      subtitle="Adicione os insumos que você comprou."
-      icon={<ShoppingCart size={17} />}
-      width={620}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={loadingConfirm}>Cancelar</Button>
-          <Button variant="primary" disabled={!podeConfirmar || loadingConfirm} iconRight={loadingConfirm ? undefined : <ArrowRight size={17} />} onClick={confirmar}>
-            {loadingConfirm
-              ? <span className="flex items-center gap-2"><Spinner size={16} trackColor="rgba(255,255,255,0.3)" /> Registrando…</span>
-              : `Confirmar${itens.length > 0 ? ` (${itens.length})` : ''} e ver impacto`
-            }
-          </Button>
-        </>
-      }
-    >
-      <div className="relative">
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
-            <Search size={16} />
-          </span>
-          <input
-            ref={buscaInputRef}
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            onFocus={() => setOpenList(true)}
-            onBlur={() => setTimeout(() => setOpenList(false), 150)}
-            placeholder="Buscar insumo para adicionar…"
-            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-10 pr-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
-          />
-        </div>
-        {openList && (
-          <div className="absolute inset-x-0 top-[50px] z-20 max-h-[300px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-            {loadingBusca ? (
-              <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
-            ) : disponiveis.length === 0 ? (
-              <div className="px-2.5 py-3 text-center text-[13px] text-muted">Nenhum insumo encontrado</div>
-            ) : disponiveis.map(i => (
-              <button
-                key={i.id}
-                onMouseDown={() => addItem(i)}
-                className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
-              >
-                <span className="flex w-full items-center justify-between gap-2.5">
-                  <span className="text-[13.5px] font-semibold text-dark">
-                    {i.nome}{i.marca ? <span className="font-normal text-muted"> · {i.marca}</span> : null}
-                  </span>
-                  <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
-                </span>
-                <EstoqueTags
-                  fracionavel={i.fracionavel}
-                  permitirEstoqueNegativo={i.permitirEstoqueNegativo}
-                  estoqueAtual={i.estoqueAtual}
-                  unidade={i.unidadeMedida}
-                  variant="busca"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {itens.length === 0 ? (
-        <div className="mt-4 rounded-xl border-[1.5px] border-dashed border-line px-7 py-7 text-center text-[13.5px] text-muted">
-          Nenhum insumo adicionado ainda. Use a busca acima.
-        </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-2.5">
-          {itens.map(it => {
-            const q = numQtd(it.qtd)
-            const p = num(it.preco)
-            const novoCusto = q > 0 ? p / q : null
-
-            return (
-              <div key={it.insumo.id} className="rounded-xl border border-line bg-cream px-4 py-3.5">
-                <div className="mb-2.5 flex items-center justify-between gap-2.5">
-                  <span className="text-sm font-semibold text-dark">{it.insumo.nome}</span>
-                  <button onClick={() => removeItem(it.insumo.id)} className="flex border-none bg-transparent text-faint hover:text-danger">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="relative flex-[1_1_110px]">
-                    <input
-                      value={it.qtd}
-                      onChange={e => updateItem(it.insumo.id, 'qtd', e.target.value)}
-                      inputMode="decimal"
-                      placeholder="Qtd"
-                      className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-3 pr-[50px] font-[inherit] text-sm text-dark outline-none"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12.5px] font-semibold text-dim">
-                      {it.insumo.unidadeMedida}
-                    </span>
-                  </div>
-                  <div className="relative flex-[1_1_130px]">
-                    <span className="absolute inset-y-0 left-0 grid w-[38px] place-items-center rounded-l-[9px] border-r border-line bg-cream text-[13px] font-semibold text-dim">
-                      R$
-                    </span>
-                    <input
-                      value={it.preco}
-                      onChange={e => updateItem(it.insumo.id, 'preco', e.target.value)}
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      className="h-[42px] w-full rounded-[9px] border-[1.5px] border-line pl-[46px] pr-3 font-[inherit] text-sm text-dark outline-none"
-                    />
-                  </div>
-                  <div className="flex-[1_1_130px] text-right">
-                    {novoCusto != null ? (
-                      <span className="text-[13px] font-bold text-teal">
-                        {moeda(novoCusto)} /{it.insumo.unidadeMedida}
-                      </span>
-                    ) : (
-                      <span className="text-[12.5px] text-muted">—</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-          <button
-            onClick={focarBusca}
-            className="flex h-11 items-center justify-center gap-2 rounded-input border-[1.5px] border-dashed border-[#C9C5BC] bg-transparent font-[inherit] text-[13.5px] font-semibold text-body transition-colors duration-100 hover:border-teal hover:bg-cream"
-          >
-            <Plus size={16} /> Adicionar mais um insumo
-          </button>
-        </div>
-      )}
-    </ModalShell>
-  )
-}
-
-function ImpactoLoteModal({ impacto, onClose }: {
-  impacto: ImpactoAgregadoResponse
-  onClose: () => void
-}) {
-  const { insumosAtualizados } = impacto
-
-  return (
-    <ModalShell
-      open
-      onClose={onClose}
-      title="Compra registrada!"
-      subtitle={`${insumosAtualizados.length} ${insumosAtualizados.length === 1 ? 'insumo atualizado' : 'insumos atualizados'}.`}
-      icon={<Layers size={18} />}
-      iconBg="rgba(42,157,143,0.10)"
-      iconColor="#2A9D8F"
-      width={560}
-      footer={<Button variant="primary" onClick={onClose}>Concluir</Button>}
-    >
-      <div className="overflow-hidden rounded-[14px] border border-line">
-        <div className="grid grid-cols-[1fr_auto] gap-3 bg-cream px-4 py-[11px] text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-          <span>Insumo</span><span className="text-right">Custo unitário</span>
-        </div>
-        {insumosAtualizados.map((item) => {
-          const subiu = item.custoUnitarioNovo > item.custoUnitarioAnterior
-          const igual = item.custoUnitarioNovo === item.custoUnitarioAnterior
-          return (
-            <div key={item.insumoId} className="grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line px-4 py-3.5">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-dark">{item.nomeInsumo}</div>
-                <div className="mt-0.5 text-[11.5px] text-muted">
-                  +{item.quantidadeAdicionada} {item.unidadeMedida}
-                  {item.marca ? ` · ${item.marca}` : ''}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-[9px] [font-variant-numeric:tabular-nums]">
-                <span className={clsx('text-[13.5px] text-muted', !igual && 'line-through')}>
-                  {moeda(item.custoUnitarioAnterior, 2)}
-                </span>
-                {!igual && (
-                  <>
-                    <ArrowRight size={17} className="text-dim" />
-                    <span className={clsx('inline-flex items-center gap-1 text-[14.5px] font-bold', subiu ? 'text-danger' : 'text-success')}>
-                      {subiu
-                        ? <ArrowDown size={14} className="rotate-180" />
-                        : <ArrowDown size={14} />
-                      }
-                      {moeda(item.custoUnitarioNovo, 2)}
-                    </span>
-                  </>
-                )}
-                {igual && (
-                  <span className="text-[14.5px] font-bold text-dark">
-                    {moeda(item.custoUnitarioNovo, 2)}
-                  </span>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </ModalShell>
   )
 }
 
@@ -937,8 +653,6 @@ export default function ListaInsumosPage() {
   const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacaoInsumo>('numero')
   const [direcao, setDirecao] = useState<'ASC' | 'DESC'>('DESC')
   const isFirstSort = useRef(true)
-  const [modalCompra, setModalCompra] = useState(false)
-  const [impactoLote, setImpactoLote] = useState<ImpactoAgregadoResponse | null>(null)
   const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; operacao: 'INATIVAR' | 'EXCLUIR'; produtos: ProdutoRelacionadoResponse[]; catalogoVinculos: VinculoCatalogoInsumoUI[]; loading: boolean } | null>(null)
@@ -1049,17 +763,6 @@ export default function ListaInsumosPage() {
     }
   }
 
-  const handleCompraSuccess = (impacto: ImpactoAgregadoResponse) => {
-    setModalCompra(false)
-    setImpactoLote(impacto)
-  }
-
-  const handleImpactoClose = () => {
-    setImpactoLote(null)
-    carregar()
-    carregarContadores()
-  }
-
   // "Ativos"/"Inativos" já vêm filtrados do servidor (FILTRO_TO_ATIVO no fetcher) — só as 3 abas
   // de estoque continuam filtrando sobre a janela carregada (escopo consciente, ver #336 acima).
   let lista = insumos
@@ -1106,8 +809,9 @@ export default function ListaInsumosPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          <Button variant="secondary" icon={<ShoppingCart size={17} />} onClick={() => setModalCompra(true)}>
-            Registrar compras
+          {/* V0.15.0 (#542, RN-NOVA-4) — a compra passou para o módulo Compras; o modal carrinho saiu. */}
+          <Button variant="secondary" icon={<ShoppingCart size={17} />} onClick={() => navigate('/compras/nova')}>
+            Registrar compra
           </Button>
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/insumos/novo')}>
             Novo Insumo
@@ -1242,16 +946,6 @@ export default function ListaInsumosPage() {
             )}
           </div>
         </>
-      )}
-
-      {modalCompra && (
-        <CompraLoteModal
-          onClose={() => setModalCompra(false)}
-          onSuccess={handleCompraSuccess}
-        />
-      )}
-      {impactoLote && (
-        <ImpactoLoteModal impacto={impactoLote} onClose={handleImpactoClose} />
       )}
 
       {/* MODAL: confirmar inativação (reversível) */}

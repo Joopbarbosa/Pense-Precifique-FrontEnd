@@ -1,5 +1,6 @@
 import { test, expect, APIRequestContext } from '@playwright/test'
 import { login, API_URL } from '../helpers/auth'
+import { registrarCompraConfirmada } from '../helpers/compra'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
 import { resolverUnidadeMedidaId } from '../helpers/unidadeMedida'
@@ -45,11 +46,8 @@ async function criarInsumoBarato(request: APIRequestContext, token: string, nome
 
 async function encarecerInsumo(request: APIRequestContext, token: string, insumoId: string) {
   // Lote de compra caro — eleva a média ponderada de custoUnitario, sem mexer no cadastro do produto.
-  const res = await request.post(`${API_URL}/lotes-compra`, {
-    headers: { Authorization: `Bearer ${token}` },
-    data: { itens: [{ insumoId, quantidadeComprada: 10, precoTotalPago: 500 }] }, // eleva custoUnitario de ~1 para ~25,5
-  })
-  if (!res.ok()) throw new Error(`Falha ao encarecer insumo: ${res.status()} ${await res.text()}`)
+  // eleva custoUnitario de ~1 para ~25,5 (V0.15.0: compra confirmada, era POST /lotes-compra)
+  await registrarCompraConfirmada(request, token, [{ insumoId, quantidade: 10, precoTotal: 500 }])
 }
 
 async function criarProdutoCustomizacao(request: APIRequestContext, token: string, nome: string) {
