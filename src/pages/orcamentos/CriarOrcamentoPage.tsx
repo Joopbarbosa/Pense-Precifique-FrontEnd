@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, ModalShell, SegmentedControl } from '../../components/ui'
+import { Button, ModalShell, SegmentedControl, TextArea } from '../../components/ui'
 import {
   AlertCircle, AlertTriangle,
   Calendar, Wallet, DollarSign, FileText, StickyNote, ShoppingCart, Plus, Check, Factory,
@@ -244,28 +244,18 @@ function PagamentoSection({
         {metodoPagamento === 'OUTRO' && (
           <div className="mt-3 animate-[fadeUp_.2s_ease_both]">
             <label className="block">
-              <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
+              <span className="mb-[7px] flex items-center text-[13px] font-semibold text-body">
                 <span>Descreva o método de pagamento <span className="text-orange">*</span></span>
-                <span className={clsx('font-normal', obsCharCount >= 50 ? 'text-success' : 'text-muted')}>
-                  {obsCharCount}/50 caracteres mín.
-                </span>
               </span>
-              <textarea
+              <TextArea
                 value={metodoPagamentoObs}
-                onChange={e => setMetodoPagamentoObs(e.target.value)}
-                placeholder="Ex: cheque à vista, transferência internacional..."
+                onChange={setMetodoPagamentoObs}
                 rows={3}
-                className={clsx(
-                  'w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
-                  obsInvalido ? 'border-[#F2B8A6]' : 'border-line'
-                )}
+                minimo={50}
+                erro={obsInvalido ? `Mínimo de 50 caracteres. Faltam ${50 - obsCharCount}.` : undefined}
+                textSize="text-sm"
+                placeholder="Ex: cheque à vista, transferência internacional..."
               />
-              {obsInvalido && (
-                <div className="mt-1.5 flex items-center gap-[5px] text-[13px] text-danger">
-                  <AlertCircle size={13} />
-                  Mínimo de 50 caracteres. Faltam {50 - obsCharCount}.
-                </div>
-              )}
             </label>
           </div>
         )}
@@ -428,10 +418,12 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
           <span className="mb-1.5 flex items-center gap-[7px] text-[13px] font-semibold text-body">
             <StickyNote size={15} /> Observações
           </span>
-          <textarea
-            value={obs} onChange={e => setObs(e.target.value)}
-            rows={2} placeholder="Ex: Entrega combinada para 15/06"
-            className="min-h-[64px] w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          <TextArea
+            value={obs}
+            onChange={setObs}
+            rows={2}
+            textSize="text-sm"
+            placeholder="Ex: Entrega combinada para 15/06"
           />
         </label>
 
@@ -1246,13 +1238,13 @@ export default function CriarOrcamentoPage() {
               <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
                 <StickyNote size={15} className="text-teal" /> Observações <span className="text-[11.5px] font-medium text-muted">(opcional)</span>
               </span>
-              <textarea
+              <TextArea
                 value={formObsProducaoCheckpoint}
-                onChange={(e) => setFormObsProducaoCheckpoint(e.target.value)}
-                disabled={criandoProducaoCheckpoint}
+                onChange={setFormObsProducaoCheckpoint}
                 rows={3}
+                disabled={criandoProducaoCheckpoint}
+                textSize="text-sm"
                 placeholder="Ex: separar embalagem especial para este pedido"
-                className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
               />
             </label>
 

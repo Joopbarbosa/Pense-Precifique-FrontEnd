@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
+import TextArea from '../../components/ui/TextArea'
 import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check, ImagePlus, X } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
@@ -693,15 +694,15 @@ export default function NovoItemCatalogoPage() {
               )}
 
               <Field label="Descrição" size="md">
-                <textarea
+                {/* itens_catalogo.descricao continua em 150 — exceção mais restritiva da RN-NOVA-18 (DT-NOVA-11). */}
+                <TextArea
                   value={descricao}
-                  onChange={e => setDescricao(e.target.value.slice(0, 150))}
+                  onChange={setDescricao}
                   maxLength={150}
                   rows={3}
+                  textSize="text-[13.5px]"
                   placeholder="Aparece também no PDF do catálogo"
-                  className="w-full resize-none rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
                 />
-                <span className="mt-1 block text-right text-[11px] text-dim">{descricao.length}/150</span>
               </Field>
             </div>
             {fotoErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{fotoErro}</span>}

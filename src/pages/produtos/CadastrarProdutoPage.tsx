@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Field } from '../../components/ui'
+import { Button, Field, TextArea } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
@@ -128,12 +128,11 @@ function TipoSelector({ value, onChange }: { value: string; onChange: (v: string
 
 function DescTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <textarea
+    <TextArea
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={onChange}
       rows={3}
       placeholder="Conte os detalhes que tornam esse produto especial..."
-      className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
     />
   )
 }

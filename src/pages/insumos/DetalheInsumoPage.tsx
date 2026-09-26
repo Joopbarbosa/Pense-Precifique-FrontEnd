@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
+import TextArea from '../../components/ui/TextArea'
 import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers } from 'lucide-react'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
@@ -188,27 +189,15 @@ function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
         <label>
           <span className="mb-[7px] block text-[13px] font-semibold text-body">
             Observação <span className="text-orange">*</span>
-            <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
-              {obs.length}/30 caracteres mín.
-            </span>
           </span>
-          <textarea
+          <TextArea
             value={obs}
-            onChange={e => setObs(e.target.value)}
-            placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
+            onChange={setObs}
             rows={3}
-            className={clsx(
-              'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-              obs.length > 0 && obs.length < 30
-                ? 'border-[#F2B8A6]'
-                : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-            )}
+            minimo={30}
+            erro={obs.length > 0 && obs.length < 30 ? `Mínimo de 30 caracteres. Faltam ${30 - obs.length}.` : undefined}
+            placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
           />
-          {obs.length > 0 && obs.length < 30 && (
-            <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-              <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
-            </div>
-          )}
         </label>
         {error && (
           <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">

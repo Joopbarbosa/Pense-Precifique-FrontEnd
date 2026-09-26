@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Stepper } from '../../components/ui'
+import { Button, Stepper, TextArea } from '../../components/ui'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
@@ -499,12 +499,12 @@ export default function NovaProducaoPage() {
               <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
                 <StickyNote size={15} /> Observações (opcional)
               </span>
-              <textarea
+              <TextArea
                 value={observacoes}
-                onChange={e => setObservacoes(e.target.value)}
+                onChange={setObservacoes}
                 rows={3}
+                textSize="text-sm"
                 placeholder="Ex: Priorizar entrega da tarde"
-                className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
               />
             </label>
           </div>

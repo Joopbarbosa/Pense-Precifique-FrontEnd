@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Field, ModalShell, SegmentedControl, Spinner, Tag } from '../../components/ui'
+import { Button, Field, ModalShell, SegmentedControl, Spinner, Tag, TextArea } from '../../components/ui'
 import { ItemSearch, ItemLinha, ModalCustomizacoes, DescontoBlock, SectionCard, ModoToggle } from '../../components/venda'
 import type { CustomizacaoLinha, LinhaVendaView } from '../../components/venda'
 import Toast from '../../components/shared/Toast'
@@ -177,7 +177,6 @@ function SangriaSuprimentoModal({ open, onClose, onSaved }: {
     if (open) { setTipo('SANGRIA'); setValor(''); setMotivo(''); setErro(null) }
   }, [open])
 
-  const motivoCurto = motivo.trim().length > 0 && motivo.trim().length < 30
 
   const salvar = async () => {
     if (motivo.trim().length < 30) {
@@ -226,16 +225,14 @@ function SangriaSuprimentoModal({ open, onClose, onSaved }: {
           <MoneyInput value={valor} onChange={setValor} autoFocus />
         </Field>
         <Field label="Motivo" size="md">
-          <textarea
+          <TextArea
             value={motivo}
-            onChange={e => setMotivo(e.target.value)}
+            onChange={setMotivo}
             rows={3}
+            minimo={30}
+            textSize="text-[14px]"
             placeholder="Descreva o motivo (mínimo 30 caracteres)"
-            className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-3 font-[inherit] text-[14px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
           />
-          <span className={clsx('mt-1.5 block text-xs', motivoCurto ? 'text-warning-alt' : 'text-muted')}>
-            {motivo.trim().length}/30 caracteres mínimos
-          </span>
         </Field>
         {erro && <p className="text-[12.5px] font-medium text-danger-deep">{erro}</p>}
       </div>
@@ -272,7 +269,6 @@ function FecharCaixaModal({ open, onClose, turno, onFechado }: {
   // nunca confia nesse cálculo (mesmo espírito do padrão `simular-*`).
   const temDiferenca = previa != null && valor.trim() !== ''
     && Math.round((num(valor) - previa.valorEsperado) * 100) !== 0
-  const justificativaCurta = justificativa.trim().length > 0 && justificativa.trim().length < 30
 
   const fechar = async () => {
     if (temDiferenca && justificativa.trim().length < 30) {
@@ -352,16 +348,14 @@ function FecharCaixaModal({ open, onClose, turno, onFechado }: {
           {temDiferenca && (
             <div className="animate-[fadeUp_.2s_ease_both]">
               <Field label="Justificativa" size="md">
-                <textarea
+                <TextArea
                   value={justificativa}
-                  onChange={e => setJustificativa(e.target.value)}
+                  onChange={setJustificativa}
                   rows={3}
+                  minimo={30}
+                  textSize="text-[14px]"
                   placeholder="Descreva o motivo da diferença (mínimo 30 caracteres)"
-                  className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-3 font-[inherit] text-[14px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
                 />
-                <span className={clsx('mt-1.5 block text-xs', justificativaCurta ? 'text-warning-alt' : 'text-muted')}>
-                  {justificativa.trim().length}/30 caracteres mínimos
-                </span>
               </Field>
             </div>
           )}
@@ -400,7 +394,6 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
     if (open) { carregar(); setCancelando(null); setMotivo(''); setSenha(''); setRetornarEstoque(true); setErro(null) }
   }, [open, turnoId])
 
-  const motivoCurto = motivo.trim().length > 0 && motivo.trim().length < 30
 
   const confirmarCancelamento = async () => {
     if (!cancelando) return
@@ -451,16 +444,14 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
             Confira se o estoque deve voltar antes de confirmar. Para corrigir um erro, cancele e registre uma nova venda.
           </div>
           <Field label="Motivo do cancelamento" size="md">
-            <textarea
+            <TextArea
               value={motivo}
-              onChange={e => setMotivo(e.target.value)}
+              onChange={setMotivo}
               rows={3}
+              minimo={30}
+              textSize="text-[14px]"
               placeholder="Descreva o motivo (mínimo 30 caracteres)"
-              className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-3 font-[inherit] text-[14px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
             />
-            <span className={clsx('mt-1.5 block text-xs', motivoCurto ? 'text-warning-alt' : 'text-muted')}>
-              {motivo.trim().length}/30 caracteres mínimos
-            </span>
           </Field>
           <div>
             <span className="mb-2 block text-[13px] font-semibold text-body">O estoque deve voltar?</span>
