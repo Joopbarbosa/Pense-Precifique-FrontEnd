@@ -352,7 +352,9 @@ export default function NovoItemCatalogoPage() {
             setMargem((item.margemLucro ?? 0).toString())
             setModoMargem('personalizar')
             setPrecoSugerido(item.precoSugerido)
-            setPrecoEditadoManualmente(item.override)
+            // #579/RN-NOVA-30 — na edição o preço final é o gravado: o preview não o substitui pelo sugerido e
+            // ele vai sempre no request; só muda se a artesã digitar (mesmo comportamento de Produto).
+            setPrecoEditadoManualmente(true)
             setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
             // OpenProject #528 — ItemCatalogoComponenteResponse agora expõe fracionavelInsumo
