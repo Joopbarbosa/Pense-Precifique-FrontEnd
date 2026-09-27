@@ -96,6 +96,8 @@ export interface CompraFiltros {
   fornecedorId?: string
   de?: string
   ate?: string
+  /** #565 — `campo,direcao` (dataCompra, numero, fornecedor, itens, total, status). */
+  sort?: string
 }
 
 // ---------- Impacto (#543, RN-NOVA-8) ----------

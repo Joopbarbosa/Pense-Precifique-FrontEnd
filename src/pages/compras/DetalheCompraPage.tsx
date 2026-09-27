@@ -3,14 +3,15 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { ArrowLeft, Ban, Check, ChevronRight, Copy, CreditCard, FileText, Pencil, Trash2 } from 'lucide-react'
 import ModalCancelarCompra from '../../components/compra/ModalCancelarCompra'
+import ModalPagamento from '../../components/compra/ModalPagamentoCompra'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Field, ModalShell, SegmentedControl } from '../../components/ui'
+import { Button } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
-import MetodoPagamentoEscolha from '../../components/compra/MetodoPagamentoEscolha'
+import ModalInsumoResumo from '../../components/compra/ModalInsumoResumo'
 import { formatarData, moeda4, qtd } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
@@ -30,46 +31,6 @@ function Info({ titulo, children }: { titulo: string; children: ReactNode }) {
   )
 }
 
-function ModalPagamento({ compra, onClose, onSalvo }: { compra: CompraResponse; onClose: () => void; onSalvo: (c: CompraResponse) => void }) {
-  const [pago, setPago] = useState(compra.pago)
-  const [metodoId, setMetodoId] = useState<string | null>(compra.metodoPagamento?.id ?? null)
-  const [salvando, setSalvando] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
-
-  const salvar = async () => {
-    setSalvando(true); setErro(null)
-    try {
-      onSalvo(await compraService.atualizarPagamento(compra.id, pago, pago ? metodoId : null))
-    } catch (err) {
-      setErro(extractApiError(err, 'Não foi possível alterar o pagamento.'))
-    } finally {
-      setSalvando(false)
-    }
-  }
-
-  return (
-    <ModalShell open onClose={onClose} title="Alterar pagamento" subtitle={compra.identificador} icon={<CreditCard size={16} />} width={520}
-      footer={<>
-        <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
-        <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar pagamento'}</Button>
-      </>}>
-      <div className="flex flex-col gap-4">
-        <p className="m-0 text-[13px] text-muted">Numa compra confirmada, o pagamento é a única informação que ainda pode mudar.</p>
-        <Field label="Pagamento" group size="md">
-          <SegmentedControl options={[{ value: false, label: 'Não pago' }, { value: true, label: 'Pago' }]} value={pago}
-            onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
-        </Field>
-        {pago && (
-          <Field label="Como foi paga?" required group size="md">
-            <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra.metodoPagamento} />
-          </Field>
-        )}
-        {erro && <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>}
-      </div>
-    </ModalShell>
-  )
-}
-
 export default function DetalheCompraPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -82,6 +43,7 @@ export default function DetalheCompraPage() {
   const [processando, setProcessando] = useState(false)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [impacto, setImpacto] = useState<{ titulo: string; impacto: ImpactoCompraResponse } | null>(null)
+  const [insumoAberto, setInsumoAberto] = useState<string | null>(null)
 
   // Por navegação (location.key), não só na montagem: duplicar leva de um detalhe a outro sem remontar.
   useEffect(() => {
@@ -187,14 +149,15 @@ export default function DetalheCompraPage() {
               Confirmar compra
             </Button>
           </>}
-          <Button variant="ghost" icon={<FileText size={16} />} onClick={() => navigate(`/compras/${compra.id}/pdf`)}>PDF</Button>
+          {/* #569 — logo depois de Voltar: Cancelar (laranja) e Alterar pagamento (verde). */}
+          {confirmada && <>
+            <Button variant="primary" icon={<Ban size={16} />} onClick={() => setModal('cancelar')}>Cancelar compra</Button>
+            <Button variant="secondary" icon={<CreditCard size={16} />} onClick={() => setModal('pagamento')}>Alterar pagamento</Button>
+          </>}
           {posConfirmacao && (
             <Button variant="ghost" icon={processando ? <Spinner size={15} /> : <Copy size={16} />} disabled={processando} onClick={duplicar}>Duplicar</Button>
           )}
-          {confirmada && <>
-            <Button variant="ghost" icon={<CreditCard size={16} />} onClick={() => setModal('pagamento')}>Alterar pagamento</Button>
-            <Button variant="danger" icon={<Ban size={16} />} onClick={() => setModal('cancelar')}>Cancelar compra</Button>
-          </>}
+          <Button variant="ghost" icon={<FileText size={16} />} onClick={() => navigate(`/compras/${compra.id}/pdf`)}>PDF</Button>
         </div>
       </div>
 
@@ -238,7 +201,10 @@ export default function DetalheCompraPage() {
           <div key={i.id} data-testid="item-compra" className={clsx('grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-line px-5 py-3 text-[13.5px] lg:items-center lg:gap-3',
             compra.multiplosFornecedores ? 'lg:grid-cols-[1.6fr_1.2fr_0.8fr_0.9fr_0.9fr_1.4fr]' : 'lg:grid-cols-[2fr_0.8fr_0.9fr_0.9fr_1.4fr]')}>
             <div className="col-span-2 min-w-0 lg:col-span-1">
-              <Link to={`/insumos/${i.insumo.id}`} className="font-semibold text-dark no-underline hover:text-teal">{i.insumo.nome}</Link>
+              <button type="button" onClick={() => setInsumoAberto(i.insumo.id)}
+                className="cursor-pointer border-none bg-transparent p-0 text-left font-[inherit] text-[13.5px] font-semibold text-dark hover:text-teal hover:underline">
+                {i.insumo.nome}
+              </button>
               <span className="ml-2 text-[12px] text-muted">{i.insumo.identificador}</span>
               {!i.insumo.ativo && <span className="ml-2 text-[11px] font-semibold text-danger">inativo</span>}
             </div>
@@ -289,6 +255,7 @@ export default function DetalheCompraPage() {
         <ModalCancelarCompra compra={compra} onClose={() => setModal(null)}
           onCancelada={r => { setCompra(r.compra); setModal(null); setImpacto({ titulo: `Compra ${r.compra.identificador} cancelada`, impacto: r.impacto }) }} />
       )}
+      {insumoAberto && <ModalInsumoResumo insumoId={insumoAberto} onClose={() => setInsumoAberto(null)} />}
       {impacto && <ModalImpactoCompra titulo={impacto.titulo} impacto={impacto.impacto} onClose={() => setImpacto(null)} />}
     </AppLayout>
   )
