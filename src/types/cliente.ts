@@ -124,3 +124,33 @@ export interface GraficosClienteResponse {
   gastoMensal: { mes: string; total: number }[]
   itensMaisComprados: ItemCompradoResponse[]
 }
+
+/**
+ * V0.15.0 (#572/#573, RN-NOVA-24) — linha padronizada da modal de listagem do detalhe do cadastro.
+ * `data`: a que conta como compra (entrega/venda/compra) ou, nos demais, a de criação.
+ */
+export interface RegistroCadastroResponse {
+  id: string
+  tipo: 'ORCAMENTO' | 'VENDA_CAIXA' | 'COMPRA'
+  identificador: string
+  data: string
+  status: string
+  valor: number
+  quantidadeItens: number
+  resumoItens: string
+  contaComoCompra: boolean
+  pago: boolean | null
+}
+
+export interface RegistrosFiltros {
+  papel: PapelCadastro
+  busca?: string
+  status?: string[]
+  somenteCompras?: boolean
+  naoPagas?: boolean
+  de?: string
+  ate?: string
+  itemId?: string
+  /** `campo,direcao` — data, identificador, valor, status. */
+  sort?: string
+}

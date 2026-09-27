@@ -1,7 +1,7 @@
 import api from './api'
 import type {
   ClienteContagensResponse, ClienteFiltros, ClienteRequest, ClienteResponse, CompraFornecedorHistoricoResponse,
-  GraficosClienteResponse, IndicadoresCadastroResponse, PedidoClienteResponse,
+  GraficosClienteResponse, IndicadoresCadastroResponse, PedidoClienteResponse, RegistroCadastroResponse, RegistrosFiltros,
 } from '../types/cliente'
 import type { PageResponse } from '../types/shared'
 
@@ -58,6 +58,23 @@ export const clienteService = {
 
   historicoCompras: async (id: string, page: number, size = 10): Promise<PageResponse<CompraFornecedorHistoricoResponse>> => {
     const response = await api.get(`/clientes/${id}/historico/compras`, { params: { page, size } })
+    return response.data
+  },
+
+  // #572/#573 (RN-NOVA-24) — `status` repetido na query (`?status=A&status=B`).
+  registros: async (id: string, page: number, size: number, filtros: RegistrosFiltros): Promise<PageResponse<RegistroCadastroResponse>> => {
+    const response = await api.get(`/clientes/${id}/registros`, {
+      params: { page, size, ...filtros },
+      paramsSerializer: params => {
+        const sp = new URLSearchParams()
+        Object.entries(params).forEach(([k, v]) => {
+          if (v === undefined || v === null || v === '' || v === false) return
+          if (Array.isArray(v)) v.forEach(x => sp.append(k, String(x)))
+          else sp.append(k, String(v))
+        })
+        return sp.toString()
+      },
+    })
     return response.data
   },
 

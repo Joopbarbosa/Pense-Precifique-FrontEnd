@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import {
-  ArrowLeft, Ban, BarChart3, ChevronRight, ClipboardList, Info, Monitor, Package, Pencil, Power, User,
+  ArrowLeft, Ban, BarChart3, ChevronRight, ClipboardList, Info, Monitor, Package, Pencil, Power, Search, User,
 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import AppLayout from '../../components/layout/AppLayout'
@@ -13,6 +13,7 @@ import Toast from '../../components/shared/Toast'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import ModalRegistro, { type TipoRegistro } from '../../components/cliente/ModalRegistro'
+import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
 import { BRL } from '../../components/venda/formato'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
@@ -24,7 +25,7 @@ import { GRAFICO_EIXO, GRAFICO_GRID, MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } f
 import type { StatusOrcamento } from '../../types/orcamento'
 import type {
   ClienteResponse, CompraFornecedorHistoricoResponse, GraficosClienteResponse, IndicadoresCadastroResponse,
-  PedidoClienteResponse, TipoPessoa,
+  PapelCadastro, PedidoClienteResponse, TipoPessoa,
 } from '../../types/cliente'
 
 // V0.15.0 — página de detalhe do cadastro (#560, RN-NOVA-19) com gráficos do cliente (#451, RN-NOVA-20).
@@ -91,10 +92,17 @@ const STATUS_COMPRA: Record<CompraFornecedorHistoricoResponse['status'], { label
 
 // ---------- Indicadores ----------
 
-function Indicador({ titulo, valor, detalhe, destaque }: { titulo: string; valor: ReactNode; detalhe?: ReactNode; destaque?: boolean }) {
+// #572 (RN-NOVA-24) — a lupa no canto abre a modal de listagem já filtrada para aquele número.
+function Indicador({ titulo, valor, detalhe, destaque, onLupa }: { titulo: string; valor: ReactNode; detalhe?: ReactNode; destaque?: boolean; onLupa?: () => void }) {
   return (
-    <div className="min-w-0 border-b border-r border-line bg-white px-5 py-[16px]">
-      <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{titulo}</div>
+    <div className="relative min-w-0 border-b border-r border-line bg-white px-5 py-[16px]">
+      {onLupa && (
+        <button type="button" onClick={onLupa} aria-label={`Ver registros de ${titulo}`} title="Ver registros"
+          className="absolute right-2.5 top-2.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full border-none bg-transparent text-muted transition-colors hover:bg-teal/10 hover:text-teal">
+          <Search size={15} />
+        </button>
+      )}
+      <div className="pr-7 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{titulo}</div>
       <div className={clsx('mt-[6px] [font-variant-numeric:tabular-nums]', destaque ? 'text-[22px] font-bold tracking-[-0.02em] text-teal' : 'text-base font-semibold text-dark')}>
         {valor}
       </div>
@@ -118,33 +126,47 @@ function BlocoIndicadores({ titulo, children }: { titulo: string; children: Reac
   )
 }
 
-function IndicadoresCliente({ ind }: { ind: IndicadoresCadastroResponse['cliente'] }) {
+type AbrirListagem = (titulo: string, papel: PapelCadastro, filtro: FiltroInicial) => void
+
+function IndicadoresCliente({ ind, abrir }: { ind: IndicadoresCadastroResponse['cliente']; abrir: AbrirListagem }) {
+  const compras: FiltroInicial = { somenteCompras: true, rotulos: ['Só o que conta como compra'] }
   return (
     <BlocoIndicadores titulo="Como cliente">
-      <Indicador titulo="Total gasto" valor={BRL(ind.totalGasto)} destaque />
-      <Indicador titulo="Ticket médio" valor={ind.ticketMedio != null ? BRL(ind.ticketMedio) : '—'} />
-      <Indicador titulo="Pedidos" valor={ind.numeroPedidos} />
-      <Indicador titulo="Última compra" valor={formatarData(ind.ultimaCompra?.dataCompra)} detalhe={ind.ultimaCompra?.identificador} />
+      <Indicador titulo="Total gasto" valor={BRL(ind.totalGasto)} destaque onLupa={() => abrir('Total gasto', 'CLIENTE', compras)} />
+      <Indicador titulo="Ticket médio" valor={ind.ticketMedio != null ? BRL(ind.ticketMedio) : '—'} onLupa={() => abrir('Ticket médio', 'CLIENTE', compras)} />
+      <Indicador titulo="Pedidos" valor={ind.numeroPedidos} onLupa={() => abrir('Pedidos', 'CLIENTE', compras)} />
+      <Indicador titulo="Última compra" valor={formatarData(ind.ultimaCompra?.dataCompra)} detalhe={ind.ultimaCompra?.identificador}
+        onLupa={() => abrir('Última compra', 'CLIENTE', compras)} />
       <Indicador titulo="Mais comprado" valor={ind.itemMaisComprado?.nome ?? '—'}
-        detalhe={ind.itemMaisComprado ? `${qtd(ind.itemMaisComprado.quantidade)} un · ${BRL(ind.itemMaisComprado.valor)}` : undefined} />
-      <Indicador titulo="Cliente desde" valor={formatarData(ind.clienteDesde)} />
-      <Indicador titulo="Orçamentos em aberto" valor={ind.orcamentosEmAberto.quantidade} detalhe={BRL(ind.orcamentosEmAberto.valor)} />
-      <Indicador titulo="Orçamentos cancelados" valor={ind.orcamentosCancelados.quantidade} detalhe={BRL(ind.orcamentosCancelados.valor)} />
+        detalhe={ind.itemMaisComprado ? `${qtd(ind.itemMaisComprado.quantidade)} un · ${BRL(ind.itemMaisComprado.valor)}` : undefined}
+        onLupa={ind.itemMaisComprado ? () => abrir(`Pedidos com ${ind.itemMaisComprado!.nome}`, 'CLIENTE',
+          { somenteCompras: true, itemId: ind.itemMaisComprado!.id, rotulos: [ind.itemMaisComprado!.nome] }) : undefined} />
+      <Indicador titulo="Cliente desde" valor={formatarData(ind.clienteDesde)}
+        onLupa={() => abrir('Cliente desde', 'CLIENTE', { ...compras, sort: 'data,asc' })} />
+      <Indicador titulo="Orçamentos em aberto" valor={ind.orcamentosEmAberto.quantidade} detalhe={BRL(ind.orcamentosEmAberto.valor)}
+        onLupa={() => abrir('Orçamentos em aberto', 'CLIENTE', { status: ['RASCUNHO'] })} />
+      <Indicador titulo="Orçamentos cancelados" valor={ind.orcamentosCancelados.quantidade} detalhe={BRL(ind.orcamentosCancelados.valor)}
+        onLupa={() => abrir('Orçamentos cancelados', 'CLIENTE', { status: ['CANCELADO'] })} />
     </BlocoIndicadores>
   )
 }
 
-function IndicadoresFornecedor({ ind }: { ind: IndicadoresCadastroResponse['fornecedor'] }) {
+function IndicadoresFornecedor({ ind, abrir, verInsumos }: { ind: IndicadoresCadastroResponse['fornecedor']; abrir: AbrirListagem; verInsumos: () => void }) {
+  const confirmadas: FiltroInicial = { status: ['CONFIRMADA'] }
   return (
     <BlocoIndicadores titulo="Como fornecedor">
-      <Indicador titulo="Total comprado" valor={BRL(ind.totalComprado)} destaque />
-      <Indicador titulo="Compra média" valor={ind.compraMedia != null ? BRL(ind.compraMedia) : '—'} />
-      <Indicador titulo="Compras" valor={ind.numeroCompras} />
-      <Indicador titulo="Última compra" valor={formatarData(ind.ultimaCompra?.data)} detalhe={ind.ultimaCompra?.identificador} />
+      <Indicador titulo="Total comprado" valor={BRL(ind.totalComprado)} destaque onLupa={() => abrir('Total comprado', 'FORNECEDOR', confirmadas)} />
+      <Indicador titulo="Compra média" valor={ind.compraMedia != null ? BRL(ind.compraMedia) : '—'} onLupa={() => abrir('Compra média', 'FORNECEDOR', confirmadas)} />
+      <Indicador titulo="Compras" valor={ind.numeroCompras} onLupa={() => abrir('Compras', 'FORNECEDOR', confirmadas)} />
+      <Indicador titulo="Última compra" valor={formatarData(ind.ultimaCompra?.data)} detalhe={ind.ultimaCompra?.identificador}
+        onLupa={() => abrir('Última compra', 'FORNECEDOR', confirmadas)} />
       <Indicador titulo="Insumo mais comprado" valor={ind.insumoMaisComprado?.nome ?? '—'}
-        detalhe={ind.insumoMaisComprado ? `${qtd(ind.insumoMaisComprado.quantidade)} ${ind.insumoMaisComprado.unidade}` : undefined} />
-      <Indicador titulo="Insumos vinculados" valor={ind.insumosVinculados} />
-      <Indicador titulo="Compras não pagas" valor={ind.comprasNaoPagas.quantidade} detalhe={BRL(ind.comprasNaoPagas.valor)} />
+        detalhe={ind.insumoMaisComprado ? `${qtd(ind.insumoMaisComprado.quantidade)} ${ind.insumoMaisComprado.unidade}` : undefined}
+        onLupa={ind.insumoMaisComprado ? () => abrir(`Compras com ${ind.insumoMaisComprado!.nome}`, 'FORNECEDOR',
+          { ...confirmadas, itemId: ind.insumoMaisComprado!.id, rotulos: [ind.insumoMaisComprado!.nome] }) : undefined} />
+      <Indicador titulo="Insumos vinculados" valor={ind.insumosVinculados} onLupa={verInsumos} />
+      <Indicador titulo="Compras não pagas" valor={ind.comprasNaoPagas.quantidade} detalhe={BRL(ind.comprasNaoPagas.valor)}
+        onLupa={() => abrir('Compras não pagas', 'FORNECEDOR', { naoPagas: true, rotulos: ['Não pagas'] })} />
     </BlocoIndicadores>
   )
 }
@@ -190,7 +212,7 @@ function TooltipGasto({ active, payload }: { active?: boolean; payload?: { paylo
   )
 }
 
-function GraficosCliente({ clienteId }: { clienteId: string }) {
+function GraficosCliente({ clienteId, abrir }: { clienteId: string; abrir: AbrirListagem }) {
   const mobile = useIsMobile()
   const [meses, setMeses] = useState<number>(12)
   const [dados, setDados] = useState<GraficosClienteResponse | null>(null)
@@ -250,7 +272,16 @@ function GraficosCliente({ clienteId }: { clienteId: string }) {
                   <XAxis dataKey="mes" tickFormatter={rotuloMes} tick={{ fontSize: 11.5, fill: GRAFICO_EIXO }} axisLine={false} tickLine={false} />
                   <YAxis width={72} tickFormatter={v => BRL(Number(v)).replace(',00', '')} tick={{ fontSize: 11.5, fill: GRAFICO_EIXO }} axisLine={false} tickLine={false} />
                   <Tooltip content={<TooltipGasto />} cursor={{ fill: 'rgba(42,157,143,0.06)' }} />
-                  <Bar dataKey="total" fill={PALETA_SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={36} />
+                  {/* #573 — clique na barra abre o que conta como compra naquele mês. */}
+                  <Bar dataKey="total" fill={PALETA_SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={36} cursor="pointer"
+                    onClick={(d: { payload?: { mes: string } }) => {
+                      const mes = d.payload?.mes
+                      if (!mes) return
+                      const [a, m] = mes.split('-').map(Number)
+                      const ultimo = new Date(a, m, 0).getDate()
+                      abrir(`Compras de ${rotuloMes(mes)}`, 'CLIENTE', { somenteCompras: true, de: `${mes.slice(0, 7)}-01`,
+                        ate: `${mes.slice(0, 7)}-${String(ultimo).padStart(2, '0')}`, rotulos: ['Só o que conta como compra'] })
+                    }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -263,6 +294,10 @@ function GraficosCliente({ clienteId }: { clienteId: string }) {
               <ol className="m-0 flex list-none flex-col gap-2.5 p-0" data-testid="itens-mais-comprados">
                 {dados.itensMaisComprados.map(i => (
                   <li key={`${i.tipo}-${i.id}`}>
+                    {/* #573 — clique no item abre os pedidos do período que têm o item. */}
+                    <button type="button" data-testid="item-mais-comprado"
+                      onClick={() => abrir(`Pedidos com ${i.nome}`, 'CLIENTE', { somenteCompras: true, itemId: i.id, de: dados.de, ate: dados.ate, rotulos: [i.nome] })}
+                      className="block w-full cursor-pointer rounded-[6px] border-none bg-transparent p-0 text-left font-[inherit] hover:opacity-80">
                     <div className="flex items-baseline justify-between gap-3 text-[13px]">
                       <span className="truncate font-medium text-dark">{i.nome}</span>
                       <span className="flex-shrink-0 text-muted [font-variant-numeric:tabular-nums]">{qtd(i.quantidade)} un · {BRL(i.valor)}</span>
@@ -270,6 +305,7 @@ function GraficosCliente({ clienteId }: { clienteId: string }) {
                     <div className="mt-1 h-1.5 rounded-full bg-line-soft">
                       <div className="h-1.5 rounded-full bg-teal" style={{ width: `${(i.quantidade / maxQtd) * 100}%` }} />
                     </div>
+                    </button>
                   </li>
                 ))}
               </ol>
@@ -376,6 +412,8 @@ export default function DetalheClientePage() {
   const [confirmInativar, setConfirmInativar] = useState(false)
   const [processando, setProcessando] = useState(false)
   const [registroAberto, setRegistroAberto] = useState<{ tipo: TipoRegistro; id: string } | null>(null)
+  const [listagem, setListagem] = useState<{ titulo: string; papel: PapelCadastro; filtro: FiltroInicial } | null>(null)
+  const abrirListagem: AbrirListagem = (titulo, papel, filtro) => setListagem({ titulo, papel, filtro })
 
   useEffect(() => {
     const msg = (location.state as { toast?: string } | null)?.toast
@@ -494,8 +532,8 @@ export default function DetalheClientePage() {
       )}
 
       <div className="flex flex-col gap-4">
-        {mostraCliente && <IndicadoresCliente ind={ind.cliente} />}
-        {mostraFornecedor && <IndicadoresFornecedor ind={ind.fornecedor} />}
+        {mostraCliente && <IndicadoresCliente ind={ind.cliente} abrir={abrirListagem} />}
+        {mostraFornecedor && <IndicadoresFornecedor ind={ind.fornecedor} abrir={abrirListagem} verInsumos={() => setAba('insumos')} />}
       </div>
 
       <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line" role="tablist">
@@ -531,7 +569,7 @@ export default function DetalheClientePage() {
           </div>
         ) : (
           <>
-            {mostraCliente && <GraficosCliente clienteId={cadastro.id} />}
+            {mostraCliente && <GraficosCliente clienteId={cadastro.id} abrir={abrirListagem} />}
             {mostraCliente && (
               <ListaHistorico
                 titulo="Orçamentos e vendas"
@@ -595,6 +633,10 @@ export default function DetalheClientePage() {
         )}
       </div>
 
+      {listagem && (
+        <ModalListagemRegistros titulo={listagem.titulo} subtitulo={cadastro.nome} filtro={listagem.filtro}
+          fonte={{ tipo: 'cadastro', cadastroId: cadastro.id, papel: listagem.papel }} onClose={() => setListagem(null)} />
+      )}
       {registroAberto && <ModalRegistro tipo={registroAberto.tipo} id={registroAberto.id} onClose={() => setRegistroAberto(null)} />}
 
       <ConfirmacaoModal
