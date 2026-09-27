@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
-import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, PackagePlus } from 'lucide-react'
+import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
@@ -24,15 +24,15 @@ const GRUPO_VENDAS = {
 } as const
 
 // V0.15.0 (RN-NOVA-16, DT-NOVA-13) — grupo Compras, mesmo padrão recolhível de Vendas.
-// "Minhas compras" (/compras) fica ativo também no detalhe/edição de uma compra, mas não em
-// /compras/nova nem /compras/lista, que têm item próprio.
+// "Minhas compras" (/compras) fica ativo também em registrar/detalhe/edição de uma compra, mas não
+// em /compras/lista, que tem item próprio. #567: "Registrar compra" saiu do menu — o botão fica em
+// Minhas compras.
 const GRUPO_COMPRAS = {
   id: 'compras',
   label: 'Compras',
   itens: [
     { id: 'compras-minhas', label: 'Minhas compras',   icon: ClipboardList, size: 20, href: '/compras',
-      ativoEm: (path: string) => path === '/compras' || (/^\/compras\/[^/]+/.test(path) && !path.startsWith('/compras/nova') && !path.startsWith('/compras/lista')) },
-    { id: 'compras-nova',   label: 'Registrar compra', icon: PackagePlus,   size: 20, href: '/compras/nova' },
+      ativoEm: (path: string) => path === '/compras' || (path.startsWith('/compras/') && !path.startsWith('/compras/lista')) },
     { id: 'compras-lista',  label: 'Lista de compras', icon: ShoppingCart,  size: 20, href: '/compras/lista' },
   ],
 } as const
@@ -195,7 +195,8 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
         </div>
 
         {/* Nav */}
-        <div className="flex flex-1 flex-col gap-[3px] p-[14px]">
+        {/* #567 — rolagem própria quando os itens passam da altura da tela (grupos expandidos). */}
+        <div className="flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto p-[14px]">
           {renderNavItem(ITEM_DASHBOARD, collapsed, closeIfMobile)}
 
           {/* #501/#513 — grupo recolhível só faz sentido com o sidebar expandido: no modo ícone
