@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { AlertCircle, History, ListChecks, Plus, ShoppingCart, Trash2 } from 'lucide-react'
+import { AlertCircle, History, ListChecks, PackagePlus, Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
-import { FornecedorSelect, InsumoPicker } from '../../components/compra/Pickers'
+import { FornecedorSelect } from '../../components/compra/Pickers'
+import ModalAdicionarInsumos from '../../components/compra/ModalAdicionarInsumos'
 import { formatarData, moeda4, paraCampo, parseDecimal, qtd } from '../../components/compra/formato'
 import { listaCompraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
@@ -48,6 +49,7 @@ function NovaLista() {
   const [carregando, setCarregando] = useState(false)
   const [erroPrevia, setErroPrevia] = useState<string | null>(null)
   const [gerando, setGerando] = useState(false)
+  const [escolhendo, setEscolhendo] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const linhasRef = useRef<LinhaEditavel[]>([])
   linhasRef.current = linhas
@@ -84,9 +86,9 @@ function NovaLista() {
     setManuais(prev => prev.filter(id => id !== insumoId))
     setRemovidos(prev => [...prev, insumoId])
   }
-  const adicionarManual = (id: string) => {
-    setRemovidos(prev => prev.filter(x => x !== id))
-    setManuais(prev => prev.includes(id) ? prev : [...prev, id])
+  const adicionarManuais = (ids: string[]) => {
+    setRemovidos(prev => prev.filter(x => !ids.includes(x)))
+    setManuais(prev => [...prev, ...ids.filter(id => !prev.includes(id))])
   }
 
   const gerar = async () => {
@@ -114,15 +116,20 @@ function NovaLista() {
             <span className="mb-1.5 block text-[12.5px] font-semibold text-body">De um fornecedor</span>
             <FornecedorSelect size="sm" value={fornecedor} onChange={setFornecedor} placeholder="Qualquer fornecedor" />
           </div>
-          <div>
-            <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Adicionar insumo</span>
-            <InsumoPicker size="sm" excluir={linhas.map(l => l.insumo.id)} onSelect={i => adicionarManual(i.id)} placeholder="Escolher à mão…" />
+          {/* #570 — botão verde abre a escolha de vários insumos (substitui o campo "Escolher à mão"). */}
+          <div className="flex flex-col">
+            <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Escolher à mão</span>
+            <Button variant="secondary" size="sm" icon={<PackagePlus size={16} />} onClick={() => setEscolhendo(true)}>Adicionar insumos</Button>
           </div>
         </div>
         <p className="mb-0 mt-3 text-[12.5px] text-muted">
           Os dois filtros de estoque somam. Escolhendo um fornecedor, entram só os insumos vinculados a ele. Os insumos escolhidos à mão entram sempre.
         </p>
       </div>
+      {escolhendo && (
+        <ModalAdicionarInsumos jaNaLista={linhas.map(l => l.insumo.id)} onClose={() => setEscolhendo(false)}
+          onAdicionar={ids => { adicionarManuais(ids); setEscolhendo(false) }} />
+      )}
 
       <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
