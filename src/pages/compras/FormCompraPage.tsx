@@ -10,11 +10,12 @@ import SectionTitle from '../../components/shared/SectionTitle'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { FornecedorSelect, InsumoPicker } from '../../components/compra/Pickers'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
+import DescontoInput from '../../components/compra/DescontoInput'
 import { hojeIso, moeda4, paraCampo, parseDecimal } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
-import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef } from '../../types/compra'
+import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef, TipoDesconto } from '../../types/compra'
 
 // V0.15.0 — "Registrar compra" (#541, RN-NOVA-4) com método de pagamento (#550, RN-NOVA-23).
 // /compras/nova (compra nova) e /compras/:id/editar (só RASCUNHO). Estoque e custo só mudam ao
@@ -25,24 +26,42 @@ type Linha = {
   insumo: InsumoRef
   fornecedor: CadastroRef | null
   quantidade: string
-  precoTotal: string
+  /** #576 — preço cheio da linha (antes do desconto). */
+  precoCheio: string
+  descontoTipo: TipoDesconto
+  desconto: string
 }
 
 let seq = 0
 const novaChave = () => `l${++seq}`
 
+const GRADE_UNICO = 'lg:grid-cols-[1.7fr_0.9fr_1fr_1.35fr_0.9fr_40px]'
+const GRADE_MULTIPLOS = 'lg:grid-cols-[1.4fr_1.3fr_0.9fr_1fr_1.35fr_0.9fr_40px]'
+
 const inputQtd = 'h-11 w-full rounded-input border-[1.5px] bg-white px-3 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus [font-variant-numeric:tabular-nums]'
 
 /**
- * Prévia de exibição (RN-NOVA-4: "o custo unitário da linha aparece ao vivo"). Exceção consciente à
- * regra "nenhum cálculo no front", no mesmo espírito do preview de Produção: o valor gravado
- * (precoUnitario/precoUnitarioPago) vem sempre da resposta da API.
+ * Prévia de exibição (RN-NOVA-4: "o custo unitário da linha aparece ao vivo"; #576: o valor da linha
+ * com o desconto dela). Exceção consciente à regra "nenhum cálculo no front", no mesmo espírito do
+ * preview de Produção: o preço pago de verdade — com o rateio do desconto da nota — é calculado e
+ * gravado pelo backend (RN-NOVA-28) e vem sempre da resposta da API.
  */
-function previaUnitario(qtdTxt: string, precoTxt: string): number | null {
+function descontoEmReais(tipo: TipoDesconto, valorTxt: string, base: number | null): number {
+  const v = parseDecimal(valorTxt)
+  if (v == null || base == null) return 0
+  return tipo === 'VALOR' ? v : Math.round(base * v) / 100
+}
+
+function valorDaLinha(l: Linha): number | null {
+  const cheio = parseDecimal(l.precoCheio)
+  if (cheio == null) return null
+  return Math.round((cheio - descontoEmReais(l.descontoTipo, l.desconto, cheio)) * 100) / 100
+}
+
+function previaUnitario(qtdTxt: string, valor: number | null): number | null {
   const q = parseDecimal(qtdTxt)
-  const p = parseDecimal(precoTxt)
-  if (q == null || p == null || q <= 0) return null
-  return p / q
+  if (q == null || valor == null || q <= 0) return null
+  return valor / q
 }
 
 export default function FormCompraPage() {
@@ -62,6 +81,8 @@ export default function FormCompraPage() {
   const [metodoId, setMetodoId] = useState<string | null>(null)
   const [observacoes, setObservacoes] = useState('')
   const [linhas, setLinhas] = useState<Linha[]>([])
+  const [descontoNotaTipo, setDescontoNotaTipo] = useState<TipoDesconto>('PERCENTUAL')
+  const [descontoNota, setDescontoNota] = useState('')
 
   const [salvando, setSalvando] = useState<'rascunho' | 'confirmar' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -81,9 +102,12 @@ export default function FormCompraPage() {
         setPago(c.pago)
         setMetodoId(c.metodoPagamento?.id ?? null)
         setObservacoes(c.observacoes ?? '')
+        setDescontoNotaTipo(c.descontoNotaTipo ?? 'PERCENTUAL')
+        setDescontoNota(paraCampo(c.descontoNotaInformado, 2))
         setLinhas(c.itens.map(i => ({
           key: novaChave(), insumo: i.insumo, fornecedor: i.fornecedor,
-          quantidade: paraCampo(i.quantidade), precoTotal: paraCampo(i.precoTotal, 2),
+          quantidade: paraCampo(i.quantidade), precoCheio: paraCampo(i.precoCheio ?? i.precoTotal, 2),
+          descontoTipo: i.descontoTipo ?? 'PERCENTUAL', desconto: paraCampo(i.descontoInformado, 2),
         })))
       })
       .catch(err => setErroCarga(extractApiError(err, 'Não foi possível carregar a compra.')))
@@ -94,7 +118,7 @@ export default function FormCompraPage() {
   // compra própria; hoje ninguém passa, mas o estado é aceito para não quebrar navegação futura).
   useEffect(() => {
     const ins = (location.state as { insumo?: InsumoRef } | null)?.insumo
-    if (ins && !editando) setLinhas([{ key: novaChave(), insumo: ins, fornecedor: null, quantidade: '', precoTotal: '' }])
+    if (ins && !editando) setLinhas([{ key: novaChave(), insumo: ins, fornecedor: null, quantidade: '', precoCheio: '', descontoTipo: 'PERCENTUAL', desconto: '' }])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -104,7 +128,9 @@ export default function FormCompraPage() {
       insumo: { id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, ativo: i.ativo },
       fornecedor: multiplos ? fornecedor : null,
       quantidade: '',
-      precoTotal: '',
+      precoCheio: '',
+      descontoTipo: 'PERCENTUAL',
+      desconto: '',
     }])
   }
 
@@ -124,12 +150,19 @@ export default function FormCompraPage() {
     pago,
     metodoPagamentoId: pago ? metodoId : null,
     observacoes: observacoes.trim() || undefined,
-    itens: linhas.map(l => ({
-      insumoId: l.insumo.id,
-      fornecedorId: multiplos ? (l.fornecedor?.id ?? null) : null,
-      quantidade: parseDecimal(l.quantidade),
-      precoTotal: parseDecimal(l.precoTotal),
-    })),
+    itens: linhas.map(l => {
+      const desconto = parseDecimal(l.desconto)
+      return {
+        insumoId: l.insumo.id,
+        fornecedorId: multiplos ? (l.fornecedor?.id ?? null) : null,
+        quantidade: parseDecimal(l.quantidade),
+        precoCheio: parseDecimal(l.precoCheio),
+        descontoTipo: desconto ? l.descontoTipo : null,
+        descontoValor: desconto || null,
+      }
+    }),
+    descontoNotaTipo: parseDecimal(descontoNota) ? descontoNotaTipo : null,
+    descontoNotaValor: parseDecimal(descontoNota) || null,
   })
 
   const tratarErro = (err: unknown, fallback: string) => {
@@ -163,8 +196,14 @@ export default function FormCompraPage() {
     }
   }
 
-  const totalPrevia = linhas.reduce((s, l) => s + (parseDecimal(l.precoTotal) ?? 0), 0)
-  const erroLinha = (idx: number, campo: 'quantidade' | 'precoTotal') => fieldErrors[`itens[${idx}].${campo}`]
+  // Prévia dos totais (exceção documentada acima): a divisão do desconto da nota entre as linhas é feita
+  // pelo backend ao salvar; aqui entra só o valor total do desconto da nota.
+  const totalCheio = linhas.reduce((s, l) => s + (parseDecimal(l.precoCheio) ?? 0), 0)
+  const somaLinhas = linhas.reduce((s, l) => s + (valorDaLinha(l) ?? 0), 0)
+  const descontoNotaReais = descontoEmReais(descontoNotaTipo, descontoNota, somaLinhas)
+  const totalDescontos = Math.round((totalCheio - somaLinhas + descontoNotaReais) * 100) / 100
+  const totalPrevia = Math.round((somaLinhas - descontoNotaReais) * 100) / 100
+  const erroLinha = (idx: number, campo: 'quantidade' | 'precoCheio' | 'descontoValor') => fieldErrors[`itens[${idx}].${campo}`]
   const titulo = editando ? `Editar rascunho ${compra?.identificador ?? ''}` : 'Registrar compra'
   const idsNaCompra = linhas.map(l => l.insumo.id)
 
@@ -225,21 +264,23 @@ export default function FormCompraPage() {
 
         {/* 2 — Insumos */}
         <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="2" title="Insumos comprados" subtitle="Quantidade e quanto você pagou no total por cada insumo." />
+          <SectionTitle number="2" title="Insumos comprados" subtitle="Quantidade, preço cheio e o desconto de cada insumo, se teve." />
 
           {linhas.length > 0 && (
             <div className="mb-4 rounded-input border border-line">
               <div className={clsx('hidden gap-3 bg-cream px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim lg:grid',
-                multiplos ? 'lg:grid-cols-[1.6fr_1.4fr_1fr_1fr_0.9fr_40px]' : 'lg:grid-cols-[2fr_1fr_1fr_0.9fr_40px]')}>
-                <span>Insumo</span>{multiplos && <span>Fornecedor</span>}<span>Quantidade</span><span>Preço total pago</span><span>Custo unitário</span><span />
+                multiplos ? GRADE_MULTIPLOS : GRADE_UNICO)}>
+                <span>Insumo</span>{multiplos && <span>Fornecedor</span>}<span>Quantidade</span><span>Preço cheio</span><span>Desconto</span><span>Valor / custo un.</span><span />
               </div>
               {linhas.map((l, idx) => {
-                const unit = previaUnitario(l.quantidade, l.precoTotal)
+                const valor = valorDaLinha(l)
+                const unit = previaUnitario(l.quantidade, valor)
                 const eQ = erroLinha(idx, 'quantidade')
-                const eP = erroLinha(idx, 'precoTotal')
+                const eP = erroLinha(idx, 'precoCheio')
+                const eD = erroLinha(idx, 'descontoValor')
                 return (
                   <div key={l.key} data-testid="linha-compra" className={clsx('grid grid-cols-1 gap-3 border-t border-line px-4 py-3 first:border-t-0 lg:items-start',
-                    multiplos ? 'lg:grid-cols-[1.6fr_1.4fr_1fr_1fr_0.9fr_40px]' : 'lg:grid-cols-[2fr_1fr_1fr_0.9fr_40px]')}>
+                    multiplos ? GRADE_MULTIPLOS : GRADE_UNICO)}>
                     <div className="flex min-h-11 min-w-0 items-center gap-2.5">
                       <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal"><Package size={16} /></span>
                       <div className="min-w-0">
@@ -267,15 +308,24 @@ export default function FormCompraPage() {
                       {eQ && <span className="mt-1 block text-[12px] text-danger-deep">{eQ}</span>}
                     </div>
                     <div>
-                      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Preço total pago</span>
-                      <MoneyInput size="sm" ariaLabel={`Preço total de ${l.insumo.nome}`} value={l.precoTotal} placeholder="0,00" invalido={!!eP}
-                        onChange={v => alterarLinha(l.key, { precoTotal: v })} />
+                      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Preço cheio</span>
+                      <MoneyInput size="sm" ariaLabel={`Preço cheio de ${l.insumo.nome}`} value={l.precoCheio} placeholder="0,00" invalido={!!eP}
+                        onChange={v => alterarLinha(l.key, { precoCheio: v })} />
                       {eP && <span className="mt-1 block text-[12px] text-danger-deep">{eP}</span>}
                     </div>
-                    <div className="flex min-h-11 items-center">
-                      <span className="mr-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Custo unitário</span>
-                      <span data-testid="custo-unitario-linha" className={clsx('text-[14px] [font-variant-numeric:tabular-nums]', unit != null ? 'font-semibold text-teal' : 'text-faint')}>
-                        {unit != null ? `${moeda4(Math.round(unit * 10000) / 10000)} / ${l.insumo.unidade}` : '—'}
+                    <div>
+                      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Desconto (opcional)</span>
+                      <DescontoInput tipo={l.descontoTipo} valor={l.desconto} ariaLabel={`Desconto de ${l.insumo.nome}`} invalido={!!eD}
+                        onTipo={t => alterarLinha(l.key, { descontoTipo: t })} onValor={v => alterarLinha(l.key, { desconto: v })} />
+                      {eD && <span className="mt-1 block text-[12px] text-danger-deep">{eD}</span>}
+                    </div>
+                    <div className="flex min-h-11 flex-col justify-center">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Valor / custo unitário</span>
+                      <span data-testid="valor-linha" className={clsx('text-[14px] [font-variant-numeric:tabular-nums]', valor != null ? 'font-semibold text-dark' : 'text-faint')}>
+                        {valor != null ? BRL(valor) : '—'}
+                      </span>
+                      <span data-testid="custo-unitario-linha" className={clsx('text-[12.5px] [font-variant-numeric:tabular-nums]', unit != null ? 'font-semibold text-teal' : 'text-faint')}>
+                        {unit != null ? `${moeda4(Math.round(unit * 10000) / 10000)} / ${l.insumo.unidade}` : ''}
                       </span>
                     </div>
                     <div className="flex min-h-11 items-center justify-end">
@@ -303,9 +353,24 @@ export default function FormCompraPage() {
           )}
 
           {linhas.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-baseline justify-end gap-2 border-t border-line pt-4">
-              <span className="text-[13px] font-semibold text-body">Total da compra</span>
-              <span data-testid="total-compra" className="text-[22px] font-bold tracking-[-0.01em] text-teal [font-variant-numeric:tabular-nums]">{BRL(totalPrevia)}</span>
+            <div className="mt-4 flex flex-col gap-4 border-t border-line pt-4 md:flex-row md:items-start md:justify-between">
+              {/* #576 — desconto na nota: dividido entre as linhas pelo backend, proporcional ao valor de cada uma. */}
+              <div className="max-w-[320px]">
+                <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Desconto na nota <span className="font-normal text-muted">(opcional)</span></span>
+                <DescontoInput tipo={descontoNotaTipo} valor={descontoNota} ariaLabel="Desconto na nota"
+                  invalido={!!fieldErrors.descontoNotaValor} onTipo={setDescontoNotaTipo} onValor={setDescontoNota} />
+                <span className="mt-1 block text-[12px] text-muted">Dividido entre as linhas, pelo valor de cada uma, ao salvar.</span>
+              </div>
+              <dl className="m-0 flex min-w-[260px] flex-col gap-1 text-[13.5px]">
+                {totalDescontos > 0 && <>
+                  <div className="flex justify-between gap-6"><dt className="text-muted">Total cheio</dt><dd className="m-0 [font-variant-numeric:tabular-nums]">{BRL(totalCheio)}</dd></div>
+                  <div className="flex justify-between gap-6"><dt className="text-muted">Descontos</dt><dd data-testid="total-descontos" className="m-0 text-orange [font-variant-numeric:tabular-nums]">− {BRL(totalDescontos)}</dd></div>
+                </>}
+                <div className="flex items-baseline justify-between gap-6">
+                  <dt className="text-[13px] font-semibold text-body">{totalDescontos > 0 ? 'Total pago' : 'Total da compra'}</dt>
+                  <dd data-testid="total-compra" className="m-0 text-[22px] font-bold tracking-[-0.01em] text-teal [font-variant-numeric:tabular-nums]">{BRL(totalPrevia)}</dd>
+                </div>
+              </dl>
             </div>
           )}
         </div>

@@ -88,8 +88,9 @@ export const compraService = {
 
   // ---------- Dashboard (#548) ----------
 
-  dashboard: async (): Promise<DashboardComprasResponse> => {
-    const response = await api.get('/compras/dashboard')
+  /** #577 (RN-NOVA-29) — sem de/ate: mês atual. */
+  dashboard: async (de?: string, ate?: string): Promise<DashboardComprasResponse> => {
+    const response = await api.get('/compras/dashboard', { params: { de, ate } })
     return response.data
   },
 

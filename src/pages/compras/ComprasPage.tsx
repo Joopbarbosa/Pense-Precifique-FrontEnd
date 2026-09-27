@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { Ban, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users } from 'lucide-react'
+import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, List, Pencil, Plus, ShoppingCart, Trash2, Users } from 'lucide-react'
 import DashboardCompras from '../../components/compra/DashboardCompras'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
@@ -23,7 +23,8 @@ import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useToast } from '../../hooks/useToast'
 import type { CadastroRef, CompraResponse, CompraResumoResponse, ImpactoCompraResponse, StatusCompra } from '../../types/compra'
 
-// V0.15.0 — "Minhas compras" (RN-NOVA-16): listagem de compras (#541). O dashboard (#548) fica acima.
+// V0.15.0 — "Minhas compras" (RN-NOVA-16): aba "Compras" com a listagem (#541, #565, #566) e aba
+// "Dashboard" com o painel analítico (#578, RN-NOVA-29). A aba fica na URL (?aba=dashboard).
 
 const FILTROS_STATUS: { id: StatusCompra | 'TODAS'; label: string }[] = [
   { id: 'TODAS', label: 'Todas' },
@@ -52,6 +53,8 @@ export default function ComprasPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { toast, setToast } = useToast()
+  const [params, setParams] = useSearchParams()
+  const aba: 'compras' | 'dashboard' = params.get('aba') === 'dashboard' ? 'dashboard' : 'compras'
   const [status, setStatus] = useState<StatusCompra | 'TODAS'>('TODAS')
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
   const [de, setDe] = useState('')
@@ -160,9 +163,22 @@ export default function ComprasPage() {
         </div>
       </div>
 
-      <div className="mb-7"><DashboardCompras /></div>
+      <div className="mb-5 flex gap-1 overflow-x-auto border-b-[1.5px] border-line" role="tablist">
+        {([{ id: 'compras', label: 'Compras', icon: List }, { id: 'dashboard', label: 'Dashboard', icon: BarChart3 }] as const).map(a => {
+          const on = aba === a.id
+          return (
+            <button key={a.id} role="tab" aria-selected={on} onClick={() => setParams(a.id === 'dashboard' ? { aba: 'dashboard' } : {}, { replace: true })}
+              className={clsx('relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-sm transition-colors duration-150',
+                on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body')}>
+              <a.icon size={16} className={on ? 'text-teal' : 'text-dim'} />
+              {a.label}
+              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+            </button>
+          )
+        })}
+      </div>
 
-      <h2 className="mb-3 mt-0 text-[18px] font-bold text-dark">Compras</h2>
+      {aba === 'dashboard' ? <DashboardCompras /> : <>
       <div className="mb-[18px] flex flex-col gap-3.5">
         <div className="flex flex-wrap gap-2">
           {FILTROS_STATUS.map(f => {
@@ -259,6 +275,7 @@ export default function ComprasPage() {
           <Button variant="ghost" onClick={loadMore} disabled={loadingMore}>{loadingMore ? 'Carregando…' : 'Carregar mais'}</Button>
         </div>
       )}
+      </>}
     </AppLayout>
   )
 }

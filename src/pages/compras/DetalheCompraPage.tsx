@@ -117,6 +117,7 @@ export default function DetalheCompraPage() {
   const rascunho = compra.status === 'RASCUNHO'
   const confirmada = compra.status === 'CONFIRMADA'
   const posConfirmacao = compra.status !== 'RASCUNHO'
+  const temDesconto = compra.totalDescontos > 0
   const fornecedoresLinhas = Array.from(new Map(compra.itens.filter(i => i.fornecedor).map(i => [i.fornecedor!.id, i.fornecedor!])).values())
 
   return (
@@ -185,7 +186,15 @@ export default function DetalheCompraPage() {
           <Info titulo="Pagamento">
             {compra.pago ? `Pago${compra.metodoPagamento ? ` — ${compra.metodoPagamento.nome}` : ''}` : 'Não pago'}
           </Info>
-          <Info titulo="Total"><span className="text-[20px] text-teal [font-variant-numeric:tabular-nums]">{BRL(compra.total)}</span></Info>
+          <Info titulo={temDesconto ? 'Total pago' : 'Total'}>
+            <span className="text-[20px] text-teal [font-variant-numeric:tabular-nums]">{BRL(compra.total)}</span>
+            {temDesconto && (
+              <span data-testid="resumo-descontos" className="mt-0.5 block text-[12px] font-medium text-muted">
+                cheio {BRL(compra.totalCheio)} · descontos {BRL(compra.totalDescontos)}
+                {compra.descontoNota > 0 ? ` (nota: ${compra.descontoNotaTipo === 'PERCENTUAL' && compra.descontoNotaInformado != null ? `${qtd(compra.descontoNotaInformado)}% = ` : ''}${BRL(compra.descontoNota)})` : ''}
+              </span>
+            )}
+          </Info>
         </div>
       </div>
 
@@ -193,7 +202,7 @@ export default function DetalheCompraPage() {
         <div className="border-b border-line px-5 py-3 text-[13px] font-bold text-dark">Insumos ({compra.itens.length})</div>
         <div className={clsx('hidden gap-3 bg-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim lg:grid',
           compra.multiplosFornecedores ? 'lg:grid-cols-[1.6fr_1.2fr_0.8fr_0.9fr_0.9fr_1.4fr]' : 'lg:grid-cols-[2fr_0.8fr_0.9fr_0.9fr_1.4fr]')}>
-          <span>Insumo</span>{compra.multiplosFornecedores && <span>Fornecedor</span>}<span>Quantidade</span><span>Preço total</span>
+          <span>Insumo</span>{compra.multiplosFornecedores && <span>Fornecedor</span>}<span>Quantidade</span><span>{temDesconto ? 'Preço pago' : 'Preço total'}</span>
           <span>{posConfirmacao ? 'Preço pago / un.' : 'Custo / un.'}</span><span>{posConfirmacao ? 'Custo do insumo (antes → depois)' : ''}</span>
         </div>
         {compra.itens.length === 0 && <div className="px-5 py-6 text-sm text-muted">Nenhum insumo neste rascunho.</div>}
@@ -210,7 +219,16 @@ export default function DetalheCompraPage() {
             </div>
             {compra.multiplosFornecedores && <div className="col-span-2 text-body lg:col-span-1">{i.fornecedor?.nome ?? <span className="italic text-faint">Sem fornecedor</span>}</div>}
             <div className="[font-variant-numeric:tabular-nums]">{qtd(i.quantidade)} {i.insumo.unidade}</div>
-            <div className="text-right font-semibold [font-variant-numeric:tabular-nums] lg:text-left">{i.precoTotal != null ? BRL(i.precoTotal) : '—'}</div>
+            <div className="text-right [font-variant-numeric:tabular-nums] lg:text-left">
+              <div className="font-semibold">{i.precoTotal != null ? BRL(i.precoTotal) : '—'}</div>
+              {/* #576 — com desconto: preço cheio e o desconto total da linha (dela + parte da nota). */}
+              {i.descontoLinha + i.descontoNota > 0 && i.precoCheio != null && (
+                <div data-testid="desconto-linha" className="text-[12px] text-muted">
+                  cheio {BRL(i.precoCheio)} · desc. {BRL(i.descontoLinha + i.descontoNota)}
+                  {i.descontoTipo === 'PERCENTUAL' && i.descontoInformado != null ? ` (${qtd(i.descontoInformado)}% na linha)` : ''}
+                </div>
+              )}
+            </div>
             <div className="[font-variant-numeric:tabular-nums]">{moeda4(posConfirmacao ? i.precoUnitarioPago : i.precoUnitario)}</div>
             <div className="text-right text-[12.5px] text-muted [font-variant-numeric:tabular-nums] lg:text-left">
               {posConfirmacao && i.custoUnitarioAnterior != null ? `${moeda4(i.custoUnitarioAnterior)} → ${moeda4(i.custoUnitarioPosterior)}` : ''}

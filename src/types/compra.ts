@@ -39,6 +39,12 @@ export interface CompraItemResponse {
   precoUnitarioPago: number | null
   custoUnitarioAnterior: number | null
   custoUnitarioPosterior: number | null
+  /** #576 — preço cheio, desconto como digitado e em R$ (da linha e a parte da nota). `precoTotal` = pago. */
+  precoCheio: number | null
+  descontoTipo: TipoDesconto | null
+  descontoInformado: number | null
+  descontoLinha: number
+  descontoNota: number
 }
 
 export interface CompraResponse {
@@ -60,6 +66,11 @@ export interface CompraResponse {
   observacaoCancelamento: string | null
   createdAt: string
   updatedAt: string
+  descontoNotaTipo: TipoDesconto | null
+  descontoNotaInformado: number | null
+  descontoNota: number
+  totalCheio: number
+  totalDescontos: number
 }
 
 export interface CompraResumoResponse {
@@ -72,13 +83,22 @@ export interface CompraResumoResponse {
   pago: boolean
   total: number
   quantidadeItens: number
+  /** DT-NOVA-19 — "Fita de cetim ×10 m, Cola ×3 un". */
+  resumoItens: string
 }
+
+/** #576 (RN-NOVA-28) — desconto como a artesã digitou: em R$ ou em %. */
+export type TipoDesconto = 'VALOR' | 'PERCENTUAL'
 
 export interface CompraItemRequest {
   insumoId: string
   fornecedorId?: string | null
   quantidade?: number | null
+  /** Legado (sem desconto): preço pago. O formulário manda sempre `precoCheio`. */
   precoTotal?: number | null
+  precoCheio?: number | null
+  descontoTipo?: TipoDesconto | null
+  descontoValor?: number | null
 }
 
 export interface CompraRequest {
@@ -89,6 +109,8 @@ export interface CompraRequest {
   metodoPagamentoId?: string | null
   observacoes?: string
   itens: CompraItemRequest[]
+  descontoNotaTipo?: TipoDesconto | null
+  descontoNotaValor?: number | null
 }
 
 export interface CompraFiltros {
@@ -98,6 +120,9 @@ export interface CompraFiltros {
   ate?: string
   /** #565 — `campo,direcao` (dataCompra, numero, fornecedor, itens, total, status). */
   sort?: string
+  /** DT-NOVA-19 — compras com o insumo em alguma linha; busca por COM-N, insumo ou fornecedor. */
+  insumoId?: string
+  busca?: string
 }
 
 // ---------- Impacto (#543, RN-NOVA-8) ----------
@@ -212,18 +237,51 @@ export interface ListaCompraResumoResponse {
 
 // ---------- Dashboard (#548, RN-NOVA-15) ----------
 
+/** #577/#578 (RN-NOVA-29) — número do painel com o do período anterior; variação nula sem base. */
+export interface NumeroPainel {
+  valor: number | null
+  anterior: number | null
+  variacaoPercentual: number | null
+}
+
+export interface InsumoVariacao {
+  insumo: InsumoRef
+  precoInicial: number
+  dataInicial: string
+  precoFinal: number
+  dataFinal: string
+  variacaoPercentual: number
+}
+
+export interface FornecedorDesconto {
+  fornecedor: CadastroRef
+  desconto: number
+  totalCheio: number
+  percentual: number | null
+}
+
+/** #577/#578 (RN-NOVA-29) — painel da aba Dashboard. Só compras CONFIRMADAS; tudo calculado no backend. */
 export interface DashboardComprasResponse {
-  totalGastoMes: number
-  totalGastoAno: number
-  fornecedorMaisUsado: { fornecedor: CadastroRef; quantidadeCompras: number } | null
-  insumoMaiorAumento: {
-    insumo: InsumoRef
-    precoInicial: number
-    dataInicial: string
-    precoFinal: number
-    dataFinal: string
-    variacaoPercentual: number
-  } | null
+  de: string
+  ate: string
+  deAnterior: string
+  ateAnterior: string
+  gasto: NumeroPainel
+  quantidadeCompras: NumeroPainel
+  ticketMedio: NumeroPainel
+  economia: { valor: number; totalCheio: number; percentual: number | null; anterior: number; variacaoPercentual: number | null }
+  /** RN-NOVA-27 — `estimado`: parte calculada com o custo de hoje; `vendasSemCusto`: vendas fora do cálculo. */
+  cmv: {
+    valor: number; faturamento: number; percentual: number | null; estimado: number; vendasSemCusto: number
+    anterior: number; percentualAnterior: number | null; variacaoPercentual: number | null
+  }
+  naoPagas: { quantidade: number; valor: number }
+  maiorAumento: InsumoVariacao | null
+  meses: { mes: string; gasto: number; cmv: number; faturamento: number; cmvPercentual: number | null }[]
+  insumosQueMaisSubiram: InsumoVariacao[]
+  fornecedoresPorGasto: { fornecedor: CadastroRef; valor: number; quantidadeCompras: number }[]
+  fornecedoresPorDescontoPercentual: FornecedorDesconto[]
+  fornecedoresPorDescontoValor: FornecedorDesconto[]
 }
 
 export interface PontoEvolucaoPreco {
