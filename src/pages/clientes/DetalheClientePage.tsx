@@ -12,6 +12,7 @@ import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
+import ModalRegistro, { type TipoRegistro } from '../../components/cliente/ModalRegistro'
 import { BRL } from '../../components/venda/formato'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
@@ -374,6 +375,7 @@ export default function DetalheClientePage() {
   const [aba, setAba] = useState<Aba>('detalhes')
   const [confirmInativar, setConfirmInativar] = useState(false)
   const [processando, setProcessando] = useState(false)
+  const [registroAberto, setRegistroAberto] = useState<{ tipo: TipoRegistro; id: string } | null>(null)
 
   useEffect(() => {
     const msg = (location.state as { toast?: string } | null)?.toast
@@ -540,13 +542,13 @@ export default function DetalheClientePage() {
                 legenda="Só orçamentos entregues e vendas concluídas contam como compra nos indicadores; os demais aparecem com valor em cinza."
                 renderLinha={p => {
                   const s = statusPedido(p)
-                  const clicavel = p.tipo === 'ORCAMENTO'
+                  // #571 — qualquer pedido abre a modal com os dados (venda do Caixa inclusive).
                   return (
                     <div
                       key={`${p.tipo}-${p.id}`}
                       data-testid="linha-pedido"
-                      onClick={clicavel ? () => navigate(`/orcamentos/${p.id}`) : undefined}
-                      className={clsx(linhaHistorico, clicavel && 'cursor-pointer hover:bg-cream')}
+                      onClick={() => setRegistroAberto({ tipo: p.tipo, id: p.id })}
+                      className={clsx(linhaHistorico, 'cursor-pointer hover:bg-cream')}
                     >
                       <div className="font-semibold text-dark">
                         {p.identificador}
@@ -573,7 +575,7 @@ export default function DetalheClientePage() {
                 renderLinha={c => {
                   const s = STATUS_COMPRA[c.status]
                   return (
-                    <div key={c.id} data-testid="linha-compra" onClick={() => navigate(`/compras/${c.id}`)} className={clsx(linhaHistorico, 'cursor-pointer hover:bg-cream')}>
+                    <div key={c.id} data-testid="linha-compra" onClick={() => setRegistroAberto({ tipo: 'COMPRA', id: c.id })} className={clsx(linhaHistorico, 'cursor-pointer hover:bg-cream')}>
                       <div className="font-semibold text-dark">{c.identificador}</div>
                       <div className="text-right text-body md:text-left">{formatarData(c.dataCompra)}</div>
                       <div className="flex flex-wrap gap-1.5">
@@ -592,6 +594,8 @@ export default function DetalheClientePage() {
           </>
         )}
       </div>
+
+      {registroAberto && <ModalRegistro tipo={registroAberto.tipo} id={registroAberto.id} onClose={() => setRegistroAberto(null)} />}
 
       <ConfirmacaoModal
         open={confirmInativar}
