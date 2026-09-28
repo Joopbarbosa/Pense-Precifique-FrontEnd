@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import { Button, MoneyInput } from '../ui'
 import Spinner from '../ui/Spinner'
 import ConfirmacaoModal from '../shared/ConfirmacaoModal'
 import { FornecedorBusca, InsumoPicker } from './Pickers'
-import { formatarData, moeda4, paraCampo, parseDecimal } from './formato'
+import { formatarData, moeda, parseDecimal, REGRA_PRECO_LABEL } from './formato'
+import ModalVinculoFornecedorInsumo from './ModalVinculoFornecedorInsumo'
+import { useModalErro } from '../../hooks/useModalErro'
 import { fornecedorInsumoService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
 import type { CadastroRef, FornecedorInsumoResponse } from '../../types/compra'
@@ -14,16 +16,18 @@ import type { CadastroRef, FornecedorInsumoResponse } from '../../types/compra'
  * #540 (RN-NOVA-6) — vínculo Fornecedor↔Insumo com preço de referência. Mesmo componente nas duas
  * pontas: aba "Fornecedores" do insumo (`modo="insumo"`) e aba "Insumos" do fornecedor
  * (`modo="fornecedor"`). A confirmação de compra também cria/atualiza o vínculo sozinha.
+ * #590 (RN-NOVA-39) — a linha mostra a regra do preço e a última compra; clicar abre a modal do vínculo
+ * (compras do par e edição do preço). Erros de ação na modal de erro padrão (#602).
  */
 export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' | 'fornecedor'; id: string }) {
   const [vinculos, setVinculos] = useState<FornecedorInsumoResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [erroAcao, setErroAcao] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
   const [adicionando, setAdicionando] = useState(false)
   const [novoAlvo, setNovoAlvo] = useState<{ id: string; nome: string } | null>(null)
   const [novoPreco, setNovoPreco] = useState('')
-  const [editando, setEditando] = useState<{ id: string; preco: string } | null>(null)
+  const [aberto, setAberto] = useState<FornecedorInsumoResponse | null>(null)
   const [remover, setRemover] = useState<FornecedorInsumoResponse | null>(null)
   const [salvando, setSalvando] = useState(false)
 
@@ -35,32 +39,18 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
 
   useEffect(() => { carregar() }, [carregar])
 
-  const fecharAdicao = () => { setAdicionando(false); setNovoAlvo(null); setNovoPreco(''); setErroAcao(null) }
+  const fecharAdicao = () => { setAdicionando(false); setNovoAlvo(null); setNovoPreco('') }
 
   const criar = async () => {
     if (!novoAlvo) return
-    setSalvando(true); setErroAcao(null)
+    setSalvando(true)
     try {
       const [fornecedorId, insumoId] = modo === 'insumo' ? [novoAlvo.id, id] : [id, novoAlvo.id]
       await fornecedorInsumoService.criar(fornecedorId, insumoId, parseDecimal(novoPreco))
       fecharAdicao()
       carregar()
     } catch (err) {
-      setErroAcao(extractApiError(err, 'Não foi possível criar o vínculo.'))
-    } finally {
-      setSalvando(false)
-    }
-  }
-
-  const salvarPreco = async () => {
-    if (!editando) return
-    setSalvando(true); setErroAcao(null)
-    try {
-      const atualizado = await fornecedorInsumoService.atualizarPreco(editando.id, parseDecimal(editando.preco))
-      setVinculos(prev => prev.map(v => v.id === atualizado.id ? atualizado : v))
-      setEditando(null)
-    } catch (err) {
-      setErroAcao(extractApiError(err, 'Não foi possível salvar o preço.'))
+      mostrarErro(err, 'Não foi possível criar o vínculo.')
     } finally {
       setSalvando(false)
     }
@@ -72,7 +62,7 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
       await fornecedorInsumoService.remover(remover.id)
       setVinculos(prev => prev.filter(v => v.id !== remover.id))
     } catch (err) {
-      setErroAcao(extractApiError(err, 'Não foi possível remover o vínculo.'))
+      mostrarErro(err, 'Não foi possível remover o vínculo.')
     } finally {
       setRemover(null)
     }
@@ -87,8 +77,8 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
         <p className="m-0 text-[13px] text-muted">
-          {modo === 'insumo' ? 'De quem você compra este insumo e o último preço pago.' : 'Insumos que este fornecedor vende e o último preço pago.'}
-          {' '}Confirmar uma compra atualiza o preço sozinho.
+          {modo === 'insumo' ? 'De quem você compra este insumo.' : 'Insumos que este fornecedor vende.'}
+          {' '}O preço de referência segue a regra do insumo (Média, Menor valor ou Manual). Clique numa linha para ver as compras e ajustar o preço.
         </p>
         {!adicionando && (
           <Button variant="ghost" size="sm" icon={<Plus size={15} />} onClick={() => setAdicionando(true)}>
@@ -121,7 +111,6 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
         </div>
       )}
 
-      {erroAcao && <div role="alert" className="border-b border-line bg-danger-bg px-5 py-2.5 text-[13px] text-danger-deep">{erroAcao}</div>}
 
       {loading ? (
         <div className="flex items-center gap-2.5 px-5 py-8 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
@@ -133,41 +122,28 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
         </div>
       ) : (
         <>
-          <div className="hidden grid-cols-[2fr_1.2fr_1fr_110px] gap-4 bg-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim md:grid">
-            <span>{modo === 'insumo' ? 'Fornecedor' : 'Insumo'}</span><span>Preço de referência</span><span>Atualizado em</span><span />
+          <div className="hidden grid-cols-[1.8fr_1.2fr_0.8fr_1.3fr_48px] gap-4 bg-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim md:grid">
+            <span>{modo === 'insumo' ? 'Fornecedor' : 'Insumo'}</span><span>Preço de referência</span><span>Regra</span><span>Última compra</span><span />
           </div>
           {vinculos.map(v => {
             const o = outraPonta(v)
-            const emEdicao = editando?.id === v.id
             return (
-              <div key={v.id} data-testid="vinculo" className="grid grid-cols-1 gap-2 border-t border-line px-5 py-3 text-[13.5px] md:grid-cols-[2fr_1.2fr_1fr_110px] md:items-center md:gap-4">
+              <div key={v.id} data-testid="vinculo" onClick={() => setAberto(v)}
+                className="grid cursor-pointer grid-cols-1 gap-2 border-t border-line px-5 py-3 text-[13.5px] hover:bg-cream md:grid-cols-[1.8fr_1.2fr_0.8fr_1.3fr_48px] md:items-center md:gap-4">
                 <div className="min-w-0">
                   <span className="mr-2 text-[12px] font-semibold text-muted">{o.identificador}</span>
-                  <Link to={linkOutra(v)} className="font-semibold text-dark no-underline hover:text-teal">{o.nome}</Link>
+                  <Link to={linkOutra(v)} onClick={e => e.stopPropagation()} className="font-semibold text-dark no-underline hover:text-teal">{o.nome}</Link>
                   {!o.ativa && <span className="ml-2 text-[11px] font-semibold text-danger">inativo</span>}
                 </div>
-                <div>
-                  {emEdicao ? (
-                    <MoneyInput size="sm" value={editando.preco} onChange={p => setEditando({ id: v.id, preco: p })} ariaLabel="Novo preço de referência" autoFocus />
-                  ) : (
-                    <span className="font-semibold [font-variant-numeric:tabular-nums]">
-                      {v.precoReferencia != null ? `${moeda4(v.precoReferencia)} / ${unidade(v)}` : <span className="font-normal italic text-faint">Sem preço</span>}
-                    </span>
-                  )}
+                <div className="font-semibold [font-variant-numeric:tabular-nums]">
+                  {v.precoReferencia != null ? `${moeda(v.precoReferencia)} / ${unidade(v)}` : <span className="font-normal italic text-faint">Sem preço</span>}
                 </div>
-                <div className="text-muted">{formatarData(v.updatedAt)}</div>
-                <div className="flex justify-end gap-1">
-                  {emEdicao ? (
-                    <>
-                      <button type="button" aria-label="Salvar preço" onClick={salvarPreco} disabled={salvando} className="grid h-8 w-8 place-items-center rounded-lg border-none bg-transparent text-teal hover:bg-teal/10"><Check size={16} /></button>
-                      <button type="button" aria-label="Cancelar edição" onClick={() => setEditando(null)} className="grid h-8 w-8 place-items-center rounded-lg border-none bg-transparent text-muted hover:bg-cream"><X size={16} /></button>
-                    </>
-                  ) : (
-                    <>
-                      <button type="button" aria-label={`Editar preço de ${o.nome}`} onClick={() => setEditando({ id: v.id, preco: paraCampo(v.precoReferencia, 4) })} className="grid h-8 w-8 place-items-center rounded-lg border-none bg-transparent text-muted hover:bg-cream hover:text-teal"><Pencil size={15} /></button>
-                      <button type="button" aria-label={`Remover vínculo com ${o.nome}`} onClick={() => setRemover(v)} className="grid h-8 w-8 place-items-center rounded-lg border-none bg-transparent text-muted hover:bg-danger-bg hover:text-danger"><Trash2 size={15} /></button>
-                    </>
-                  )}
+                <div className="text-body">{REGRA_PRECO_LABEL[v.regraPrecoReferencia]}</div>
+                <div className="text-muted [font-variant-numeric:tabular-nums]">
+                  {v.ultimaCompra ? `${formatarData(v.ultimaCompra.data)} · ${moeda(v.ultimaCompra.precoUnitario)} / ${unidade(v)}` : '—'}
+                </div>
+                <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+                  <button type="button" aria-label={`Remover vínculo com ${o.nome}`} onClick={() => setRemover(v)} className="grid h-8 w-8 place-items-center rounded-lg border-none bg-transparent text-muted hover:bg-danger-bg hover:text-danger"><Trash2 size={15} /></button>
                 </div>
               </div>
             )
@@ -186,6 +162,9 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
         confirmLabel="Remover"
         description={remover ? `${remover.fornecedor.nome} deixa de aparecer como fornecedor de ${remover.insumo.nome} na lista de compras. As compras já feitas não mudam.` : ''}
       />
+      {aberto && <ModalVinculoFornecedorInsumo vinculo={aberto} onClose={() => setAberto(null)}
+        onSalvo={v => { setVinculos(prev => prev.map(x => x.id === v.id ? v : x)); setAberto(v) }} />}
+      {modalErro}
     </div>
   )
 }

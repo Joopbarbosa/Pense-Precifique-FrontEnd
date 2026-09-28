@@ -4,11 +4,11 @@ import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { insumoService } from '../../services/insumoService'
 import { extractApiError } from '../../utils/apiError'
-import { formatarData, moeda4, qtd } from './formato'
+import { formatarData, moeda, qtd } from './formato'
 import type { InsumoResponse } from '../../types/insumo'
 
-// V0.15.0 (#568) — dados do insumo sem sair da compra. "Editar insumo" abre a edição numa aba nova,
-// para a compra continuar aberta onde estava.
+// V0.15.0 (#568) — dados do insumo sem sair da compra. #592 (RN-NOVA-45): "Detalhes do insumo" abre o
+// detalhe (não a edição) numa aba nova, para a compra continuar aberta onde estava.
 
 function Dado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
@@ -34,8 +34,8 @@ export default function ModalInsumoResumo({ insumoId, onClose }: { insumoId: str
       footer={<>
         <Button variant="ghost" onClick={onClose}>Fechar</Button>
         <Button variant="secondary" icon={<ExternalLink size={16} />} disabled={!insumo}
-          onClick={() => window.open(`/insumos/${insumoId}/editar`, '_blank', 'noopener')}>
-          Editar insumo
+          onClick={() => window.open(`/insumos/${insumoId}`, '_blank', 'noopener')}>
+          Detalhes do insumo
         </Button>
       </>}>
       {erro ? (
@@ -46,7 +46,7 @@ export default function ModalInsumoResumo({ insumoId, onClose }: { insumoId: str
         <dl data-testid="modal-insumo" className="m-0 grid grid-cols-2 gap-x-6 gap-y-4">
           <Dado rotulo="Marca">{insumo.marca || <span className="italic text-faint">Não informada</span>}</Dado>
           <Dado rotulo="Unidade">{un}</Dado>
-          <Dado rotulo="Custo atual">{moeda4(insumo.custoUnitario)} / {un}</Dado>
+          <Dado rotulo="Custo atual">{moeda(insumo.custoUnitario)} / {un}</Dado>
           <Dado rotulo="Situação">{insumo.ativo ? 'Ativo' : <span className="font-semibold text-danger">Inativo</span>}</Dado>
           <Dado rotulo="Estoque atual">{qtd(insumo.estoqueAtual)} {un}</Dado>
           <Dado rotulo="Estoque mínimo">{insumo.estoqueMinimo != null ? `${qtd(insumo.estoqueMinimo)} ${un}` : '—'}</Dado>

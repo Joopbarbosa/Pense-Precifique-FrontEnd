@@ -3,10 +3,10 @@ import clsx from 'clsx'
 import { ArrowDown, ArrowUp, BadgePercent, Calculator, Monitor, Receipt, TrendingUp, Wallet, AlertCircle } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Spinner from '../ui/Spinner'
-import { Button, SegmentedControl } from '../ui'
+import { BigNumber, BigNumberGroup, Button, SegmentedControl } from '../ui'
 import GraficoPrecoInsumos from './GraficoPrecoInsumos'
 import ModalListagemRegistros, { type FiltroInicial } from '../shared/ModalListagemRegistros'
-import { formatarData, hojeIso, moeda4 } from './formato'
+import { formatarData, hojeIso, moeda } from './formato'
 import { BRL } from '../venda/formato'
 import { compraService } from '../../services/compraService'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -14,9 +14,11 @@ import { extractApiError } from '../../utils/apiError'
 import { GRAFICO_EIXO, GRAFICO_GRID, MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } from '../../constants/graficos'
 import type { DashboardComprasResponse, NumeroPainel } from '../../types/compra'
 
-// #577/#578 (RN-NOVA-29) — aba Dashboard de Minhas compras. Tudo vem calculado do backend (só compras
-// CONFIRMADAS, período + período anterior); aqui só escolha de período, formatação e os cliques que abrem
-// a modal de listagem de compras (RN-NOVA-24). CMV sem clique nesta versão.
+// #577/#578 (RN-NOVA-29) — Dashboard de compras. Tudo vem calculado do backend (só compras CONFIRMADAS,
+// período + período anterior); aqui só escolha de período, formatação e os cliques que abrem a modal de
+// listagem de compras (RN-NOVA-24). #598: página própria no menu Compras. #601 (RN-NOVA-37): lupa em
+// todos os números, exceto CMV (lupa, listagem de vendas e cliques no CMV ficam para o #615).
+// #604 (RN-NOVA-34): cartões padrão (`BigNumber`) com esconder/mostrar.
 
 type Periodo = 'mes' | '3' | '6' | '12' | 'personalizado'
 const PERIODOS: { id: Periodo; label: string }[] = [
@@ -44,25 +46,26 @@ const ultimoDia = (mesIso: string) => {
   return `${mesIso.slice(0, 7)}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`
 }
 
-function Comparacao({ n, formato }: { n: { anterior: number | null; variacaoPercentual: number | null }; formato: (v: number) => string }) {
-  if (n.anterior == null) return <span className="text-faint">Sem dado no período anterior</span>
-  const v = n.variacaoPercentual
-  return (
-    <span className="inline-flex items-center gap-1">
-      {v != null && v !== 0 && (v > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
-      <span className="font-semibold text-body">{v == null ? '—' : `${v > 0 ? '+' : ''}${pct(v)}`}</span>
-      <span>vs. {formato(n.anterior)} antes</span>
-    </span>
-  )
+/**
+ * #599 (RN-NOVA-37) — o comparativo diz com qual período compara: "em ago/2026" quando o anterior é um mês
+ * cheio; senão "de 22/08 a 31/08/2026" (ano nas duas pontas só quando muda).
+ */
+export function rotuloPeriodoAnterior(de: string, ate: string): string {
+  const mesCheio = de.slice(8) === '01' && de.slice(0, 7) === ate.slice(0, 7) && ate === ultimoDia(de)
+  if (mesCheio) return `em ${MESES[Number(de.slice(5, 7)) - 1]}/${de.slice(0, 4)}`
+  const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+  return de.slice(0, 4) === ate.slice(0, 4) ? `de ${dm(de)} a ${formatarData(ate)}` : `de ${formatarData(de)} a ${formatarData(ate)}`
 }
 
-function Card({ icone, titulo, valor, children }: { icone: ReactNode; titulo: string; valor: ReactNode; children?: ReactNode }) {
+function Comparacao({ n, formato, periodo }: { n: { anterior: number | null; variacaoPercentual: number | null }; formato: (v: number) => string; periodo: string }) {
+  if (n.anterior == null) return <span className="text-faint">Sem dado {periodo}</span>
+  const v = n.variacaoPercentual
   return (
-    <div data-testid="card-dashboard" className="rounded-card border border-[#F0EEE9] bg-white px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-      <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-dim">{icone}{titulo}</div>
-      <div className="mt-2 text-[22px] font-bold tracking-[-0.01em] text-dark [font-variant-numeric:tabular-nums]">{valor}</div>
-      {children && <div className="mt-1 flex flex-col gap-0.5 text-[12.5px] text-muted">{children}</div>}
-    </div>
+    <span className="inline-flex flex-wrap items-center gap-1" data-testid="comparativo">
+      {v != null && v !== 0 && (v > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+      <span className="font-semibold text-body">{v == null ? '—' : `${v > 0 ? '+' : ''}${pct(v)}`}</span>
+      <span>vs. {formato(n.anterior)} {periodo}</span>
+    </span>
   )
 }
 
@@ -148,6 +151,7 @@ export default function DashboardCompras() {
   useEffect(carregar, [faixa.de, faixa.ate])
 
   const abrir = (titulo: string, filtro: FiltroInicial) => setListagem({ titulo, filtro: { status: ['CONFIRMADA'], ...filtro } })
+  const anterior = d ? rotuloPeriodoAnterior(d.deAnterior, d.ateAnterior) : ''
   const doPeriodo: FiltroInicial = d ? { de: d.de, ate: d.ate } : {}
   const numero = (n: NumeroPainel, f: (v: number) => string) => n.valor == null ? '—' : f(n.valor)
 
@@ -188,32 +192,38 @@ export default function DashboardCompras() {
         <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando painel…</div>
       ) : (
         <div className={clsx('flex flex-col gap-4 transition-opacity', carregando && 'opacity-60')}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Card icone={<Wallet size={14} />} titulo="Gasto no período" valor={numero(d.gasto, BRL)}>
-              <Comparacao n={d.gasto} formato={BRL} />
-            </Card>
-            <Card icone={<Receipt size={14} />} titulo="Compras e ticket médio"
-              valor={<>{d.quantidadeCompras.valor ?? 0} <span className="text-[15px] font-semibold text-muted">· ticket {numero(d.ticketMedio, BRL)}</span></>}>
-              <Comparacao n={d.ticketMedio} formato={BRL} />
-            </Card>
-            <Card icone={<BadgePercent size={14} />} titulo="Economia com desconto" valor={BRL(d.economia.valor)}>
+          <BigNumberGroup tela="dashboard-compras" testid="numeros-dashboard">
+            <BigNumber testid="card-dashboard" icone={<Wallet size={14} />} titulo="Gasto no período" valor={numero(d.gasto, BRL)}
+              onLupa={() => abrir('Gasto no período', doPeriodo)}>
+              <Comparacao n={d.gasto} formato={BRL} periodo={anterior} />
+            </BigNumber>
+            <BigNumber testid="card-dashboard" icone={<Receipt size={14} />} titulo="Compras e ticket médio"
+              valor={<>{d.quantidadeCompras.valor ?? 0} <span className="text-[15px] font-semibold text-muted">· ticket {numero(d.ticketMedio, BRL)}</span></>}
+              onLupa={() => abrir('Compras do período', doPeriodo)}>
+              <Comparacao n={d.ticketMedio} formato={BRL} periodo={anterior} />
+            </BigNumber>
+            <BigNumber testid="card-dashboard" icone={<BadgePercent size={14} />} titulo="Economia com desconto" valor={BRL(d.economia.valor)}
+              onLupa={() => abrir('Compras com desconto', { ...doPeriodo, comDesconto: true })}>
               <span>{pct(d.economia.percentual)} sobre {BRL(d.economia.totalCheio)} cheios</span>
-              <Comparacao n={d.economia} formato={BRL} />
-            </Card>
-            <Card icone={<Calculator size={14} />} titulo="CMV" valor={<>{BRL(d.cmv.valor)} <span className="text-[15px] font-semibold text-muted">· {pct(d.cmv.percentual)}</span></>}>
+              <Comparacao n={d.economia} formato={BRL} periodo={anterior} />
+            </BigNumber>
+            <BigNumber testid="card-dashboard" icone={<Calculator size={14} />} titulo="CMV" valor={<>{BRL(d.cmv.valor)} <span className="text-[15px] font-semibold text-muted">· {pct(d.cmv.percentual)}</span></>}>
               <span>Custo de material do que foi vendido ÷ faturamento de {BRL(d.cmv.faturamento)}</span>
               {d.cmv.estimado > 0 && <span data-testid="cmv-estimado">inclui {BRL(d.cmv.estimado)} estimado (vendas anteriores a esta versão)</span>}
               {d.cmv.vendasSemCusto > 0 && <span>{d.cmv.vendasSemCusto} {d.cmv.vendasSemCusto === 1 ? 'venda' : 'vendas'} sem custo</span>}
-              <Comparacao n={d.cmv} formato={BRL} />
-            </Card>
-            <Card icone={<AlertCircle size={14} />} titulo="Compras não pagas" valor={BRL(d.naoPagas.valor)}>
+              <Comparacao n={d.cmv} formato={BRL} periodo={anterior} />
+            </BigNumber>
+            <BigNumber testid="card-dashboard" icone={<AlertCircle size={14} />} titulo="Compras não pagas" valor={BRL(d.naoPagas.valor)}
+              onLupa={() => abrir('Compras não pagas', { naoPagas: true })}>
               <span>{d.naoPagas.quantidade} {d.naoPagas.quantidade === 1 ? 'compra' : 'compras'} · hoje, sem depender do período</span>
-            </Card>
-            <Card icone={<TrendingUp size={14} />} titulo="Maior aumento no período"
-              valor={d.maiorAumento ? <span className="text-warning-alt">+{pct(d.maiorAumento.variacaoPercentual)}</span> : <span className="text-[15px] font-semibold text-faint">Sem dados suficientes</span>}>
-              {d.maiorAumento && <span>{d.maiorAumento.insumo.nome}: {moeda4(d.maiorAumento.precoInicial)} → {moeda4(d.maiorAumento.precoFinal)}</span>}
-            </Card>
-          </div>
+            </BigNumber>
+            <BigNumber testid="card-dashboard" icone={<TrendingUp size={14} />} titulo="Maior aumento no período"
+              valor={d.maiorAumento ? <span className="text-warning-alt">+{pct(d.maiorAumento.variacaoPercentual)}</span> : <span className="text-[15px] font-semibold text-faint">Sem dados suficientes</span>}
+              onLupa={d.maiorAumento ? () => abrir(`Compras com ${d.maiorAumento!.insumo.nome}`,
+                { ...doPeriodo, itemId: d.maiorAumento!.insumo.id, rotulos: [d.maiorAumento!.insumo.nome] }) : undefined}>
+              {d.maiorAumento && <span>{d.maiorAumento.insumo.nome}: {moeda(d.maiorAumento.precoInicial)} → {moeda(d.maiorAumento.precoFinal)}</span>}
+            </BigNumber>
+          </BigNumberGroup>
 
           {mobile ? (
             <div className="flex items-center gap-2.5 rounded-card border border-line bg-cream px-4 py-3.5 text-[13.5px] text-body">
@@ -257,7 +267,8 @@ export default function DashboardCompras() {
                       <XAxis dataKey="rotulo" tick={eixo} axisLine={false} tickLine={false} />
                       <YAxis width={52} tickFormatter={v => `${v}%`} tick={eixo} axisLine={false} tickLine={false} />
                       <Tooltip content={<Dica formato={v => pct(v)} />} />
-                      <Line dataKey="cmvPercentual" stroke={PALETA_SERIES[1]} strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} connectNulls={false} />
+                      {/* #599 — mês sem faturamento vem 0% do backend: a linha não tem buraco. */}
+                      <Line dataKey="cmvPercentual" stroke={PALETA_SERIES[1]} strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -266,7 +277,7 @@ export default function DashboardCompras() {
                 {d.insumosQueMaisSubiram.length === 0 ? vazio('Nenhum insumo subiu de preço no período.') : (
                   <Ranking testid="ranking-insumos" cor={PALETA_SERIES[1]} formato={v => pct(v)}
                     dados={d.insumosQueMaisSubiram.map(i => ({ id: i.insumo.id, rotulo: i.insumo.nome, valor: i.variacaoPercentual,
-                      extra: `${moeda4(i.precoInicial)} → ${moeda4(i.precoFinal)}` }))}
+                      extra: `${moeda(i.precoInicial)} → ${moeda(i.precoFinal)}` }))}
                     onClique={(id, nome) => abrir(`Compras com ${nome}`, { ...doPeriodo, itemId: id, rotulos: [nome] })} />
                 )}
               </Painel>

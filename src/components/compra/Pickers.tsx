@@ -8,8 +8,9 @@ import type { InsumoResponse } from '../../types/insumo'
 import type { ClienteResponse } from '../../types/cliente'
 import type { CadastroRef } from '../../types/compra'
 
-// V0.15.0 — seletores das telas de Compras. Só oferecem o que pode virar vínculo NOVO: insumo ativo
+// V0.15.0 — seletores das telas de Compras. Só deixam escolher o que pode virar vínculo NOVO: insumo ativo
 // (INS-011) e cadastro ativo com papel Fornecedor (RN-NOVA-3). O backend valida de novo.
+// #583/#616 (RN-NOVA-40): os inativos aparecem depois dos ativos, riscados, sem poder escolher.
 
 /** Busca de insumo ativo. `excluir`: ids que não devem aparecer (ex.: já na lista). */
 export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder = 'Buscar insumo pelo nome…', autoFocus }: {
@@ -21,11 +22,12 @@ export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder 
 }) {
   return (
     <ComboBusca<InsumoResponse>
-      buscar={termo => insumoService.listar(0, 20, termo || undefined, true, 'nome,asc').then(p => p.content.filter(i => !excluir.includes(i.id)))}
+      buscar={termo => insumoService.listar(0, 20, termo || undefined, undefined, 'nome,asc', true).then(p => p.content.filter(i => !excluir.includes(i.id)))}
       onSelect={onSelect}
       getKey={i => i.id}
+      inativo={i => !i.ativo}
       placeholder={placeholder}
-      vazio="Nenhum insumo ativo encontrado"
+      vazio="Nenhum insumo encontrado"
       size={size}
       autoFocus={autoFocus}
       renderItem={i => (
@@ -52,9 +54,10 @@ export function FornecedorBusca({ onSelect, size = 'md', placeholder = 'Buscar f
 }) {
   return (
     <ComboBusca<ClienteResponse>
-      buscar={termo => clienteService.listar(0, 20, termo || undefined, { papel: 'FORNECEDOR' }).then(p => p.content)}
+      buscar={termo => clienteService.listar(0, 20, termo || undefined, { papel: 'FORNECEDOR', incluirInativos: true }).then(p => p.content)}
       onSelect={c => onSelect({ id: c.id, identificador: c.identificador ?? '', nome: c.nome, ativa: c.ativa })}
       getKey={c => c.id}
+      inativo={c => !c.ativa}
       placeholder={placeholder}
       vazio="Nenhum fornecedor encontrado"
       size={size}

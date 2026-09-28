@@ -71,6 +71,10 @@ export interface CompraResponse {
   descontoNota: number
   totalCheio: number
   totalDescontos: number
+  /** #597 (RN-NOVA-42) — só quando pago com cartão de crédito. */
+  parcelas: number | null
+  /** #596 (RN-NOVA-41) — lista de onde a compra foi criada. */
+  listaCompra: { id: string; identificador: string } | null
 }
 
 export interface CompraResumoResponse {
@@ -111,17 +115,23 @@ export interface CompraRequest {
   itens: CompraItemRequest[]
   descontoNotaTipo?: TipoDesconto | null
   descontoNotaValor?: number | null
+  /** #597 — só com método CARTAO_CREDITO e pago (1..maxParcelas, sem máximo 12). */
+  parcelas?: number | null
 }
 
 export interface CompraFiltros {
-  status?: StatusCompra
-  fornecedorId?: string
+  /** #585 — vários status somam como OU. */
+  status?: StatusCompra | StatusCompra[]
+  pago?: boolean
+  comDesconto?: boolean
+  /** #585 — vários somam como OU. */
+  fornecedorId?: string | string[]
   de?: string
   ate?: string
   /** #565 — `campo,direcao` (dataCompra, numero, fornecedor, itens, total, status). */
   sort?: string
   /** DT-NOVA-19 — compras com o insumo em alguma linha; busca por COM-N, insumo ou fornecedor. */
-  insumoId?: string
+  insumoId?: string | string[]
   busca?: string
 }
 
@@ -177,7 +187,24 @@ export interface FornecedorInsumoResponse {
   insumo: InsumoRef
   precoReferencia: number | null
   updatedAt: string
+  /** #590 (RN-NOVA-39) — regra do insumo, vale para todos os fornecedores dele. */
+  regraPrecoReferencia: RegraPrecoReferencia
+  ultimaCompra: { compraId: string; identificador: string; data: string; precoUnitario: number } | null
 }
+
+export type { RegraPrecoReferencia } from './insumo'
+import type { RegraPrecoReferencia } from './insumo'
+
+/** #591 (RN-NOVA-44) — total da conta, sem filtros. */
+export interface ContagensCompra {
+  todas: number
+  rascunhos: number
+  confirmadas: number
+  canceladas: number
+}
+
+/** #596 (RN-NOVA-41). */
+export type StatusListaCompra = 'RASCUNHO' | 'GERADA' | 'PARCIALMENTE_COMPRADA' | 'COMPRADA' | 'CANCELADA'
 
 // ---------- Lista de compras (#546) ----------
 
@@ -213,7 +240,8 @@ export interface ListaCompraItemResponse {
   unidade: string
   estoqueAtual: number
   estoqueMinimo: number | null
-  quantidade: number
+  /** Nula só em rascunho (RN-NOVA-41). */
+  quantidade: number | null
   fornecedorId: string | null
   fornecedorNome: string | null
   precoReferencia: number | null
@@ -223,7 +251,9 @@ export interface ListaCompraResponse {
   id: string
   numero: number
   identificador: string
-  geradaEm: string
+  /** Nulo em rascunho. */
+  geradaEm: string | null
+  status: StatusListaCompra
   itens: ListaCompraItemResponse[]
 }
 
@@ -231,8 +261,10 @@ export interface ListaCompraResumoResponse {
   id: string
   numero: number
   identificador: string
-  geradaEm: string
+  geradaEm: string | null
   quantidadeItens: number
+  status: StatusListaCompra
+  createdAt: string
 }
 
 // ---------- Dashboard (#548, RN-NOVA-15) ----------
@@ -277,7 +309,7 @@ export interface DashboardComprasResponse {
   }
   naoPagas: { quantidade: number; valor: number }
   maiorAumento: InsumoVariacao | null
-  meses: { mes: string; gasto: number; cmv: number; faturamento: number; cmvPercentual: number | null }[]
+  meses: { mes: string; gasto: number; cmv: number; faturamento: number; cmvPercentual: number }[]
   insumosQueMaisSubiram: InsumoVariacao[]
   fornecedoresPorGasto: { fornecedor: CadastroRef; valor: number; quantidadeCompras: number }[]
   fornecedoresPorDescontoPercentual: FornecedorDesconto[]
@@ -292,6 +324,8 @@ export interface PontoEvolucaoPreco {
   quantidade: number
   fornecedor: string | null
   variacaoPercentual: number
+  /** #590 — filtro das compras do par na modal do vínculo. */
+  fornecedorId: string | null
 }
 
 export interface EvolucaoPrecoResponse {

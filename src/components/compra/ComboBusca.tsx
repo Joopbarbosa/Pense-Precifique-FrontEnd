@@ -2,14 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { AlertCircle, RotateCw, Search } from 'lucide-react'
 import Spinner from '../ui/Spinner'
+import OpcaoInativa from '../shared/OpcaoInativa'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 
 /**
  * Busca com painel de resultados (V0.15.0, Compras) — mesmo comportamento de `ClienteSelect`:
  * busca ao focar, debounce de 300ms com guard `debouncedQ !== q` (#357), estados carregando/vazio/erro
  * com "Tentar de novo" (#342). Genérico para servir insumo e fornecedor nas telas de Compras.
+ * `inativo` (#583/#616, RN-NOVA-40): o item aparece riscado com "Inativo" e não pode ser escolhido.
  */
-export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, placeholder, vazio, size = 'md', autoFocus, ariaLabel }: {
+export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, placeholder, vazio, size = 'md', autoFocus, ariaLabel, inativo }: {
   buscar: (termo: string) => Promise<T[]>
   onSelect: (item: T) => void
   getKey: (item: T) => string
@@ -19,6 +21,7 @@ export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, pl
   size?: 'sm' | 'md'
   autoFocus?: boolean
   ariaLabel?: string
+  inativo?: (item: T) => boolean
 }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
@@ -83,7 +86,9 @@ export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, pl
       )}
       {open && estado !== 'erro' && itens.length > 0 && (
         <div className={clsx(painel, 'max-h-[320px] overflow-y-auto p-1.5')}>
-          {itens.map(item => (
+          {itens.map(item => inativo?.(item) ? (
+            <OpcaoInativa key={getKey(item)}>{renderItem(item)}</OpcaoInativa>
+          ) : (
             <button
               key={getKey(item)}
               type="button"

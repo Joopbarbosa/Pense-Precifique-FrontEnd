@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, List, Pencil, Plus, ShoppingCart, Trash2, Users } from 'lucide-react'
-import DashboardCompras from '../../components/compra/DashboardCompras'
+import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -13,7 +12,8 @@ import SortableHeader from '../../components/shared/SortableHeader'
 import ModalCancelarCompra from '../../components/compra/ModalCancelarCompra'
 import ModalPagamento from '../../components/compra/ModalPagamentoCompra'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
-import { extractApiError } from '../../utils/apiError'
+import { useModalErro } from '../../hooks/useModalErro'
+import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import { FornecedorSelect } from '../../components/compra/Pickers'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
 import { formatarData, hojeIso } from '../../components/compra/formato'
@@ -21,16 +21,17 @@ import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useToast } from '../../hooks/useToast'
-import type { CadastroRef, CompraResponse, CompraResumoResponse, ImpactoCompraResponse, StatusCompra } from '../../types/compra'
+import type { CadastroRef, CompraResponse, CompraResumoResponse, ContagensCompra, ImpactoCompraResponse, StatusCompra } from '../../types/compra'
 
-// V0.15.0 — "Minhas compras" (RN-NOVA-16): aba "Compras" com a listagem (#541, #565, #566) e aba
-// "Dashboard" com o painel analítico (#578, RN-NOVA-29). A aba fica na URL (?aba=dashboard).
+// V0.15.0 — "Minhas compras" (RN-NOVA-16): listagem (#541, #565, #566). #598 (RN-NOVA-37): o Dashboard
+// virou página própria (/compras/dashboard); o endereço antigo ?aba=dashboard redireciona para lá.
+// #591 (RN-NOVA-44): cada filtro de status mostra a quantidade do total da conta.
 
-const FILTROS_STATUS: { id: StatusCompra | 'TODAS'; label: string }[] = [
-  { id: 'TODAS', label: 'Todas' },
-  { id: 'RASCUNHO', label: 'Rascunhos' },
-  { id: 'CONFIRMADA', label: 'Confirmadas' },
-  { id: 'CANCELADA', label: 'Canceladas' },
+const FILTROS_STATUS: { id: StatusCompra | 'TODAS'; label: string; contagem: keyof ContagensCompra }[] = [
+  { id: 'TODAS', label: 'Todas', contagem: 'todas' },
+  { id: 'RASCUNHO', label: 'Rascunhos', contagem: 'rascunhos' },
+  { id: 'CONFIRMADA', label: 'Confirmadas', contagem: 'confirmadas' },
+  { id: 'CANCELADA', label: 'Canceladas', contagem: 'canceladas' },
 ]
 
 // #565 — colunas ordenáveis (allowlist do GET /compras).
@@ -53,8 +54,11 @@ export default function ComprasPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { toast, setToast } = useToast()
-  const [params, setParams] = useSearchParams()
-  const aba: 'compras' | 'dashboard' = params.get('aba') === 'dashboard' ? 'dashboard' : 'compras'
+  const [params] = useSearchParams()
+  const { modalErro, mostrarErro } = useModalErro()
+  const { pedir: pedirDuplicar, modal: modalDuplicar } = useDuplicarCompra(mostrarErro)
+  const [contagens, setContagens] = useState<ContagensCompra | null>(null)
+  const atualizarContagens = useCallback(() => { compraService.contagens().then(setContagens).catch(() => setContagens(null)) }, [])
   const [status, setStatus] = useState<StatusCompra | 'TODAS'>('TODAS')
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
   const [de, setDe] = useState('')
@@ -83,6 +87,8 @@ export default function ComprasPage() {
   })
 
   useEffect(() => { reset() }, [reset])
+  useEffect(() => { atualizarContagens() }, [atualizarContagens])
+  const recarregar = () => { reset(); atualizarContagens() }
 
   const ordenar = (campo: CampoOrdem) => setOrdem(o => o.campo === campo
     ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
@@ -95,19 +101,8 @@ export default function ComprasPage() {
     try {
       setAcao({ tipo, compra: await compraService.buscar(id) })
     } catch (err) {
-      setToast(extractApiError(err, 'Não foi possível abrir a compra.'))
+      mostrarErro(err, 'Não foi possível abrir a compra.')
     } finally {
-      setProcessando(false)
-    }
-  }
-
-  const duplicar = async (c: CompraResumoResponse) => {
-    setProcessando(true)
-    try {
-      const nova = await compraService.duplicar(c.id)
-      navigate(`/compras/${nova.id}`, { state: { toast: `Rascunho ${nova.identificador} criado a partir de ${c.identificador}. Revise e confirme.` } })
-    } catch (err) {
-      setToast(extractApiError(err, 'Não foi possível duplicar a compra.'))
       setProcessando(false)
     }
   }
@@ -119,10 +114,10 @@ export default function ComprasPage() {
       await compraService.excluirRascunho(acao.compra.id)
       setToast(`Rascunho ${acao.compra.identificador} excluído.`)
       setAcao(null)
-      reset()
+      recarregar()
     } catch (err) {
-      setToast(extractApiError(err, 'Não foi possível excluir o rascunho.'))
       setAcao(null)
+      mostrarErro(err, 'Não foi possível excluir o rascunho.')
     } finally {
       setProcessando(false)
     }
@@ -135,7 +130,7 @@ export default function ComprasPage() {
       pdf,
       { label: 'Excluir', icon: <Trash2 size={15} />, danger: true, dividerBefore: true, onClick: () => setAcao({ tipo: 'excluir', compra: c }) },
     ]
-    const duplicarItem: ActionMenuItem = { label: 'Duplicar', icon: <Copy size={15} />, onClick: () => duplicar(c) }
+    const duplicarItem: ActionMenuItem = { label: 'Duplicar', icon: <Copy size={15} />, onClick: () => pedirDuplicar(c.id) }
     if (c.status === 'CANCELADA') return [duplicarItem, pdf]
     return [
       { label: 'Alterar pagamento', icon: <CreditCard size={15} />, onClick: () => abrirComCompra('pagamento', c.id) },
@@ -147,6 +142,8 @@ export default function ComprasPage() {
 
   const temFiltro = status !== 'TODAS' || !!fornecedor || !!de || !!ate
 
+  if (params.get('aba') === 'dashboard') return <Navigate to="/compras/dashboard" replace />
+
   return (
     <AppLayout active="compras" compact>
       <Toast message={toast} />
@@ -157,28 +154,13 @@ export default function ComprasPage() {
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">O que você comprou, de quem e quanto pagou.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
+          <Button variant="ghost" icon={<BarChart3 size={16} />} onClick={() => navigate('/compras/dashboard')}>Dashboard</Button>
           <Button variant="ghost" icon={<Users size={16} />} onClick={() => navigate('/clientes')}>Clientes e Fornecedores</Button>
-          <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista')}>Gerar lista de compras</Button>
+          <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista?aba=nova')}>Gerar lista de compras</Button>
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/compras/nova')}>Registrar compra</Button>
         </div>
       </div>
 
-      <div className="mb-5 flex gap-1 overflow-x-auto border-b-[1.5px] border-line" role="tablist">
-        {([{ id: 'compras', label: 'Compras', icon: List }, { id: 'dashboard', label: 'Dashboard', icon: BarChart3 }] as const).map(a => {
-          const on = aba === a.id
-          return (
-            <button key={a.id} role="tab" aria-selected={on} onClick={() => setParams(a.id === 'dashboard' ? { aba: 'dashboard' } : {}, { replace: true })}
-              className={clsx('relative flex items-center gap-2 whitespace-nowrap border-none bg-transparent px-4 py-3 font-[inherit] text-sm transition-colors duration-150',
-                on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body')}>
-              <a.icon size={16} className={on ? 'text-teal' : 'text-dim'} />
-              {a.label}
-              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
-            </button>
-          )
-        })}
-      </div>
-
-      {aba === 'dashboard' ? <DashboardCompras /> : <>
       <div className="mb-[18px] flex flex-col gap-3.5">
         <div className="flex flex-wrap gap-2">
           {FILTROS_STATUS.map(f => {
@@ -188,6 +170,10 @@ export default function ComprasPage() {
                 className={clsx('inline-flex h-[34px] items-center rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
                   on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream')}>
                 {f.label}
+                {contagens && (
+                  <span data-testid="contagem-filtro" className={clsx('ml-1.5 rounded-full px-1.5 text-[11.5px] font-bold [font-variant-numeric:tabular-nums]',
+                    on ? 'bg-white/25 text-white' : 'bg-line-soft text-muted')}>{contagens[f.contagem]}</span>
+                )}
               </button>
             )
           })}
@@ -262,20 +248,22 @@ export default function ComprasPage() {
       )}
       {acao?.tipo === 'pagamento' && (
         <ModalPagamento compra={acao.compra} onClose={() => setAcao(null)}
-          onSalvo={() => { setAcao(null); setToast('Pagamento atualizado.'); reset() }} />
+          onSalvo={() => { setAcao(null); setToast('Pagamento atualizado.'); recarregar() }} />
       )}
       {acao?.tipo === 'cancelar' && (
         <ModalCancelarCompra compra={acao.compra} onClose={() => setAcao(null)}
-          onCancelada={r => { setAcao(null); reset(); setImpacto({ titulo: `Compra ${r.compra.identificador} cancelada`, impacto: r.impacto }) }} />
+          onCancelada={r => { setAcao(null); recarregar(); setImpacto({ titulo: `Compra ${r.compra.identificador} cancelada`, impacto: r.impacto }) }} />
       )}
       {impacto && <ModalImpactoCompra titulo={impacto.titulo} impacto={impacto.impacto} onClose={() => setImpacto(null)} />}
+
+      {modalDuplicar}
+      {modalErro}
 
       {hasMore && !loading && (
         <div className="mt-5 flex justify-center">
           <Button variant="ghost" onClick={loadMore} disabled={loadingMore}>{loadingMore ? 'Carregando…' : 'Carregar mais'}</Button>
         </div>
       )}
-      </>}
     </AppLayout>
   )
 }

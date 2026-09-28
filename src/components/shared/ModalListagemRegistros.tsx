@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { ExternalLink, List, Search, X } from 'lucide-react'
+import { ExternalLink, List, Search } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import SortableHeader from './SortableHeader'
+import CampoFiltros, { type FiltroEscolhido, type GrupoFiltro } from './CampoFiltros'
 import ModalRegistro, { type TipoRegistro } from '../cliente/ModalRegistro'
 import { BRL } from '../venda/formato'
 import { formatarData, hojeIso, STATUS_COMPRA_LABEL } from '../compra/formato'
 import { clienteService } from '../../services/clienteService'
 import { compraService } from '../../services/compraService'
+import { insumoService } from '../../services/insumoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useModalErro } from '../../hooks/useModalErro'
 import { extractApiError } from '../../utils/apiError'
 import { STATUS_LABEL } from '../../constants/statusOrcamento'
 import type { PapelCadastro } from '../../types/cliente'
@@ -20,21 +23,26 @@ import type { StatusOrcamento } from '../../types/orcamento'
 // ponto de entrada (lupa dos indicadores do cadastro, clique nos gráficos do cliente e do dashboard de
 // compras): Registro, Data, Itens, Status e Valor. Busca, filtros e ordenação no servidor, paginada.
 // Orçamento e compra abrem numa aba nova; venda do Caixa (sem página) abre a modal de dados (#571).
+// #585 (RN-NOVA-35) — os filtros ficam num campo só, com seleção múltipla agrupada por tipo; o ponto de
+// entrada já traz o campo preenchido. Tipos diferentes somam como E; valores do mesmo tipo, como OU.
 
 export type FonteListagem =
   | { tipo: 'cadastro'; cadastroId: string; papel: PapelCadastro }
   | { tipo: 'compras' }
 
-/** Filtro fixo vindo do ponto de entrada; o que tem rótulo vira um chip removível. */
+/** Filtro vindo do ponto de entrada; vira etiquetas no campo de filtros, que a pessoa pode tirar. */
 export interface FiltroInicial {
   somenteCompras?: boolean
+  /** Compras confirmadas não pagas (vira "Pagamento: Não paga" + "Status: Confirmada"). */
   naoPagas?: boolean
+  comDesconto?: boolean
   status?: string[]
   de?: string
   ate?: string
   /** Produto/item de catálogo (cliente) ou insumo (fornecedor/compras). */
   itemId?: string
   fornecedorId?: string
+  /** Rótulo do item ou do fornecedor acima (nome que aparece na etiqueta). */
   rotulos?: string[]
   /** Ordenação inicial, ex. 'data,asc' (padrão: data mais recente primeiro). */
   sort?: string
@@ -53,18 +61,51 @@ interface Linha {
 
 type Campo = 'identificador' | 'data' | 'valor' | 'status'
 
-const GRUPOS_CLIENTE: { id: string; label: string; status: string[] }[] = [
-  { id: 'vendido', label: 'Entregue / Concluída', status: ['ENTREGUE', 'CONCLUIDA'] },
-  { id: 'aberto', label: 'Em aberto', status: ['RASCUNHO', 'ENVIADO', 'APROVADO', 'AGUARDANDO_SINAL', 'SINAL_PAGO', 'EM_PRODUCAO', 'FINALIZADO', 'PAGO'] },
-  { id: 'cancelado', label: 'Cancelado', status: ['CANCELADO', 'CANCELADA'] },
-]
-const GRUPOS_COMPRA: { id: string; label: string; status: string[] }[] = [
-  { id: 'CONFIRMADA', label: 'Confirmada', status: ['CONFIRMADA'] },
-  { id: 'RASCUNHO', label: 'Rascunho', status: ['RASCUNHO'] },
-  { id: 'CANCELADA', label: 'Cancelada', status: ['CANCELADA'] },
-]
-
 const TIPO_CURTO: Record<TipoRegistro, string> = { ORCAMENTO: 'Orçamento', VENDA_CAIXA: 'Caixa', COMPRA: 'Compra' }
+
+const STATUS_CLIENTE = [
+  ...Object.entries(STATUS_LABEL).map(([valor, rotulo]) => ({ valor, rotulo })),
+  { valor: 'CONCLUIDA', rotulo: 'Concluída (Caixa)' },
+  { valor: 'CANCELADA', rotulo: 'Cancelada (Caixa)' },
+]
+const STATUS_COMPRAS = (['RASCUNHO', 'CONFIRMADA', 'CANCELADA'] as StatusCompra[]).map(v => ({ valor: v, rotulo: STATUS_COMPRA_LABEL[v] }))
+const PAGAMENTO = [{ valor: 'true', rotulo: 'Paga' }, { valor: 'false', rotulo: 'Não paga' }]
+
+const buscarInsumos = (termo: string) => insumoService.listar(0, 8, termo || undefined, undefined, 'nome,asc')
+  .then(p => p.content.map(i => ({ valor: i.id, rotulo: i.nome })))
+const buscarFornecedores = (termo: string) => clienteService.listar(0, 8, termo || undefined, { papel: 'FORNECEDOR' })
+  .then(p => p.content.map(c => ({ valor: c.id, rotulo: c.nome })))
+
+function gruposDa(fonte: FonteListagem): GrupoFiltro[] {
+  if (fonte.tipo === 'cadastro' && fonte.papel === 'CLIENTE') return [
+    { id: 'tipo', rotulo: 'Tipo', opcoes: [{ valor: 'ORCAMENTO', rotulo: 'Orçamento' }, { valor: 'VENDA_CAIXA', rotulo: 'Venda do Caixa' }] },
+    { id: 'conta', rotulo: 'Conta como compra', opcoes: [{ valor: 'sim', rotulo: 'Sim' }] },
+    { id: 'status', rotulo: 'Status', opcoes: STATUS_CLIENTE },
+    // Item só vem do ponto de entrada (lupa do mais comprado / clique no item do gráfico).
+    { id: 'item', rotulo: 'Item' },
+  ]
+  const comuns: GrupoFiltro[] = [
+    { id: 'status', rotulo: 'Status', opcoes: STATUS_COMPRAS },
+    { id: 'pagamento', rotulo: 'Pagamento', opcoes: PAGAMENTO },
+    { id: 'desconto', rotulo: 'Desconto', opcoes: [{ valor: 'sim', rotulo: 'Com desconto' }] },
+  ]
+  if (fonte.tipo === 'cadastro') return [...comuns, { id: 'item', rotulo: 'Insumo', buscar: buscarInsumos }]
+  return [...comuns, { id: 'fornecedor', rotulo: 'Fornecedor', buscar: buscarFornecedores }, { id: 'item', rotulo: 'Insumo', buscar: buscarInsumos }]
+}
+
+function etiquetasIniciais(f: FiltroInicial, grupos: GrupoFiltro[]): FiltroEscolhido[] {
+  const rotuloOpcao = (grupo: string, valor: string) => grupos.find(g => g.id === grupo)?.opcoes?.find(o => o.valor === valor)?.rotulo ?? valor
+  const out: FiltroEscolhido[] = []
+  const status = new Set(f.status ?? [])
+  if (f.naoPagas) status.add('CONFIRMADA')
+  status.forEach(s => out.push({ grupo: 'status', valor: s, rotulo: rotuloOpcao('status', s) }))
+  if (f.somenteCompras) out.push({ grupo: 'conta', valor: 'sim', rotulo: 'Sim' })
+  if (f.naoPagas) out.push({ grupo: 'pagamento', valor: 'false', rotulo: 'Não paga' })
+  if (f.comDesconto) out.push({ grupo: 'desconto', valor: 'sim', rotulo: 'Com desconto' })
+  if (f.fornecedorId) out.push({ grupo: 'fornecedor', valor: f.fornecedorId, rotulo: f.rotulos?.[0] ?? 'Fornecedor' })
+  if (f.itemId) out.push({ grupo: 'item', valor: f.itemId, rotulo: f.rotulos?.[0] ?? 'Item' })
+  return out
+}
 
 function rotuloStatus(tipo: TipoRegistro, status: string): string {
   if (tipo === 'COMPRA') return STATUS_COMPRA_LABEL[status as StatusCompra] ?? status
@@ -85,6 +126,14 @@ const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 
 // A ordenação pública da modal é sempre data/identificador/valor/status; compras usam os nomes do GET /compras.
 const CAMPO_COMPRAS: Record<Campo, string> = { data: 'dataCompra', identificador: 'numero', valor: 'total', status: 'status' }
 
+/** #602 (RN-NOVA-32) — mesmo texto do backend (ClienteHistoricoService, "Período inválido"). */
+export const ERRO_PERIODO = {
+  titulo: 'Período inválido',
+  mensagem: 'A data inicial não pode ser depois da data final.',
+  motivo: 'O período vai da data inicial até a data final.',
+  comoResolver: 'Troque as datas de lugar (ex.: de 01/09/2026 até 30/09/2026).',
+}
+
 export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtro, onClose }: {
   titulo: string
   subtitulo?: string
@@ -92,18 +141,14 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   filtro: FiltroInicial
   onClose: () => void
 }) {
-  const grupos = fonte.tipo === 'cadastro' && fonte.papel === 'CLIENTE' ? GRUPOS_CLIENTE : GRUPOS_COMPRA
-  const gruposIniciais = filtro.status
-    ? grupos.filter(g => g.status.some(st => filtro.status!.includes(st))).map(g => g.id)
-    : []
+  const grupos = useMemo(() => gruposDa(fonte), [fonte])
   const [ordemInicialCampo, ordemInicialDir] = (filtro.sort ?? 'data,desc').split(',') as [Campo, 'asc' | 'desc']
 
   const [busca, setBusca] = useState('')
   const q = useDebouncedValue(busca)
-  const [gruposMarcados, setGruposMarcados] = useState<string[]>(gruposIniciais)
+  const [filtros, setFiltros] = useState<FiltroEscolhido[]>(() => etiquetasIniciais(filtro, grupos))
   const [de, setDe] = useState(filtro.de ?? '')
   const [ate, setAte] = useState(filtro.ate ?? '')
-  const [fixos, setFixos] = useState(filtro)
   const [ordem, setOrdem] = useState<{ campo: Campo; dir: 'asc' | 'desc' }>({ campo: ordemInicialCampo, dir: ordemInicialDir })
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [total, setTotal] = useState(0)
@@ -112,24 +157,29 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [vendaAberta, setVendaAberta] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
   const seq = useRef(0)
 
-  const statusSelecionados = grupos.filter(g => gruposMarcados.includes(g.id)).flatMap(g => g.status)
+  const valores = (grupo: string) => filtros.filter(f => f.grupo === grupo).map(f => f.valor)
+  const pagamento = valores('pagamento')
+  const pago = pagamento.length === 1 ? pagamento[0] as 'true' | 'false' : undefined
 
   const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean }> => {
     const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : ordem.campo},${ordem.dir}`
+    const status = valores('status')
     if (fonte.tipo === 'cadastro') {
       const r = await clienteService.registros(fonte.cadastroId, pagina, POR_PAGINA, {
-        papel: fonte.papel, busca: q || undefined, status: statusSelecionados.length ? statusSelecionados : undefined,
-        somenteCompras: fixos.somenteCompras, naoPagas: fixos.naoPagas, de: de || undefined, ate: ate || undefined,
-        itemId: fixos.itemId, sort,
+        papel: fonte.papel, busca: q || undefined, status: status.length ? status : undefined,
+        tipo: valores('tipo'), somenteCompras: valores('conta').length > 0, pago,
+        comDesconto: valores('desconto').length > 0, itemId: valores('item'),
+        de: de || undefined, ate: ate || undefined, sort,
       })
       return { linhas: r.content.map(x => ({ ...x })), total: r.totalElements, last: r.last }
     }
-    // GET /compras aceita um status por vez: com mais de um marcado, a lista mostra todos.
     const r = await compraService.listar(pagina, POR_PAGINA, {
-      status: statusSelecionados.length === 1 ? (statusSelecionados[0] as StatusCompra) : undefined,
-      fornecedorId: fixos.fornecedorId, insumoId: fixos.itemId, busca: q || undefined,
+      status: status as StatusCompra[], pago: pago === undefined ? undefined : pago === 'true',
+      comDesconto: valores('desconto').length > 0 || undefined,
+      fornecedorId: valores('fornecedor'), insumoId: valores('item'), busca: q || undefined,
       de: de || undefined, ate: ate || undefined, sort,
     })
     return {
@@ -152,19 +202,25 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
       .finally(() => { if (minha === seq.current) setCarregando(false) })
   }
 
+  const chaveFiltros = filtros.map(f => `${f.grupo}:${f.valor}`).join()
   useEffect(() => {
     if (q !== busca) return
     carregar(0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, gruposMarcados.join(), de, ate, fixos, ordem])
+  }, [q, chaveFiltros, de, ate, ordem])
 
   const ordenar = (campo: Campo) => setOrdem(o => o.campo === campo
     ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
     : { campo, dir: campo === 'data' || campo === 'valor' ? 'desc' : 'asc' })
 
-  const alternarGrupo = (id: string) => setGruposMarcados(prev => fonte.tipo === 'compras'
-    ? (prev.includes(id) ? [] : [id])
-    : (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]))
+  // Período: data inicial depois da final é BLOQUEIO — a lista não muda e a data volta ao valor anterior.
+  const mudarPeriodo = (campo: 'de' | 'ate', valor: string, alvo: HTMLInputElement) => {
+    const novoDe = campo === 'de' ? valor : de
+    const novoAte = campo === 'ate' ? valor : ate
+    if (novoDe && novoAte && novoDe > novoAte) { mostrarErro(ERRO_PERIODO, undefined, alvo); return }
+    if (campo === 'de') setDe(valor)
+    else setAte(valor)
+  }
 
   const abrir = (l: Linha) => {
     if (l.tipo === 'VENDA_CAIXA') { setVendaAberta(l.id); return }
@@ -186,35 +242,18 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
                 className="h-9 w-full rounded-input border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
-              De <input type="date" aria-label="Data inicial" value={de} max={ate || hojeIso()} onChange={e => setDe(e.target.value)} className={dateInput} />
+              De <input type="date" aria-label="Data inicial" value={de} max={hojeIso()} onChange={e => mudarPeriodo('de', e.target.value, e.currentTarget)} className={dateInput} />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
-              Até <input type="date" aria-label="Data final" value={ate} min={de || undefined} max={hojeIso()} onChange={e => setAte(e.target.value)} className={dateInput} />
+              Até <input type="date" aria-label="Data final" value={ate} max={hojeIso()} onChange={e => mudarPeriodo('ate', e.target.value, e.currentTarget)} className={dateInput} />
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {grupos.map(g => {
-              const on = gruposMarcados.includes(g.id)
-              return (
-                <button key={g.id} type="button" onClick={() => alternarGrupo(g.id)} aria-pressed={on}
-                  className={clsx('inline-flex h-8 items-center rounded-full border-[1.5px] px-3 font-[inherit] text-[12.5px] font-semibold transition-colors',
-                    on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream')}>
-                  {g.label}
-                </button>
-              )
-            })}
-            {(fixos.rotulos ?? []).map(r => (
-              <span key={r} data-testid="chip-filtro" className="inline-flex h-8 items-center gap-1.5 rounded-full bg-orange/10 pl-3 pr-1.5 text-[12.5px] font-semibold text-orange">
-                {r}
-                <button type="button" aria-label={`Tirar filtro ${r}`}
-                  onClick={() => setFixos({ ...fixos, rotulos: [], somenteCompras: false, naoPagas: false, itemId: undefined, fornecedorId: undefined })}
-                  className="grid h-5 w-5 place-items-center rounded-full border-none bg-transparent text-orange hover:bg-orange/15">
-                  <X size={13} />
-                </button>
-              </span>
-            ))}
-            <span className="ml-auto text-[12.5px] text-muted">{carregando && page === 0 ? '' : `${total} ${total === 1 ? 'registro' : 'registros'}`}</span>
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="min-w-[280px] flex-1">
+              <CampoFiltros grupos={grupos} escolhidos={filtros} onChange={setFiltros} />
+            </div>
+            <span className="pt-2.5 text-[12.5px] text-muted">{carregando && page === 0 ? '' : `${total} ${total === 1 ? 'registro' : 'registros'}`}</span>
           </div>
 
           <div className="rounded-input border border-line" data-testid="modal-listagem">
@@ -264,6 +303,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
           </div>
         </div>
       </ModalShell>
+      {modalErro}
       {vendaAberta && <ModalRegistro tipo="VENDA_CAIXA" id={vendaAberta} onClose={() => setVendaAberta(null)} />}
     </>
   )

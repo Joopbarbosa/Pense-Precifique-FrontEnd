@@ -1,7 +1,7 @@
 import api from './api'
 import type { PageResponse } from '../types/shared'
 import type {
-  CompraConfirmacaoResponse, CompraFiltros, CompraRequest, CompraResponse, CompraResumoResponse,
+  CompraConfirmacaoResponse, CompraFiltros, ContagensCompra, StatusListaCompra, CompraRequest, CompraResponse, CompraResumoResponse,
   DashboardComprasResponse, EvolucaoPrecoResponse, FiltrosPreviaLista, FornecedorInsumoResponse,
   GerarListaCompraRequest, ListaCompraResponse, ListaCompraResumoResponse, PreviaListaCompraResponse,
   SimulacaoCancelamentoResponse,
@@ -22,6 +22,12 @@ const paramsSerializer = (params: Record<string, unknown>) => {
 export const compraService = {
   listar: async (page: number, size = 20, filtros: CompraFiltros = {}): Promise<PageResponse<CompraResumoResponse>> => {
     const response = await api.get('/compras', { params: { page, size, ...filtros }, paramsSerializer })
+    return response.data
+  },
+
+  /** #591 (RN-NOVA-44). */
+  contagens: async (): Promise<ContagensCompra> => {
+    const response = await api.get('/compras/contagens')
     return response.data
   },
 
@@ -56,8 +62,8 @@ export const compraService = {
     return response.data
   },
 
-  atualizarPagamento: async (id: string, pago: boolean, metodoPagamentoId: string | null): Promise<CompraResponse> => {
-    const response = await api.patch(`/compras/${id}/pagamento`, { pago, metodoPagamentoId })
+  atualizarPagamento: async (id: string, pago: boolean, metodoPagamentoId: string | null, parcelas: number | null = null): Promise<CompraResponse> => {
+    const response = await api.patch(`/compras/${id}/pagamento`, { pago, metodoPagamentoId, parcelas })
     return response.data
   },
 
@@ -71,8 +77,9 @@ export const compraService = {
     return response.data
   },
 
-  duplicar: async (id: string): Promise<CompraResponse> => {
-    const response = await api.post(`/compras/${id}/duplicar`)
+  /** #593 (RN-NOVA-43) — `manterDescontos=false` copia só preço cheio e quantidades. */
+  duplicar: async (id: string, manterDescontos = true): Promise<CompraResponse> => {
+    const response = await api.post(`/compras/${id}/duplicar`, null, { params: { manterDescontos } })
     return response.data
   },
 
@@ -144,8 +151,30 @@ export const listaCompraService = {
     return response.data
   },
 
-  historico: async (page: number, size = 20): Promise<PageResponse<ListaCompraResumoResponse>> => {
-    const response = await api.get('/listas-compra', { params: { page, size } })
+  /** #595 — `sort` por allowlist: numero, geradaEm, status, quantidadeItens. */
+  historico: async (page: number, size = 20, sort = 'numero,desc'): Promise<PageResponse<ListaCompraResumoResponse>> => {
+    const response = await api.get('/listas-compra', { params: { page, size, sort } })
+    return response.data
+  },
+
+  /** #596 (RN-NOVA-41) — rascunho: quantidade pode ficar vazia. */
+  salvarRascunho: async (data: GerarListaCompraRequest): Promise<ListaCompraResponse> => {
+    const response = await api.post('/listas-compra/rascunho', data)
+    return response.data
+  },
+
+  atualizarRascunho: async (id: string, data: GerarListaCompraRequest): Promise<ListaCompraResponse> => {
+    const response = await api.put(`/listas-compra/${id}`, data)
+    return response.data
+  },
+
+  gerarRascunho: async (id: string): Promise<ListaCompraResponse> => {
+    const response = await api.post(`/listas-compra/${id}/gerar`)
+    return response.data
+  },
+
+  alterarStatus: async (id: string, status: StatusListaCompra): Promise<ListaCompraResponse> => {
+    const response = await api.patch(`/listas-compra/${id}/status`, { status })
     return response.data
   },
 

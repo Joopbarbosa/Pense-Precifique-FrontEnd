@@ -3,7 +3,7 @@ import { CreditCard } from 'lucide-react'
 import { Button, Field, ModalShell, SegmentedControl } from '../ui'
 import MetodoPagamentoEscolha from './MetodoPagamentoEscolha'
 import { compraService } from '../../services/compraService'
-import { extractApiError } from '../../utils/apiError'
+import { useModalErro } from '../../hooks/useModalErro'
 import type { CompraResponse } from '../../types/compra'
 
 // V0.15.0 (#550) — só o pagamento muda numa compra confirmada (Decisão 14). Usado pelo detalhe e pelo
@@ -12,14 +12,15 @@ export default function ModalPagamento({ compra, onClose, onSalvo }: { compra: C
   const [pago, setPago] = useState(compra.pago)
   const [metodoId, setMetodoId] = useState<string | null>(compra.metodoPagamento?.id ?? null)
   const [salvando, setSalvando] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const [parcelas, setParcelas] = useState<number | null>(compra.parcelas)
+  const { modalErro, mostrarErro } = useModalErro()
 
   const salvar = async () => {
-    setSalvando(true); setErro(null)
+    setSalvando(true)
     try {
-      onSalvo(await compraService.atualizarPagamento(compra.id, pago, pago ? metodoId : null))
+      onSalvo(await compraService.atualizarPagamento(compra.id, pago, pago ? metodoId : null, pago ? parcelas : null))
     } catch (err) {
-      setErro(extractApiError(err, 'Não foi possível alterar o pagamento.'))
+      mostrarErro(err, 'Não foi possível alterar o pagamento.')
     } finally {
       setSalvando(false)
     }
@@ -39,11 +40,12 @@ export default function ModalPagamento({ compra, onClose, onSalvo }: { compra: C
         </Field>
         {pago && (
           <Field label="Como foi paga?" required group size="md">
-            <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra.metodoPagamento} />
+            <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra.metodoPagamento}
+              parcelas={parcelas} onParcelas={setParcelas} />
           </Field>
         )}
-        {erro && <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>}
       </div>
+      {modalErro}
     </ModalShell>
   )
 }

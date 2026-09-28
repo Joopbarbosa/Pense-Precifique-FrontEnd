@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { ArrowRight, Info, TrendingUp } from 'lucide-react'
 import { ModalShell, Button } from '../ui'
 import { BRL } from '../venda/formato'
-import { moeda4 } from './formato'
+import { moeda } from './formato'
 import type { ImpactoCompraResponse, ImpactoProduto } from '../../types/compra'
 
 // #543 (RN-NOVA-8) — modal informativo depois de confirmar (ou cancelar) uma compra. Todos os
@@ -34,7 +34,7 @@ function LinhaProduto({ p }: { p: ImpactoProduto }) {
           Preço de venda {BRL(p.precoVenda)}{p.precoVendaManual ? ' (definido por você)' : ''} — não muda
         </div>
       </div>
-      <div><span className="mr-1.5 text-[11px] uppercase tracking-[0.04em] text-faint md:hidden">Custo</span><AntesDepois antes={p.custoAntes} depois={p.custoDepois} formatar={moeda4} /></div>
+      <div><span className="mr-1.5 text-[11px] uppercase tracking-[0.04em] text-faint md:hidden">Custo</span><AntesDepois antes={p.custoAntes} depois={p.custoDepois} formatar={moeda} /></div>
       <div><span className="mr-1.5 text-[11px] uppercase tracking-[0.04em] text-faint md:hidden">Sugerido</span><AntesDepois antes={p.precoSugeridoAntes} depois={p.precoSugeridoDepois} formatar={BRL} /></div>
     </div>
   )
@@ -70,7 +70,7 @@ export default function ModalImpactoCompra({ impacto, titulo, onClose }: {
                 <div key={i.id} data-testid="impacto-insumo" className={clsx('flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-[13px]', k > 0 && 'border-t border-line')}>
                   <span><span className="mr-2 text-[12px] font-semibold text-muted">{i.identificador}</span><span className="font-semibold text-dark">{i.nome}</span></span>
                   <span className="inline-flex items-center gap-1">
-                    <AntesDepois antes={i.custoAntes} depois={i.custoDepois} formatar={moeda4} />
+                    <AntesDepois antes={i.custoAntes} depois={i.custoDepois} formatar={moeda} />
                     <span className="text-muted">/ {i.unidade}</span>
                   </span>
                 </div>

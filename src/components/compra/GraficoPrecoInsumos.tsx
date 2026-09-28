@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
-import { LineChart as IconeLinha, Monitor, X } from 'lucide-react'
+import { ExternalLink, LineChart as IconeLinha, Monitor, X } from 'lucide-react'
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { SegmentedControl } from '../ui'
+import { Button, ModalShell, SegmentedControl } from '../ui'
 import Spinner from '../ui/Spinner'
 import { InsumoPicker } from './Pickers'
-import { formatarData, hojeIso, moeda4 } from './formato'
+import { formatarData, hojeIso, moeda, qtd } from './formato'
 import { compraService } from '../../services/compraService'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { extractApiError } from '../../utils/apiError'
@@ -16,6 +16,8 @@ import type { EvolucaoPrecoResponse } from '../../types/compra'
 // Recharts, até 5 insumos, modo padrão "Variação %" (com alternância para "R$ por unidade"), paleta
 // categórica fixa. A cor segue o insumo (slot atribuído ao escolher), nunca a posição na lista.
 // Todos os valores (preço pago e variação) vêm prontos da API.
+// #600 (RN-NOVA-37) — sem "Ver como tabela": clicar na linha ou num ponto de um insumo abre a modal com a
+// evolução daquele insumo no período (mais recente primeiro; clique na linha abre a compra em aba nova).
 
 type Modo = 'pct' | 'brl'
 type Periodo = '1' | '3' | '6' | '12' | 'custom'
@@ -63,7 +65,7 @@ function TooltipPreco({ active, payload, sel }: { active?: boolean; payload?: { 
           <div key={p.dataKey} className="grid grid-cols-[10px_1fr_auto] items-baseline gap-x-2 border-t border-line-soft py-1 first-of-type:border-t-0">
             <span className="h-2.5 w-2.5 self-center rounded-full" style={{ background: p.color }} />
             <span className="text-body">{ins.nome}</span>
-            <span className="text-right font-semibold text-dark [font-variant-numeric:tabular-nums]">{moeda4(r[`${ins.id}_brl`] as number)}/{ins.unidade}</span>
+            <span className="text-right font-semibold text-dark [font-variant-numeric:tabular-nums]">{moeda(r[`${ins.id}_brl`] as number)}/{ins.unidade}</span>
             <span className="col-span-2 col-start-2 text-[11.5px] text-muted">
               {pct(r[`${ins.id}_pct`] as number)} desde a 1ª compra do período{r[`${ins.id}_forn`] ? ` · ${r[`${ins.id}_forn`]}` : ''}
             </span>
@@ -84,7 +86,7 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
   const [dados, setDados] = useState<EvolucaoPrecoResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [tabela, setTabela] = useState(false)
+  const [evolucaoDe, setEvolucaoDe] = useState<string | null>(null)
 
   // Pré-seleciona o insumo com maior aumento (se houver), para o gráfico não abrir vazio.
   useEffect(() => {
@@ -195,12 +197,14 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
                     tick={{ fill: GRAFICO_EIXO, fontSize: 12 }} stroke={GRAFICO_GRID} tickLine={false}
                     tickFormatter={t => { const d = new Date(t); return periodo === '1' ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}` : `${MESES[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` }} />
                   <YAxis tick={{ fill: GRAFICO_EIXO, fontSize: 12 }} stroke={GRAFICO_GRID} tickLine={false} axisLine={false} width={modo === 'pct' ? 52 : 72}
-                    tickFormatter={v => modo === 'pct' ? `${v > 0 ? '+' : ''}${Math.round(Number(v))}%` : moeda4(Number(v)).replace(/,?0+$/, '')} />
+                    tickFormatter={v => modo === 'pct' ? `${v > 0 ? '+' : ''}${Math.round(Number(v))}%` : moeda(Number(v)).replace(/,?0+$/, '')} />
                   {modo === 'pct' && <ReferenceLine y={0} stroke={GRAFICO_EIXO} strokeDasharray="3 3" strokeOpacity={0.6} />}
                   <Tooltip content={<TooltipPreco sel={sel} />} cursor={{ stroke: GRAFICO_EIXO, strokeDasharray: '3 3' }} />
                   {sel.map(s => (
                     <Line key={s.id} dataKey={s.id} name={s.nome} stroke={PALETA_SERIES[s.slot]} strokeWidth={2} connectNulls isAnimationActive={false}
-                      dot={{ r: 4, fill: PALETA_SERIES[s.slot], stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6, fill: PALETA_SERIES[s.slot], stroke: '#fff', strokeWidth: 2 }} />
+                      cursor="pointer" onClick={() => setEvolucaoDe(s.id)}
+                      dot={{ r: 4, fill: PALETA_SERIES[s.slot], stroke: '#fff', strokeWidth: 2, cursor: 'pointer', onClick: () => setEvolucaoDe(s.id) }}
+                      activeDot={{ r: 6, fill: PALETA_SERIES[s.slot], stroke: '#fff', strokeWidth: 2, cursor: 'pointer', onClick: () => setEvolucaoDe(s.id) }} />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
@@ -209,37 +213,56 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
 
           {sel.length > 0 && !semPontos && dados && (
             <>
-              <button type="button" aria-expanded={tabela} onClick={() => setTabela(t => !t)}
-                className="w-fit border-none bg-transparent p-0 font-[inherit] text-[13px] text-teal-deep underline underline-offset-[3px]">
-                {tabela ? 'Esconder tabela' : 'Ver como tabela'}
-              </button>
-              {tabela && (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[13px] [font-variant-numeric:tabular-nums]">
-                    <thead><tr className="text-left text-[12px] text-muted">
-                      <th className="border-b border-line px-2.5 py-1.5 font-semibold">Compra</th><th className="border-b border-line px-2.5 py-1.5 font-semibold">Data</th>
-                      {sel.map(s => <th key={s.id} className="border-b border-line px-2.5 py-1.5 text-right font-semibold">{s.nome} (R$/{s.unidade})</th>)}
-                    </tr></thead>
-                    <tbody>{linhas.map((r, k) => (
-                      <tr key={k}>
-                        <td className="border-b border-line px-2.5 py-1.5">{r.com}</td><td className="border-b border-line px-2.5 py-1.5">{formatarData(r.data)}</td>
-                        {sel.map(s => <td key={s.id} className="border-b border-line px-2.5 py-1.5 text-right">
-                          {r[`${s.id}_brl`] != null ? <>{moeda4(r[`${s.id}_brl`] as number)} <span className="text-muted">({pct(r[`${s.id}_pct`] as number)})</span></> : '—'}
-                        </td>)}
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-              )}
               <p className="m-0 border-t border-line pt-3 text-[12px] text-muted">
                 {modo === 'pct'
-                  ? 'Variação %: cada insumo começa em 0% na primeira compra do período, então preços de grandezas diferentes cabem no mesmo eixo. O preço em reais aparece no tooltip e na tabela.'
-                  : 'R$ por unidade: mostra o preço real pago. Com insumos de valores muito diferentes, os mais baratos ficam achatados perto do zero.'}
+                  ? 'Variação %: cada insumo começa em 0% na primeira compra do período, então preços de grandezas diferentes cabem no mesmo eixo. O preço em reais aparece no tooltip. Clique na linha de um insumo para ver as compras dele.'
+                  : 'R$ por unidade: mostra o preço real pago. Com insumos de valores muito diferentes, os mais baratos ficam achatados perto do zero. Clique na linha de um insumo para ver as compras dele.'}
               </p>
             </>
           )}
         </div>
       )}
+      {evolucaoDe && dados && (() => {
+        const serie = dados.series.find(x => x.insumo.id === evolucaoDe)
+        return serie ? <ModalEvolucaoInsumo serie={serie} de={dados.de} ate={dados.ate} onClose={() => setEvolucaoDe(null)} /> : null
+      })()}
     </div>
+  )
+}
+
+/**
+ * #600 — compras do insumo no período, da mais recente para a mais antiga. A variação é em relação à
+ * compra anterior (conta de exibição sobre os preços que vieram da API: (atual − anterior) ÷ anterior).
+ */
+function ModalEvolucaoInsumo({ serie, de, ate, onClose }: { serie: EvolucaoPrecoResponse['series'][number]; de: string; ate: string; onClose: () => void }) {
+  const cronologica = [...serie.pontos].sort((a, b) => ts(a.data) - ts(b.data))
+  const linhas = cronologica.map((p, i) => {
+    const anterior = i > 0 ? cronologica[i - 1].precoUnitarioPago : null
+    return { ...p, variacao: anterior ? ((p.precoUnitarioPago - anterior) / anterior) * 100 : null }
+  }).reverse()
+  const grade = 'md:grid-cols-[0.9fr_0.8fr_1.4fr_0.9fr_1fr_0.8fr_20px]'
+  return (
+    <ModalShell open onClose={onClose} width={860} icon={<IconeLinha size={16} />} title={`Evolução do preço — ${serie.insumo.nome}`}
+      subtitle={`${formatarData(de)} a ${formatarData(ate)}`} footer={<Button variant="ghost" onClick={onClose}>Fechar</Button>}>
+      <div className="rounded-input border border-line" data-testid="modal-evolucao">
+        <div className={clsx('hidden gap-3 bg-cream px-4 py-2.5 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint md:grid', grade)}>
+          <span>Data</span><span>Compra</span><span>Fornecedor</span><span>Quantidade</span><span>Preço un. pago</span><span>Variação</span><span />
+        </div>
+        {linhas.length === 0 ? <div className="px-4 py-8 text-center text-sm text-muted">Nenhuma compra no período.</div> : linhas.map((l, k) => (
+          <button key={`${l.compraId}-${k}`} type="button" data-testid="linha-evolucao" onClick={() => window.open(`/compras/${l.compraId}`, '_blank', 'noopener')}
+            className={clsx('grid w-full cursor-pointer grid-cols-2 gap-x-3 gap-y-1 border-0 border-t border-solid border-line bg-white px-4 py-2.5 text-left font-[inherit] text-[13.5px] first:border-t-0 hover:bg-cream md:items-center', grade)}>
+            <span className="text-body [font-variant-numeric:tabular-nums]">{formatarData(l.data)}</span>
+            <span className="font-semibold text-dark">{l.identificador}</span>
+            <span className="truncate text-body">{l.fornecedor ?? <span className="italic text-faint">Sem fornecedor</span>}</span>
+            <span className="text-body [font-variant-numeric:tabular-nums]">{qtd(l.quantidade)} {serie.insumo.unidade}</span>
+            <span className="font-semibold text-dark [font-variant-numeric:tabular-nums]">{moeda(l.precoUnitarioPago)}/{serie.insumo.unidade}</span>
+            <span data-testid="variacao-evolucao" className={clsx('[font-variant-numeric:tabular-nums]', l.variacao == null ? 'text-faint' : l.variacao > 0 ? 'font-semibold text-warning-alt' : l.variacao < 0 ? 'font-semibold text-success' : 'text-body')}>
+              {l.variacao == null ? '1ª do período' : pct(Math.round(l.variacao * 10) / 10)}
+            </span>
+            <span className="hidden text-muted md:block"><ExternalLink size={14} /></span>
+          </button>
+        ))}
+      </div>
+    </ModalShell>
   )
 }

@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { AlertCircle, History, ListChecks, PackagePlus, Plus, ShoppingCart, Trash2 } from 'lucide-react'
+import { History, ListChecks, PackagePlus, Plus, Save, ShoppingCart, Trash2 } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import { FornecedorSelect } from '../../components/compra/Pickers'
 import ModalAdicionarInsumos from '../../components/compra/ModalAdicionarInsumos'
-import { formatarData, moeda4, paraCampo, parseDecimal, qtd } from '../../components/compra/formato'
+import { formatarData, moeda, paraCampo, parseDecimal, qtd } from '../../components/compra/formato'
 import { listaCompraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
+import { useModalErro } from '../../hooks/useModalErro'
+import SortableHeader from '../../components/shared/SortableHeader'
+import { StatusListaBadge } from '../../components/compra/StatusCompraBadge'
 import { extractApiError } from '../../utils/apiError'
-import type { CadastroRef, LinhaPreviaListaCompra } from '../../types/compra'
+import type { CadastroRef, LinhaPreviaListaCompra, ListaCompraResponse } from '../../types/compra'
 
 // V0.15.0 — Lista de compras (#546, RN-NOVA-12/13). A prévia (quantidade e fornecedor sugeridos)
 // vem calculada do backend; a artesã ajusta e gera o retrato LST-N.
+// #595/#596 (RN-NOVA-41) — abas "Listas geradas | Nova lista" (abre em Listas geradas), coluna Status e
+// ordenação; "Salvar rascunho" guarda a lista sem gerar (LST-N, status Rascunho) e ela volta a ser
+// editada aqui (?aba=nova&rascunho=<id>) até "Gerar lista".
 
 type Aba = 'nova' | 'historico'
 
@@ -38,21 +44,23 @@ function Checkbox({ label, descricao, marcado, onChange }: { label: string; desc
   )
 }
 
-function NovaLista() {
+function NovaLista({ rascunho }: { rascunho: ListaCompraResponse | null }) {
   const navigate = useNavigate()
-  const [abaixoMinimo, setAbaixoMinimo] = useState(true)
-  const [estoqueNegativo, setEstoqueNegativo] = useState(true)
+  // Rascunho reaberto: os insumos dele entram como "à mão" e a quantidade/fornecedor salvos valem como editados.
+  const [abaixoMinimo, setAbaixoMinimo] = useState(!rascunho)
+  const [estoqueNegativo, setEstoqueNegativo] = useState(!rascunho)
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
-  const [manuais, setManuais] = useState<string[]>([])
+  const [manuais, setManuais] = useState<string[]>(() => rascunho?.itens.map(i => i.insumoId) ?? [])
   const [removidos, setRemovidos] = useState<string[]>([])
   const [linhas, setLinhas] = useState<LinhaEditavel[]>([])
   const [carregando, setCarregando] = useState(false)
   const [erroPrevia, setErroPrevia] = useState<string | null>(null)
-  const [gerando, setGerando] = useState(false)
+  const [gerando, setGerando] = useState<'rascunho' | 'gerar' | null>(null)
   const [escolhendo, setEscolhendo] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
   const linhasRef = useRef<LinhaEditavel[]>([])
   linhasRef.current = linhas
+  const salvosDoRascunho = useRef(new Map((rascunho?.itens ?? []).map(i => [i.insumoId, i])))
   const seq = useRef(0)
 
   // Recalcula a prévia a cada mudança de filtro, preservando o que a artesã já ajustou na linha.
@@ -64,7 +72,11 @@ function NovaLista() {
         if (minhaSeq !== seq.current) return
         const anteriores = new Map(linhasRef.current.map(l => [l.insumo.id, l]))
         setLinhas(r.linhas.filter(l => !removidos.includes(l.insumo.id)).map(l => {
-          const ant = anteriores.get(l.insumo.id)
+          const salvo = salvosDoRascunho.current.get(l.insumo.id)
+          const ant = anteriores.get(l.insumo.id) ?? (salvo && {
+            ...l, quantidadeTxt: paraCampo(salvo.quantidade), fornecedorId: salvo.fornecedorId, manual: true,
+            quantidadeEditada: true, fornecedorEditado: true,
+          })
           return {
             ...l,
             quantidadeTxt: ant?.quantidadeEditada ? ant.quantidadeTxt : paraCampo(l.quantidadeSugerida),
@@ -91,15 +103,35 @@ function NovaLista() {
     setManuais(prev => [...prev, ...ids.filter(id => !prev.includes(id))])
   }
 
+  const corpo = () => ({ itens: linhas.map(l => ({ insumoId: l.insumo.id, quantidade: parseDecimal(l.quantidadeTxt), fornecedorId: l.fornecedorId })) })
+
   const gerar = async () => {
-    setGerando(true); setErro(null)
+    setGerando('gerar')
     try {
-      const lista = await listaCompraService.gerar({ itens: linhas.map(l => ({ insumoId: l.insumo.id, quantidade: parseDecimal(l.quantidadeTxt), fornecedorId: l.fornecedorId })) })
+      let lista: ListaCompraResponse
+      if (rascunho) {
+        await listaCompraService.atualizarRascunho(rascunho.id, corpo())
+        lista = await listaCompraService.gerarRascunho(rascunho.id)
+      } else {
+        lista = await listaCompraService.gerar(corpo())
+      }
       navigate(`/compras/lista/${lista.id}`, { state: { toast: `Lista ${lista.identificador} gerada.` } })
     } catch (err) {
-      setErro(extractApiError(err, 'Não foi possível gerar a lista.'))
+      mostrarErro(err, 'Não foi possível gerar a lista.')
     } finally {
-      setGerando(false)
+      setGerando(null)
+    }
+  }
+
+  const salvarRascunho = async () => {
+    setGerando('rascunho')
+    try {
+      const lista = rascunho ? await listaCompraService.atualizarRascunho(rascunho.id, corpo()) : await listaCompraService.salvarRascunho(corpo())
+      navigate(`/compras/lista/${lista.id}`, { state: { toast: `Rascunho ${lista.identificador} salvo. Abra de novo para continuar e gerar a lista.` } })
+    } catch (err) {
+      mostrarErro(err, 'Não foi possível salvar o rascunho.')
+    } finally {
+      setGerando(null)
     }
   }
 
@@ -171,10 +203,10 @@ function NovaLista() {
                       <option value={l.fornecedorSugerido.id}>{l.fornecedorSugerido.nome} (última compra)</option>
                     )}
                     {l.fornecedores.map(f => (
-                      <option key={f.fornecedor.id} value={f.fornecedor.id}>{f.fornecedor.nome}{f.precoReferencia != null ? ` — ${moeda4(f.precoReferencia)}` : ''}</option>
+                      <option key={f.fornecedor.id} value={f.fornecedor.id}>{f.fornecedor.nome}{f.precoReferencia != null ? ` — ${moeda(f.precoReferencia)}` : ''}</option>
                     ))}
                   </select>
-                  <div className="text-body [font-variant-numeric:tabular-nums]"><span className="mr-1 text-[11px] text-faint lg:hidden">Preço ref.</span>{preco != null ? `${moeda4(preco)} / ${l.insumo.unidade}` : '—'}</div>
+                  <div className="text-body [font-variant-numeric:tabular-nums]"><span className="mr-1 text-[11px] text-faint lg:hidden">Preço ref.</span>{preco != null ? `${moeda(preco)} / ${l.insumo.unidade}` : '—'}</div>
                   <div className="flex justify-end">
                     <button type="button" aria-label={`Tirar ${l.insumo.nome} da lista`} onClick={() => remover(l.insumo.id)}
                       className="grid h-9 w-9 place-items-center rounded-lg border-none bg-transparent text-muted hover:bg-danger-bg hover:text-danger"><Trash2 size={16} /></button>
@@ -185,43 +217,58 @@ function NovaLista() {
           </>
         )}
         <div className="flex flex-col gap-3 border-t border-line px-5 py-4">
-          {erro && (
-            <div role="alert" className="flex items-start gap-2 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
-              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" /> <span>{erro}</span>
-            </div>
-          )}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-[12.5px] text-muted">A lista gerada vira um retrato (LST-N): não muda depois, mesmo se o estoque mudar.</span>
-            <Button variant="primary" icon={<ListChecks size={16} />} onClick={gerar} disabled={gerando}>{gerando ? 'Gerando…' : 'Gerar lista'}</Button>
+            <span className="text-[12.5px] text-muted">A lista gerada vira um retrato (LST-N): não muda depois, mesmo se o estoque mudar. O rascunho pode ser editado até ser gerado.</span>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" icon={<Save size={16} />} onClick={salvarRascunho} disabled={!!gerando || linhas.length === 0}>
+                {gerando === 'rascunho' ? 'Salvando…' : 'Salvar rascunho'}
+              </Button>
+              <Button variant="primary" icon={<ListChecks size={16} />} onClick={gerar} disabled={!!gerando}>{gerando === 'gerar' ? 'Gerando…' : 'Gerar lista'}</Button>
+            </div>
           </div>
         </div>
       </div>
+      {modalErro}
     </div>
   )
 }
 
+type CampoLista = 'numero' | 'geradaEm' | 'quantidadeItens' | 'status'
+const COLUNAS_LISTA: { campo: CampoLista; label: string }[] = [
+  { campo: 'numero', label: 'Lista' },
+  { campo: 'geradaEm', label: 'Gerada em' },
+  { campo: 'quantidadeItens', label: 'Insumos' },
+  { campo: 'status', label: 'Status' },
+]
+const GRADE_LISTA = 'grid-cols-[1fr_1.2fr_1fr_1.3fr]'
+
 function Historico() {
   const navigate = useNavigate()
-  const fetcher = useCallback((page: number, size: number) => listaCompraService.historico(page, size), [])
-  const { items, hasMore, loading, loadingMore, error, loadMore, reset } = usePaginatedList({ fetcher, errorMessage: 'Não foi possível carregar o histórico.' })
+  const [ordem, setOrdem] = useState<{ campo: CampoLista; dir: 'asc' | 'desc' }>({ campo: 'numero', dir: 'desc' })
+  const fetcher = useCallback((page: number, size: number) => listaCompraService.historico(page, size, `${ordem.campo},${ordem.dir}`), [ordem])
+  const { items, hasMore, loading, loadingMore, error, loadMore, reset } = usePaginatedList({ fetcher, errorMessage: 'Não foi possível carregar as listas.' })
   useEffect(() => { reset() }, [reset])
+  const ordenar = (campo: CampoLista) => setOrdem(o => o.campo === campo
+    ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
+    : { campo, dir: campo === 'status' ? 'asc' : 'desc' })
 
   if (loading) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
   if (error) return <div role="alert" className="flex items-center justify-between rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">{error}<Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button></div>
-  if (items.length === 0) return <EmptyState icon={<History size={20} />} title="Nenhuma lista gerada ainda" description="As listas que você gerar ficam aqui para consultar e baixar em PDF." />
+  if (items.length === 0) return <EmptyState icon={<History size={20} />} title="Nenhuma lista ainda" description="As listas que você gerar ou salvar como rascunho ficam aqui para consultar e baixar em PDF." />
 
   return (
     <>
       <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-4 border-b border-line bg-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
-          <span>Lista</span><span>Gerada em</span><span>Itens</span>
+        <div className={`grid ${GRADE_LISTA} gap-4 border-b border-line bg-cream px-5 py-2.5`}>
+          {COLUNAS_LISTA.map(c => <SortableHeader key={c.campo} label={c.label} field={c.campo} activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />)}
         </div>
         {items.map(l => (
           <div key={l.id} data-testid="linha-historico-lista" onClick={() => navigate(`/compras/lista/${l.id}`)}
-            className="grid cursor-pointer grid-cols-[1fr_1.2fr_1fr] gap-4 border-t border-line px-5 py-3 text-[13.5px] first:border-t-0 hover:bg-cream">
+            className={`grid cursor-pointer ${GRADE_LISTA} items-center gap-4 border-t border-line px-5 py-3 text-[13.5px] first:border-t-0 hover:bg-cream`}>
             <span className="font-bold text-dark">{l.identificador}</span>
-            <span className="text-body">{formatarData(l.geradaEm)}</span>
+            <span className="text-body">{l.geradaEm ? formatarData(l.geradaEm) : <span className="italic text-faint">Salva em {formatarData(l.createdAt)}</span>}</span>
             <span className="text-muted">{l.quantidadeItens} {l.quantidadeItens === 1 ? 'insumo' : 'insumos'}</span>
+            <span><StatusListaBadge status={l.status} size="sm" /></span>
           </div>
         ))}
       </div>
@@ -230,13 +277,38 @@ function Historico() {
   )
 }
 
+/** Carrega o rascunho (?rascunho=<id>) antes de montar a Nova lista. */
+function NovaListaOuRascunho({ rascunhoId }: { rascunhoId: string | null }) {
+  const [rascunho, setRascunho] = useState<ListaCompraResponse | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  useEffect(() => {
+    if (!rascunhoId) return
+    setRascunho(null); setErro(null)
+    listaCompraService.buscar(rascunhoId).then(l => {
+      if (l.status !== 'RASCUNHO') setErro(`A lista ${l.identificador} já foi gerada e não pode mais ser editada.`)
+      else setRascunho(l)
+    }).catch(err => setErro(extractApiError(err, 'Não foi possível abrir o rascunho.')))
+  }, [rascunhoId])
+  if (!rascunhoId) return <NovaLista rascunho={null} />
+  if (erro) return <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">{erro}</div>
+  if (!rascunho) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Abrindo rascunho…</div>
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-input border border-azul/20 bg-azul/5 px-4 py-2.5 text-[13.5px] text-body">
+        Editando o rascunho <strong className="text-dark">{rascunho.identificador}</strong>. Salve para continuar depois ou gere a lista.
+      </div>
+      <NovaLista key={rascunho.id} rascunho={rascunho} />
+    </div>
+  )
+}
+
 export default function ListaComprasPage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const aba: Aba = params.get('aba') === 'historico' ? 'historico' : 'nova'
+  const aba: Aba = params.get('aba') === 'nova' ? 'nova' : 'historico'
   const ABAS: { id: Aba; label: string; icon: typeof Plus }[] = [
-    { id: 'nova', label: 'Nova lista', icon: Plus },
     { id: 'historico', label: 'Listas geradas', icon: History },
+    { id: 'nova', label: 'Nova lista', icon: Plus },
   ]
   return (
     <AppLayout active="compras" compact>
@@ -251,7 +323,7 @@ export default function ListaComprasPage() {
         {ABAS.map(a => {
           const on = aba === a.id
           return (
-            <button key={a.id} role="tab" aria-selected={on} onClick={() => setParams(a.id === 'nova' ? {} : { aba: a.id }, { replace: true })}
+            <button key={a.id} role="tab" aria-selected={on} onClick={() => setParams(a.id === 'historico' ? {} : { aba: a.id }, { replace: true })}
               className={clsx('relative flex items-center gap-2 border-none bg-transparent px-4 py-3 font-[inherit] text-sm', on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body')}>
               <a.icon size={16} /> {a.label}
               {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
@@ -259,7 +331,7 @@ export default function ListaComprasPage() {
           )
         })}
       </div>
-      {aba === 'nova' ? <NovaLista /> : <Historico />}
+      {aba === 'nova' ? <NovaListaOuRascunho rascunhoId={params.get('rascunho')} /> : <Historico />}
     </AppLayout>
   )
 }

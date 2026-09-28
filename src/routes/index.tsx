@@ -8,6 +8,7 @@ import ClientesPage from '../pages/clientes/ClientesPage'
 import FormClientePage from '../pages/clientes/FormClientePage'
 import DetalheClientePage from '../pages/clientes/DetalheClientePage'
 import ComprasPage from '../pages/compras/ComprasPage'
+import DashboardComprasPage from '../pages/compras/DashboardComprasPage'
 import FormCompraPage from '../pages/compras/FormCompraPage'
 import DetalheCompraPage from '../pages/compras/DetalheCompraPage'
 import PreviewPdfCompraPage from '../pages/compras/PreviewPdfCompraPage'
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
       { path: '/caixa',                element: <CaixaPage /> },
 
       { path: '/compras',              element: <ComprasPage /> },
+      { path: '/compras/dashboard',    element: <DashboardComprasPage /> },
       { path: '/compras/nova',         element: <FormCompraPage /> },
       { path: '/compras/lista',        element: <ListaComprasPage /> },
       { path: '/compras/lista/:id',    element: <DetalheListaCompraPage /> },

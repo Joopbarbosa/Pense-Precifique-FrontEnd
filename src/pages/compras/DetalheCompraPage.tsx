@@ -12,11 +12,14 @@ import Toast from '../../components/shared/Toast'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
 import ModalInsumoResumo from '../../components/compra/ModalInsumoResumo'
-import { formatarData, moeda4, qtd } from '../../components/compra/formato'
+import { formatarData, moeda, qtd } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
+import { useModalErro } from '../../hooks/useModalErro'
+import { rotuloPagamento } from '../../components/compra/formato'
+import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import type { CompraResponse, ImpactoCompraResponse } from '../../types/compra'
 
 // V0.15.0 — detalhe da compra (#541, #550). RASCUNHO: editar, excluir, confirmar. CONFIRMADA: só o
@@ -41,7 +44,8 @@ export default function DetalheCompraPage() {
   const [erroCarga, setErroCarga] = useState<string | null>(null)
   const [modal, setModal] = useState<'excluir' | 'confirmar' | 'pagamento' | 'cancelar' | null>(null)
   const [processando, setProcessando] = useState(false)
-  const [erroAcao, setErroAcao] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
+  const { pedir: pedirDuplicar, processando: duplicando, modal: modalDuplicar } = useDuplicarCompra(mostrarErro)
   const [impacto, setImpacto] = useState<{ titulo: string; impacto: ImpactoCompraResponse } | null>(null)
   const [insumoAberto, setInsumoAberto] = useState<string | null>(null)
 
@@ -65,8 +69,8 @@ export default function DetalheCompraPage() {
       await compraService.excluirRascunho(compra.id)
       navigate('/compras', { state: { toast: `Rascunho ${compra.identificador} excluído.` } })
     } catch (err) {
-      setToast(extractApiError(err, 'Não foi possível excluir o rascunho.'))
       setModal(null)
+      mostrarErro(err, 'Não foi possível excluir o rascunho.')
     } finally {
       setProcessando(false)
     }
@@ -74,26 +78,13 @@ export default function DetalheCompraPage() {
 
   const confirmar = async () => {
     if (!compra) return
-    setModal(null); setProcessando(true); setErroAcao(null)
+    setModal(null); setProcessando(true)
     try {
       const r = await compraService.confirmar(compra.id)
       setCompra(r.compra)
       setImpacto({ titulo: `Compra ${r.compra.identificador} confirmada`, impacto: r.impacto })
     } catch (err) {
-      setErroAcao(extractApiError(err, 'Não foi possível confirmar a compra.'))
-    } finally {
-      setProcessando(false)
-    }
-  }
-
-  const duplicar = async () => {
-    if (!compra) return
-    setProcessando(true)
-    try {
-      const nova = await compraService.duplicar(compra.id)
-      navigate(`/compras/${nova.id}`, { state: { toast: `Rascunho ${nova.identificador} criado a partir de ${compra.identificador}. Revise e confirme.` } })
-    } catch (err) {
-      setToast(extractApiError(err, 'Não foi possível duplicar a compra.'))
+      mostrarErro(err, 'Não foi possível confirmar a compra.')
     } finally {
       setProcessando(false)
     }
@@ -156,14 +147,16 @@ export default function DetalheCompraPage() {
             <Button variant="secondary" icon={<CreditCard size={16} />} onClick={() => setModal('pagamento')}>Alterar pagamento</Button>
           </>}
           {posConfirmacao && (
-            <Button variant="ghost" icon={processando ? <Spinner size={15} /> : <Copy size={16} />} disabled={processando} onClick={duplicar}>Duplicar</Button>
+            <Button variant="ghost" icon={duplicando ? <Spinner size={15} /> : <Copy size={16} />} disabled={processando || duplicando} onClick={() => pedirDuplicar(compra)}>Duplicar</Button>
           )}
           <Button variant="ghost" icon={<FileText size={16} />} onClick={() => navigate(`/compras/${compra.id}/pdf`)}>PDF</Button>
         </div>
       </div>
 
-      {erroAcao && (
-        <div role="alert" className="mb-4 rounded-input border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">{erroAcao}</div>
+      {compra.listaCompra && (
+        <div data-testid="origem-lista" className="mb-4 text-[13.5px] text-muted">
+          Criada a partir de <Link to={`/compras/lista/${compra.listaCompra.id}`} className="font-semibold text-teal no-underline hover:underline">{compra.listaCompra.identificador}</Link>
+        </div>
       )}
 
       {compra.status === 'CANCELADA' && compra.observacaoCancelamento && (
@@ -184,7 +177,7 @@ export default function DetalheCompraPage() {
                 : <span className="font-normal italic text-faint">Sem fornecedor</span>}
           </Info>
           <Info titulo="Pagamento">
-            {compra.pago ? `Pago${compra.metodoPagamento ? ` — ${compra.metodoPagamento.nome}` : ''}` : 'Não pago'}
+            {rotuloPagamento(compra)}
           </Info>
           <Info titulo={temDesconto ? 'Total pago' : 'Total'}>
             <span className="text-[20px] text-teal [font-variant-numeric:tabular-nums]">{BRL(compra.total)}</span>
@@ -229,9 +222,9 @@ export default function DetalheCompraPage() {
                 </div>
               )}
             </div>
-            <div className="[font-variant-numeric:tabular-nums]">{moeda4(posConfirmacao ? i.precoUnitarioPago : i.precoUnitario)}</div>
+            <div className="[font-variant-numeric:tabular-nums]">{moeda(posConfirmacao ? i.precoUnitarioPago : i.precoUnitario)}</div>
             <div className="text-right text-[12.5px] text-muted [font-variant-numeric:tabular-nums] lg:text-left">
-              {posConfirmacao && i.custoUnitarioAnterior != null ? `${moeda4(i.custoUnitarioAnterior)} → ${moeda4(i.custoUnitarioPosterior)}` : ''}
+              {posConfirmacao && i.custoUnitarioAnterior != null ? `${moeda(i.custoUnitarioAnterior)} → ${moeda(i.custoUnitarioPosterior)}` : ''}
             </div>
           </div>
         ))}
@@ -273,6 +266,8 @@ export default function DetalheCompraPage() {
         <ModalCancelarCompra compra={compra} onClose={() => setModal(null)}
           onCancelada={r => { setCompra(r.compra); setModal(null); setImpacto({ titulo: `Compra ${r.compra.identificador} cancelada`, impacto: r.impacto }) }} />
       )}
+      {modalDuplicar}
+      {modalErro}
       {insumoAberto && <ModalInsumoResumo insumoId={insumoAberto} onClose={() => setInsumoAberto(null)} />}
       {impacto && <ModalImpactoCompra titulo={impacto.titulo} impacto={impacto.impacto} onClose={() => setImpacto(null)} />}
     </AppLayout>

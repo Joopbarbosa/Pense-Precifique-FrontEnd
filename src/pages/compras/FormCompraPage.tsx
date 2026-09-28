@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { AlertCircle, Check, ChevronRight, Info, Package, Save, Trash2 } from 'lucide-react'
+import { Check, ChevronRight, Info, Package, Save, Trash2 } from 'lucide-react'
 import MetodoPagamentoEscolha from '../../components/compra/MetodoPagamentoEscolha'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field, MoneyInput, SegmentedControl, TextArea } from '../../components/ui'
@@ -11,15 +11,17 @@ import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { FornecedorSelect, InsumoPicker } from '../../components/compra/Pickers'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
 import DescontoInput from '../../components/compra/DescontoInput'
-import { hojeIso, moeda4, paraCampo, parseDecimal } from '../../components/compra/formato'
+import { erroDesconto, hojeIso, moeda, paraCampo, parseDecimal } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
+import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
 import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef, TipoDesconto } from '../../types/compra'
 
 // V0.15.0 — "Registrar compra" (#541, RN-NOVA-4) com método de pagamento (#550, RN-NOVA-23).
 // /compras/nova (compra nova) e /compras/:id/editar (só RASCUNHO). Estoque e custo só mudam ao
 // confirmar; tudo é validado no backend (a mensagem de linha inválida vem pronta da API).
+// #602 (RN-NOVA-32) — erro de bloqueio abre a modal de erro padrão; o campo continua vermelho.
 
 type Linha = {
   key: string
@@ -79,13 +81,14 @@ export default function FormCompraPage() {
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
   const [pago, setPago] = useState(false)
   const [metodoId, setMetodoId] = useState<string | null>(null)
+  const [parcelas, setParcelas] = useState<number | null>(null)
   const [observacoes, setObservacoes] = useState('')
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [descontoNotaTipo, setDescontoNotaTipo] = useState<TipoDesconto>('PERCENTUAL')
   const [descontoNota, setDescontoNota] = useState('')
 
   const [salvando, setSalvando] = useState<'rascunho' | 'confirmar' | null>(null)
-  const [erro, setErro] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirmarAberto, setConfirmarAberto] = useState(false)
   const [impacto, setImpacto] = useState<{ impacto: ImpactoCompraResponse; compraId: string; identificador: string } | null>(null)
@@ -101,6 +104,7 @@ export default function FormCompraPage() {
         setFornecedor(c.fornecedor)
         setPago(c.pago)
         setMetodoId(c.metodoPagamento?.id ?? null)
+        setParcelas(c.parcelas)
         setObservacoes(c.observacoes ?? '')
         setDescontoNotaTipo(c.descontoNotaTipo ?? 'PERCENTUAL')
         setDescontoNota(paraCampo(c.descontoNotaInformado, 2))
@@ -149,6 +153,7 @@ export default function FormCompraPage() {
     fornecedorId: fornecedor?.id ?? null,
     pago,
     metodoPagamentoId: pago ? metodoId : null,
+    parcelas: pago ? parcelas : null,
     observacoes: observacoes.trim() || undefined,
     itens: linhas.map(l => {
       const desconto = parseDecimal(l.desconto)
@@ -168,11 +173,28 @@ export default function FormCompraPage() {
   const tratarErro = (err: unknown, fallback: string) => {
     const fe: Record<string, string> = (err as { response?: { data?: { fieldErrors?: Record<string, string> } } })?.response?.data?.fieldErrors ?? {}
     setFieldErrors(fe)
-    setErro(Object.keys(fe).length > 0 ? 'Revise os campos destacados.' : extractApiError(err, fallback))
+    mostrarErro(err, fallback, () => primeiroCampoInvalido())
+  }
+
+  // #602 (CEN-NOVO-47) — desconto validado ao sair do campo; o backend valida de novo ao salvar.
+  const chaveDesconto = (idx: number) => `itens[${idx}].descontoValor`
+  const limparErro = (chave: string) => setFieldErrors(prev => {
+    if (!(chave in prev)) return prev
+    const { [chave]: _, ...resto } = prev
+    return resto
+  })
+  // A modal abre uma vez por valor digitado: sair de novo do campo sem mudar nada só mantém o vermelho.
+  const avisados = useRef(new Map<string, string>())
+  const validarDesconto = (chave: string, e: ReturnType<typeof erroDesconto>, ariaLabel: string, valor: string) => {
+    if (!e) { limparErro(chave); avisados.current.delete(chave); return }
+    setFieldErrors(prev => ({ ...prev, [chave]: e.mensagem }))
+    if (avisados.current.get(chave) === valor) return
+    avisados.current.set(chave, valor)
+    mostrarErro(e, undefined, () => document.querySelector<HTMLElement>(`input[aria-label="${ariaLabel}"]`))
   }
 
   const salvarRascunho = async () => {
-    setSalvando('rascunho'); setErro(null); setFieldErrors({})
+    setSalvando('rascunho'); setFieldErrors({})
     try {
       const salvo = editando ? await compraService.atualizarRascunho(id!, montarRequest()) : await compraService.salvarRascunho(montarRequest())
       navigate(`/compras/${salvo.id}`, { state: { toast: `Rascunho ${salvo.identificador} salvo. O estoque ainda não mudou.` } })
@@ -185,7 +207,7 @@ export default function FormCompraPage() {
 
   const confirmar = async () => {
     setConfirmarAberto(false)
-    setSalvando('confirmar'); setErro(null); setFieldErrors({})
+    setSalvando('confirmar'); setFieldErrors({})
     try {
       const r = editando ? await compraService.confirmar(id!, montarRequest()) : await compraService.confirmarNova(montarRequest())
       setImpacto({ impacto: r.impacto, compraId: r.compra.id, identificador: r.compra.identificador })
@@ -255,7 +277,8 @@ export default function FormCompraPage() {
             {pago && (
               <div className="md:col-span-1 xl:col-span-3">
                 <Field label="Como foi paga?" required group size="md">
-                  <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento} />
+                  <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
+                    parcelas={parcelas} onParcelas={setParcelas} />
                 </Field>
               </div>
             )}
@@ -300,7 +323,7 @@ export default function FormCompraPage() {
                     <div>
                       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Quantidade</span>
                       <div className="relative">
-                        <input aria-label={`Quantidade de ${l.insumo.nome}`} inputMode="decimal" value={l.quantidade} placeholder="0"
+                        <input aria-label={`Quantidade de ${l.insumo.nome}`} aria-invalid={!!eQ || undefined} inputMode="decimal" value={l.quantidade} placeholder="0"
                           onChange={e => alterarLinha(l.key, { quantidade: e.target.value.replace(/[^\d.,]/g, '') })}
                           className={clsx(inputQtd, 'pr-12', eQ ? 'border-[#F2B8A6]' : 'border-line')} />
                         <span className="pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-[12.5px] font-semibold text-muted">{l.insumo.unidade}</span>
@@ -316,7 +339,11 @@ export default function FormCompraPage() {
                     <div>
                       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.04em] text-faint lg:hidden">Desconto (opcional)</span>
                       <DescontoInput tipo={l.descontoTipo} valor={l.desconto} ariaLabel={`Desconto de ${l.insumo.nome}`} invalido={!!eD}
-                        onTipo={t => alterarLinha(l.key, { descontoTipo: t })} onValor={v => alterarLinha(l.key, { desconto: v })} />
+                        onTipo={t => { alterarLinha(l.key, { descontoTipo: t }); limparErro(chaveDesconto(idx)) }}
+                        onValor={v => { alterarLinha(l.key, { desconto: v }); limparErro(chaveDesconto(idx)) }}
+                        onBlur={() => validarDesconto(chaveDesconto(idx),
+                          erroDesconto(l.descontoTipo, l.desconto, parseDecimal(l.precoCheio), `Linha ${idx + 1} (${l.insumo.nome})`),
+                          `Desconto de ${l.insumo.nome}`, `${l.descontoTipo}:${l.desconto}:${l.precoCheio}`)} />
                       {eD && <span className="mt-1 block text-[12px] text-danger-deep">{eD}</span>}
                     </div>
                     <div className="flex min-h-11 flex-col justify-center">
@@ -325,7 +352,7 @@ export default function FormCompraPage() {
                         {valor != null ? BRL(valor) : '—'}
                       </span>
                       <span data-testid="custo-unitario-linha" className={clsx('text-[12.5px] [font-variant-numeric:tabular-nums]', unit != null ? 'font-semibold text-teal' : 'text-faint')}>
-                        {unit != null ? `${moeda4(Math.round(unit * 10000) / 10000)} / ${l.insumo.unidade}` : ''}
+                        {unit != null ? `${moeda(Math.round(unit * 10000) / 10000)} / ${l.insumo.unidade}` : ''}
                       </span>
                     </div>
                     <div className="flex min-h-11 items-center justify-end">
@@ -358,7 +385,10 @@ export default function FormCompraPage() {
               <div className="max-w-[320px]">
                 <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Desconto na nota <span className="font-normal text-muted">(opcional)</span></span>
                 <DescontoInput tipo={descontoNotaTipo} valor={descontoNota} ariaLabel="Desconto na nota"
-                  invalido={!!fieldErrors.descontoNotaValor} onTipo={setDescontoNotaTipo} onValor={setDescontoNota} />
+                  invalido={!!fieldErrors.descontoNotaValor}
+                  onTipo={t => { setDescontoNotaTipo(t); limparErro('descontoNotaValor') }}
+                  onValor={v => { setDescontoNota(v); limparErro('descontoNotaValor') }}
+                  onBlur={() => validarDesconto('descontoNotaValor', erroDesconto(descontoNotaTipo, descontoNota, somaLinhas, 'Desconto da nota'), 'Desconto na nota', `${descontoNotaTipo}:${descontoNota}:${somaLinhas}`)} />
                 <span className="mt-1 block text-[12px] text-muted">Dividido entre as linhas, pelo valor de cada uma, ao salvar.</span>
               </div>
               <dl className="m-0 flex min-w-[260px] flex-col gap-1 text-[13.5px]">
@@ -385,11 +415,6 @@ export default function FormCompraPage() {
 
         {/* Ações */}
         <div className="flex flex-col gap-3 px-[26px] py-[18px]">
-          {erro && (
-            <div role="alert" className="flex items-start gap-2 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
-              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" /> <span>{erro}</span>
-            </div>
-          )}
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate(editando ? `/compras/${id}` : '/compras')} disabled={!!salvando}>Cancelar</Button>
             <Button variant="secondary" icon={<Save size={16} />} disabled={!!salvando} onClick={salvarRascunho}>
@@ -412,6 +437,8 @@ export default function FormCompraPage() {
         confirmLabel="Confirmar compra"
         description="O estoque e o custo dos insumos serão atualizados agora. Depois de confirmada, só o pagamento pode ser alterado; para desfazer, será preciso cancelar a compra."
       />
+
+      {modalErro}
 
       {impacto && (
         <ModalImpactoCompra
