@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
+import ModalErro from '../../components/ui/ModalErro'
+import type { ErroExplicado } from '../../utils/apiError'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -290,13 +293,16 @@ export default function NovoItemCatalogoPage() {
   const [precoEditadoManualmente, setPrecoEditadoManualmente] = useState(false)
   const [itemId, setItemId] = useState<string | null>(null)
 
-  // RN-NOVA-6/7 (#518) — foto e descrição são opcionais. Foto só pode ser anexada depois que o
-  // item já existe (endpoint dedicado exige itemId) — em criação, o card fica desabilitado até o
-  // primeiro "Adicionar item ao catálogo".
+  // RN-NOVA-6/7 (#518) — foto e descrição são opcionais. O endpoint da foto exige itemId: na criação
+  // a foto escolhida é enviada logo depois de "Adicionar item ao catálogo" (#440, RN-NOVA-46).
   const [descricao, setDescricao] = useState('')
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const [fotoEnviando, setFotoEnviando] = useState(false)
   const [fotoErro, setFotoErro] = useState<string | null>(null)
+  // #440 (RN-NOVA-46) — na criação a foto fica guardada e é enviada logo depois de salvar o item.
+  const [fotoPendente, setFotoPendente] = useState<File | null>(null)
+  const previaPendente = usePreviaArquivo(fotoPendente)
+  const [erroFoto, setErroFoto] = useState<{ erro: ErroExplicado; itemId: string } | null>(null)
 
   const [nomeErro, setNomeErro] = useState<string | null>(null)
   const [componentesErro, setComponentesErro] = useState<string | null>(null)
@@ -444,7 +450,14 @@ export default function NovoItemCatalogoPage() {
   }
 
   const handleFotoSelecionada = async (arquivo: File | undefined) => {
-    if (!arquivo || !catalogoId || !itemId) return
+    if (!arquivo) return
+    if (!itemId) {
+      const e = erroArquivoImagem(arquivo)
+      setFotoErro(e)
+      if (!e) setFotoPendente(arquivo)
+      return
+    }
+    if (!catalogoId) return
     setFotoErro(null)
     setFotoEnviando(true)
     try {
@@ -458,7 +471,8 @@ export default function NovoItemCatalogoPage() {
   }
 
   const handleRemoverFoto = async () => {
-    if (!catalogoId || !itemId) return
+    if (!itemId) { setFotoPendente(null); return }
+    if (!catalogoId) return
     setFotoErro(null)
     setFotoEnviando(true)
     try {
@@ -488,10 +502,16 @@ export default function NovoItemCatalogoPage() {
         navigate(`/catalogos/${catalogoId}`)
       } else {
         const criado = await itemCatalogoService.adicionar(catalogoId, request)
-        // Fica na mesma tela, agora em modo edição do item recém-criado — upload de foto
-        // (RN-NOVA-6) exige itemId e só faria sentido depois de um 2º acesso via listagem.
-        setToast('Item adicionado. Agora você pode adicionar uma foto, se quiser.')
-        navigate(`/catalogos/itens/novo?catalogoId=${catalogoId}&itemId=${criado.id}`, { replace: true })
+        // #440 — com foto escolhida, envia logo depois; se falhar, o item continua salvo e a modal explica.
+        if (fotoPendente) {
+          try {
+            await itemCatalogoService.uploadFoto(catalogoId, criado.id, fotoPendente)
+          } catch (errFoto) {
+            setErroFoto({ itemId: criado.id, erro: erroFotoNaoEnviada('O item', extractApiError(errFoto, 'O envio da foto falhou.')) })
+            return
+          }
+        }
+        navigate(`/catalogos/${catalogoId}`)
       }
     } catch (err: any) {
       const msg = extractApiError(err, 'Erro ao salvar item do catálogo.')
@@ -661,13 +681,9 @@ export default function NovoItemCatalogoPage() {
             </div>
 
             <div className="grid grid-cols-[140px_1fr] gap-5 max-[560px]:grid-cols-1">
-              {!itemId ? (
-                <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted max-[560px]:w-full">
-                  Salve o item para adicionar uma foto
-                </div>
-              ) : fotoUrl ? (
+              {(itemId ? fotoUrl : previaPendente) ? (
                 <div className="relative h-[110px] w-[140px] max-[560px]:w-full">
-                  <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+                  <img src={(itemId ? fotoUrl : previaPendente)!} alt={nome} data-testid="previa-foto" className="h-full w-full rounded-xl border border-line object-cover" />
                   <button
                     onClick={handleRemoverFoto}
                     disabled={fotoEnviando}
@@ -790,6 +806,8 @@ export default function NovoItemCatalogoPage() {
 
       <Toast message={toast} />
 
+      {erroFoto && <ModalErro erro={erroFoto.erro}
+        onOk={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogoId}&itemId=${erroFoto.itemId}`, { replace: true })} />}
     </AppLayout>
   )
 }

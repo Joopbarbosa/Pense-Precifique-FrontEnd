@@ -1116,7 +1116,7 @@ function UnidadesMedida() {
           <Button variant="ghost" icon={<Plus size={14} />} onClick={abrirNova}>Nova unidade</Button>
         </div>
         <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
-          Usadas no cadastro de Insumos — ex.: Grama, Metro, Unidade.
+          Usadas no cadastro de Insumos. As marcadas como Padrão são do sistema e não podem ser editadas nem excluídas.
         </p>
 
         {loading ? (
@@ -1137,11 +1137,15 @@ function UnidadesMedida() {
                     <Ruler size={16} />
                   </span>
                   <div className="min-w-0">
-                    <span className="block truncate text-[14.5px] font-semibold text-dark">{u.nome}</span>
+                    <span className="flex items-center gap-2 truncate text-[14.5px] font-semibold text-dark">
+                      {u.nome}
+                      {u.padrao && <span data-testid="tag-padrao" className="inline-flex h-5 items-center rounded-full bg-azul/10 px-2 text-[11px] font-semibold text-azul">Padrão</span>}
+                    </span>
                     <span className="block text-[12.5px] text-muted">{u.sigla}</span>
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 items-center gap-1.5">
+                {/* #605 — unidade do sistema não tem Editar nem Excluir. */}
+                {!u.padrao && <div className="flex flex-shrink-0 items-center gap-1.5">
                   <button
                     onClick={() => abrirEdicao(u)}
                     aria-label="Editar"
@@ -1156,7 +1160,7 @@ function UnidadesMedida() {
                   >
                     <Trash2 size={15} />
                   </button>
-                </div>
+                </div>}
               </div>
             ))}
           </div>

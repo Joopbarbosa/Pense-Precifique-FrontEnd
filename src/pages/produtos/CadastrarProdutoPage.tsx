@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
+import ModalErro from '../../components/ui/ModalErro'
+import type { ErroExplicado } from '../../utils/apiError'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -139,14 +142,23 @@ function DescTextarea({ value, onChange }: { value: string; onChange: (v: string
 
 // ---------- DadosBasicos ----------
 
-function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
+// #440 (RN-NOVA-46) — na criação a foto fica guardada (`pendente`) e é enviada logo depois de salvar.
+function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange, pendente, onPendente }: {
   produtoId?: string; nome: string; fotoUrl: string | null; onFotoUrlChange: (url: string | null) => void
+  pendente: File | null; onPendente: (f: File | null) => void
 }) {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const previa = usePreviaArquivo(pendente)
 
   const handleSelecionar = async (arquivo: File | undefined) => {
-    if (!arquivo || !produtoId) return
+    if (!arquivo) return
+    if (!produtoId) {
+      const e = erroArquivoImagem(arquivo)
+      setErro(e)
+      if (!e) onPendente(arquivo)
+      return
+    }
     setErro(null)
     setEnviando(true)
     try {
@@ -160,7 +172,7 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
   }
 
   const handleRemover = async () => {
-    if (!produtoId) return
+    if (!produtoId) { onPendente(null); return }
     setErro(null)
     setEnviando(true)
     try {
@@ -177,13 +189,9 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
     <div className="col-span-2">
       <span className="mb-[7px] block text-[13px] font-semibold text-body">Foto</span>
       <div className="flex items-start gap-5">
-        {!produtoId ? (
-          <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted">
-            Salve o produto para adicionar uma foto
-          </div>
-        ) : fotoUrl ? (
+        {(produtoId ? fotoUrl : previa) ? (
           <div className="relative h-[110px] w-[140px]">
-            <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+            <img src={(produtoId ? fotoUrl : previa)!} alt={nome} data-testid="previa-foto" className="h-full w-full rounded-xl border border-line object-cover" />
             <button
               onClick={handleRemover}
               disabled={enviando}
@@ -216,10 +224,11 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
   )
 }
 
-function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl }: {
+function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl, fotoPendente, setFotoPendente }: {
   st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
   produtoId?: string; fotoUrl: string | null; setFotoUrl: (url: string | null) => void
+  fotoPendente: File | null; setFotoPendente: (f: File | null) => void
 }) {
   return (
     <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -247,9 +256,10 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
           </Field>
         </div>
-        {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518); exige
-            produtoId, então só habilita o upload de fato na edição de um produto já salvo. */}
-        <FotoProduto produtoId={produtoId} nome={st.nome} fotoUrl={fotoUrl} onFotoUrlChange={setFotoUrl} />
+        {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518). #440: também na
+            criação — a foto escolhida é enviada logo depois de salvar o produto. */}
+        <FotoProduto produtoId={produtoId} nome={st.nome} fotoUrl={fotoUrl} onFotoUrlChange={setFotoUrl}
+          pendente={fotoPendente} onPendente={setFotoPendente} />
       </div>
       <div className="mt-7 flex justify-end border-t border-line pt-[22px]">
         <Button variant="primary" iconRight={<ArrowRight size={17} />} onClick={onNext}>
@@ -722,6 +732,8 @@ export default function CadastrarProdutoPage() {
   const [fracionavel, setFracionavel] = useState(true)
   const [fracionavelManual, setFracionavelManual] = useState(false)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [fotoPendente, setFotoPendente] = useState<File | null>(null)
+  const [erroFoto, setErroFoto] = useState<{ erro: ErroExplicado; produtoId: string } | null>(null)
 
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
@@ -867,6 +879,15 @@ export default function CadastrarProdutoPage() {
 
       if (editando) {
         navigate(`/produtos/${id}`)
+      } else if (fotoPendente) {
+        // #440 — o produto já está salvo; se a foto falhar, ele continua salvo e a modal explica.
+        try {
+          await produtoService.uploadFoto(result.id, fotoPendente)
+          navigate('/produtos')
+        } catch (errFoto) {
+          setErroFoto({ produtoId: result.id,
+            erro: erroFotoNaoEnviada('O produto', extractApiError(errFoto, 'O envio da foto falhou.')) })
+        }
       } else {
         navigate('/produtos')
       }
@@ -945,7 +966,7 @@ export default function CadastrarProdutoPage() {
         <DadosBasicos
           st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome}
           permitirEstoqueNegativo={permitirEstoqueNegativo} setPermitirEstoqueNegativo={setPermitirEstoqueNegativo} estoqueNegativoErro={estoqueNegativoErro}
-          produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl}
+          produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl} fotoPendente={fotoPendente} setFotoPendente={setFotoPendente}
         />
       )}
       {aba === 'ficha' && (
@@ -1000,6 +1021,7 @@ export default function CadastrarProdutoPage() {
         </div>
       )}
 
+      {erroFoto && <ModalErro erro={erroFoto.erro} onOk={() => navigate(`/produtos/${erroFoto.produtoId}`)} />}
     </AppLayout>
   )
 }

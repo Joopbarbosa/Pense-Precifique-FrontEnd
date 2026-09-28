@@ -6,8 +6,10 @@ import type { PageResponse } from '../types/shared'
 export const produtoService = {
   // #459 (V0.10.0, parent #336) — ativo filtra server-side (era sem filtro nenhum: a categoria
   // "Inativos" mostrava a mesma lista que "Todos", mesma classe de bug do #336 original).
-  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean, ativo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
+  // #616 (RN-NOVA-40) — `incluirInativos`: seletores mostram os inativos depois dos ativos (ignora `ativo`).
+  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean, ativo?: boolean, incluirInativos = false): Promise<PageResponse<ProdutoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
+    if (incluirInativos) params.incluirInativos = true
     if (tipo) params.tipo = tipo
     if (busca) params.busca = busca
     if (semCatalogo) params.semCatalogo = true

@@ -25,6 +25,7 @@ import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { formatQuantidade } from '../../utils/quantidade'
 import { extractApiError } from '../../utils/apiError'
+import { BRL } from '../../components/venda/formato'
 
 const TIPO_PRODUTO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
@@ -57,11 +58,8 @@ const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
 const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
 
 
-const moeda = (n: number, dec?: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', {
-    minimumFractionDigits: dec != null ? dec : (n < 0.1 ? 3 : 2),
-    maximumFractionDigits: dec != null ? dec : 3,
-  })
+// #603 (RN-NOVA-33): sempre 2 casas na tela; o custo unitário continua com 4 por dentro.
+const moeda = BRL
 
 function InsumoStatusBadge({ insumo, small = false }: { insumo: InsumoResponse; small?: boolean }) {
   const low = isLow(insumo)
@@ -166,7 +164,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onInativar, onReativar, onE
       </div>
 
       <div className="text-[13.5px] font-semibold text-body [font-variant-numeric:tabular-nums]">
-        {moeda(insumo.custoUnitario, 2)}/{insumo.unidadeMedida}
+        {moeda(insumo.custoUnitario)}/{insumo.unidadeMedida}
       </div>
 
       <div><InsumoStatusBadge insumo={insumo} /></div>
@@ -220,7 +218,7 @@ function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, on
         <div className="flex flex-shrink-0 items-center gap-2">
           <div className="text-right">
             <div className="text-[11px] uppercase tracking-[0.04em] text-muted">Custo</div>
-            <div className="text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{moeda(insumo.custoUnitario, 2)}/{insumo.unidadeMedida}</div>
+            <div className="text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{moeda(insumo.custoUnitario)}/{insumo.unidadeMedida}</div>
           </div>
           <div onClick={e => e.stopPropagation()}>
             <ActionMenu items={menuItems} align="right" />

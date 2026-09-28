@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import OpcaoInativa from '../shared/OpcaoInativa'
 import clsx from 'clsx'
 import { Layers, Box, Filter } from 'lucide-react'
 import { EstoqueTags, FracionavelBadge, EstoqueInsuficienteBadge } from '../ui/Badge'
@@ -217,7 +218,12 @@ export default function ItemSearch({
                 Produtos
               </div>
             )}
-            {produtos.map(p => (
+            {/* #616 (RN-NOVA-40) — produto inativo: riscado, com "Inativo", sem poder escolher. */}
+            {produtos.map(p => p.ativo === false ? (
+              <OpcaoInativa key={p.id} className="px-[11px] py-2.5">
+                <div className="truncate text-sm font-medium">{p.nome}</div>
+              </OpcaoInativa>
+            ) : (
               <button
                 key={p.id}
                 data-search-row

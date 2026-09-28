@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import { BigNumber, BigNumberGroup } from '../../components/ui/BigNumber'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
@@ -15,6 +16,7 @@ import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { BRL } from '../../components/venda/formato'
 
 const numQtd = (s: string) => {
   const fracao = tentarConverterFracao(s)
@@ -22,11 +24,8 @@ const numQtd = (s: string) => {
   return parseFloat((s || '').replace(',', '.')) || 0
 }
 
-const moeda = (n: number, dec?: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', {
-    minimumFractionDigits: dec != null ? dec : (n < 0.1 ? 3 : 2),
-    maximumFractionDigits: dec != null ? dec : 3,
-  })
+// #603 (RN-NOVA-33): sempre 2 casas na tela; o custo unitário continua com 4 por dentro.
+const moeda = BRL
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR')
@@ -270,7 +269,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
                 {deltaT}
               </div>
               <div className={clsx('text-[13.5px] text-dark [font-variant-numeric:tabular-nums]', riscado && 'line-through')}>
-                {m.custoUnitario != null ? moeda(m.custoUnitario, 2) : '—'}
+                {m.custoUnitario != null ? moeda(m.custoUnitario) : '—'}
               </div>
               <div className={clsx(
                 'text-[13px]',
@@ -304,7 +303,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
               )}>
                 <span className="[font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</span>
                 <span className="text-[#D8D4CC]">·</span>
-                <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario, 2) : '—'}</span>
+                <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario) : '—'}</span>
                 {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
               </div>
               {m.observacao && (
@@ -505,31 +504,17 @@ export default function DetalheInsumoPage() {
         </div>
       </div>
 
-      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
-          {[
-            { k: 'Unidade de medida',    v: insumo.unidadeMedida },
-            { k: 'Saldo atual',          v: `${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}`, big: true, warn: isLow },
-            { k: 'Estoque mínimo',       v: insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}` : '—' },
-            { k: 'Custo unitário atual', v: `${moeda(insumo.custoUnitario, 2)} / ${insumo.unidadeMedida}`, accent: true },
-          ].map((c, i) => (
-            <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
-              <div className={clsx(
-                'mt-[7px] [font-variant-numeric:tabular-nums]',
-                c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',
-                c.warn ? 'text-warning' : (c.big || c.accent) ? 'text-teal' : 'text-dark'
-              )}>
-                {c.v}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
-          <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
-            Edição manual
-          </Button>
-        </div>
+      {/* #604 (RN-NOVA-34) — cartões padrão com esconder/mostrar; #603: custo com 2 casas. */}
+      <div className="animate-[fadeUp_.4s_ease_both]">
+        <BigNumberGroup tela="detalhe-insumo" testid="numeros-insumo" colunas="sm:grid-cols-2 xl:grid-cols-4"
+          acoes={<Button variant="ghost" size="sm" icon={<Minus size={15} />} onClick={() => setModal('baixa')}>Edição manual</Button>}>
+          <BigNumber titulo="Unidade de medida" valor={insumo.unidadeMedida} />
+          <BigNumber titulo="Saldo atual" tom={isLow ? 'aviso' : 'destaque'}
+            valor={`${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}`} />
+          <BigNumber titulo="Estoque mínimo"
+            valor={insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}` : '—'} />
+          <BigNumber titulo="Custo unitário atual" destaque valor={`${moeda(insumo.custoUnitario)} / ${insumo.unidadeMedida}`} />
+        </BigNumberGroup>
       </div>
 
       <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -71,7 +72,8 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
     // corre contra o fetch correto e pode sobrescrevê-lo por último.
     if (!open || debouncedQ !== q) return
     setLoading(true)
-    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined)
+    // #616 (RN-NOVA-40) — inativos depois dos ativos, riscados, sem poder escolher.
+    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined, undefined, undefined, true)
       .then(data => setResults(data.content))
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
@@ -95,7 +97,12 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
             <div className="p-5 text-center text-sm text-muted">Buscando...</div>
           ) : results.length === 0 ? (
             <div className="p-5 text-center text-sm text-muted">Nenhum produto encontrado.</div>
-          ) : results.map(p => (
+          ) : results.map(p => p.ativo === false ? (
+            <OpcaoInativa key={p.id}>
+              <div className="truncate text-[14.5px] font-semibold">{p.nome}</div>
+              <div className="text-[12.5px]">{p.identificador}</div>
+            </OpcaoInativa>
+          ) : (
             <button
               key={p.id}
               onClick={() => { onSelect(p); setOpen(false); setQ('') }}
