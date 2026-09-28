@@ -20,3 +20,29 @@ export async function normalizarErroBlob(err: unknown): Promise<unknown> {
   }
   return err
 }
+
+/**
+ * V0.15.0 (#602, RN-NOVA-32/DT-NOVA-21) — erro explicado da modal de erro padrão. O backend manda
+ * `titulo`, `motivo`, `comoResolver` e `itens` nas mensagens já convertidas; nas demais só `message`
+ * (a modal mostra só "O que aconteceu").
+ */
+export interface ErroExplicado {
+  titulo?: string
+  mensagem: string
+  motivo?: string
+  comoResolver?: string
+  itens?: string[]
+}
+
+export function extrairErroExplicado(err: unknown, fallback: string): ErroExplicado {
+  const d = (err as { response?: { data?: { message?: string; titulo?: string | null; motivo?: string | null;
+    comoResolver?: string | null; itens?: string[] | null; fieldErrors?: Record<string, string> | null } } })?.response?.data
+  const campos = d?.fieldErrors ? Object.values(d.fieldErrors) : []
+  return {
+    titulo: d?.titulo ?? undefined,
+    mensagem: campos.length && (!d?.message || d.message === 'Erro de validação') ? campos.join(' ') : (d?.message ?? fallback),
+    motivo: d?.motivo ?? undefined,
+    comoResolver: d?.comoResolver ?? undefined,
+    itens: d?.itens ?? undefined,
+  }
+}

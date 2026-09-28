@@ -25,7 +25,8 @@ export default function MoneyInput({ value, onChange, autoFocus, size = 'md', pl
       </span>
       <input
         value={value}
-        onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
+        onChange={e => onChange(ate2Casas(e.target.value.replace(/[^\d.,]/g, '')))}
+        aria-invalid={invalido || undefined}
         inputMode="decimal"
         autoFocus={autoFocus}
         placeholder={placeholder}
@@ -39,4 +40,10 @@ export default function MoneyInput({ value, onChange, autoFocus, size = 'md', pl
       />
     </div>
   )
+}
+
+/** #603 (RN-NOVA-33) — campo de dinheiro aceita até 2 casas depois da vírgula (ou do ponto). */
+export function ate2Casas(v: string): string {
+  const m = v.match(/^(.*[.,])(\d*)$/)
+  return m && m[2].length > 2 ? m[1] + m[2].slice(0, 2) : v
 }

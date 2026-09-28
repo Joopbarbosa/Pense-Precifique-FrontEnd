@@ -63,6 +63,7 @@ export default function TextArea({
         rows={rows}
         placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
+        aria-invalid={erro ? true : undefined}
         className={clsx(
           'box-border block w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus disabled:cursor-not-allowed disabled:bg-[#F5F4F2]',
           !rows && minHeight, textSize,
