@@ -183,7 +183,13 @@ export default function ItemSearch({
                 Itens de catálogo
               </div>
             )}
-            {itensCatalogo.map(item => (
+            {/* #641 (RN-NOVA-40) — item indisponível (catálogo ou componente inativo): riscado, com "Inativo", sem poder escolher. */}
+            {itensCatalogo.map(item => item.ativo === false ? (
+              <OpcaoInativa key={item.id} className="px-[11px] py-2.5">
+                <div className="truncate text-sm font-medium">{item.nome}</div>
+                <div className="text-xs">{item.catalogoNome}</div>
+              </OpcaoInativa>
+            ) : (
               <button
                 key={item.id}
                 data-search-row

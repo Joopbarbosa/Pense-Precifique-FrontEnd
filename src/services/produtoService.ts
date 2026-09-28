@@ -69,7 +69,8 @@ export const produtoService = {
   // #347 — ativo=true filtra já na busca (antes só bloqueava ao salvar a ficha técnica, deixando
   // inativos aparecerem/serem selecionáveis na lista de resultados).
   buscarInsumos: async (busca: string): Promise<InsumoResponse[]> => {
-    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome', ativo: true } })
+    // #641 (RN-NOVA-40) — incluirInativos: o seletor da ficha técnica mostra o inativo riscado, sem poder escolher.
+    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome', incluirInativos: true } })
     return response.data.content
   },
 
@@ -77,7 +78,7 @@ export const produtoService = {
   // ativos, agora podem ser componente de ficha técnica. Antes só tipo=PRODUTO.
   // #347 — ativo=true filtra já na busca (mesmo motivo de buscarInsumos acima).
   buscarProdutosComponente: async (busca: string): Promise<ProdutoResponse[]> => {
-    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome', ativo: true } })
+    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome', incluirInativos: true } })
     return response.data.content
   },
 

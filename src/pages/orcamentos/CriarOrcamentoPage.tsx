@@ -469,7 +469,7 @@ export default function CriarOrcamentoPage() {
   // paginado e do efeito de busca lá dentro — função nova a cada render viraria busca em laço.
   const buscarItensCatalogoOrcamento = useCallback(
     (busca: string | undefined, page: number, size: number) =>
-      orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, busca, page, size),
+      orcamentoService.buscarItensCatalogo(catalogoFiltro || undefined, busca, page, size, true),
     [catalogoFiltro]
   )
   const buscarProdutosOrcamento = useCallback(

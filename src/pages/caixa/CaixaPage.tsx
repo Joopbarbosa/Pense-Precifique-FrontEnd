@@ -936,7 +936,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
   // Buscas do <ItemSearch> compartilhado — precisam ser estáveis (useCallback): entram na
   // dependência do fetcher paginado, uma função nova a cada render dispara busca em laço infinito.
   const buscarItensCatalogoCaixa = useCallback(
-    (busca: string | undefined, page: number, size: number) => caixaService.buscarItensCatalogo(busca, page, size),
+    (busca: string | undefined, page: number, size: number) => caixaService.buscarItensCatalogo(busca, page, size, true),
     []
   )
   const buscarProdutosCaixa = useCallback(

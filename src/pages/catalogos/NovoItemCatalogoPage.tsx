@@ -4,6 +4,7 @@ import ModalErro from '../../components/ui/ModalErro'
 import type { ErroExplicado } from '../../utils/apiError'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
+import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
@@ -37,6 +38,8 @@ const inputClass = (hasError?: boolean) => clsx(
 // ---------- Componente (Insumo XOR Produto-base, mesmo par de FichaTecnicaItem em Produto) ----------
 
 interface ComponenteLinha {
+  /** #641 (RN-NOVA-40) — só no seletor: false = inativo, riscado e sem poder escolher. */
+  ativo?: boolean
   id: string
   nome: string
   marca: string
@@ -144,18 +147,18 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
-            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
+            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true, ativo: i.ativo }))
         )
-        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id) && p.ativo)
+        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
         setProdutos(
           prodsFiltrados
             .filter(p => p.tipo === 'PRODUTO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
         setCustomizacoes(
           prodsFiltrados
             .filter(p => p.tipo === 'CUSTOMIZACAO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
       } catch {
         setInsumos([])
@@ -176,7 +179,13 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
   const grupo = (titulo: string, itens: Omit<ComponenteLinha, 'qtd'>[]) => itens.length === 0 ? null : (
     <div key={titulo}>
       <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
-      {itens.map(i => (
+      {/* #641 (RN-NOVA-40) — inativo: riscado, com "Inativo", sem poder escolher (a API manda depois dos ativos). */}
+      {itens.map(i => i.ativo === false ? (
+        <OpcaoInativa key={i.id} className="px-[11px] py-2.5">
+          <span className="block truncate text-sm font-semibold">{i.nome}</span>
+          <span className="block text-xs">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
+        </OpcaoInativa>
+      ) : (
         <button
           key={i.id}
           onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}

@@ -43,6 +43,9 @@ export interface ItemCatalogoBuscaResponse {
    *  zerado/negativo e não permite estoque negativo (bloqueio duro agora, sem a quantidade que a
    *  usuária ainda vai digitar no carrinho). */
   algumComponenteSemEstoque: boolean;
+  /** #641 (RN-NOVA-40) — false quando o catálogo está inativo ou algum componente está inativo/excluído
+   *  (só vem false com `incluirInativos=true`). */
+  ativo: boolean;
 }
 
 // #218 — POST /orcamentos/simular-alertas (RN-NOVA-8/9): simula situação de estoque por Produto

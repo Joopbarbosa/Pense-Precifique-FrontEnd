@@ -67,9 +67,11 @@ export const caixaService = {
 
   /** Reabertura de RN-NOVA-1 (achado do teste manual) — busca de itens de Catálogo disponíveis
    *  pra venda no Caixa, em paralelo a `produtoService.listar(..., semCatalogo=true)`. */
-  buscarItensCatalogo: async (busca?: string, page = 0, size = 8): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+  // #641 (RN-NOVA-40) — `incluirInativos`: traz também os itens indisponíveis (ativo=false), depois dos disponíveis.
+  buscarItensCatalogo: async (busca?: string, page = 0, size = 8, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
     const params: Record<string, any> = { page, size }
     if (busca) params.busca = busca
+    if (incluirInativos) params.incluirInativos = true
     const response = await api.get('/caixa/busca-itens-catalogo', { params })
     return response.data
   },

@@ -44,10 +44,12 @@ export const orcamentoService = {
   // service.listar do sistema. Tamanho de página mantido em 8 (não 20) — painel de ItemSearch
   // calibrado para exibir exatamente 8 linhas (ORC-030). Único consumidor: ItemSearch
   // (CriarOrcamentoPage.tsx) — breaking change sem coexistência, confirmado por grep (Passo 0).
-  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = 8): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+  // #641 (RN-NOVA-40) — `incluirInativos`: traz também os itens indisponíveis (ativo=false), depois dos disponíveis.
+  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = 8, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
     const params: Record<string, any> = { page, size };
     if (catalogoId) params.catalogoId = catalogoId;
     if (busca) params.busca = busca;
+    if (incluirInativos) params.incluirInativos = true;
     const response = await api.get('/orcamentos/itens-catalogo', { params });
     return response.data;
   },
