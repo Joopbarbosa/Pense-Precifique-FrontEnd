@@ -7,17 +7,23 @@ import Spinner from '../../components/ui/Spinner'
 import { Pencil, Ban, Power, Phone, Plus, Users, Search, Mail } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import SortableHeader from '../../components/shared/SortableHeader'
+import { useModalErro } from '../../hooks/useModalErro'
 import Toast from '../../components/shared/Toast'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
-import { extractApiError } from '../../utils/apiError'
 import { mascararDocumento } from '../../utils/documento'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
 import type { ClienteContagensResponse, ClienteFiltros, ClienteResponse } from '../../types/cliente'
 
 // V0.15.0 (#537, #536, #538) — cadastro único "Clientes e Fornecedores" (RN-NOVA-1/2/17). A rota e
 // o service continuam `clientes` (DT-NOVA-1); só a interface muda de nome.
+// #582 (RN-NOVA-38): coluna Identificador (CLI-N) e ordenação por Identificador, Cadastro e CPF/CNPJ
+// (padrão Cadastro de A a Z; 1º clique crescente, 2º decrescente).
+
+type CampoOrdem = 'numero' | 'nome' | 'documento'
+const GRADE = 'md:grid-cols-[0.6fr_2fr_1.2fr_1.2fr_46px]'
 
 type FiltroId = 'todos' | 'clientes' | 'fornecedores' | 'inativos'
 
@@ -68,7 +74,7 @@ function CadastroRow({ cliente, index, rowZIndex, onAbrir, onEdit, onInativar, o
       data-testid="cadastro-row"
       className={clsx(
         'relative block cursor-pointer rounded-card border border-[#F0EEE9] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-colors duration-100',
-        'mb-3 md:mb-0 md:grid md:grid-cols-[2fr_1.2fr_1.2fr_46px] md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:p-0 md:px-[18px] md:py-3.5 md:shadow-none',
+        `mb-3 md:mb-0 md:grid ${GRADE} md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:p-0 md:px-[18px] md:py-3.5 md:shadow-none`,
         inativa ? 'bg-cream' : 'bg-white md:bg-transparent',
         'hover:bg-line'
       )}
@@ -79,13 +85,16 @@ function CadastroRow({ cliente, index, rowZIndex, onAbrir, onEdit, onInativar, o
       }}
       onClick={() => onAbrir(cliente)}
     >
+      {/* Identificador */}
+      <div className="hidden text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums] md:block">{cliente.identificador ?? '—'}</div>
+
       {/* Nome + papéis */}
       <div className="flex min-w-0 items-center gap-[13px]">
         <Avatar nome={cliente.nome} inativa={inativa} />
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             {cliente.identificador && (
-              <span className="flex-shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">
+              <span className="flex-shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums] md:hidden">
                 {cliente.identificador}
               </span>
             )}
@@ -145,6 +154,9 @@ export default function ClientesPage() {
   const isFirstFiltro = useRef(true)
   const [contagens, setContagens] = useState<ClienteContagensResponse | null>(null)
   const filtroAtual = FILTROS.find(f => f.id === filtro)!
+  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>({ campo: 'nome', dir: 'asc' })
+  const isFirstOrdem = useRef(true)
+  const { modalErro, mostrarErro } = useModalErro()
 
   const {
     items: cadastros,
@@ -157,7 +169,7 @@ export default function ClientesPage() {
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => clienteService.listar(page, size, q, filtroAtual.filtros),
+    fetcher: (page, size, q) => clienteService.listar(page, size, q, { ...filtroAtual.filtros, sort: `${ordem.campo},${ordem.dir}` }),
   })
   const { toast, setToast } = useToast()
   const [confirmInativar, setConfirmInativar] = useState<ClienteResponse | null>(null)
@@ -174,6 +186,14 @@ export default function ClientesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtro])
 
+  useEffect(() => {
+    if (isFirstOrdem.current) { isFirstOrdem.current = false; return }
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordem])
+
+  const ordenar = (campo: CampoOrdem) => setOrdem(o => o.campo === campo ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { campo, dir: 'asc' })
+
   const handleInativar = async () => {
     if (!confirmInativar) return
     const alvo = confirmInativar
@@ -183,7 +203,7 @@ export default function ClientesPage() {
       carregarContagens()
       setToast(`${alvo.nome} inativado.`)
     } catch (err) {
-      setToast(extractApiError(err, 'Erro ao inativar. Tente novamente.'))
+      mostrarErro(err, 'Erro ao inativar. Tente novamente.')
     } finally {
       setConfirmInativar(null)
     }
@@ -196,7 +216,7 @@ export default function ClientesPage() {
       carregarContagens()
       setToast(`${alvo.nome} reativado.`)
     } catch (err) {
-      setToast(extractApiError(err, 'Erro ao reativar. Tente novamente.'))
+      mostrarErro(err, 'Erro ao reativar. Tente novamente.')
     }
   }
 
@@ -286,10 +306,12 @@ export default function ClientesPage() {
             </div>
           ) : (
             <div className="rounded-none border-0 bg-transparent shadow-none md:rounded-card md:border md:border-[#F0EEE9] md:bg-white md:shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-              <div className="hidden border-b border-line px-[18px] py-[13px] md:grid md:grid-cols-[2fr_1.2fr_1.2fr_46px] md:gap-4">
-                {['Cadastro', 'Contato', 'CPF/CNPJ', ''].map((h, k) => (
-                  <div key={k} className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">{h}</div>
-                ))}
+              <div className={`hidden border-b border-line px-[18px] py-[13px] md:grid ${GRADE} md:gap-4`}>
+                <SortableHeader label="Identificador" field="numero" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />
+                <SortableHeader label="Cadastro" field="nome" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />
+                <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Contato</div>
+                <SortableHeader label="CPF/CNPJ" field="documento" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />
+                <div />
               </div>
 
               {cadastros.length > 0 ? (
@@ -332,6 +354,7 @@ export default function ClientesPage() {
         </>
       )}
 
+      {modalErro}
       <ConfirmacaoModal
         open={!!confirmInativar}
         onClose={() => setConfirmInativar(null)}

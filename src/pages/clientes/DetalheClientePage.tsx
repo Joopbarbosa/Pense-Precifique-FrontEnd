@@ -2,18 +2,20 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import {
-  ArrowLeft, Ban, BarChart3, ChevronRight, ClipboardList, Info, Monitor, Package, Pencil, Power, Search, User,
+  ArrowLeft, Ban, BarChart3, ChevronRight, ClipboardList, Info, Monitor, Package, Pencil, Power, User,
 } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, SegmentedControl } from '../../components/ui'
+import { BigNumber, BigNumberGroup, Button, SegmentedControl } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import ModalRegistro, { type TipoRegistro } from '../../components/cliente/ModalRegistro'
-import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
+import ModalListagemRegistros, { ERRO_PERIODO, type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
+import ModalInsumosFornecedor from '../../components/compra/ModalInsumosFornecedor'
+import { useModalErro } from '../../hooks/useModalErro'
 import { BRL } from '../../components/venda/formato'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
@@ -25,13 +27,18 @@ import { GRAFICO_EIXO, GRAFICO_GRID, MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } f
 import type { StatusOrcamento } from '../../types/orcamento'
 import type {
   ClienteResponse, CompraFornecedorHistoricoResponse, GraficosClienteResponse, IndicadoresCadastroResponse,
-  PapelCadastro, PedidoClienteResponse, TipoPessoa,
+  ItemCompradoResponse, PapelCadastro, PedidoClienteResponse, TipoPessoa,
 } from '../../types/cliente'
 
 // V0.15.0 — página de detalhe do cadastro (#560, RN-NOVA-19) com gráficos do cliente (#451, RN-NOVA-20).
 // Todo número vem pronto do backend (indicadores/gráficos agregados em DT-NOVA-9); aqui só formatação.
+// Adendo 2 (RN-NOVA-36): números em cartões padrão com esconder/mostrar (#604); cadastro com os dois papéis
+// mostra as abas Cliente | Fornecedor | Ambos (#588, padrão Cliente); aba Dashboards com os gráficos de
+// cliente e de fornecedor e período personalizado (#587/#589); Histórico só com as listagens; a lupa de
+// "Insumos vinculados" abre a listagem dos insumos do fornecedor (#586).
 
-type Aba = 'detalhes' | 'historico' | 'insumos'
+type Aba = 'detalhes' | 'dashboards' | 'historico' | 'insumos'
+type AbaNumeros = 'CLIENTE' | 'FORNECEDOR' | 'AMBOS'
 
 const TIPO_PESSOA_LABEL: Record<TipoPessoa, string> = { FISICA: 'Pessoa física', JURIDICA: 'Pessoa jurídica', ESTRANGEIRO: 'Estrangeiro' }
 
@@ -54,7 +61,10 @@ const PERIODOS = [
   { value: 3, label: '3 meses' },
   { value: 6, label: '6 meses' },
   { value: 12, label: '12 meses' },
+  { value: 0, label: 'Personalizado' },
 ] as const
+
+const STATUS_EM_ABERTO = ['RASCUNHO', 'ENVIADO', 'APROVADO', 'AGUARDANDO_SINAL', 'SINAL_PAGO', 'EM_PRODUCAO', 'FINALIZADO', 'PAGO']
 
 // ---------- Status (pílulas) ----------
 
@@ -92,83 +102,55 @@ const STATUS_COMPRA: Record<CompraFornecedorHistoricoResponse['status'], { label
 
 // ---------- Indicadores ----------
 
-// #572 (RN-NOVA-24) — a lupa no canto abre a modal de listagem já filtrada para aquele número.
-function Indicador({ titulo, valor, detalhe, destaque, onLupa }: { titulo: string; valor: ReactNode; detalhe?: ReactNode; destaque?: boolean; onLupa?: () => void }) {
-  return (
-    <div className="relative min-w-0 border-b border-r border-line bg-white px-5 py-[16px]">
-      {onLupa && (
-        <button type="button" onClick={onLupa} aria-label={`Ver registros de ${titulo}`} title="Ver registros"
-          className="absolute right-2.5 top-2.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full border-none bg-transparent text-muted transition-colors hover:bg-teal/10 hover:text-teal">
-          <Search size={15} />
-        </button>
-      )}
-      <div className="pr-7 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{titulo}</div>
-      <div className={clsx('mt-[6px] [font-variant-numeric:tabular-nums]', destaque ? 'text-[22px] font-bold tracking-[-0.02em] text-teal' : 'text-base font-semibold text-dark')}>
-        {valor}
-      </div>
-      {detalhe && <div className="mt-0.5 truncate text-[12.5px] text-muted">{detalhe}</div>}
-    </div>
-  )
-}
-
-function BlocoIndicadores({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-      <div className="border-b border-line px-5 py-3 text-[13px] font-bold text-dark">{titulo}</div>
-      {/* Bordas por célula (não gap sobre fundo cinza): a última linha incompleta fica branca. O -m corta a
-          borda externa; o overflow-hidden aqui é seguro (bloco só de leitura, sem dropdown/menu filho). */}
-      <div className="overflow-hidden rounded-b-card">
-        <div className="-mb-px -mr-px grid grid-cols-2 lg:grid-cols-4">
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 type AbrirListagem = (titulo: string, papel: PapelCadastro, filtro: FiltroInicial) => void
 
-function IndicadoresCliente({ ind, abrir }: { ind: IndicadoresCadastroResponse['cliente']; abrir: AbrirListagem }) {
-  const compras: FiltroInicial = { somenteCompras: true, rotulos: ['Só o que conta como compra'] }
-  return (
-    <BlocoIndicadores titulo="Como cliente">
-      <Indicador titulo="Total gasto" valor={BRL(ind.totalGasto)} destaque onLupa={() => abrir('Total gasto', 'CLIENTE', compras)} />
-      <Indicador titulo="Ticket médio" valor={ind.ticketMedio != null ? BRL(ind.ticketMedio) : '—'} onLupa={() => abrir('Ticket médio', 'CLIENTE', compras)} />
-      <Indicador titulo="Pedidos" valor={ind.numeroPedidos} onLupa={() => abrir('Pedidos', 'CLIENTE', compras)} />
-      <Indicador titulo="Última compra" valor={formatarData(ind.ultimaCompra?.dataCompra)} detalhe={ind.ultimaCompra?.identificador}
-        onLupa={() => abrir('Última compra', 'CLIENTE', compras)} />
-      <Indicador titulo="Mais comprado" valor={ind.itemMaisComprado?.nome ?? '—'}
-        detalhe={ind.itemMaisComprado ? `${qtd(ind.itemMaisComprado.quantidade)} un · ${BRL(ind.itemMaisComprado.valor)}` : undefined}
-        onLupa={ind.itemMaisComprado ? () => abrir(`Pedidos com ${ind.itemMaisComprado!.nome}`, 'CLIENTE',
-          { somenteCompras: true, itemId: ind.itemMaisComprado!.id, rotulos: [ind.itemMaisComprado!.nome] }) : undefined} />
-      <Indicador titulo="Cliente desde" valor={formatarData(ind.clienteDesde)}
-        onLupa={() => abrir('Cliente desde', 'CLIENTE', { ...compras, sort: 'data,asc' })} />
-      <Indicador titulo="Orçamentos em aberto" valor={ind.orcamentosEmAberto.quantidade} detalhe={BRL(ind.orcamentosEmAberto.valor)}
-        onLupa={() => abrir('Orçamentos em aberto', 'CLIENTE', { status: ['RASCUNHO'] })} />
-      <Indicador titulo="Orçamentos cancelados" valor={ind.orcamentosCancelados.quantidade} detalhe={BRL(ind.orcamentosCancelados.valor)}
-        onLupa={() => abrir('Orçamentos cancelados', 'CLIENTE', { status: ['CANCELADO'] })} />
-    </BlocoIndicadores>
-  )
+// #572 (RN-NOVA-24) — a lupa no canto abre a modal de listagem já filtrada para aquele número.
+function numerosCliente(ind: IndicadoresCadastroResponse['cliente'], abrir: AbrirListagem) {
+  const compras: FiltroInicial = { somenteCompras: true }
+  return <>
+    <BigNumber titulo="Total gasto" valor={BRL(ind.totalGasto)} destaque onLupa={() => abrir('Total gasto', 'CLIENTE', compras)} />
+    <BigNumber titulo="Ticket médio" valor={ind.ticketMedio != null ? BRL(ind.ticketMedio) : '—'} onLupa={() => abrir('Ticket médio', 'CLIENTE', compras)} />
+    <BigNumber titulo="Pedidos" valor={ind.numeroPedidos} onLupa={() => abrir('Pedidos', 'CLIENTE', compras)} />
+    <BigNumber titulo="Última compra" valor={formatarData(ind.ultimaCompra?.dataCompra)} onLupa={() => abrir('Última compra', 'CLIENTE', compras)}>
+      {ind.ultimaCompra?.identificador && <span>{ind.ultimaCompra.identificador}</span>}
+    </BigNumber>
+    <BigNumber titulo="Mais comprado" valor={ind.itemMaisComprado?.nome ?? '—'}
+      onLupa={ind.itemMaisComprado ? () => abrir(`Pedidos com ${ind.itemMaisComprado!.nome}`, 'CLIENTE',
+        { somenteCompras: true, itemId: ind.itemMaisComprado!.id, rotulos: [ind.itemMaisComprado!.nome] }) : undefined}>
+      {ind.itemMaisComprado && <span>{qtd(ind.itemMaisComprado.quantidade)} un · {BRL(ind.itemMaisComprado.valor)}</span>}
+    </BigNumber>
+    <BigNumber titulo="Cliente desde" valor={formatarData(ind.clienteDesde)} onLupa={() => abrir('Cliente desde', 'CLIENTE', { ...compras, sort: 'data,asc' })} />
+    <BigNumber titulo="Orçamentos em aberto" valor={ind.orcamentosEmAberto.quantidade}
+      onLupa={() => abrir('Orçamentos em aberto', 'CLIENTE', { status: STATUS_EM_ABERTO })}>
+      <span>{BRL(ind.orcamentosEmAberto.valor)}</span>
+    </BigNumber>
+    <BigNumber titulo="Orçamentos cancelados" valor={ind.orcamentosCancelados.quantidade}
+      onLupa={() => abrir('Orçamentos cancelados', 'CLIENTE', { status: ['CANCELADO'] })}>
+      <span>{BRL(ind.orcamentosCancelados.valor)}</span>
+    </BigNumber>
+  </>
 }
 
-function IndicadoresFornecedor({ ind, abrir, verInsumos }: { ind: IndicadoresCadastroResponse['fornecedor']; abrir: AbrirListagem; verInsumos: () => void }) {
+function numerosFornecedor(ind: IndicadoresCadastroResponse['fornecedor'], abrir: AbrirListagem, verInsumos: () => void) {
   const confirmadas: FiltroInicial = { status: ['CONFIRMADA'] }
-  return (
-    <BlocoIndicadores titulo="Como fornecedor">
-      <Indicador titulo="Total comprado" valor={BRL(ind.totalComprado)} destaque onLupa={() => abrir('Total comprado', 'FORNECEDOR', confirmadas)} />
-      <Indicador titulo="Compra média" valor={ind.compraMedia != null ? BRL(ind.compraMedia) : '—'} onLupa={() => abrir('Compra média', 'FORNECEDOR', confirmadas)} />
-      <Indicador titulo="Compras" valor={ind.numeroCompras} onLupa={() => abrir('Compras', 'FORNECEDOR', confirmadas)} />
-      <Indicador titulo="Última compra" valor={formatarData(ind.ultimaCompra?.data)} detalhe={ind.ultimaCompra?.identificador}
-        onLupa={() => abrir('Última compra', 'FORNECEDOR', confirmadas)} />
-      <Indicador titulo="Insumo mais comprado" valor={ind.insumoMaisComprado?.nome ?? '—'}
-        detalhe={ind.insumoMaisComprado ? `${qtd(ind.insumoMaisComprado.quantidade)} ${ind.insumoMaisComprado.unidade}` : undefined}
-        onLupa={ind.insumoMaisComprado ? () => abrir(`Compras com ${ind.insumoMaisComprado!.nome}`, 'FORNECEDOR',
-          { ...confirmadas, itemId: ind.insumoMaisComprado!.id, rotulos: [ind.insumoMaisComprado!.nome] }) : undefined} />
-      <Indicador titulo="Insumos vinculados" valor={ind.insumosVinculados} onLupa={verInsumos} />
-      <Indicador titulo="Compras não pagas" valor={ind.comprasNaoPagas.quantidade} detalhe={BRL(ind.comprasNaoPagas.valor)}
-        onLupa={() => abrir('Compras não pagas', 'FORNECEDOR', { naoPagas: true, rotulos: ['Não pagas'] })} />
-    </BlocoIndicadores>
-  )
+  return <>
+    <BigNumber titulo="Total comprado" valor={BRL(ind.totalComprado)} destaque onLupa={() => abrir('Total comprado', 'FORNECEDOR', confirmadas)} />
+    <BigNumber titulo="Compra média" valor={ind.compraMedia != null ? BRL(ind.compraMedia) : '—'} onLupa={() => abrir('Compra média', 'FORNECEDOR', confirmadas)} />
+    <BigNumber titulo="Compras" valor={ind.numeroCompras} onLupa={() => abrir('Compras', 'FORNECEDOR', confirmadas)} />
+    <BigNumber titulo="Última compra" valor={formatarData(ind.ultimaCompra?.data)} onLupa={() => abrir('Última compra', 'FORNECEDOR', confirmadas)}>
+      {ind.ultimaCompra?.identificador && <span>{ind.ultimaCompra.identificador}</span>}
+    </BigNumber>
+    <BigNumber titulo="Insumo mais comprado" valor={ind.insumoMaisComprado?.nome ?? '—'}
+      onLupa={ind.insumoMaisComprado ? () => abrir(`Compras com ${ind.insumoMaisComprado!.nome}`, 'FORNECEDOR',
+        { ...confirmadas, itemId: ind.insumoMaisComprado!.id, rotulos: [ind.insumoMaisComprado!.nome] }) : undefined}>
+      {ind.insumoMaisComprado && <span>{qtd(ind.insumoMaisComprado.quantidade)} {ind.insumoMaisComprado.unidade}</span>}
+    </BigNumber>
+    <BigNumber titulo="Insumos vinculados" valor={ind.insumosVinculados} onLupa={verInsumos} />
+    <BigNumber titulo="Compras não pagas" valor={ind.comprasNaoPagas.quantidade}
+      onLupa={() => abrir('Compras não pagas', 'FORNECEDOR', { naoPagas: true })}>
+      <span>{BRL(ind.comprasNaoPagas.valor)}</span>
+    </BigNumber>
+  </>
 }
 
 // ---------- Aba Detalhes ----------
@@ -212,24 +194,42 @@ function TooltipGasto({ active, payload }: { active?: boolean; payload?: { paylo
   )
 }
 
-function GraficosCliente({ clienteId, abrir }: { clienteId: string; abrir: AbrirListagem }) {
+/** #587/#589 (RN-NOVA-36) — gráficos do cadastro por papel, com período 3/6/12 meses ou personalizado. */
+function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; papel: PapelCadastro; abrir: AbrirListagem }) {
   const mobile = useIsMobile()
+  const fornecedor = papel === 'FORNECEDOR'
   const [meses, setMeses] = useState<number>(12)
+  const [deLivre, setDeLivre] = useState('')
+  const [ateLivre, setAteLivre] = useState(isoLocal(new Date()))
   const [dados, setDados] = useState<GraficosClienteResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
+
+  const faixa = (() => {
+    if (meses === 0) return { de: deLivre, ate: ateLivre }
+    const hoje = new Date()
+    return { de: isoLocal(new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)), ate: isoLocal(hoje) }
+  })()
 
   useEffect(() => {
-    if (mobile) return
-    const hoje = new Date()
-    const de = new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)
+    if (mobile || !faixa.de || !faixa.ate) return
     setLoading(true)
     setErro(null)
-    clienteService.graficos(clienteId, isoLocal(de), isoLocal(hoje))
+    clienteService.graficos(cadastroId, faixa.de, faixa.ate, papel)
       .then(setDados)
       .catch(err => setErro(extractApiError(err, 'Não foi possível carregar os gráficos.')))
       .finally(() => setLoading(false))
-  }, [clienteId, meses, mobile])
+  }, [cadastroId, papel, faixa.de, faixa.ate, mobile])
+
+  // Data inicial depois da final é BLOQUEIO (modal padrão); a data não muda e os gráficos continuam iguais.
+  const mudarData = (campo: 'de' | 'ate', valor: string, alvo: HTMLInputElement) => {
+    const de = campo === 'de' ? valor : deLivre
+    const ate = campo === 'ate' ? valor : ateLivre
+    if (de && ate && de > ate) { mostrarErro(ERRO_PERIODO, undefined, alvo); return }
+    if (campo === 'de') setDeLivre(valor)
+    else setAteLivre(valor)
+  }
 
   if (mobile) {
     return (
@@ -241,69 +241,85 @@ function GraficosCliente({ clienteId, abrir }: { clienteId: string; abrir: Abrir
   }
 
   const semCompras = !!dados && dados.itensMaisComprados.length === 0 && dados.gastoMensal.every(m => m.total === 0)
-  const maxQtd = dados ? Math.max(1, ...dados.itensMaisComprados.map(i => i.quantidade)) : 1
+  const medida = (i: ItemCompradoResponse) => fornecedor ? i.valor : i.quantidade
+  const maxMedida = dados ? Math.max(1, ...dados.itensMaisComprados.map(medida)) : 1
+  const base: FiltroInicial = fornecedor ? { status: ['CONFIRMADA'] } : { somenteCompras: true }
+  const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-none focus:border-teal'
 
   return (
-    <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]" data-testid={fornecedor ? 'graficos-fornecedor' : 'graficos-cliente'}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
         <div className="flex items-center gap-2 text-[13px] font-bold text-dark">
-          <BarChart3 size={16} className="text-teal" /> Compras deste cliente
+          <BarChart3 size={16} className={fornecedor ? 'text-orange' : 'text-teal'} /> {fornecedor ? 'Como fornecedor' : 'Como cliente'}
         </div>
-        <SegmentedControl options={PERIODOS} value={meses} onChange={setMeses} height="h-9" display="inline-flex"
-          optionWidth="whitespace-nowrap px-3.5" textSize="text-[12.5px]" />
+        <div className="flex flex-wrap items-center gap-2">
+          <SegmentedControl options={PERIODOS} value={meses} onChange={setMeses} height="h-9" display="inline-flex"
+            optionWidth="whitespace-nowrap px-3.5" textSize="text-[12.5px]" />
+          {meses === 0 && (
+            <div className="flex items-center gap-2 text-[12.5px] font-semibold text-body">
+              <input type="date" aria-label="Data inicial dos gráficos" value={deLivre} max={isoLocal(new Date())}
+                onChange={e => mudarData('de', e.target.value, e.currentTarget)} className={dateInput} />
+              até
+              <input type="date" aria-label="Data final dos gráficos" value={ateLivre} max={isoLocal(new Date())}
+                onChange={e => mudarData('ate', e.target.value, e.currentTarget)} className={dateInput} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {loading ? (
+      {meses === 0 && !deLivre ? (
+        <div className="px-5 py-10 text-center text-sm text-muted">Escolha a data inicial e a final.</div>
+      ) : loading ? (
         <div className="flex items-center gap-2.5 px-5 py-10 text-sm text-muted">
           <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando gráficos…
         </div>
       ) : erro ? (
         <div className="px-5 py-8 text-center text-sm text-danger">{erro}</div>
       ) : semCompras ? (
-        <div className="px-5 py-10 text-center text-sm text-muted">Este cliente ainda não tem compras</div>
+        <div className="px-5 py-10 text-center text-sm text-muted">{fornecedor ? 'Nenhuma compra confirmada com este fornecedor no período.' : 'Este cliente ainda não tem compras no período.'}</div>
       ) : dados && (
         <div className="grid grid-cols-1 gap-6 px-5 py-5 lg:grid-cols-[3fr_2fr]">
           <div>
-            <div className="mb-3 text-[12.5px] font-semibold text-body">Gasto por mês</div>
-            <div className="h-[240px]" data-testid="grafico-gasto-mensal">
+            <div className="mb-3 text-[12.5px] font-semibold text-body">{fornecedor ? 'Compras por mês' : 'Gasto por mês'}</div>
+            <div className="h-[240px]" data-testid={fornecedor ? 'grafico-compras-mensal' : 'grafico-gasto-mensal'}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dados.gastoMensal} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <CartesianGrid vertical={false} stroke={GRAFICO_GRID} />
                   <XAxis dataKey="mes" tickFormatter={rotuloMes} tick={{ fontSize: 11.5, fill: GRAFICO_EIXO }} axisLine={false} tickLine={false} />
                   <YAxis width={72} tickFormatter={v => BRL(Number(v)).replace(',00', '')} tick={{ fontSize: 11.5, fill: GRAFICO_EIXO }} axisLine={false} tickLine={false} />
                   <Tooltip content={<TooltipGasto />} cursor={{ fill: 'rgba(42,157,143,0.06)' }} />
-                  {/* #573 — clique na barra abre o que conta como compra naquele mês. */}
-                  <Bar dataKey="total" fill={PALETA_SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={36} cursor="pointer"
+                  {/* #573/#587 — clique na barra abre os registros do mês. */}
+                  <Bar dataKey="total" fill={fornecedor ? PALETA_SERIES[1] : PALETA_SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={36} cursor="pointer"
                     onClick={(d: { payload?: { mes: string } }) => {
                       const mes = d.payload?.mes
                       if (!mes) return
                       const [a, m] = mes.split('-').map(Number)
                       const ultimo = new Date(a, m, 0).getDate()
-                      abrir(`Compras de ${rotuloMes(mes)}`, 'CLIENTE', { somenteCompras: true, de: `${mes.slice(0, 7)}-01`,
-                        ate: `${mes.slice(0, 7)}-${String(ultimo).padStart(2, '0')}`, rotulos: ['Só o que conta como compra'] })
+                      abrir(`${fornecedor ? 'Compras confirmadas' : 'Compras'} de ${rotuloMes(mes)}`, papel, { ...base, de: `${mes.slice(0, 7)}-01`,
+                        ate: `${mes.slice(0, 7)}-${String(ultimo).padStart(2, '0')}` })
                     }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
           <div>
-            <div className="mb-3 text-[12.5px] font-semibold text-body">O que mais comprou no período</div>
+            <div className="mb-3 text-[12.5px] font-semibold text-body">{fornecedor ? 'Insumos mais comprados deste fornecedor' : 'O que mais comprou no período'}</div>
             {dados.itensMaisComprados.length === 0 ? (
               <div className="text-sm text-muted">Nenhum item comprado no período.</div>
             ) : (
               <ol className="m-0 flex list-none flex-col gap-2.5 p-0" data-testid="itens-mais-comprados">
                 {dados.itensMaisComprados.map(i => (
                   <li key={`${i.tipo}-${i.id}`}>
-                    {/* #573 — clique no item abre os pedidos do período que têm o item. */}
+                    {/* #573/#587 — clique no item abre os registros do período que têm o item. */}
                     <button type="button" data-testid="item-mais-comprado"
-                      onClick={() => abrir(`Pedidos com ${i.nome}`, 'CLIENTE', { somenteCompras: true, itemId: i.id, de: dados.de, ate: dados.ate, rotulos: [i.nome] })}
+                      onClick={() => abrir(`${fornecedor ? 'Compras' : 'Pedidos'} com ${i.nome}`, papel, { ...base, itemId: i.id, de: dados.de, ate: dados.ate, rotulos: [i.nome] })}
                       className="block w-full cursor-pointer rounded-[6px] border-none bg-transparent p-0 text-left font-[inherit] hover:opacity-80">
                     <div className="flex items-baseline justify-between gap-3 text-[13px]">
                       <span className="truncate font-medium text-dark">{i.nome}</span>
-                      <span className="flex-shrink-0 text-muted [font-variant-numeric:tabular-nums]">{qtd(i.quantidade)} un · {BRL(i.valor)}</span>
+                      <span className="flex-shrink-0 text-muted [font-variant-numeric:tabular-nums]">{fornecedor ? `${qtd(i.quantidade)} · ${BRL(i.valor)}` : `${qtd(i.quantidade)} un · ${BRL(i.valor)}`}</span>
                     </div>
                     <div className="mt-1 h-1.5 rounded-full bg-line-soft">
-                      <div className="h-1.5 rounded-full bg-teal" style={{ width: `${(i.quantidade / maxQtd) * 100}%` }} />
+                      <div className={clsx('h-1.5 rounded-full', fornecedor ? 'bg-orange' : 'bg-teal')} style={{ width: `${(medida(i) / maxMedida) * 100}%` }} />
                     </div>
                     </button>
                   </li>
@@ -313,6 +329,7 @@ function GraficosCliente({ clienteId, abrir }: { clienteId: string; abrir: Abrir
           </div>
         </div>
       )}
+      {modalErro}
     </div>
   )
 }
@@ -412,6 +429,9 @@ export default function DetalheClientePage() {
   const [confirmInativar, setConfirmInativar] = useState(false)
   const [processando, setProcessando] = useState(false)
   const [registroAberto, setRegistroAberto] = useState<{ tipo: TipoRegistro; id: string } | null>(null)
+  const [abaNumeros, setAbaNumeros] = useState<AbaNumeros>('CLIENTE')
+  const [insumosAbertos, setInsumosAbertos] = useState(false)
+  const { modalErro, mostrarErro } = useModalErro()
   const [listagem, setListagem] = useState<{ titulo: string; papel: PapelCadastro; filtro: FiltroInicial } | null>(null)
   const abrirListagem: AbrirListagem = (titulo, papel, filtro) => setListagem({ titulo, papel, filtro })
 
@@ -449,7 +469,7 @@ export default function DetalheClientePage() {
       setCadastro({ ...cadastro, ativa: !cadastro.ativa })
       setToast(cadastro.ativa ? `${cadastro.nome} inativado.` : `${cadastro.nome} reativado.`)
     } catch (err) {
-      setToast(extractApiError(err, 'Não foi possível concluir. Tente novamente.'))
+      mostrarErro(err, 'Não foi possível concluir. Tente novamente.')
     } finally {
       setProcessando(false)
       setConfirmInativar(false)
@@ -477,6 +497,7 @@ export default function DetalheClientePage() {
 
   const ABAS: { id: Aba; label: string; icon: typeof User }[] = [
     { id: 'detalhes', label: 'Detalhes', icon: User },
+    { id: 'dashboards', label: 'Dashboards', icon: BarChart3 },
     { id: 'historico', label: 'Histórico', icon: ClipboardList },
     // #540 (RN-NOVA-6) — insumos que este fornecedor vende, com preço de referência.
     ...(mostraFornecedor ? [{ id: 'insumos' as const, label: 'Insumos que fornece', icon: Package }] : []),
@@ -531,10 +552,24 @@ export default function DetalheClientePage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4">
-        {mostraCliente && <IndicadoresCliente ind={ind.cliente} abrir={abrirListagem} />}
-        {mostraFornecedor && <IndicadoresFornecedor ind={ind.fornecedor} abrir={abrirListagem} verInsumos={() => setAba('insumos')} />}
-      </div>
+      {(mostraCliente || mostraFornecedor) && (() => {
+        const ambos = mostraCliente && mostraFornecedor
+        const verCliente = mostraCliente && (!ambos || abaNumeros !== 'FORNECEDOR')
+        const verFornecedor = mostraFornecedor && (!ambos || abaNumeros !== 'CLIENTE')
+        return (
+          <BigNumberGroup tela="detalhe-cadastro" testid="numeros-cadastro" colunas="sm:grid-cols-2 xl:grid-cols-4"
+            titulo={ambos ? undefined : mostraCliente ? 'Como cliente' : 'Como fornecedor'}
+            acoes={ambos ? (
+              <SegmentedControl options={[{ value: 'CLIENTE' as AbaNumeros, label: 'Cliente' }, { value: 'FORNECEDOR' as AbaNumeros, label: 'Fornecedor' }, { value: 'AMBOS' as AbaNumeros, label: 'Ambos' }]}
+                value={abaNumeros} onChange={setAbaNumeros} height="h-9" display="inline-flex" optionWidth="whitespace-nowrap px-3.5" textSize="text-[12.5px]" />
+            ) : undefined}>
+            {verCliente && verFornecedor && <div className="col-span-full text-[12px] font-semibold uppercase tracking-[0.04em] text-dim">Como cliente</div>}
+            {verCliente && numerosCliente(ind.cliente, abrirListagem)}
+            {verCliente && verFornecedor && <div className="col-span-full mt-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-dim">Como fornecedor</div>}
+            {verFornecedor && numerosFornecedor(ind.fornecedor, abrirListagem, () => setInsumosAbertos(true))}
+          </BigNumberGroup>
+        )
+      })()}
 
       <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line" role="tablist">
         {ABAS.map(a => {
@@ -563,13 +598,20 @@ export default function DetalheClientePage() {
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <DadosCadastrais c={cadastro} />
           </div>
+        ) : aba === 'dashboards' ? (
+          <>
+            {mostraCliente && <GraficosCadastro cadastroId={cadastro.id} papel="CLIENTE" abrir={abrirListagem} />}
+            {mostraFornecedor && <GraficosCadastro cadastroId={cadastro.id} papel="FORNECEDOR" abrir={abrirListagem} />}
+            {!mostraCliente && !mostraFornecedor && (
+              <div className="rounded-card border border-line bg-white px-5 py-8 text-center text-sm text-muted">Sem dados para este cadastro.</div>
+            )}
+          </>
         ) : aba === 'insumos' ? (
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
             <VinculosFornecedorInsumo modo="fornecedor" id={cadastro.id} />
           </div>
         ) : (
           <>
-            {mostraCliente && <GraficosCliente clienteId={cadastro.id} abrir={abrirListagem} />}
             {mostraCliente && (
               <ListaHistorico
                 titulo="Orçamentos e vendas"
@@ -637,6 +679,8 @@ export default function DetalheClientePage() {
         <ModalListagemRegistros titulo={listagem.titulo} subtitulo={cadastro.nome} filtro={listagem.filtro}
           fonte={{ tipo: 'cadastro', cadastroId: cadastro.id, papel: listagem.papel }} onClose={() => setListagem(null)} />
       )}
+      {insumosAbertos && <ModalInsumosFornecedor fornecedorId={cadastro.id} fornecedorNome={cadastro.nome} onClose={() => setInsumosAbertos(false)} />}
+      {modalErro}
       {registroAberto && <ModalRegistro tipo={registroAberto.tipo} id={registroAberto.id} onClose={() => setRegistroAberto(null)} />}
 
       <ConfirmacaoModal

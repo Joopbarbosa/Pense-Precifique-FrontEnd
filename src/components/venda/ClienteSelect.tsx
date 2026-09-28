@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { AlertCircle, Phone, RotateCw, Search } from 'lucide-react'
 import Spinner from '../ui/Spinner'
 import { InativoBadge } from '../cliente/PapelTags'
+import OpcaoInativa from '../shared/OpcaoInativa'
 import { clienteService } from '../../services/clienteService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import type { ClienteResponse } from '../../types/cliente'
@@ -15,6 +16,7 @@ import type { ClienteResponse } from '../../types/cliente'
  * V0.15.0: só cadastros ativos com papel Cliente (#539, RN-NOVA-3 — `?papel=CLIENTE`, ativo omitido =
  * só ativos) e estados de carregando/vazio/erro com "Tentar de novo" (#342, CEN-NOVO-5). Um cliente
  * já vinculado que ficou inativo continua exibido (e marcado), só não aparece para escolha nova.
+ * #583 (RN-NOVA-40): a lista mostra os inativos do papel depois dos ativos, riscados, sem poder escolher.
  */
 export default function ClienteSelect({ cliente, onSelect, onClear }: {
   cliente: ClienteResponse | null
@@ -44,7 +46,7 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
     if (!open || debouncedQ !== q) return
     let cancelado = false
     setEstado('carregando')
-    clienteService.listar(0, 20, debouncedQ.trim() || undefined, { papel: 'CLIENTE' })
+    clienteService.listar(0, 20, debouncedQ.trim() || undefined, { papel: 'CLIENTE', incluirInativos: true })
       .then(data => { if (!cancelado) { setResults(data.content); setEstado('pronto') } })
       .catch(err => {
         console.error('Erro ao buscar clientes:', err)
@@ -130,7 +132,12 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
             style={maxHeight != null ? { maxHeight } : undefined}
             className="absolute inset-x-0 top-[54px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
           >
-            {results.map(c => (
+            {results.map(c => !c.ativa ? (
+              <OpcaoInativa key={c.id}>
+                <div className="text-[14.5px] font-semibold">{c.nome}</div>
+                <div className="text-[12.5px]">{c.whatsapp || 'Sem telefone'}</div>
+              </OpcaoInativa>
+            ) : (
               <button
                 key={c.id}
                 data-search-row

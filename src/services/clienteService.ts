@@ -1,16 +1,17 @@
 import api from './api'
 import type {
   ClienteContagensResponse, ClienteFiltros, ClienteRequest, ClienteResponse, CompraFornecedorHistoricoResponse,
-  GraficosClienteResponse, IndicadoresCadastroResponse, PedidoClienteResponse, RegistroCadastroResponse, RegistrosFiltros,
+  GraficosClienteResponse, IndicadoresCadastroResponse, PapelCadastro, PedidoClienteResponse, RegistroCadastroResponse, RegistrosFiltros,
 } from '../types/cliente'
 import type { PageResponse } from '../types/shared'
 
 export const clienteService = {
   listar: async (page: number, size = 20, busca?: string, filtros: ClienteFiltros = {}): Promise<PageResponse<ClienteResponse>> => {
-    const params: Record<string, any> = { page, size, sort: 'nome' }
+    const params: Record<string, any> = { page, size, sort: filtros.sort ?? 'nome' }
     if (busca) params.busca = busca
     if (filtros.papel) params.papel = filtros.papel
     if (filtros.ativo !== undefined) params.ativo = filtros.ativo
+    if (filtros.incluirInativos) params.incluirInativos = true
     const response = await api.get('/clientes', { params })
     return response.data
   },
@@ -78,8 +79,9 @@ export const clienteService = {
     return response.data
   },
 
-  graficos: async (id: string, de?: string, ate?: string): Promise<GraficosClienteResponse> => {
-    const response = await api.get(`/clientes/${id}/graficos`, { params: { de, ate } })
+  /** #587 (RN-NOVA-36) — `papel=FORNECEDOR`: compras confirmadas por mês e insumos mais comprados dele. */
+  graficos: async (id: string, de?: string, ate?: string, papel: PapelCadastro = 'CLIENTE'): Promise<GraficosClienteResponse> => {
+    const response = await api.get(`/clientes/${id}/graficos`, { params: { de, ate, papel } })
     return response.data
   },
 }

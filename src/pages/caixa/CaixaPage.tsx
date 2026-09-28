@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field, ModalShell, MoneyInput, SegmentedControl, Spinner, Tag, TextArea } from '../../components/ui'
@@ -817,12 +818,13 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
   const [estado, setEstado] = useState<'carregando' | 'pronto' | 'erro'>('carregando')
   const [tentativa, setTentativa] = useState(0)
 
-  // V0.15.0: só ativos com papel Cliente (#539) e estados carregando/vazio/erro (#342, mesmo padrão do ClienteSelect).
+  // V0.15.0: papel Cliente (#539) e estados carregando/vazio/erro (#342, mesmo padrão do ClienteSelect).
+  // #583 (RN-NOVA-40): inativos depois dos ativos, riscados, sem poder escolher.
   useEffect(() => {
     if (!open || debouncedQ !== q) return
     let cancelado = false
     setEstado('carregando')
-    clienteService.listar(0, 20, debouncedQ.trim() || undefined, { papel: 'CLIENTE' })
+    clienteService.listar(0, 20, debouncedQ.trim() || undefined, { papel: 'CLIENTE', incluirInativos: true })
       .then(data => { if (!cancelado) { setResultados(data.content); setEstado('pronto') } })
       .catch(() => { if (!cancelado) { setResultados([]); setEstado('erro') } })
     return () => { cancelado = true }
@@ -858,7 +860,12 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
             </div>
           ) : resultados.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted">Nenhum cliente encontrado</div>
-          ) : resultados.map(c => (
+          ) : resultados.map(c => !c.ativa ? (
+            <OpcaoInativa key={c.id}>
+              <div className="truncate text-[14.5px] font-semibold">{c.nome}</div>
+              <div className="text-[12.5px]">{c.whatsapp || 'Sem telefone'}</div>
+            </OpcaoInativa>
+          ) : (
             <button
               key={c.id}
               type="button"
@@ -933,7 +940,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
     []
   )
   const buscarProdutosCaixa = useCallback(
-    (busca?: string) => produtoService.listar(0, 8, undefined, busca, true, true).then(d => d.content),
+    (busca?: string) => produtoService.listar(0, 8, undefined, busca, true, true, true).then(d => d.content),
     []
   )
 

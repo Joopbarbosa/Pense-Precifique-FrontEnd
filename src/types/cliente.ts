@@ -50,6 +50,10 @@ export interface ClienteContagensResponse {
 export interface ClienteFiltros {
   papel?: PapelCadastro
   ativo?: boolean
+  /** #583 (RN-NOVA-40) — seletores: ativos primeiro, depois os inativos do papel (ignora `ativo`). */
+  incluirInativos?: boolean
+  /** #582 — `campo,direcao`: nome, numero, documento (padrão nome,asc). */
+  sort?: string
 }
 
 // ---------- Detalhe do cadastro (#560, RN-NOVA-19) ----------
@@ -71,7 +75,8 @@ export interface PedidoClienteResponse {
 
 export interface ItemCompradoResponse {
   id: string
-  tipo: 'PRODUTO' | 'ITEM_CATALOGO'
+  /** INSUMO: gráficos do fornecedor (#587). */
+  tipo: 'PRODUTO' | 'ITEM_CATALOGO' | 'INSUMO'
   nome: string
   quantidade: number
   valor: number
@@ -150,7 +155,13 @@ export interface RegistrosFiltros {
   naoPagas?: boolean
   de?: string
   ate?: string
-  itemId?: string
+  /** #585 — vários itens somam como OU. */
+  itemId?: string | string[]
+  /** #585 — ORCAMENTO, VENDA_CAIXA, COMPRA. */
+  tipo?: string[]
+  /** #585 — "true"/"false" (texto: o serializador do service descarta `false`). */
+  pago?: 'true' | 'false'
+  comDesconto?: boolean
   /** `campo,direcao` — data, identificador, valor, status. */
   sort?: string
 }

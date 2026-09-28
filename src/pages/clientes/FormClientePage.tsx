@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { Check, ChevronRight, Save } from 'lucide-react'
@@ -8,12 +8,15 @@ import Spinner from '../../components/ui/Spinner'
 import SectionTitle from '../../components/shared/SectionTitle'
 import { clienteService } from '../../services/clienteService'
 import { extractApiError } from '../../utils/apiError'
-import { mascararDocumento, ROTULO_DOCUMENTO } from '../../utils/documento'
+import { erroDocumento, mascararDocumento, ROTULO_DOCUMENTO } from '../../utils/documento'
+import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
 import { mascararTelefone } from '../../utils/telefone'
 import type { ClienteRequest, TipoPessoa } from '../../types/cliente'
 
 // V0.15.0 (#536/#537, Decisão 21) — cadastro/edição em página própria, no formato de
 // FormInsumoPage: /clientes/novo e /clientes/:id/editar. Salvar leva ao detalhe (/clientes/:id).
+// Adendo 2: novo cadastro abre com Cliente marcado e o último papel marcado não desmarca (#581,
+// RN-NOVA-38); erro de bloqueio abre a modal padrão e o CPF/CNPJ é conferido ao sair do campo (#602).
 
 const inputBase = 'h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
@@ -94,7 +97,7 @@ export default function FormClientePage() {
   const [carregando, setCarregando] = useState(editando)
   const [erroCarga, setErroCarga] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const { modalErro, mostrarErro } = useModalErro()
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -123,11 +126,37 @@ export default function FormClientePage() {
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(f => ({ ...f, [k]: v }))
 
-  const trocarTipo = (tipo: TipoPessoa) => setForm(f => ({ ...f, tipoPessoa: tipo, documento: mascararDocumento(f.documento, tipo) }))
+  const trocarTipo = (tipo: TipoPessoa) => {
+    setForm(f => ({ ...f, tipoPessoa: tipo, documento: mascararDocumento(f.documento, tipo) }))
+    limparErro('documento')
+  }
+
+  const limparErro = (campo: string) => setFieldErrors(prev => {
+    if (!(campo in prev)) return prev
+    const { [campo]: _, ...resto } = prev
+    return resto
+  })
+
+  // #581 — o último papel marcado não desmarca (sem mensagem); a regra de pelo menos um papel continua no backend.
+  const alternarPapel = (papel: 'ehCliente' | 'ehFornecedor') => setForm(f => {
+    const outro = papel === 'ehCliente' ? f.ehFornecedor : f.ehCliente
+    if (f[papel] && !outro) return f
+    return { ...f, [papel]: !f[papel] }
+  })
+
+  // A modal abre uma vez por valor digitado: sair de novo do campo sem mudar nada só mantém o vermelho.
+  const documentoAvisado = useRef<string | null>(null)
+  const validarDocumento = (alvo: HTMLInputElement) => {
+    const e = erroDocumento(form.documento, form.tipoPessoa)
+    if (!e) { limparErro('documento'); documentoAvisado.current = null; return }
+    setFieldErrors(prev => ({ ...prev, documento: e.mensagem }))
+    if (documentoAvisado.current === form.documento) return
+    documentoAvisado.current = form.documento
+    mostrarErro(e, undefined, alvo)
+  }
 
   const handleSave = async () => {
     setSaving(true)
-    setErro(null)
     setFieldErrors({})
     try {
       const opcional = (v: string) => v.trim() || undefined
@@ -147,9 +176,12 @@ export default function FormClientePage() {
       const salvo = editando ? await clienteService.editar(id!, req) : await clienteService.cadastrar(req)
       navigate(`/clientes/${salvo.id}`, { state: { toast: editando ? 'Cadastro atualizado com sucesso!' : 'Cadastro salvo com sucesso!' } })
     } catch (err: any) {
-      const fe: Record<string, string> = err.response?.data?.fieldErrors ?? {}
+      const fe: Record<string, string> = { ...(err.response?.data?.fieldErrors ?? {}) }
+      // Erro explicado de documento (CPF/CNPJ inválido ou duplicado) também marca o campo.
+      const titulo: string | undefined = err.response?.data?.titulo
+      if (titulo && /CPF|CNPJ|documento/i.test(titulo)) fe.documento = err.response.data.message
       setFieldErrors(fe)
-      setErro(Object.keys(fe).length > 0 ? 'Revise os campos destacados.' : extractApiError(err, 'Erro ao salvar. Tente novamente.'))
+      mostrarErro(err, 'Erro ao salvar. Tente novamente.', () => primeiroCampoInvalido())
     } finally {
       setSaving(false)
     }
@@ -204,15 +236,15 @@ export default function FormClientePage() {
             <div className="lg:col-span-2">
             <Field label="Este cadastro é" group size="md" required>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:gap-[18px]">
-                <PapelOpcao label="Cliente" descricao="Compra de você" marcado={form.ehCliente} onClick={() => set('ehCliente', !form.ehCliente)} />
-                <PapelOpcao label="Fornecedor" descricao="Vende para você" marcado={form.ehFornecedor} onClick={() => set('ehFornecedor', !form.ehFornecedor)} />
+                <PapelOpcao label="Cliente" descricao="Compra de você" marcado={form.ehCliente} onClick={() => alternarPapel('ehCliente')} />
+                <PapelOpcao label="Fornecedor" descricao="Vende para você" marcado={form.ehFornecedor} onClick={() => alternarPapel('ehFornecedor')} />
               </div>
             </Field>
             </div>
 
             <div className="lg:col-span-2">
             <Field label="Nome" required size="md" erro={fieldErrors.nome}>
-              <input className={inputClass('nome')} maxLength={255} placeholder="Beatriz Santos ou Papelaria Central"
+              <input className={inputClass('nome')} aria-invalid={!!fieldErrors.nome || undefined} maxLength={255} placeholder="Beatriz Santos ou Papelaria Central"
                 value={form.nome} onChange={e => set('nome', e.target.value)} />
             </Field>
             </div>
@@ -224,7 +256,8 @@ export default function FormClientePage() {
             <Field label={ROTULO_DOCUMENTO[form.tipoPessoa]} opt size="md" erro={fieldErrors.documento}>
               <input className={clsx(inputClass('documento'), '[font-variant-numeric:tabular-nums]')} maxLength={30}
                 placeholder={PLACEHOLDER_DOCUMENTO[form.tipoPessoa]}
-                value={form.documento} onChange={e => set('documento', mascararDocumento(e.target.value, form.tipoPessoa))} />
+                aria-invalid={!!fieldErrors.documento || undefined} onBlur={e => validarDocumento(e.currentTarget)}
+                value={form.documento} onChange={e => { set('documento', mascararDocumento(e.target.value, form.tipoPessoa)); limparErro('documento') }} />
             </Field>
           </div>
         </div>
@@ -269,11 +302,6 @@ export default function FormClientePage() {
 
         {/* BOTÕES */}
         <div className="flex flex-col gap-3 px-[26px] py-[18px]">
-          {erro && (
-            <p role="alert" className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
-              {erro}
-            </p>
-          )}
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate(editando ? `/clientes/${id}` : '/clientes')}>Cancelar</Button>
             <Button variant="primary" icon={<Save size={16} />} disabled={saving} onClick={handleSave}>
@@ -282,7 +310,7 @@ export default function FormClientePage() {
           </div>
         </div>
       </div>
-
+      {modalErro}
     </AppLayout>
   )
 }

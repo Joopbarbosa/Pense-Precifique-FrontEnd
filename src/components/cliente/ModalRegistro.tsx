@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, FileText, Pencil } from 'lucide-react'
+import { ExternalLink, FileText } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { BRL } from '../venda/formato'
-import { formatarData, moeda4, qtd, STATUS_COMPRA_LABEL } from '../compra/formato'
+import { formatarData, moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
 import { orcamentoService } from '../../services/orcamentoService'
 import { caixaService } from '../../services/caixaService'
 import { compraService } from '../../services/compraService'
@@ -34,7 +34,7 @@ interface Visao {
   desconto?: string | null
   total: number
   extras: { rotulo: string; valor: string }[]
-  acao?: { label: string; href: string; editar: boolean }
+  acao?: { label: string; href: string }
 }
 
 async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
@@ -56,9 +56,8 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
       desconto: rotuloDesconto(o.tipoDesconto, o.descontoValor),
       total: o.total,
       extras: o.dataPagamento ? [{ rotulo: 'Pago em', valor: formatarData(o.dataPagamento) }] : [],
-      acao: o.status === 'RASCUNHO'
-        ? { label: 'Editar orçamento', href: `/orcamentos/${id}/editar`, editar: true }
-        : { label: 'Abrir orçamento', href: `/orcamentos/${id}`, editar: false },
+      // #584 (RN-NOVA-45) — a modal leva ao detalhe, nunca à edição (também no rascunho).
+      acao: { label: 'Abrir orçamento', href: `/orcamentos/${id}` },
     }
   }
   if (tipo === 'VENDA_CAIXA') {
@@ -89,18 +88,16 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
     linhas: c.itens.map(i => ({
       nome: i.insumo.nome,
       quantidade: i.quantidade != null ? `${qtd(i.quantidade)} ${i.insumo.unidade}` : '—',
-      unitario: moeda4(c.status === 'RASCUNHO' ? i.precoUnitario : i.precoUnitarioPago),
+      unitario: moeda(c.status === 'RASCUNHO' ? i.precoUnitario : i.precoUnitarioPago),
       subtotal: i.precoTotal != null ? BRL(i.precoTotal) : '—',
       detalhe: c.multiplosFornecedores ? (i.fornecedor?.nome ?? 'Sem fornecedor') : undefined,
     })),
     total: c.total,
     extras: [
-      { rotulo: 'Pagamento', valor: c.pago ? `Pago${c.metodoPagamento ? ` — ${c.metodoPagamento.nome}` : ''}` : 'Não pago' },
+      { rotulo: 'Pagamento', valor: rotuloPagamento(c) },
       ...(c.observacaoCancelamento ? [{ rotulo: 'Motivo do cancelamento', valor: c.observacaoCancelamento }] : []),
     ],
-    acao: c.status === 'RASCUNHO'
-      ? { label: 'Editar compra', href: `/compras/${id}/editar`, editar: true }
-      : { label: 'Abrir compra', href: `/compras/${id}`, editar: false },
+    acao: { label: 'Abrir compra', href: `/compras/${id}` },
   }
 }
 
@@ -120,7 +117,7 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
       footer={<>
         <Button variant="ghost" onClick={onClose}>Fechar</Button>
         {visao?.acao && (
-          <Button variant="secondary" icon={visao.acao.editar ? <Pencil size={16} /> : <ExternalLink size={16} />}
+          <Button variant="secondary" icon={<ExternalLink size={16} />}
             onClick={() => window.open(visao.acao!.href, '_blank', 'noopener')}>
             {visao.acao.label}
           </Button>
