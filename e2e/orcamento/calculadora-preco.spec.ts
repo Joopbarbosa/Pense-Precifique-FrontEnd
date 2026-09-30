@@ -75,6 +75,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await expect(page.getByText('PREÇO SUGERIDO')).toBeVisible()
     const sugerido = await lerPrecoSugerido(page)
     expect(sugerido).toBeGreaterThan(0)
+    await expect(precoFinalInput(page)).toHaveValue((produto.precoVenda as number).toFixed(2).replace('.', ','))
 
     await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     await expect(page.getByText(produto.nome, { exact: true })).toBeVisible()
@@ -153,6 +154,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await expect(page.getByText('Calculadora de Preço').first()).toBeVisible()
     const sugerido = await lerPrecoSugerido(page)
     expect(sugerido).toBe((itens[0] as { precoSugerido: number }).precoSugerido)
+    await expect(precoFinalInput(page)).toHaveValue((itens[0] as { precoVenda: number }).precoVenda.toFixed(2).replace('.', ','))
 
     await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     await expect(page.getByText(`QA-399d-Item-${ts}`, { exact: true })).toBeVisible()
