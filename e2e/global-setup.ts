@@ -1,4 +1,4 @@
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 
 /**
  * Reset de banco antes da suíte E2E completa (FRENTE 2, V0.6.1 — achado do P-TESTE-001).
@@ -34,8 +34,8 @@ if (configuredKeys.length > 0 && ['pense_precifique_db', 'pense_precifique_test_
   throw new Error(`Banco ${DB_NAME} não pode ser usado no E2E isolado.`)
 }
 
-// Todas as tabelas de domínio (schema atual, `\dt` confirmado em 2026-07-28, ampliado em
-// 2026-09-17/#487-#488 com o módulo Caixa) — deliberadamente SEM usuarios/empresas/
+// Todas as tabelas de domínio (schema V0.15.0 conferido em 2026-09-30;
+// `lotes_compra` foi removida e Compras/Listas foram adicionadas) — deliberadamente SEM usuarios/empresas/
 // configuracoes_precificacao/metodos_pagamento/flyway_schema_history: as 4 primeiras são "conta +
 // onboarding já feito" (mesmo motivo de sempre); metodos_pagamento entra na mesma categoria — só é
 // semeada em `POST /auth/register`, nunca re-semeada depois de um TRUNCATE, então incluí-la aqui
@@ -55,7 +55,10 @@ const TABELAS_DOMINIO = [
   'caixa_turnos',
   'catalogos',
   'clientes',
+  'compras',
+  'compra_itens',
   'ficha_tecnica_itens',
+  'fornecedor_insumo',
   'historico_status_producao',
   'insumos',
   'itens_catalogo',
@@ -68,11 +71,13 @@ const TABELAS_DOMINIO = [
   'item_catalogo_componentes',
   'orcamento_item_componentes',
   'venda_caixa_item_componentes',
-  'lotes_compra',
+  'listas_compra',
+  'lista_compra_itens',
   'movimentacoes_insumo',
   'movimentacoes_produto',
   'orcamento_item_customizacoes',
   'orcamento_itens',
+  'orcamento_producoes',
   'orcamentos',
   'producao_insumos_consumidos',
   'producao_produtos',
@@ -82,6 +87,7 @@ const TABELAS_DOMINIO = [
   'recibos_pagamento',
   'venda_caixa',
   'venda_caixa_item',
+  'venda_caixa_item_customizacao',
   'venda_caixa_pagamento',
 ]
 
@@ -91,10 +97,8 @@ export default async function globalSetup() {
   console.log(`[global-setup] Alvo: container=${CONTAINER}, banco=${DB_NAME}, API=${process.env.E2E_API_URL ?? 'http://localhost:8080'}, front=${process.env.E2E_BASE_URL ?? 'http://localhost:3000'}`)
   console.log('[global-setup] Resetando dados de domínio antes da suíte E2E (TRUNCATE, mantém conta de teste)...')
   const sql = `TRUNCATE ${TABELAS_DOMINIO.join(', ')} CASCADE;`
-  execSync(
-    `docker exec ${CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -c "${sql}"`,
-    { stdio: 'inherit' }
-  )
+  execFileSync('docker', ['exec', CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME,
+    '-v', 'ON_ERROR_STOP=1', '-c', sql], { stdio: 'inherit' })
 
   // #298 — garante 1 unidade de medida sempre disponível (ver comentário de TABELAS_DOMINIO acima).
   // nome/sigla = 'unidade' (minúsculo) de propósito — mesmo valor que `resolverUnidadeMedidaId`
@@ -108,10 +112,8 @@ export default async function globalSetup() {
         SELECT 1 FROM unidades_medida um WHERE um.usuario_id = u.id AND um.deleted_at IS NULL
       );
   `.replace(/\s+/g, ' ').trim()
-  execSync(
-    `docker exec ${CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -c "${seedUnidade}"`,
-    { stdio: 'inherit' }
-  )
+  execFileSync('docker', ['exec', CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME,
+    '-v', 'ON_ERROR_STOP=1', '-c', seedUnidade], { stdio: 'inherit' })
 
   console.log('[global-setup] Banco limpo.')
 }

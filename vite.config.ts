@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
           target: E2E_API_PROXY_TARGET,
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (request) => request.removeHeader('origin'))
+          },
         },
       } : undefined,
     },
