@@ -10,6 +10,15 @@ export async function apiLogin(request: APIRequestContext): Promise<string> {
   return body.token as string
 }
 
+export async function criarFornecedor(request: APIRequestContext, token: string, nome: string) {
+  const res = await request.post(`${API_URL}/clientes`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { nome, ehCliente: false, ehFornecedor: true },
+  })
+  if (!res.ok()) throw new Error(`Falha ao criar fornecedor de teste: ${res.status()} ${await res.text()}`)
+  return res.json() as Promise<{ id: string; nome: string }>
+}
+
 export async function criarInsumo(request: APIRequestContext, token: string, nome: string) {
   const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
