@@ -232,10 +232,8 @@ test.describe('RN-NOVA-1/2/4 — Composição e preview de preço de Item de Cat
     expect(itensAntes).toEqual([])
 
     await page.getByRole('button', { name: 'Adicionar item ao catálogo', exact: true }).click()
-    // Premissa desatualizada do teste, não bug: desde a correção do #518 (teste manual do
-    // usuário), criar um item permanece em modo edição do item recém-criado em vez de navegar de
-    // volta pro catálogo — mesmo padrão já corrigido em catalogo-foto-descricao-pdf.spec.ts:164.
-    await expect(page).toHaveURL(/itemId=/, { timeout: 10_000 })
+    // #440: após criar, a foto pendente é enviada no mesmo fluxo e a tela volta ao catálogo.
+    await expect(page).toHaveURL(new RegExp(`/catalogos/${catalogo.id}$`), { timeout: 10_000 })
 
     const itensDepois = await itensDoCatalogo(request, token, catalogo.id)
     expect(itensDepois).toHaveLength(1)
