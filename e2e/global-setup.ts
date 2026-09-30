@@ -21,9 +21,18 @@ import { execSync } from 'child_process'
  * e não depende de esperar o backend voltar a responder.
  */
 
-const CONTAINER = 'pense-precifique-db'
-const DB_NAME = 'pense_precifique_db'
+const CONTAINER = process.env.E2E_DB_CONTAINER ?? 'pense-precifique-db'
+const DB_NAME = process.env.E2E_DB_NAME ?? 'pense_precifique_db'
 const DB_USER = 'pense_user'
+
+const targetKeys = ['E2E_BASE_URL', 'E2E_API_URL', 'E2E_DB_CONTAINER', 'E2E_DB_NAME'] as const
+const configuredKeys = targetKeys.filter((key) => process.env[key])
+if (configuredKeys.length > 0 && configuredKeys.length !== targetKeys.length) {
+  throw new Error(`Alvo E2E incompleto: defina ${targetKeys.join(', ')} juntos.`)
+}
+if (configuredKeys.length > 0 && ['pense_precifique_db', 'pense_precifique_test_v015'].includes(DB_NAME)) {
+  throw new Error(`Banco ${DB_NAME} não pode ser usado no E2E isolado.`)
+}
 
 // Todas as tabelas de domínio (schema atual, `\dt` confirmado em 2026-07-28, ampliado em
 // 2026-09-17/#487-#488 com o módulo Caixa) — deliberadamente SEM usuarios/empresas/
@@ -79,6 +88,7 @@ const TABELAS_DOMINIO = [
 const TEST_EMAIL = 'penseprecifique@admin.com'
 
 export default async function globalSetup() {
+  console.log(`[global-setup] Alvo: container=${CONTAINER}, banco=${DB_NAME}, API=${process.env.E2E_API_URL ?? 'http://localhost:8080'}, front=${process.env.E2E_BASE_URL ?? 'http://localhost:3000'}`)
   console.log('[global-setup] Resetando dados de domínio antes da suíte E2E (TRUNCATE, mantém conta de teste)...')
   const sql = `TRUNCATE ${TABELAS_DOMINIO.join(', ')} CASCADE;`
   execSync(

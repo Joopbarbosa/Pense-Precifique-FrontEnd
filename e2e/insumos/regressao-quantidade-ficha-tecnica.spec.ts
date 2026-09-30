@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin, inativarInsumo } from '../helpers/api'
@@ -44,10 +45,10 @@ test.describe('Cenário 228 — Regressão bug 025/0,25 na ficha técnica (#186)
 
   test('digitar "0,25" — insumo fracionável mantém "0,25", não-fracionável filtra para "025" (#338/#468)', async ({ page, request }) => {
     const token = await apiLogin(request)
-    const insumoNaoFrac = await request.get(`http://localhost:8080/insumos/${insumoNaoFracId}`, {
+    const insumoNaoFrac = await request.get(`${E2E_API_URL}/insumos/${insumoNaoFracId}`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(r => r.json())
-    const insumoFrac = await request.get(`http://localhost:8080/insumos/${insumoFracId}`, {
+    const insumoFrac = await request.get(`${E2E_API_URL}/insumos/${insumoFracId}`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(r => r.json())
 

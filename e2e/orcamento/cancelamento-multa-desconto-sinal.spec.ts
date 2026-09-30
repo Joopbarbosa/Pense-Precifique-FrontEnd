@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -29,7 +30,7 @@ test.describe('CEN-NOVO-19 — EM_PRODUCAO → cancelamento com Multa (desconto 
     const token = await apiLogin(request)
     for (const id of criadosProdutoIds) await inativarProduto(request, token, id)
     for (const id of criadosClienteIds) {
-      await request.delete(`http://localhost:8080/clientes/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+      await request.delete(`${E2E_API_URL}/clientes/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
     }
   })
 

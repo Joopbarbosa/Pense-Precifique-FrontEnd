@@ -1,10 +1,11 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, inativarInsumo } from './helpers/api'
 import { criarInsumoComEstoque } from './helpers/insumo'
 import { resolverUnidadeMedidaId } from './helpers/unidadeMedida'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #238 — Tag global fracionável/estoque negativo/estoque atual, cor semântica

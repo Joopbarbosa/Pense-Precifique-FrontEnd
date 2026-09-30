@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -41,7 +42,7 @@ test.describe('Cenários 158-159 — Editar Produção (Fluxo A.1) (#116)', () =
     await teardownProducoes(request, token, criadasProducaoIds)
     for (const id of criadosProdutoIds) await inativarProduto(request, token, id)
     for (const id of criadosInsumoIds) {
-      await request.delete(`http://localhost:8080/insumos/${id}`, {
+      await request.delete(`${E2E_API_URL}/insumos/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => {})
     }

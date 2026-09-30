@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -19,7 +20,7 @@ test.describe('CEN-NOVO-22 — Busca de cliente (server-side) em Novo Orçamento
   test.afterEach(async ({ request }) => {
     const token = await apiLogin(request)
     for (const id of criadosClienteIds) {
-      await request.delete(`http://localhost:8080/clientes/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+      await request.delete(`${E2E_API_URL}/clientes/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
     }
   })
 
@@ -29,9 +30,9 @@ test.describe('CEN-NOVO-22 — Busca de cliente (server-side) em Novo Orçamento
     const nomeAlvo = `QACEN22-Maria-${sufixo}`
     const nomeOutro = `QACEN22-Joana-${sufixo}`
 
-    const resAlvo = await request.post('http://localhost:8080/clientes', { headers: { Authorization: `Bearer ${token}` }, data: { nome: nomeAlvo } })
+    const resAlvo = await request.post(`${E2E_API_URL}/clientes`, { headers: { Authorization: `Bearer ${token}` }, data: { nome: nomeAlvo } })
     criadosClienteIds.push((await resAlvo.json()).id)
-    const resOutro = await request.post('http://localhost:8080/clientes', { headers: { Authorization: `Bearer ${token}` }, data: { nome: nomeOutro } })
+    const resOutro = await request.post(`${E2E_API_URL}/clientes`, { headers: { Authorization: `Bearer ${token}` }, data: { nome: nomeOutro } })
     criadosClienteIds.push((await resOutro.json()).id)
 
     await login(page)

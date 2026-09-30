@@ -1,10 +1,11 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, getConfiguracao, putConfiguracao } from './helpers/api'
 import { criarProdutoComFicha, criarProdutoSemFicha, inativarProduto } from './helpers/producao'
 import { criarInsumoComEstoque } from './helpers/insumo'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 const INSUMO_URL = `${API_URL}/insumos`
 
 /**

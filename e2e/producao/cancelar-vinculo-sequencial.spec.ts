@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -5,7 +6,7 @@ import { criarInsumoComEstoque } from '../helpers/insumo'
 import { criarCliente, criarOrcamentoViaApi, buscarOrcamento, vincularProducaoViaApi } from '../helpers/orcamento'
 import { criarProdutoComFicha, inativarProduto, criarProducaoViaApi, buscarProducao, teardownProducoes } from '../helpers/producao'
 
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * P-F003 (#375+308) — RN-NOVA-17, lado espelhado: cancelar Produção com orçamento(s) vinculado(s).

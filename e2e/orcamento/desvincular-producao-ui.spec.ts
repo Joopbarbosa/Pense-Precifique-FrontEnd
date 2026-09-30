@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -5,7 +6,7 @@ import { criarCliente, criarOrcamentoViaApi, buscarOrcamento, vincularProducaoVi
 import { criarProdutoComFicha, inativarProduto, criarProducaoViaApi, teardownProducoes } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * #401 (DT-NOVA-3, V0.14.0) — botão "Desvincular" por produção vinculada, no card do Detalhe do

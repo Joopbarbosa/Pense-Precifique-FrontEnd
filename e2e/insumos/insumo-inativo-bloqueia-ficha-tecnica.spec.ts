@@ -1,9 +1,10 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin, criarInsumo, inativarInsumo } from '../helpers/api'
 import { inativarProduto } from '../helpers/producao'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #228 — Insumo inativo não pode ser adicionado a nova ficha técnica (INS-011).

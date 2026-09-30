@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { apiLogin, criarInsumo } from '../helpers/api'
 import { registrarEmpresaEfemera } from '../helpers/auth'
@@ -20,7 +21,7 @@ test.describe('#399 (gate seguranca-resiliencia) — IDOR em Produto/Orçamento/
 
     const { token: tokenB } = await registrarEmpresaEfemera(request, 'idor-produto')
 
-    const resposta = await request.get(`http://localhost:8080/produtos/${produtoDeA.id}`, {
+    const resposta = await request.get(`${E2E_API_URL}/produtos/${produtoDeA.id}`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     })
     expect([403, 404]).toContain(resposta.status())
@@ -39,7 +40,7 @@ test.describe('#399 (gate seguranca-resiliencia) — IDOR em Produto/Orçamento/
 
     const { token: tokenB } = await registrarEmpresaEfemera(request, 'idor-orcamento')
 
-    const resposta = await request.get(`http://localhost:8080/orcamentos/${orcamentoDeA.id}`, {
+    const resposta = await request.get(`${E2E_API_URL}/orcamentos/${orcamentoDeA.id}`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     })
     expect([403, 404]).toContain(resposta.status())
@@ -59,7 +60,7 @@ test.describe('#399 (gate seguranca-resiliencia) — IDOR em Produto/Orçamento/
 
     const { token: tokenB } = await registrarEmpresaEfemera(request, 'idor-catalogo')
 
-    const resposta = await request.get(`http://localhost:8080/catalogos/${catalogo.id}/itens`, {
+    const resposta = await request.get(`${E2E_API_URL}/catalogos/${catalogo.id}/itens`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     })
     expect([403, 404]).toContain(resposta.status())

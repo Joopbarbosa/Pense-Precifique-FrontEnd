@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -44,7 +45,7 @@ test.describe('#531 — Foto do Produto (CEN-NOVO-3/4/5)', () => {
     await expect(page.getByText('Só são aceitos arquivos JPG ou PNG.')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Adicionar foto')).toBeVisible()
 
-    const produtoDepois = await (await request.get(`http://localhost:8080/produtos/${produto.id}`, {
+    const produtoDepois = await (await request.get(`${E2E_API_URL}/produtos/${produto.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
     expect(produtoDepois.fotoUrl).toBeFalsy()
@@ -69,7 +70,7 @@ test.describe('#531 — Foto do Produto (CEN-NOVO-3/4/5)', () => {
     await expect(page.getByText('Arquivo muito grande. O tamanho máximo permitido é 5MB.')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Adicionar foto')).toBeVisible()
 
-    const produtoDepois = await (await request.get(`http://localhost:8080/produtos/${produto.id}`, {
+    const produtoDepois = await (await request.get(`${E2E_API_URL}/produtos/${produto.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
     expect(produtoDepois.fotoUrl).toBeFalsy()
@@ -94,7 +95,7 @@ test.describe('#531 — Foto do Produto (CEN-NOVO-3/4/5)', () => {
     await expect(page.getByRole('button', { name: 'Remover foto' })).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Adicionar foto')).toHaveCount(0)
 
-    const produtoDepois = await (await request.get(`http://localhost:8080/produtos/${produto.id}`, {
+    const produtoDepois = await (await request.get(`${E2E_API_URL}/produtos/${produto.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
     expect(produtoDepois.fotoUrl).toBeTruthy()

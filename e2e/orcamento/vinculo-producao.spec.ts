@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -23,7 +24,7 @@ import {
   teardownProducoes,
 } from '../helpers/producao'
 
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * P-T004 (#320) — Homologação da revisão do vínculo Orçamento↔Produção. Cobre CEN-NOVO-H a N

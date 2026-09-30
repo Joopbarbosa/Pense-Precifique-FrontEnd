@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -15,7 +16,7 @@ import {
 } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 const INSUMO_URL = `${API_URL}/insumos`
 
 /**
@@ -267,7 +268,7 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     // não altera o estado real (nenhuma chamada a POST /cancelar foi feita), então o card
     // continua em EM_ANDAMENTO após o Kanban recarregar.
     await expect(page.getByText('Cancelar produção')).toBeVisible({ timeout: 5000 })
-    await expect(page).toHaveURL(/^http:\/\/localhost:3000\/producao$/)
+    await expect(page).toHaveURL(new URL('/producao', process.env.E2E_BASE_URL ?? 'http://localhost:3000').toString())
     await expect(page.getByText(nomeInsumo)).toBeVisible()
 
     await page.getByRole('dialog').getByText('Fechar', { exact: true }).click()

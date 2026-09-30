@@ -1,8 +1,9 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, criarInsumo } from './helpers/api'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #518 (RN-NOVA-6/7) — foto (JPG/PNG, máx. 5MB, opcional) e descrição (máx. 150

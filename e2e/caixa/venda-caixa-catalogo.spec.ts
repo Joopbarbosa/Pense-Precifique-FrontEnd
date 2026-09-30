@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -53,7 +54,7 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
     // porque nunca chegava a ser inativado. Apaga o Item de Catálogo primeiro (remove o vínculo),
     // só então inativa os produtos.
     for (const { catalogoId, itemId } of criadosItensCatalogo) {
-      await request.delete(`http://localhost:8080/catalogos/${catalogoId}/itens/${itemId}`,
+      await request.delete(`${E2E_API_URL}/catalogos/${catalogoId}/itens/${itemId}`,
         { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
     }
     for (const id of criadosProdutoIds) await inativarProduto(request, token, id)
@@ -89,8 +90,8 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
 
     await expect(page.getByText(/Venda concluída — CX-\d+/)).toBeVisible()
 
-    const resPrincipal = await request.get(`http://localhost:8080/produtos/${produtoPrincipal.id}`, { headers: { Authorization: `Bearer ${token}` } })
-    const resCustomizacao = await request.get(`http://localhost:8080/produtos/${produtoCustomizacao.id}`, { headers: { Authorization: `Bearer ${token}` } })
+    const resPrincipal = await request.get(`${E2E_API_URL}/produtos/${produtoPrincipal.id}`, { headers: { Authorization: `Bearer ${token}` } })
+    const resCustomizacao = await request.get(`${E2E_API_URL}/produtos/${produtoCustomizacao.id}`, { headers: { Authorization: `Bearer ${token}` } })
     expect((await resPrincipal.json()).estoqueAtual).toBe(9)
     expect((await resCustomizacao.json()).estoqueAtual).toBe(9) // RN-NOVA-9 — todos os componentes debitam, não só "o principal"
   })
@@ -121,7 +122,7 @@ test.describe('Reabertura de RN-NOVA-1 — Catálogo e customização no Caixa',
 
     await expect(page.getByText(/Venda concluída — CX-\d+/)).toBeVisible()
 
-    const resCustomizacao = await request.get(`http://localhost:8080/produtos/${customizacao.id}`, { headers: { Authorization: `Bearer ${token}` } })
+    const resCustomizacao = await request.get(`${E2E_API_URL}/produtos/${customizacao.id}`, { headers: { Authorization: `Bearer ${token}` } })
     expect((await resCustomizacao.json()).estoqueAtual).toBe(9)
   })
 })
