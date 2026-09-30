@@ -1,4 +1,4 @@
-import { E2E_API_URL } from '../helpers/target'
+import { E2E_API_URL, E2E_BROWSER_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -205,7 +205,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await login(page)
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
-    await page.route(`${API_URL}/configuracoes/precificacao`, route => route.fulfill({ status: 500, body: '{}' }))
+    await page.route(`${E2E_BROWSER_API_URL}/configuracoes/precificacao`, route => route.fulfill({ status: 500, body: '{}' }))
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByText(produto.nome, { exact: true }).click()
 
@@ -237,7 +237,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     catalogoIds.push(catalogo.id)
     const item = itens[0] as { id: string; nome: string }
 
-    await page.route(`${API_URL}/catalogos/${catalogo.id}/itens`, async route => {
+    await page.route(`${E2E_BROWSER_API_URL}/catalogos/${catalogo.id}/itens`, async route => {
       const res = await route.fetch()
       const body = await res.json()
       const atualizado = (body as Array<Record<string, unknown>>).map(i =>

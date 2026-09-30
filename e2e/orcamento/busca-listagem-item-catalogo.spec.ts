@@ -107,6 +107,9 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
 
+    // Isola os 10 itens deste cenário dos catálogos criados por outros testes da suíte.
+    await page.getByPlaceholder('Buscar item de catálogo...').fill(`QA-217c-Item-${ts}`)
+
     const dropdown = page.locator('div.animate-pop')
     await dropdown.waitFor({ state: 'visible' })
     const buttons = dropdown.getByRole('button').filter({ hasText: `QA-217c-Item-${ts}` })

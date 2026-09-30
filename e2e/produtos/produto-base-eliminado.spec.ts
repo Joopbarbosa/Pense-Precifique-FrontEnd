@@ -111,7 +111,7 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await expect(page.getByText(/Você ajustou o preço manualmente/)).toBeVisible()
   })
 
-  test('CEN-NOVO-2 (revisado V0.10.0/#462, V0.14.0/#347) — busca de componente aceita Customização ativa; PRODUTO inativo não aparece na busca', async ({ page, request }) => {
+  test('CEN-NOVO-2/RN-NOVA-40 — busca aceita Customização ativa; PRODUTO inativo aparece indisponível', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
 
@@ -146,7 +146,10 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeEnabled()
 
     await busca.fill(nomeComponenteInativo)
-    await expect(page.getByText('Nenhum componente encontrado')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(nomeComponenteInativo, { exact: true })).toHaveCount(0)
+    const opcaoInativa = page.getByTestId('opcao-inativa').filter({ hasText: nomeComponenteInativo })
+    await expect(opcaoInativa).toBeVisible({ timeout: 5000 })
+    await expect(opcaoInativa).toHaveAttribute('aria-disabled', 'true')
+    await opcaoInativa.click()
+    await expect(opcaoInativa).toBeVisible()
   })
 })

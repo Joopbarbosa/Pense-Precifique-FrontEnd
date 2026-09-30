@@ -2,6 +2,7 @@ import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
+import { criarCliente } from '../helpers/orcamento'
 
 /**
  * CEN-NOVO-22 (P-T002, V0.8.1) — busca de cliente (server-side, OpenProject #243) em
@@ -30,10 +31,8 @@ test.describe('CEN-NOVO-22 — Busca de cliente (server-side) em Novo Orçamento
     const nomeAlvo = `QACEN22-Maria-${sufixo}`
     const nomeOutro = `QACEN22-Joana-${sufixo}`
 
-    const resAlvo = await request.post(`${E2E_API_URL}/clientes`, { headers: { Authorization: `Bearer ${token}` }, data: { nome: nomeAlvo } })
-    criadosClienteIds.push((await resAlvo.json()).id)
-    const resOutro = await request.post(`${E2E_API_URL}/clientes`, { headers: { Authorization: `Bearer ${token}` }, data: { nome: nomeOutro } })
-    criadosClienteIds.push((await resOutro.json()).id)
+    criadosClienteIds.push((await criarCliente(request, token, nomeAlvo)).id)
+    criadosClienteIds.push((await criarCliente(request, token, nomeOutro)).id)
 
     await login(page)
     await page.goto('/orcamentos/novo')
