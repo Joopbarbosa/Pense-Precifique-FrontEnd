@@ -107,8 +107,13 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
 
-    // Isola os 10 itens deste cenário dos catálogos criados por outros testes da suíte.
-    await page.getByPlaceholder('Buscar item de catálogo...').fill(`QA-217c-Item-${ts}`)
+    // Espera a busca filtrada; a página inicial sem filtro ainda pode estar em voo.
+    const termo = `QA-217c-Item-${ts}`
+    const paginaFiltrada = page.waitForResponse(res =>
+      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes(`busca=${termo}`) && res.url().includes('page=0')
+    )
+    await page.getByPlaceholder('Buscar item de catálogo...').fill(termo)
+    await paginaFiltrada
 
     const dropdown = page.locator('div.animate-pop')
     await dropdown.waitFor({ state: 'visible' })
@@ -124,7 +129,7 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await expect(carregarMais).toBeVisible()
 
     const segundaPagina = page.waitForResponse(res =>
-      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes('page=1')
+      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes(`busca=${termo}`) && res.url().includes('page=1')
     )
     await carregarMais.click()
     await segundaPagina
