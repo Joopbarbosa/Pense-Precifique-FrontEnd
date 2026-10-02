@@ -492,6 +492,8 @@ test.describe('Cenários 181-184a — Kanban de Produção (Fluxo F) (#123-#124)
     await cardLocator(page, identificador).focus()
     await page.keyboard.press('Space')
     await expect(page.getByText(identificador, { exact: true })).toHaveCount(2) // pego
+    // O KeyboardSensor instala o listener de teclas no próximo ciclo do navegador.
+    await page.waitForTimeout(50)
 
     await page.keyboard.press('ArrowRight') // rumo a TRAVADA, ainda não confirmado
     await page.keyboard.press('Escape')
