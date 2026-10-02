@@ -5,7 +5,7 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import { Button, ModalShell, SegmentedControl } from '../ui'
 import Spinner from '../ui/Spinner'
 import { InsumoPicker } from './Pickers'
-import { formatarData, hojeIso, moeda, qtd } from './formato'
+import { formatarData, moeda, qtd } from './formato'
 import { compraService } from '../../services/compraService'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { extractApiError } from '../../utils/apiError'
@@ -20,19 +20,12 @@ import type { EvolucaoPrecoResponse } from '../../types/compra'
 // evolução daquele insumo no período (mais recente primeiro; clique na linha abre a compra em aba nova).
 
 type Modo = 'pct' | 'brl'
-type Periodo = '1' | '3' | '6' | '12' | 'custom'
 type Selecionado = { id: string; nome: string; unidade: string; slot: number }
 
 const MAX_INSUMOS = 5
-const PERIODOS: { value: Periodo; label: string }[] = [
-  { value: '1', label: '1 mês' }, { value: '3', label: '3 meses' }, { value: '6', label: '6 meses' },
-  { value: '12', label: '12 meses' }, { value: 'custom', label: 'Personalizado' },
-]
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 const ts = (iso: string) => { const [a, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(a, m - 1, d).getTime() }
-const isoDe = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const mesesAtras = (n: number) => { const d = new Date(); d.setMonth(d.getMonth() - n); return isoDe(d) }
 const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
 
 type Linha = { t: number; com: string; data: string; [k: string]: number | string | null }
@@ -76,13 +69,14 @@ function TooltipPreco({ active, payload, sel }: { active?: boolean; payload?: { 
   )
 }
 
-export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: string; nome: string; unidade: string } | null }) {
+export default function GraficoPrecoInsumos({ inicial, de, ate }: {
+  inicial?: { id: string; nome: string; unidade: string } | null
+  de: string
+  ate: string
+}) {
   const mobile = useIsMobile()
   const [sel, setSel] = useState<Selecionado[]>([])
   const [modo, setModo] = useState<Modo>('pct')
-  const [periodo, setPeriodo] = useState<Periodo>('3')
-  const [de, setDe] = useState(mesesAtras(3))
-  const [ate, setAte] = useState(hojeIso())
   const [dados, setDados] = useState<EvolucaoPrecoResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -94,18 +88,16 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicial?.id])
 
-  const intervalo = useMemo(() => periodo === 'custom' ? { de, ate } : { de: mesesAtras(Number(periodo)), ate: hojeIso() }, [periodo, de, ate])
-
   useEffect(() => {
     if (mobile || sel.length === 0) { setDados(null); return }
     let cancelado = false
     setLoading(true); setErro(null)
-    compraService.evolucaoPreco(sel.map(s => s.id), intervalo.de, intervalo.ate)
+    compraService.evolucaoPreco(sel.map(s => s.id), de, ate)
       .then(r => { if (!cancelado) setDados(r) })
       .catch(err => { if (!cancelado) setErro(extractApiError(err, 'Não foi possível carregar o gráfico.')) })
       .finally(() => { if (!cancelado) setLoading(false) })
     return () => { cancelado = true }
-  }, [sel, intervalo, mobile])
+  }, [sel, de, ate, mobile])
 
   const adicionar = (i: { id: string; nome: string; unidadeMedida: string }) => {
     setSel(prev => {
@@ -133,7 +125,8 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
   }, [dados, modo])
 
   const semPontos = !!dados && dados.series.every(s => s.pontos.length === 0)
-  const dominio: [number, number] = [ts(intervalo.de), ts(intervalo.ate)]
+  const periodoCurto = ts(ate) - ts(de) <= 31 * 86400000
+  const dominio: [number, number] = [ts(de), ts(ate)]
 
   return (
     <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -141,6 +134,7 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
         <div>
           <div className="flex items-center gap-2 text-[14px] font-bold text-dark"><IconeLinha size={16} className="text-teal" /> Evolução do preço pago</div>
           <div className="text-[12.5px] text-muted">Um ponto por compra confirmada · até {MAX_INSUMOS} insumos</div>
+          <div className="text-[12px] text-muted" data-testid="periodo-grafico-preco">{formatarData(de)} a {formatarData(ate)}</div>
         </div>
       </div>
 
@@ -154,17 +148,6 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
               <SegmentedControl options={[{ value: 'pct' as Modo, label: 'Variação %' }, { value: 'brl' as Modo, label: 'R$ por unidade' }]} value={modo} onChange={setModo}
                 activeColors={['bg-teal text-white', 'bg-teal text-white']} height="h-9" display="inline-flex" optionWidth="whitespace-nowrap px-3.5" textSize="text-[12.5px]" />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] text-muted">Período</span>
-              <SegmentedControl options={PERIODOS} value={periodo} onChange={setPeriodo} height="h-9" display="inline-flex" optionWidth="whitespace-nowrap px-3" textSize="text-[12.5px]" />
-            </div>
-            {periodo === 'custom' && (
-              <div className="flex items-center gap-2">
-                <input type="date" aria-label="De" value={de} max={ate} onChange={e => setDe(e.target.value)} className="h-9 rounded-input border-[1.5px] border-line px-2.5 font-[inherit] text-[13px]" />
-                <span className="text-muted">até</span>
-                <input type="date" aria-label="Até" value={ate} min={de} max={hojeIso()} onChange={e => setAte(e.target.value)} className="h-9 rounded-input border-[1.5px] border-line px-2.5 font-[inherit] text-[13px]" />
-              </div>
-            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Insumos no gráfico">
@@ -193,9 +176,9 @@ export default function GraficoPrecoInsumos({ inicial }: { inicial?: { id: strin
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={linhas} margin={{ top: 12, right: 18, bottom: 4, left: 4 }}>
                   <CartesianGrid stroke={GRAFICO_GRID} vertical={false} />
-                  <XAxis dataKey="t" type="number" scale="time" domain={dominio} ticks={marcasX(intervalo.de, intervalo.ate, periodo === '1')} interval={0}
+                  <XAxis dataKey="t" type="number" scale="time" domain={dominio} ticks={marcasX(de, ate, periodoCurto)} interval={0}
                     tick={{ fill: GRAFICO_EIXO, fontSize: 12 }} stroke={GRAFICO_GRID} tickLine={false}
-                    tickFormatter={t => { const d = new Date(t); return periodo === '1' ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}` : `${MESES[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` }} />
+                    tickFormatter={t => { const d = new Date(t); return periodoCurto ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}` : `${MESES[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` }} />
                   <YAxis tick={{ fill: GRAFICO_EIXO, fontSize: 12 }} stroke={GRAFICO_GRID} tickLine={false} axisLine={false} width={modo === 'pct' ? 52 : 72}
                     tickFormatter={v => modo === 'pct' ? `${v > 0 ? '+' : ''}${Math.round(Number(v))}%` : moeda(Number(v)).replace(/,?0+$/, '')} />
                   {modo === 'pct' && <ReferenceLine y={0} stroke={GRAFICO_EIXO} strokeDasharray="3 3" strokeOpacity={0.6} />}

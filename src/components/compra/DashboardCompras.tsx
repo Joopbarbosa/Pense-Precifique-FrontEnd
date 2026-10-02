@@ -301,7 +301,8 @@ export default function DashboardCompras() {
                 )}
               </Painel>
             </div>
-            <GraficoPrecoInsumos inicial={d.maiorAumento ? { id: d.maiorAumento.insumo.id, nome: d.maiorAumento.insumo.nome, unidade: d.maiorAumento.insumo.unidade } : null} />
+            <GraficoPrecoInsumos de={d.de} ate={d.ate}
+              inicial={d.maiorAumento ? { id: d.maiorAumento.insumo.id, nome: d.maiorAumento.insumo.nome, unidade: d.maiorAumento.insumo.unidade } : null} />
           </>}
         </div>
       )}
