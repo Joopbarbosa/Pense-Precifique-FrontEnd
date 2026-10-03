@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -27,7 +28,7 @@ test.describe('CEN-NOVO-18 — SINAL_PAGO → cancelamento com Estorno → Recib
     // Teardown real (P-T002 — nunca deixar para o fim da sessão): clientes de teste têm endpoint
     // de exclusão de verdade, diferente de orçamento (limitação conhecida, sem endpoint).
     for (const id of criadosClienteIds) {
-      await request.delete(`http://localhost:8080/clientes/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+      await request.delete(`${E2E_API_URL}/clientes/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
     }
   })
 

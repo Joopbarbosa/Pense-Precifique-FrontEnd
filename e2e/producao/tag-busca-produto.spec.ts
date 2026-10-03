@@ -1,10 +1,11 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect, APIRequestContext } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /** A tag de estoque negativo no resultado de busca reflete `permitirEstoqueNegativo` do PRODUTO
  * (não do insumo da ficha) — precisa ser setado explicitamente no produto para testar o estado "Bloqueia". */

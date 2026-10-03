@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import clsx from 'clsx'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
+import TextArea from '../ui/TextArea'
 import { PauseCircle, AlertCircle } from 'lucide-react'
 import { producaoService } from '../../services/producaoService'
 import { extractApiError } from '../../utils/apiError'
@@ -54,18 +54,16 @@ export default function TravarProducaoModal({ producaoId, onClose, onSuccess }: 
       }
     >
       <label className="block">
-        <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
+        <span className="mb-[7px] flex items-center text-[13px] font-semibold text-body">
           <span>Justificativa <span className="text-orange">*</span></span>
-          <span className={clsx('font-normal', valido ? 'text-success' : 'text-muted')}>
-            {len}/{MIN_CHARS} mín.
-          </span>
         </span>
-        <textarea
+        <TextArea
           value={justificativa}
-          onChange={e => setJustificativa(e.target.value)}
+          onChange={setJustificativa}
           rows={4}
+          minimo={MIN_CHARS}
+          textSize="text-sm"
           placeholder="Descreva o motivo da trava..."
-          className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
         />
       </label>
       {erro && (

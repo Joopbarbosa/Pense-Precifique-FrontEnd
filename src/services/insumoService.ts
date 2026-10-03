@@ -7,10 +7,12 @@ export const insumoService = {
   // raiz do bug original de #336: insumo inativado fora da 1ª página não aparecia no filtro).
   // #295 (V0.14.0, RN-NOVA-2) — `sort` agora é parâmetro, default `numero,desc` (identificador
   // decrescente) quando o chamador não passa nada — antes era sempre `nome` fixo.
-  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc'): Promise<PageResponse<InsumoResponse>> => {
+  // #616 (RN-NOVA-40) — `incluirInativos`: seletores mostram os inativos depois dos ativos (ignora `ativo`).
+  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc', incluirInativos = false): Promise<PageResponse<InsumoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort }
     if (busca) params.busca = busca
     if (ativo != null) params.ativo = ativo
+    if (incluirInativos) params.incluirInativos = true
     const response = await api.get('/insumos', { params })
     return response.data
   },

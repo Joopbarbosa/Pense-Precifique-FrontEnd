@@ -130,10 +130,10 @@ test.describe('Cenário 230 — Exibição de fração/decimal em Detalhe e List
 
   test('Detalhe do Insumo exibe glifo de fração quando tipoExibicaoQuantidade=FRACAO, decimal quando DECIMAL', async ({ page }) => {
     await page.goto(`/insumos/${idFracao}`)
-    await expect(page.getByText('½ unidade', { exact: true })).toBeVisible()
+    await expect(page.getByText('½ un', { exact: true })).toBeVisible()
 
     await page.goto(`/insumos/${idDecimal}`)
-    await expect(page.getByText('0,5 unidade', { exact: true })).toBeVisible()
+    await expect(page.getByText('0,5 un', { exact: true })).toBeVisible()
   })
 
   test('Listagem de Insumos exibe glifo de fração quando tipoExibicaoQuantidade=FRACAO, decimal quando DECIMAL', async ({ page }) => {

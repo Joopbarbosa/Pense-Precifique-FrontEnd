@@ -4,7 +4,7 @@
 > achado seguranca-resiliencia, GHSA-337j-9hxr-rhxg/GHSA-wrjc-x8rr-h8h6 só corrigiam
 > em v7+) · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Última atualização: 24/09/2026 (Retomada V0.14.0) · Branch padrão atual: `feature/V0.14.0`
+> Última atualização: 02/10/2026 (Retomada V0.15.0) · Branch padrão atual: `feature/V0.15.0`
 > Se este arquivo e o prompt da sessão divergirem, este arquivo vence.
 >
 > Histórico de versões (V0.6 a V0.8.2) migrado para `docs-pense-precifique/version/[VX.Y]/
@@ -32,6 +32,13 @@ reportar como concluída.
 rodar sempre pelo Playwright (`npx playwright test`), nunca specs direto, senão o reset não
 dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 
+**Alvo do E2E por variável de ambiente** (V0.15.0/#535): `E2E_BASE_URL`, `E2E_API_URL`,
+`E2E_DB_CONTAINER` e `E2E_DB_NAME` vão **juntas ou nenhuma** (o `global-setup.ts` aborta com alvo
+incompleto e recusa `pense_precifique_db`/`pense_precifique_test_v015` como banco isolado). O proxy
+do Vite para a API isolada usa `E2E_API_PROXY_TARGET`; os specs leem os alvos de
+`e2e/helpers/target.ts` — nunca `localhost:8080` fixo num spec novo. **Sem as variáveis, o padrão
+continua sendo o container/banco de dev, que o `TRUNCATE` apaga** — confirmar o alvo antes de rodar.
+
 **Unidade de medida em E2E** (V0.14.0/#298): `POST/PUT /insumos` exige `unidadeMedidaId` (FK), não
 mais texto livre. `global-setup.ts` semeia 1 unidade padrão ("unidade") logo após o `TRUNCATE` —
 sem ela, specs que dirigem `/insumos/novo` pela UI travam ("Salvar insumo" nunca habilita). Todo
@@ -44,11 +51,14 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 
 | Categoria | Local |
 |---|---|
-| Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`, `Toggle`, `SegmentedControl`, `Tag`) | `components/ui/`, `components/shared/` |
+| Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`, `Toggle`, `SegmentedControl`, `Tag`; V0.15.0: `TextArea`, `MoneyInput`, `ModalErro`, `BigNumber`/`BigNumberGroup`, `CampoFiltros`, `OpcaoInativa`, `ModalListagemRegistros`, `PreviewPdfDocumento`) | `components/ui/`, `components/shared/` |
+| Domínio de Compras (`formato.ts` — `formatarData`, `moeda`, `qtd`, `parseDecimal`, `erroDesconto`, `rotuloPagamento`; `DescontoInput`, `useDuplicarCompra`, `DashboardCompras`, `GraficoPrecoInsumos`, modais de impacto/cancelar/pagamento/vínculo) | `components/compra/` (novo, V0.15.0) |
+| Domínio de Cliente/Fornecedor (`ModalRegistro` — registro do histórico aberto em modal) | `components/cliente/` |
+| Utilitários (`apiError.ts` — `extrairErroExplicado`, `normalizarErroBlob`; `fotoPendente.ts` — foto escolhida na criação) | `src/utils/` |
 | Domínio compartilhado de venda (`ItemSearch`, `ItemLinha`, `ModalCustomizacoes`, `ModalCalculadoraItem`, `CustomizacaoSeletor`, `DescontoBlock`, `ClienteSelect`, `SectionCard`, `ModoToggle`) — consumido por Orçamento, Caixa e Catálogo | `components/venda/` (novo, V0.12.0) |
-| Hooks (`usePaginatedList`, `useDebounceSearch`, `useDebouncedValue`, `useAuth`, `useToast`) | `src/hooks/` |
+| Hooks (`usePaginatedList`, `useDebounceSearch`, `useDebouncedValue`, `useAuth`, `useToast`, `useRetryCooldown`, `useIsMobile`, `useModalErro`/`primeiroCampoInvalido`) | `src/hooks/` |
 | Constants (`METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL`) | `src/constants/` |
-| Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`) | `e2e/`, `e2e/helpers/` |
+| Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`, `compra.ts`, `target.ts`) | `e2e/`, `e2e/helpers/` |
 | Testes E2E de segurança (modelo de atacante — IDOR, etc., skill `seguranca-resiliencia`) | `e2e/seguranca/` (novo, V0.8.4) |
 | Documentação funcional (regras, cenários, contrato, decisões) | **não vive aqui** — `../docs-pense-precifique/modulos/[MODULO]/` |
 
@@ -58,12 +68,17 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 
 - **Service novo?** Conferir `src/services/` primeiro — todo módulo já tem o seu (`authService`,
   `caixaService` (V0.12.0), `catalogoService`, `clienteService`, `dashboardService`,
-  `empresaService`, `insumoService`, `itemCatalogoService`, `loteCompraService`, `orcamentoService`,
+  `compraService` (V0.15.0 — compras, lista de compras e vínculo fornecedor↔insumo),
+  `empresaService`, `insumoService`, `itemCatalogoService`, `orcamentoService`,
   `producaoService`, `produtoService`, `unidadeMedidaService` (V0.14.0), `usuarioService`).
+  `loteCompraService` não existe mais (V0.15.0/#541 removeu `POST /lotes-compra`).
 - **Upload de imagem novo?** Já existem 3 cópias inline do mesmo bloco (foto de item de catálogo,
   foto de produto, logo da empresa) — o 4º ponto dispara a extração do componente compartilhado
-  (OpenProject #556), não uma 4ª cópia. Validação de formato/tamanho é só do backend; o frontend
-  usa `accept="image/jpeg,image/png"` como dica e exibe a mensagem que vier da API.
+  (OpenProject #556), não uma 4ª cópia. Validação de formato/tamanho é do backend; o frontend
+  usa `accept="image/jpeg,image/png"` como dica e exibe a mensagem que vier da API. **Exceção
+  (V0.15.0/#440, RN-NOVA-46):** a foto escolhida na *criação* de produto/item é conferida ao
+  escolher (`erroArquivoImagem` em `utils/fotoPendente.ts`, mesmos textos de
+  `ValidadorArquivoImagem`) e enviada logo depois de salvar — o backend valida de novo e é quem vale.
 - **Componente de UI novo?** Conferir `components/ui/`/`components/shared/`/`components/venda/`
   (este último para qualquer coisa de busca/carrinho/customização/cliente que sirva Orçamento **e**
   Caixa) — wrapper de label+input é sempre `Field` (`components/ui/Field.tsx`, prop
@@ -92,6 +107,10 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 - **Toast:** sempre via `useToast` (estado) + `<Toast>` (`components/shared/Toast.tsx`, prop
   `variant?: 'success'|'error'`) pra renderizar — proibido estado boolean local e proibido copiar
   o `<div>` de renderização inline (V0.11.0/#352, 19 pontos consolidados).
+- **Dinheiro na tela tem sempre 2 casas** (V0.15.0/#603, RN-NOVA-33): `BRL` de
+  `components/venda/formato.ts` (com `arredondar2`, meia-unidade para cima) ou `moeda` de
+  `components/compra/formato.ts`, que delega a ele. `moeda4` foi removido; 4 casas só existem no
+  banco e nos cálculos do backend — nunca formatar com `toFixed`/`toLocaleString` local.
 - **Busca em listagens é sempre server-side**, via `?busca=`, debounce ~300ms, reset de paginação
   para a página 0 a cada nova busca — nunca filtrar client-side sobre itens já carregados.
 - Default export em todos os componentes de página.
@@ -132,8 +151,32 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 - **Axios com `responseType: 'blob'`/`'text'` não faz parse automático do corpo de erro** —
   `err.response.data` chega como `Blob`/string crua. `normalizarErroBlob` (`src/utils/
   apiError.ts`) lê o Blob como texto e faz `JSON.parse` antes do catch.
-- **`reporEstoque` em E2E é sempre via `POST /lotes-compra`** (`e2e/helpers/insumo.ts`) —
-  `PUT /insumos/{id}` ignora `estoqueAtual` no backend, repor estoque com `PUT` não faz nada.
+- **Entrada de estoque em E2E é sempre uma compra confirmada** — `reporEstoque`
+  (`e2e/helpers/insumo.ts`) chama `registrarCompraConfirmada` (`e2e/helpers/compra.ts`,
+  `POST /compras/confirmar`, V0.15.0/#541; `POST /lotes-compra` foi removido). `PUT /insumos/{id}`
+  ignora `estoqueAtual` no backend, repor estoque com `PUT` não faz nada.
+- **Modal de erro padrão** (V0.15.0/#602, RN-NOVA-32; canônico: `useModalErro` + `ModalErro`) —
+  "o que aconteceu / por quê / como resolver" com botão OK, a partir de `extrairErroExplicado`
+  (`utils/apiError.ts`); o OK devolve o foco ao campo (`primeiroCampoInvalido` acha o primeiro
+  `aria-invalid`). Validação de campo **ao sair do campo**, nunca a cada tecla. Aplicado nas telas
+  da V0.15.0 (Cadastro, Compras, Lista de compras); os demais módulos têm conversão própria no
+  Backlog (#609–#614) — tela nova já nasce com ele.
+- **Cartão de números** (V0.15.0/#604; canônico: `BigNumber`/`BigNumberGroup` em
+  `components/ui/BigNumber.tsx`) — big numbers de qualquer tela com esconder/expandir persistido em
+  `localStorage` por chave de tela (`tela`); sem storage, expandido. Usado em Dashboard, Detalhe do
+  cadastro, Dashboard de compras, Detalhe de insumo e de produto — não recriar cartão local.
+- **Inativo em seletor** (V0.15.0/#583,#616,#641; canônico: `OpcaoInativa`) — busca com
+  `incluirInativos=true`, opção riscada com a tag "Inativo" e não clicável. Nunca esconder o inativo
+  nem deixá-lo escolhível.
+- **Listagem de registros em modal** (V0.15.0/#572,#585; canônico: `ModalListagemRegistros` +
+  `CampoFiltros`) — lupa de indicador/clique em gráfico abre a modal padrão com filtros combináveis;
+  o registro abre em `ModalRegistro` (`components/cliente/`). Reaproveitar para nova lupa.
+- **Prévia de PDF** (canônico: `PreviewPdfDocumento`, `components/shared/`) — página de preview de
+  qualquer documento novo (compra e lista de compras usam) em vez de reimplementar
+  carregar-HTML/baixar-PDF.
+- **Gráficos com Recharts** (V0.15.0, DT-NOVA-14 aprovada por protótipo) — biblioteca única para
+  gráficos (`GraficoPrecoInsumos`, gráficos do cadastro e do dashboard de compras), cores pelos
+  tokens; mobile sem gráfico de linha de preço.
 - **Modal sequencial "uma pergunta por vez"** (canônico: `ModalConfirmacaoVinculoSequencial`,
   `components/shared/`, V0.8.3/RN-NOVA-17) — quando uma ação tem N confirmações independentes
   (ex.: cancelar algo com múltiplos vínculos, cada um exigindo Sim/Não próprio), nunca agregar
@@ -245,7 +288,7 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 | API usa camelCase (nunca snake_case) | Backend default Spring/Jackson. Mapeamento errado causa `undefined` silencioso, sem erro visível |
 | Campo condicionando exibição de UI precisa estar presente no response da API | Frontend correto + backend incompleto = falha silenciosa, sem erro visível |
 | Campo de quantidade em ficha técnica depende de `fracionavel` do insumo | Não-fracionável: backend rejeita decimal, frontend usa `step="1"`. Fracionável: `step="0.01"`. Backend é fonte de verdade |
-| **Nenhuma regra de negócio calculada no frontend, nem "só uma multiplicação simples"** | Única exceção consciente: preview de quantidade final em Produção (lotes × rendimento) — o valor gravado de fato vem sempre da resposta do POST, nunca do preview |
+| **Nenhuma regra de negócio calculada no frontend, nem "só uma multiplicação simples"** | Exceções conscientes, todas só de prévia/aviso (o valor gravado vem sempre da resposta da API): quantidade final em Produção (lotes × rendimento); totais e rateio do desconto da nota no formulário de compra (V0.15.0/#541,#576, `FormCompraPage.tsx`); validação antecipada do desconto ao sair do campo (`erroDesconto`, #602) e de formato/tamanho da foto na criação (#440) — repetem a regra e os textos do backend, que valida de novo |
 | **XOR com duas mensagens de erro distintas, nunca uma genérica** | Tratar "nenhum preenchido" e "os dois preenchidos" como erros diferentes, vindos da API |
 | Commit pode ficar "misturado" quando duas mudanças tocam as mesmas linhas do mesmo arquivo | git não separa por trecho sem `git add -p` explícito — documentar no corpo do commit quando acontecer |
 | Verificar `git status` no início de toda sessão, não só no fim | Mais de uma vez apareceu trabalho de sessão anterior sem commit, misturado com o que a sessão atual ia tocar |

@@ -5,6 +5,7 @@ import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
 import ModalShell from "../../components/ui/ModalShell";
 import SegmentedControl from "../../components/ui/SegmentedControl";
+import TextArea from "../../components/ui/TextArea";
 import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
 import RetryCooldownModal from "../../components/shared/RetryCooldownModal";
 import {
@@ -293,29 +294,20 @@ function ModalSinal({
 
         {forma === "OUTRO" && (
           <div className="mt-3 animate-[fadeUp_.2s_ease_both]">
-            <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
+            <span className="mb-[7px] flex items-center text-[13px] font-semibold text-body">
               <span>
                 Descreva a forma de pagamento <span className="text-orange">*</span>
               </span>
-              <span className={clsx("font-normal", obsCharCount >= 50 ? "text-success" : "text-muted")}>
-                {obsCharCount}/50 mín.
-              </span>
             </span>
-            <textarea
+            <TextArea
               value={formaObs}
-              onChange={(e) => setFormaObs(e.target.value)}
-              placeholder="Ex: cheque à vista, app de pagamento..."
+              onChange={setFormaObs}
               rows={2}
-              className={clsx(
-                "w-full resize-none rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]",
-                obsInvalida ? "border-[#F2B8A6]" : "border-line"
-              )}
+              minimo={50}
+              erro={obsInvalida ? `Mínimo de 50 caracteres. Faltam ${50 - obsCharCount}.` : undefined}
+              textSize="text-[13.5px]"
+              placeholder="Ex: cheque à vista, app de pagamento..."
             />
-            {obsInvalida && (
-              <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-                <AlertCircle size={13} /> Mínimo de 50 caracteres. Faltam {50 - obsCharCount}.
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -493,29 +485,20 @@ function ModalCancelJustificativa({
         Cancelar um pedido neste estágio é uma ação excepcional. Descreva o
         motivo com detalhes (mínimo 50 caracteres).
       </p>
-      <span className="mb-[7px] flex items-center justify-between text-[13px] font-semibold text-body">
+      <span className="mb-[7px] flex items-center text-[13px] font-semibold text-body">
         <span>
           Justificativa <span className="text-danger">*</span>
         </span>
-        <span className={clsx("font-normal", len >= 50 ? "text-success" : "text-muted")}>
-          {len}/50 mín.
-        </span>
       </span>
-      <textarea
+      <TextArea
         value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        placeholder="Ex: cliente solicitou cancelamento por motivo de força maior..."
+        onChange={setTexto}
         rows={4}
-        className={clsx(
-          "w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-danger focus:ring-4 focus:ring-danger/[0.12]",
-          invalido ? "border-[#F2B8A6]" : "border-line"
-        )}
+        minimo={50}
+        erro={invalido ? `Faltam ${50 - len} caracteres.` : undefined}
+        textSize="text-[13.5px]"
+        placeholder="Ex: cliente solicitou cancelamento por motivo de força maior..."
       />
-      {invalido && (
-        <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-          <AlertCircle size={13} /> Faltam {50 - len} caracteres.
-        </div>
-      )}
     </ConfirmacaoModal>
   );
 }
@@ -2257,13 +2240,13 @@ export default function DetalheOrcamentoPage() {
               <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
                 <StickyNote size={15} className="text-teal" /> Observações <span className="text-[11.5px] font-medium text-muted">(opcional)</span>
               </span>
-              <textarea
+              <TextArea
                 value={formObsProducaoDetalhe}
-                onChange={(e) => setFormObsProducaoDetalhe(e.target.value)}
-                disabled={criandoProducaoDetalhe}
+                onChange={setFormObsProducaoDetalhe}
                 rows={3}
+                disabled={criandoProducaoDetalhe}
+                textSize="text-sm"
                 placeholder="Ex: separar embalagem especial para este pedido"
-                className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
               />
             </label>
 

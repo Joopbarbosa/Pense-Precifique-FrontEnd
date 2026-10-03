@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -11,7 +12,7 @@ import {
 } from '../helpers/orcamento'
 import { inativarProduto } from '../helpers/producao'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #217 — RN-NOVA-6 (busca de item de catálogo server-side) e RN-NOVA-7 (listagem
@@ -106,6 +107,14 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
 
+    // Espera a busca filtrada; a página inicial sem filtro ainda pode estar em voo.
+    const termo = `QA-217c-Item-${ts}`
+    const paginaFiltrada = page.waitForResponse(res =>
+      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes(`busca=${termo}`) && res.url().includes('page=0')
+    )
+    await page.getByPlaceholder('Buscar item de catálogo...').fill(termo)
+    await paginaFiltrada
+
     const dropdown = page.locator('div.animate-pop')
     await dropdown.waitFor({ state: 'visible' })
     const buttons = dropdown.getByRole('button').filter({ hasText: `QA-217c-Item-${ts}` })
@@ -120,7 +129,7 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await expect(carregarMais).toBeVisible()
 
     const segundaPagina = page.waitForResponse(res =>
-      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes('page=1')
+      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes(`busca=${termo}`) && res.url().includes('page=1')
     )
     await carregarMais.click()
     await segundaPagina

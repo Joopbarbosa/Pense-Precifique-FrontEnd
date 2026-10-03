@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import { BigNumber, BigNumberGroup } from '../../components/ui/BigNumber'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
+import TextArea from '../../components/ui/TextArea'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import {
   Minus, ChevronDown, AlertCircle, Layers, Box, ChevronRight,
@@ -230,27 +232,15 @@ function EdicaoManualProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }
         <label>
           <span className="mb-[7px] block text-[13px] font-semibold text-body">
             Observação <span className="text-orange">*</span>
-            <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
-              {obs.length}/30 caracteres mín.
-            </span>
           </span>
-          <textarea
+          <TextArea
             value={obs}
-            onChange={e => setObs(e.target.value)}
-            placeholder="Descreva o motivo da baixa em detalhes (ex: 2 unidades ficaram com manchas durante o transporte da gráfica até o estúdio e não podem ser vendidas)"
+            onChange={setObs}
             rows={3}
-            className={clsx(
-              'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-              obs.length > 0 && obs.length < 30
-                ? 'border-[#F2B8A6]'
-                : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-            )}
+            minimo={30}
+            erro={obs.length > 0 && obs.length < 30 ? `Mínimo de 30 caracteres. Faltam ${30 - obs.length}.` : undefined}
+            placeholder="Descreva o motivo da baixa em detalhes (ex: 2 unidades ficaram com manchas durante o transporte da gráfica até o estúdio e não podem ser vendidas)"
           />
-          {obs.length > 0 && obs.length < 30 && (
-            <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-              <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
-            </div>
-          )}
         </label>
 
         {erro && (
@@ -426,30 +416,20 @@ export default function DetalheProdutoPage() {
         </div>
       </div>
 
-      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-4">
+      {/* #604 (RN-NOVA-34) — cartões padrão com esconder/mostrar. */}
+      <div className="animate-[fadeUp_.4s_ease_both]">
+        <BigNumberGroup tela="detalhe-produto" testid="numeros-produto" colunas="grid-cols-2 sm:grid-cols-4"
+          acoes={<div className="flex flex-wrap gap-2">
+            <Button variant="primary" size="sm" icon={<Factory size={16} />} onClick={() => navigate('/producao')}>Registrar produção</Button>
+            <Button variant="ghost" size="sm" icon={<Minus size={15} />} onClick={() => setModal('baixa')}>Edição manual</Button>
+          </div>}>
           {cells.map((c, i) => (
-            <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
-              <div className={clsx(
-                'mt-[7px] [font-variant-numeric:tabular-nums]',
-                (c as any).big ? 'text-[28px] tracking-[-0.02em]' : 'text-base',
-                ((c as any).accent || (c as any).price || (c as any).blue) && 'text-lg',
-                ((c as any).big || (c as any).accent || (c as any).price || (c as any).blue) ? 'font-bold' : 'font-semibold',
-                (c as any).danger ? 'text-danger' : (c as any).blue ? 'text-azul' : (c as any).accent ? 'text-teal' : 'text-dark'
-              )}>{c.v}</div>
-              {(c as any).hint && <div className="mt-[3px] text-[11.5px] font-medium text-dim">{(c as any).hint}</div>}
-            </div>
+            <BigNumber key={i} titulo={c.k} valor={c.v}
+              tom={(c as any).danger ? 'perigo' : (c as any).blue ? 'azul' : ((c as any).accent || (c as any).big) ? 'destaque' : 'padrao'}>
+              {(c as any).hint && <span>{(c as any).hint}</span>}
+            </BigNumber>
           ))}
-        </div>
-        <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
-          <Button variant="primary" icon={<Factory size={20} />} onClick={() => navigate('/producao')}>
-            Registrar produção
-          </Button>
-          <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
-            Edição manual
-          </Button>
-        </div>
+        </BigNumberGroup>
       </div>
 
       <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line">

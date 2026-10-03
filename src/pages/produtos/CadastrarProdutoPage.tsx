@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
+import ModalErro from '../../components/ui/ModalErro'
+import type { ErroExplicado } from '../../utils/apiError'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
+import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Field } from '../../components/ui'
+import { Button, Field, TextArea } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
@@ -40,6 +44,8 @@ const TIPO_API_TO_LABEL: Record<string, string> = {
 const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 interface ItemDb {
+  /** #641 (RN-NOVA-40) — só no seletor: false = inativo, riscado e sem poder escolher. */
+  ativo?: boolean
   id: string
   nome: string
   marca: string
@@ -128,26 +134,34 @@ function TipoSelector({ value, onChange }: { value: string; onChange: (v: string
 
 function DescTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <textarea
+    <TextArea
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={onChange}
       rows={3}
       placeholder="Conte os detalhes que tornam esse produto especial..."
-      className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
     />
   )
 }
 
 // ---------- DadosBasicos ----------
 
-function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
+// #440 (RN-NOVA-46) — na criação a foto fica guardada (`pendente`) e é enviada logo depois de salvar.
+function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange, pendente, onPendente }: {
   produtoId?: string; nome: string; fotoUrl: string | null; onFotoUrlChange: (url: string | null) => void
+  pendente: File | null; onPendente: (f: File | null) => void
 }) {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const previa = usePreviaArquivo(pendente)
 
   const handleSelecionar = async (arquivo: File | undefined) => {
-    if (!arquivo || !produtoId) return
+    if (!arquivo) return
+    if (!produtoId) {
+      const e = erroArquivoImagem(arquivo)
+      setErro(e)
+      if (!e) onPendente(arquivo)
+      return
+    }
     setErro(null)
     setEnviando(true)
     try {
@@ -161,7 +175,7 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
   }
 
   const handleRemover = async () => {
-    if (!produtoId) return
+    if (!produtoId) { onPendente(null); return }
     setErro(null)
     setEnviando(true)
     try {
@@ -178,13 +192,9 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
     <div className="col-span-2">
       <span className="mb-[7px] block text-[13px] font-semibold text-body">Foto</span>
       <div className="flex items-start gap-5">
-        {!produtoId ? (
-          <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted">
-            Salve o produto para adicionar uma foto
-          </div>
-        ) : fotoUrl ? (
+        {(produtoId ? fotoUrl : previa) ? (
           <div className="relative h-[110px] w-[140px]">
-            <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+            <img src={(produtoId ? fotoUrl : previa)!} alt={nome} data-testid="previa-foto" className="h-full w-full rounded-xl border border-line object-cover" />
             <button
               onClick={handleRemover}
               disabled={enviando}
@@ -217,10 +227,11 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange }: {
   )
 }
 
-function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl }: {
+function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl, fotoPendente, setFotoPendente }: {
   st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
   produtoId?: string; fotoUrl: string | null; setFotoUrl: (url: string | null) => void
+  fotoPendente: File | null; setFotoPendente: (f: File | null) => void
 }) {
   return (
     <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-[30px] py-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -248,9 +259,10 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
           </Field>
         </div>
-        {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518); exige
-            produtoId, então só habilita o upload de fato na edição de um produto já salvo. */}
-        <FotoProduto produtoId={produtoId} nome={st.nome} fotoUrl={fotoUrl} onFotoUrlChange={setFotoUrl} />
+        {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518). #440: também na
+            criação — a foto escolhida é enviada logo depois de salvar o produto. */}
+        <FotoProduto produtoId={produtoId} nome={st.nome} fotoUrl={fotoUrl} onFotoUrlChange={setFotoUrl}
+          pendente={fotoPendente} onPendente={setFotoPendente} />
       </div>
       <div className="mt-7 flex justify-end border-t border-line pt-[22px]">
         <Button variant="primary" iconRight={<ArrowRight size={17} />} onClick={onNext}>
@@ -318,7 +330,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
-            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
+            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true, ativo: i.ativo }))
         )
         const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
         // RN-NOVA-8 (V0.10.0, #462) — busca agora traz Produto e Customização juntos; separa por
@@ -326,12 +338,12 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         setProdutos(
           prodsFiltrados
             .filter(p => p.tipo === 'PRODUTO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
         setCustomizacoes(
           prodsFiltrados
             .filter(p => p.tipo === 'CUSTOMIZACAO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
       } catch {
         setInsumos([])
@@ -349,7 +361,13 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
       <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
-      {itens.map(i => (
+      {/* #641 (RN-NOVA-40) — inativo: riscado, com "Inativo", sem poder escolher (a API manda depois dos ativos). */}
+      {itens.map(i => i.ativo === false ? (
+        <OpcaoInativa key={i.id} className="px-[11px] py-2.5">
+          <span className="block truncate text-sm font-semibold">{i.nome}</span>
+          <span className="block text-xs">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
+        </OpcaoInativa>
+      ) : (
         <button
           key={i.id}
           onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
@@ -723,6 +741,8 @@ export default function CadastrarProdutoPage() {
   const [fracionavel, setFracionavel] = useState(true)
   const [fracionavelManual, setFracionavelManual] = useState(false)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [fotoPendente, setFotoPendente] = useState<File | null>(null)
+  const [erroFoto, setErroFoto] = useState<{ erro: ErroExplicado; produtoId: string } | null>(null)
 
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && (estoqueAtualExistente ?? 0) < 0
@@ -868,6 +888,15 @@ export default function CadastrarProdutoPage() {
 
       if (editando) {
         navigate(`/produtos/${id}`)
+      } else if (fotoPendente) {
+        // #440 — o produto já está salvo; se a foto falhar, ele continua salvo e a modal explica.
+        try {
+          await produtoService.uploadFoto(result.id, fotoPendente)
+          navigate('/produtos')
+        } catch (errFoto) {
+          setErroFoto({ produtoId: result.id,
+            erro: erroFotoNaoEnviada('O produto', extractApiError(errFoto, 'O envio da foto falhou.')) })
+        }
       } else {
         navigate('/produtos')
       }
@@ -946,7 +975,7 @@ export default function CadastrarProdutoPage() {
         <DadosBasicos
           st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome}
           permitirEstoqueNegativo={permitirEstoqueNegativo} setPermitirEstoqueNegativo={setPermitirEstoqueNegativo} estoqueNegativoErro={estoqueNegativoErro}
-          produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl}
+          produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl} fotoPendente={fotoPendente} setFotoPendente={setFotoPendente}
         />
       )}
       {aba === 'ficha' && (
@@ -1001,6 +1030,7 @@ export default function CadastrarProdutoPage() {
         </div>
       )}
 
+      {erroFoto && <ModalErro erro={erroFoto.erro} onOk={() => navigate(`/produtos/${erroFoto.produtoId}`)} />}
     </AppLayout>
   )
 }

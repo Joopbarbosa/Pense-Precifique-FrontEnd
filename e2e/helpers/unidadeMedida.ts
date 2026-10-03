@@ -15,8 +15,8 @@ export async function resolverUnidadeMedidaId(
   const headers = { Authorization: `Bearer ${token}` }
   const lista = await request.get(`${API_URL}/unidades-medida`, { headers })
   const unidades = await lista.json()
-  const existente = (unidades as Array<{ id: string; sigla: string }>)
-    .find(u => u.sigla.toLowerCase() === sigla.toLowerCase())
+  const existente = (unidades as Array<{ id: string; nome: string; sigla: string }>)
+    .find(u => u.sigla.toLowerCase() === sigla.toLowerCase() || u.nome.toLowerCase() === sigla.toLowerCase())
   if (existente) return existente.id
 
   const criada = await request.post(`${API_URL}/unidades-medida`, {

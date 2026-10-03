@@ -1,5 +1,6 @@
 import { test, expect, APIRequestContext } from '@playwright/test'
 import { login, API_URL } from '../helpers/auth'
+import { registrarCompraConfirmada } from '../helpers/compra'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
 import { resolverUnidadeMedidaId } from '../helpers/unidadeMedida'
@@ -45,11 +46,8 @@ async function criarInsumoBarato(request: APIRequestContext, token: string, nome
 
 async function encarecerInsumo(request: APIRequestContext, token: string, insumoId: string) {
   // Lote de compra caro — eleva a média ponderada de custoUnitario, sem mexer no cadastro do produto.
-  const res = await request.post(`${API_URL}/lotes-compra`, {
-    headers: { Authorization: `Bearer ${token}` },
-    data: { itens: [{ insumoId, quantidadeComprada: 10, precoTotalPago: 500 }] }, // eleva custoUnitario de ~1 para ~25,5
-  })
-  if (!res.ok()) throw new Error(`Falha ao encarecer insumo: ${res.status()} ${await res.text()}`)
+  // eleva custoUnitario de ~1 para ~25,5 (V0.15.0: compra confirmada, era POST /lotes-compra)
+  await registrarCompraConfirmada(request, token, [{ insumoId, quantidade: 10, precoTotal: 500 }])
 }
 
 async function criarProdutoCustomizacao(request: APIRequestContext, token: string, nome: string) {
@@ -113,7 +111,7 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await expect(page.getByText(/Você ajustou o preço manualmente/)).toBeVisible()
   })
 
-  test('CEN-NOVO-2 (revisado V0.10.0/#462, V0.14.0/#347) — busca de componente aceita Customização ativa; PRODUTO inativo não aparece na busca', async ({ page, request }) => {
+  test('CEN-NOVO-2/RN-NOVA-40 — busca aceita Customização ativa; PRODUTO inativo aparece indisponível', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
 
@@ -148,7 +146,10 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeEnabled()
 
     await busca.fill(nomeComponenteInativo)
-    await expect(page.getByText('Nenhum componente encontrado')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(nomeComponenteInativo, { exact: true })).toHaveCount(0)
+    const opcaoInativa = page.getByTestId('opcao-inativa').filter({ hasText: nomeComponenteInativo })
+    await expect(opcaoInativa).toBeVisible({ timeout: 5000 })
+    await expect(opcaoInativa).toHaveAttribute('aria-disabled', 'true')
+    await opcaoInativa.click()
+    await expect(opcaoInativa).toBeVisible()
   })
 })

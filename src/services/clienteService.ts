@@ -1,12 +1,23 @@
 import api from './api'
-import type { ClienteRequest, ClienteResponse } from '../types/cliente'
+import type {
+  ClienteContagensResponse, ClienteFiltros, ClienteRequest, ClienteResponse, CompraFornecedorHistoricoResponse,
+  GraficosClienteResponse, IndicadoresCadastroResponse, PapelCadastro, PedidoClienteResponse, RegistroCadastroResponse, RegistrosFiltros,
+} from '../types/cliente'
 import type { PageResponse } from '../types/shared'
 
 export const clienteService = {
-  listar: async (page: number, size = 20, busca?: string): Promise<PageResponse<ClienteResponse>> => {
-    const params: Record<string, any> = { page, size, sort: 'nome' }
+  listar: async (page: number, size = 20, busca?: string, filtros: ClienteFiltros = {}): Promise<PageResponse<ClienteResponse>> => {
+    const params: Record<string, any> = { page, size, sort: filtros.sort ?? 'nome' }
     if (busca) params.busca = busca
+    if (filtros.papel) params.papel = filtros.papel
+    if (filtros.ativo !== undefined) params.ativo = filtros.ativo
+    if (filtros.incluirInativos) params.incluirInativos = true
     const response = await api.get('/clientes', { params })
+    return response.data
+  },
+
+  contagens: async (): Promise<ClienteContagensResponse> => {
+    const response = await api.get('/clientes/contagens')
     return response.data
   },
 
@@ -25,7 +36,52 @@ export const clienteService = {
     return response.data
   },
 
+  // V0.15.0 (#538) — reversível; `DELETE /clientes/{id}` não existe mais.
   inativar: async (id: string): Promise<void> => {
-    await api.delete(`/clientes/${id}`)
+    await api.post(`/clientes/${id}/inativar`)
+  },
+
+  reativar: async (id: string): Promise<void> => {
+    await api.post(`/clientes/${id}/reativar`)
+  },
+
+  // ---------- Detalhe (#560, #451) ----------
+
+  indicadores: async (id: string): Promise<IndicadoresCadastroResponse> => {
+    const response = await api.get(`/clientes/${id}/indicadores`)
+    return response.data
+  },
+
+  historicoPedidos: async (id: string, page: number, size = 10): Promise<PageResponse<PedidoClienteResponse>> => {
+    const response = await api.get(`/clientes/${id}/historico/pedidos`, { params: { page, size } })
+    return response.data
+  },
+
+  historicoCompras: async (id: string, page: number, size = 10): Promise<PageResponse<CompraFornecedorHistoricoResponse>> => {
+    const response = await api.get(`/clientes/${id}/historico/compras`, { params: { page, size } })
+    return response.data
+  },
+
+  // #572/#573 (RN-NOVA-24) — `status` repetido na query (`?status=A&status=B`).
+  registros: async (id: string, page: number, size: number, filtros: RegistrosFiltros): Promise<PageResponse<RegistroCadastroResponse>> => {
+    const response = await api.get(`/clientes/${id}/registros`, {
+      params: { page, size, ...filtros },
+      paramsSerializer: params => {
+        const sp = new URLSearchParams()
+        Object.entries(params).forEach(([k, v]) => {
+          if (v === undefined || v === null || v === '' || v === false) return
+          if (Array.isArray(v)) v.forEach(x => sp.append(k, String(x)))
+          else sp.append(k, String(v))
+        })
+        return sp.toString()
+      },
+    })
+    return response.data
+  },
+
+  /** #587 (RN-NOVA-36) — `papel=FORNECEDOR`: compras confirmadas por mês e insumos mais comprados dele. */
+  graficos: async (id: string, de?: string, ate?: string, papel: PapelCadastro = 'CLIENTE'): Promise<GraficosClienteResponse> => {
+    const response = await api.get(`/clientes/${id}/graficos`, { params: { de, ate, papel } })
+    return response.data
   },
 }

@@ -1,3 +1,4 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, criarInsumo, contarInsumos, inativarInsumo } from './helpers/api'
@@ -43,7 +44,7 @@ test.describe('Cenários 163-164 — Busca de insumos server-side (#110)', () =>
 
     // confirma a precondição via API antes de testar via UI: o item não pode estar
     // na página 0, senão a busca não provaria nada sobre paginação server-side.
-    const page0 = await request.get('http://localhost:8080/insumos?page=0&size=20&sort=nome', {
+    const page0 = await request.get(`${E2E_API_URL}/insumos?page=0&size=20&sort=nome`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const nomesPagina0: string[] = (await page0.json()).content.map((c: { nome: string }) => c.nome)

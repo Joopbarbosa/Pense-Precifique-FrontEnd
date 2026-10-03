@@ -1,8 +1,9 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * Homologação Onda 5 (Frente 2, Cenários 232-233) — `POST /orcamentos/simular-alertas`

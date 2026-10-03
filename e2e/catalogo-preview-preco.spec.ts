@@ -1,10 +1,11 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, getConfiguracao, putConfiguracao } from './helpers/api'
 import { criarProdutoComFicha, criarProdutoSemFicha, inativarProduto } from './helpers/producao'
 import { criarInsumoComEstoque } from './helpers/insumo'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 const INSUMO_URL = `${API_URL}/insumos`
 
 /**
@@ -65,7 +66,7 @@ test.describe('RN-NOVA-1/2/4 — Composição e preview de preço de Item de Cat
     criadosCatalogoIds.push(catalogo.id)
 
     const config = await getConfiguracao(request, token)
-    // `criarInsumoComEstoque` repõe estoque via um 2º lote (POST /lotes-compra) depois da criação
+    // `criarInsumoComEstoque` repõe estoque via compra confirmada (POST /compras/confirmar) depois da criação
     // — o custoUnitario final é a média ponderada resultante, não o valor de criação; lê o insumo
     // fresco em vez de assumir o custo, pra não acoplar o teste ao efeito colateral do helper.
     const insumoAtual = await (await request.get(`${INSUMO_URL}/${insumo.id}`, {
@@ -231,10 +232,8 @@ test.describe('RN-NOVA-1/2/4 — Composição e preview de preço de Item de Cat
     expect(itensAntes).toEqual([])
 
     await page.getByRole('button', { name: 'Adicionar item ao catálogo', exact: true }).click()
-    // Premissa desatualizada do teste, não bug: desde a correção do #518 (teste manual do
-    // usuário), criar um item permanece em modo edição do item recém-criado em vez de navegar de
-    // volta pro catálogo — mesmo padrão já corrigido em catalogo-foto-descricao-pdf.spec.ts:164.
-    await expect(page).toHaveURL(/itemId=/, { timeout: 10_000 })
+    // #440: após criar, a foto pendente é enviada no mesmo fluxo e a tela volta ao catálogo.
+    await expect(page).toHaveURL(new RegExp(`/catalogos/${catalogo.id}$`), { timeout: 10_000 })
 
     const itensDepois = await itensDoCatalogo(request, token, catalogo.id)
     expect(itensDepois).toHaveLength(1)

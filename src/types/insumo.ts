@@ -10,7 +10,12 @@ export interface InsumoRequest {
   estoqueAtual?: number
   estoqueMinimo?: number
   permitirEstoqueNegativo?: boolean
+  /** #590 (RN-NOVA-39) — nulo na edição = mantém. */
+  regraPrecoReferencia?: RegraPrecoReferencia
 }
+
+/** #590 (RN-NOVA-39) — como o preço de referência dos fornecedores deste insumo é calculado. */
+export type RegraPrecoReferencia = 'MEDIA' | 'MENOR_VALOR' | 'MANUAL'
 
 export interface NovoInsumoRequest {
   nome: string
@@ -22,6 +27,8 @@ export interface NovoInsumoRequest {
   precoTotalCompraInicial: number
   quantidadeCompradaInicial: number
   permitirEstoqueNegativo?: boolean
+  /** #590 — nulo na criação = MEDIA. */
+  regraPrecoReferencia?: RegraPrecoReferencia
 }
 
 export interface InsumoResponse {
@@ -41,6 +48,7 @@ export interface InsumoResponse {
   estoqueAtual: number
   estoqueMinimo?: number
   ativo: boolean
+  regraPrecoReferencia: RegraPrecoReferencia
   createdAt: string
   updatedAt: string
 }
@@ -73,6 +81,8 @@ export interface MovimentacaoInsumoResponse {
   observacao?: string
   referenciaId?: string
   referenciaTipo?: string
+  /** V0.15.0 (#542, RN-NOVA-7) — identificador legível da origem (PRD-N, ORC-N, COM-N, CX-N), pronto do backend. */
+  referencia?: string | null
   estornada: boolean
   createdAt: string
 }

@@ -12,6 +12,7 @@ interface ButtonProps {
   icon?: React.ReactNode
   iconRight?: React.ReactNode
   className?: string
+  autoFocus?: boolean
 }
 
 const sizeClasses = {
@@ -40,6 +41,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       icon,
       iconRight,
       className,
+      autoFocus,
     },
     ref
   ) => {
@@ -49,6 +51,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
+        autoFocus={autoFocus}
         className={clsx(
           'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn font-semibold font-[inherit] transition-[filter,transform,background-color] duration-150',
           disabled ? 'cursor-not-allowed opacity-50 pointer-events-none' : 'cursor-pointer',

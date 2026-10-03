@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -12,7 +13,7 @@ import {
 } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * Homologação P-QA-004 / OpenProject #122 — Lista de Produções (Fluxo E), cenários 177-180.

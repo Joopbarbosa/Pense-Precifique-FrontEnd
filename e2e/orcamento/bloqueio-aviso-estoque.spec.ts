@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -5,7 +6,7 @@ import { criarProdutoComEstoqueEFlag, criarProdutoComFichaEEstoque, inativarProd
 import { criarInsumoFracionavel } from '../helpers/insumo'
 import { criarCliente, selecionarCliente } from '../helpers/orcamento'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #218 (V0.8) → revisado em V0.8.1 (P-F001c, OpenProject #246/#245, RN-NOVA-11

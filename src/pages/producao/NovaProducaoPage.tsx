@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
+import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, Stepper } from '../../components/ui'
+import { Button, Stepper, TextArea } from '../../components/ui'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { Search, Box, Trash2, Calendar, StickyNote, Plus, AlertTriangle } from 'lucide-react'
@@ -71,7 +72,8 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
     // corre contra o fetch correto e pode sobrescrevê-lo por último.
     if (!open || debouncedQ !== q) return
     setLoading(true)
-    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined)
+    // #616 (RN-NOVA-40) — inativos depois dos ativos, riscados, sem poder escolher.
+    produtoService.listar(0, 10, 'PRODUTO', debouncedQ.trim() || undefined, undefined, undefined, true)
       .then(data => setResults(data.content))
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
@@ -95,7 +97,12 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
             <div className="p-5 text-center text-sm text-muted">Buscando...</div>
           ) : results.length === 0 ? (
             <div className="p-5 text-center text-sm text-muted">Nenhum produto encontrado.</div>
-          ) : results.map(p => (
+          ) : results.map(p => p.ativo === false ? (
+            <OpcaoInativa key={p.id}>
+              <div className="truncate text-[14.5px] font-semibold">{p.nome}</div>
+              <div className="text-[12.5px]">{p.identificador}</div>
+            </OpcaoInativa>
+          ) : (
             <button
               key={p.id}
               onClick={() => { onSelect(p); setOpen(false); setQ('') }}
@@ -499,12 +506,12 @@ export default function NovaProducaoPage() {
               <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
                 <StickyNote size={15} /> Observações (opcional)
               </span>
-              <textarea
+              <TextArea
                 value={observacoes}
-                onChange={e => setObservacoes(e.target.value)}
+                onChange={setObservacoes}
                 rows={3}
+                textSize="text-sm"
                 placeholder="Ex: Priorizar entrega da tarde"
-                className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
               />
             </label>
           </div>

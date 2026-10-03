@@ -1,9 +1,10 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { apiLogin, criarInsumo } from '../helpers/api'
 import { registrarEmpresaEfemera } from '../helpers/auth'
 import { criarProdutoComFicha, criarProducaoViaApi, agruparProducoesViaApi, teardownProducoes } from '../helpers/producao'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * Gate `seguranca-resiliencia` (V0.10.0) — A01: IDOR/Autorização Quebrada.

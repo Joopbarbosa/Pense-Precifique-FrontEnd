@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -9,7 +10,7 @@ import {
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * Cenário 224 — reversão de PDC-005 → PDC-027 (#214, backend commit 19b36f1). Produto com insumo
@@ -130,21 +131,21 @@ test.describe('Cenário 224 — Múltiplos do rendimento em produto com insumo n
 
     const dataTerminoPrevista = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
 
-    const resInvalido = await request.post('http://localhost:8080/producoes', {
+    const resInvalido = await request.post(`${E2E_API_URL}/producoes`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { dataTerminoPrevista, produtos: [{ produtoId: produto.id, quantidade: 5 }] }, // 5 não é múltiplo de 2
     })
     expect(resInvalido.status()).toBe(400)
     expect((await resInvalido.json()).message).toContain('exige quantidade em múltiplos de')
 
-    const resExcede = await request.post('http://localhost:8080/producoes', {
+    const resExcede = await request.post(`${E2E_API_URL}/producoes`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { dataTerminoPrevista, produtos: [{ produtoId: produto.id, quantidade: 8 }] }, // múltiplo válido, excede o máximo (6)
     })
     expect(resExcede.status()).toBe(400)
     expect((await resExcede.json()).message).toContain('quantidade máxima permitida')
 
-    const resValido = await request.post('http://localhost:8080/producoes', {
+    const resValido = await request.post(`${E2E_API_URL}/producoes`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { dataTerminoPrevista, produtos: [{ produtoId: produto.id, quantidade: 6 }] }, // múltiplo válido, dentro do estoque
     })
@@ -166,7 +167,7 @@ test.describe('Cenário 224 — Múltiplos do rendimento em produto com insumo n
 
     // Múltiplo de 2 (rendimento), quantidade bem acima do que o estoque atual (5) comportaria sem
     // permitir negativo — passa livremente porque permitirEstoqueNegativo=true no insumo.
-    const res = await request.post('http://localhost:8080/producoes', {
+    const res = await request.post(`${E2E_API_URL}/producoes`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { dataTerminoPrevista, produtos: [{ produtoId: produto.id, quantidade: 1000 }] },
     })

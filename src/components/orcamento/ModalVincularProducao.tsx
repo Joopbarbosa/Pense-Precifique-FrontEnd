@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { Search, X, Factory, Check, AlertCircle, AlertTriangle, ArrowLeft, Calendar, StickyNote, Plus } from 'lucide-react'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
+import TextArea from '../ui/TextArea'
 import Spinner from '../ui/Spinner'
 import EmptyState from '../ui/EmptyState'
 import { producaoService } from '../../services/producaoService'
@@ -189,13 +190,13 @@ export default function ModalVincularProducao({
             <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
               <StickyNote size={15} className="text-teal" /> Observações <span className="text-[11.5px] font-medium text-muted">(opcional)</span>
             </span>
-            <textarea
+            <TextArea
               value={formObservacoes}
-              onChange={(e) => setFormObservacoes(e.target.value)}
-              disabled={criandoNova}
+              onChange={setFormObservacoes}
               rows={3}
+              disabled={criandoNova}
+              textSize="text-sm"
               placeholder="Ex: separar embalagem especial para este pedido"
-              className="w-full resize-y rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-sm leading-[1.5] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
             />
           </label>
 

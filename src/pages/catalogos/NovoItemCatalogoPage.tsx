@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
+import ModalErro from '../../components/ui/ModalErro'
+import type { ErroExplicado } from '../../utils/apiError'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
+import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
+import TextArea from '../../components/ui/TextArea'
 import { Search, ChevronRight, Files, Box, Layers, Trash2, Plus, Check, ImagePlus, X } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { catalogoService } from '../../services/catalogoService'
@@ -33,6 +38,8 @@ const inputClass = (hasError?: boolean) => clsx(
 // ---------- Componente (Insumo XOR Produto-base, mesmo par de FichaTecnicaItem em Produto) ----------
 
 interface ComponenteLinha {
+  /** #641 (RN-NOVA-40) — só no seletor: false = inativo, riscado e sem poder escolher. */
+  ativo?: boolean
   id: string
   nome: string
   marca: string
@@ -140,18 +147,18 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
         setInsumos(
           ins
             .filter(i => i.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(i.id))
-            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true }))
+            .map(i => ({ id: i.id, nome: i.nome, marca: i.marca || '', un: i.unidadeMedida || 'un', custo: i.custoUnitario ?? 0, tipo: 'insumo' as const, fracionavel: i.fracionavel ?? true, ativo: i.ativo }))
         )
-        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id) && p.ativo)
+        const prodsFiltrados = prods.filter(p => p.nome.toLowerCase().includes(qLower) && !jaAdicionados.includes(p.id))
         setProdutos(
           prodsFiltrados
             .filter(p => p.tipo === 'PRODUTO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
         setCustomizacoes(
           prodsFiltrados
             .filter(p => p.tipo === 'CUSTOMIZACAO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
       } catch {
         setInsumos([])
@@ -172,7 +179,13 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
   const grupo = (titulo: string, itens: Omit<ComponenteLinha, 'qtd'>[]) => itens.length === 0 ? null : (
     <div key={titulo}>
       <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
-      {itens.map(i => (
+      {/* #641 (RN-NOVA-40) — inativo: riscado, com "Inativo", sem poder escolher (a API manda depois dos ativos). */}
+      {itens.map(i => i.ativo === false ? (
+        <OpcaoInativa key={i.id} className="px-[11px] py-2.5">
+          <span className="block truncate text-sm font-semibold">{i.nome}</span>
+          <span className="block text-xs">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
+        </OpcaoInativa>
+      ) : (
         <button
           key={i.id}
           onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
@@ -289,13 +302,16 @@ export default function NovoItemCatalogoPage() {
   const [precoEditadoManualmente, setPrecoEditadoManualmente] = useState(false)
   const [itemId, setItemId] = useState<string | null>(null)
 
-  // RN-NOVA-6/7 (#518) — foto e descrição são opcionais. Foto só pode ser anexada depois que o
-  // item já existe (endpoint dedicado exige itemId) — em criação, o card fica desabilitado até o
-  // primeiro "Adicionar item ao catálogo".
+  // RN-NOVA-6/7 (#518) — foto e descrição são opcionais. O endpoint da foto exige itemId: na criação
+  // a foto escolhida é enviada logo depois de "Adicionar item ao catálogo" (#440, RN-NOVA-46).
   const [descricao, setDescricao] = useState('')
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const [fotoEnviando, setFotoEnviando] = useState(false)
   const [fotoErro, setFotoErro] = useState<string | null>(null)
+  // #440 (RN-NOVA-46) — na criação a foto fica guardada e é enviada logo depois de salvar o item.
+  const [fotoPendente, setFotoPendente] = useState<File | null>(null)
+  const previaPendente = usePreviaArquivo(fotoPendente)
+  const [erroFoto, setErroFoto] = useState<{ erro: ErroExplicado; itemId: string } | null>(null)
 
   const [nomeErro, setNomeErro] = useState<string | null>(null)
   const [componentesErro, setComponentesErro] = useState<string | null>(null)
@@ -351,7 +367,9 @@ export default function NovoItemCatalogoPage() {
             setMargem((item.margemLucro ?? 0).toString())
             setModoMargem('personalizar')
             setPrecoSugerido(item.precoSugerido)
-            setPrecoEditadoManualmente(item.override)
+            // #579/RN-NOVA-30 — na edição o preço final é o gravado: o preview não o substitui pelo sugerido e
+            // ele vai sempre no request; só muda se a artesã digitar (mesmo comportamento de Produto).
+            setPrecoEditadoManualmente(true)
             setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
             // OpenProject #528 — ItemCatalogoComponenteResponse agora expõe fracionavelInsumo
@@ -441,7 +459,14 @@ export default function NovoItemCatalogoPage() {
   }
 
   const handleFotoSelecionada = async (arquivo: File | undefined) => {
-    if (!arquivo || !catalogoId || !itemId) return
+    if (!arquivo) return
+    if (!itemId) {
+      const e = erroArquivoImagem(arquivo)
+      setFotoErro(e)
+      if (!e) setFotoPendente(arquivo)
+      return
+    }
+    if (!catalogoId) return
     setFotoErro(null)
     setFotoEnviando(true)
     try {
@@ -455,7 +480,8 @@ export default function NovoItemCatalogoPage() {
   }
 
   const handleRemoverFoto = async () => {
-    if (!catalogoId || !itemId) return
+    if (!itemId) { setFotoPendente(null); return }
+    if (!catalogoId) return
     setFotoErro(null)
     setFotoEnviando(true)
     try {
@@ -485,10 +511,16 @@ export default function NovoItemCatalogoPage() {
         navigate(`/catalogos/${catalogoId}`)
       } else {
         const criado = await itemCatalogoService.adicionar(catalogoId, request)
-        // Fica na mesma tela, agora em modo edição do item recém-criado — upload de foto
-        // (RN-NOVA-6) exige itemId e só faria sentido depois de um 2º acesso via listagem.
-        setToast('Item adicionado. Agora você pode adicionar uma foto, se quiser.')
-        navigate(`/catalogos/itens/novo?catalogoId=${catalogoId}&itemId=${criado.id}`, { replace: true })
+        // #440 — com foto escolhida, envia logo depois; se falhar, o item continua salvo e a modal explica.
+        if (fotoPendente) {
+          try {
+            await itemCatalogoService.uploadFoto(catalogoId, criado.id, fotoPendente)
+          } catch (errFoto) {
+            setErroFoto({ itemId: criado.id, erro: erroFotoNaoEnviada('O item', extractApiError(errFoto, 'O envio da foto falhou.')) })
+            return
+          }
+        }
+        navigate(`/catalogos/${catalogoId}`)
       }
     } catch (err: any) {
       const msg = extractApiError(err, 'Erro ao salvar item do catálogo.')
@@ -658,13 +690,9 @@ export default function NovoItemCatalogoPage() {
             </div>
 
             <div className="grid grid-cols-[140px_1fr] gap-5 max-[560px]:grid-cols-1">
-              {!itemId ? (
-                <div className="grid h-[110px] w-[140px] place-items-center rounded-xl border border-dashed border-line bg-cream text-center text-[11px] text-muted max-[560px]:w-full">
-                  Salve o item para adicionar uma foto
-                </div>
-              ) : fotoUrl ? (
+              {(itemId ? fotoUrl : previaPendente) ? (
                 <div className="relative h-[110px] w-[140px] max-[560px]:w-full">
-                  <img src={fotoUrl} alt={nome} className="h-full w-full rounded-xl border border-line object-cover" />
+                  <img src={(itemId ? fotoUrl : previaPendente)!} alt={nome} data-testid="previa-foto" className="h-full w-full rounded-xl border border-line object-cover" />
                   <button
                     onClick={handleRemoverFoto}
                     disabled={fotoEnviando}
@@ -693,15 +721,15 @@ export default function NovoItemCatalogoPage() {
               )}
 
               <Field label="Descrição" size="md">
-                <textarea
+                {/* itens_catalogo.descricao continua em 150 — exceção mais restritiva da RN-NOVA-18 (DT-NOVA-11). */}
+                <TextArea
                   value={descricao}
-                  onChange={e => setDescricao(e.target.value.slice(0, 150))}
+                  onChange={setDescricao}
                   maxLength={150}
                   rows={3}
+                  textSize="text-[13.5px]"
                   placeholder="Aparece também no PDF do catálogo"
-                  className="w-full resize-none rounded-input border-[1.5px] border-line bg-white px-3.5 py-2.5 font-[inherit] text-[13.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
                 />
-                <span className="mt-1 block text-right text-[11px] text-dim">{descricao.length}/150</span>
               </Field>
             </div>
             {fotoErro && <span className="mt-2 block text-[12.5px] text-danger-deep">{fotoErro}</span>}
@@ -787,6 +815,8 @@ export default function NovoItemCatalogoPage() {
 
       <Toast message={toast} />
 
+      {erroFoto && <ModalErro erro={erroFoto.erro}
+        onOk={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogoId}&itemId=${erroFoto.itemId}`, { replace: true })} />}
     </AppLayout>
   )
 }

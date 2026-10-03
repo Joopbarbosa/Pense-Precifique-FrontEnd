@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import OpcaoInativa from '../shared/OpcaoInativa'
 import clsx from 'clsx'
 import { Layers, Box, Filter } from 'lucide-react'
 import { EstoqueTags, FracionavelBadge, EstoqueInsuficienteBadge } from '../ui/Badge'
@@ -182,7 +183,13 @@ export default function ItemSearch({
                 Itens de catálogo
               </div>
             )}
-            {itensCatalogo.map(item => (
+            {/* #641 (RN-NOVA-40) — item indisponível (catálogo ou componente inativo): riscado, com "Inativo", sem poder escolher. */}
+            {itensCatalogo.map(item => item.ativo === false ? (
+              <OpcaoInativa key={item.id} className="px-[11px] py-2.5">
+                <div className="truncate text-sm font-medium">{item.nome}</div>
+                <div className="text-xs">{item.catalogoNome}</div>
+              </OpcaoInativa>
+            ) : (
               <button
                 key={item.id}
                 data-search-row
@@ -217,7 +224,12 @@ export default function ItemSearch({
                 Produtos
               </div>
             )}
-            {produtos.map(p => (
+            {/* #616 (RN-NOVA-40) — produto inativo: riscado, com "Inativo", sem poder escolher. */}
+            {produtos.map(p => p.ativo === false ? (
+              <OpcaoInativa key={p.id} className="px-[11px] py-2.5">
+                <div className="truncate text-sm font-medium">{p.nome}</div>
+              </OpcaoInativa>
+            ) : (
               <button
                 key={p.id}
                 data-search-row

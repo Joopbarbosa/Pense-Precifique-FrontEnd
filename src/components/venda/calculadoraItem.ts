@@ -29,7 +29,9 @@ export async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Cal
   return {
     titulo,
     sugerido: detalhe.precoSugerido,
-    precoInicial: detalhe.precoSugerido,
+    // #659 (altera CEN-NOVO-4) — abre com o preço de venda cadastrado (o que a artesã digitou); o sugerido
+    // fica só como referência. Sem preço cadastrado, cai no sugerido.
+    precoInicial: detalhe.precoVenda ?? detalhe.precoSugerido,
     breakdown: [
       { label: 'Custo dos insumos', value: BRL(custoInsumos) },
       { label: 'Mão de obra', value: BRL(maoObra), sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h` },
@@ -49,13 +51,12 @@ export async function carregarCalculadoraCatalogo(catalogoId: string, itemId: st
   const item = itensDoCatalogo.find(i => i.id === itemId)
   if (!item) throw new Error('Item de catálogo não encontrado — composição pode ter mudado.')
   if (item.bloqueadoParaVenda) throw new Error(`Item "${item.nome}" tem componente inativo/excluído e não pode ser vendido.`)
-  // CEN-NOVO-4 (DECISOES_V0.8.4.md) — valor final inicia com o precoSugerido já
-  // calculado (não o precoVenda persistido, que pode já vir de override anterior no
-  // cadastro do Catálogo — aqui é uma nova confirmação, não a herança de uma antiga).
+  // #659 (V0.15.0, altera CEN-NOVO-4 da V0.8.4) — valor final inicia com o preço de venda cadastrado no
+  // item (o que a artesã digitou no Catálogo; nunca muda sozinho); o sugerido fica só como referência.
   return {
     titulo: 'Calculadora de Preço',
     sugerido: item.precoSugerido,
-    precoInicial: item.precoSugerido,
+    precoInicial: item.precoVenda ?? item.precoSugerido,
     breakdown: [
       { label: `${item.nome} × ${item.componentes.length} componente(s)`, value: BRL(item.precoSugerido) },
     ],

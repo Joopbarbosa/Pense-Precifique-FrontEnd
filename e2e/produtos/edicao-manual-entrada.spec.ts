@@ -1,9 +1,10 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 
-const PRODUTO_URL = 'http://localhost:8080/produtos'
+const PRODUTO_URL = `${E2E_API_URL}/produtos`
 
 /**
  * #534 (V0.14.0, RN-NOVA-5, réplica de #514) — direção ENTRADA (toggle "Acréscimo") do modal

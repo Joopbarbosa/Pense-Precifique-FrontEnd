@@ -1,8 +1,9 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect, APIRequestContext } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin } from './helpers/api'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 async function criarUnidadeViaApi(request: APIRequestContext, token: string, nome: string, sigla: string) {
   const res = await request.post(`${API_URL}/unidades-medida`, {

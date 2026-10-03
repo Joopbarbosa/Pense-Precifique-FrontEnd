@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -11,7 +12,7 @@ import {
   cancelarOrcamentoViaApi,
 } from '../helpers/orcamento'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * RN-NOVA-16 (V0.10.0, #476) — Customização (produto tipo CUSTOMIZACAO, produzível — tem ficha

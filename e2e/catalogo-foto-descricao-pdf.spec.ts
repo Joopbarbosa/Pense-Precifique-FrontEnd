@@ -1,8 +1,9 @@
+import { E2E_API_URL } from './helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import { apiLogin, criarInsumo } from './helpers/api'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #518 (RN-NOVA-6/7) — foto (JPG/PNG, máx. 5MB, opcional) e descrição (máx. 150
@@ -158,14 +159,8 @@ test.describe('RN-NOVA-6/7/8 — foto, descrição e PDF do Catálogo', () => {
     await page.waitForTimeout(900)
 
     await page.getByRole('button', { name: 'Adicionar item ao catálogo', exact: true }).click()
-    // Achado do teste manual: após criar, a tela permanece em modo edição do item recém-criado
-    // (não volta pro catálogo) — só assim "Adicionar foto" fica disponível sem um 2º acesso via
-    // listagem (RN-NOVA-6 exige itemId já existente).
-    await expect(page).toHaveURL(/itemId=/, { timeout: 10_000 })
-    await expect(page.getByText('Item adicionado. Agora você pode adicionar uma foto, se quiser.')).toBeVisible()
-    await expect(page.getByText('Adicionar foto')).toBeVisible()
-
-    await page.goto(`/catalogos/${catalogo.id}`)
+    // #440: foto opcional agora é enviada durante a criação e a tela volta ao catálogo.
+    await expect(page).toHaveURL(new RegExp(`/catalogos/${catalogo.id}$`), { timeout: 10_000 })
     await expect(page.getByText(descricao)).toBeVisible()
 
     const itens = await (await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {

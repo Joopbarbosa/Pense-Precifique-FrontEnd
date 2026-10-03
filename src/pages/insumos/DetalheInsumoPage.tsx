@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
+import { BigNumber, BigNumberGroup } from '../../components/ui/BigNumber'
 import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
-import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers } from 'lucide-react'
+import TextArea from '../../components/ui/TextArea'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers, Truck } from 'lucide-react'
+import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { BRL } from '../../components/venda/formato'
 
 const numQtd = (s: string) => {
   const fracao = tentarConverterFracao(s)
@@ -20,11 +24,8 @@ const numQtd = (s: string) => {
   return parseFloat((s || '').replace(',', '.')) || 0
 }
 
-const moeda = (n: number, dec?: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', {
-    minimumFractionDigits: dec != null ? dec : (n < 0.1 ? 3 : 2),
-    maximumFractionDigits: dec != null ? dec : 3,
-  })
+// #603 (RN-NOVA-33): sempre 2 casas na tela; o custo unitário continua com 4 por dentro.
+const moeda = BRL
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR')
@@ -44,15 +45,27 @@ const hexA = (hex: string, a: number) => {
 
 function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; tipoDisplay: 'entrada' | 'saida' | 'estorno' } {
   if (m.motivo === 'ESTORNO_PRODUCAO') return { titulo: 'Estorno — Cancelamento Produção', tipoDisplay: 'estorno' }
+  if (m.motivo === 'ESTORNO_COMPRA') return { titulo: 'Estorno — Cancelamento Compra', tipoDisplay: 'estorno' }
   const labelsEntrada: Record<string, string> = { COMPRA: 'Compra' }
   if (m.tipo === 'ENTRADA') return { titulo: `Entrada — ${labelsEntrada[m.motivo] ?? MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'entrada' }
   return { titulo: `Saída — ${MOTIVO_LABEL[m.motivo] ?? m.motivo}`, tipoDisplay: 'saida' }
 }
 
-function refText(m: MovimentacaoInsumoResponse): string {
-  const labels: Record<string, string> = { PRODUCAO: 'Produção', ORCAMENTO: 'Orçamento', LOTE_COMPRA: 'Compra' }
-  if (m.referenciaTipo && m.referenciaId) return `${labels[m.referenciaTipo] ?? m.referenciaTipo} #${m.referenciaId.slice(0, 8)}`
-  return ''
+// V0.15.0 (#542, RN-NOVA-7) — a referência é o identificador legível que vem pronto da API
+// (`referencia`), nunca o ID interno; leva ao detalhe da origem. Venda do Caixa (CX-N) não tem
+// página de detalhe, então fica só o texto.
+const ROTA_REFERENCIA: Record<string, (id: string) => string> = {
+  PRODUCAO: id => `/producao/${id}`,
+  ORCAMENTO: id => `/orcamentos/${id}`,
+  COMPRA: id => `/compras/${id}`,
+}
+
+function Referencia({ m }: { m: MovimentacaoInsumoResponse }) {
+  if (!m.referencia) return null
+  const rota = m.referenciaTipo && m.referenciaId ? ROTA_REFERENCIA[m.referenciaTipo] : undefined
+  return rota
+    ? <Link to={rota(m.referenciaId!)} className="font-semibold text-teal no-underline hover:underline">{m.referencia}</Link>
+    : <span>{m.referencia}</span>
 }
 
 function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
@@ -188,27 +201,15 @@ function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
         <label>
           <span className="mb-[7px] block text-[13px] font-semibold text-body">
             Observação <span className="text-orange">*</span>
-            <span className={clsx('ml-2 font-normal', obs.length >= 30 ? 'text-success' : 'text-muted')}>
-              {obs.length}/30 caracteres mín.
-            </span>
           </span>
-          <textarea
+          <TextArea
             value={obs}
-            onChange={e => setObs(e.target.value)}
-            placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
+            onChange={setObs}
             rows={3}
-            className={clsx(
-              'h-auto w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-3 font-[inherit] text-[14.5px] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-              obs.length > 0 && obs.length < 30
-                ? 'border-[#F2B8A6]'
-                : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
-            )}
+            minimo={30}
+            erro={obs.length > 0 && obs.length < 30 ? `Mínimo de 30 caracteres. Faltam ${30 - obs.length}.` : undefined}
+            placeholder="Descreva o motivo da baixa em detalhes (ex: 3 folhas ficaram manchadas durante o transporte e não podem ser usadas)"
           />
-          {obs.length > 0 && obs.length < 30 && (
-            <div className="mt-1.5 flex items-center gap-[5px] text-[12.5px] text-danger">
-              <AlertCircle size={13} /> Mínimo de 30 caracteres. Faltam {30 - obs.length}.
-            </div>
-          )}
         </label>
         {error && (
           <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
@@ -250,7 +251,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
         const deltaClass = positivo && !isEstorno ? 'text-success' : 'text-danger'
         const deltaT = (positivo ? '+ ' : '− ') + formatQuantidade(m.quantidade, fracionavel, tipoExibicaoQuantidade) + ` ${unidade}`
         const riscado = m.estornada
-        const ref = refText(m)
+        const ref = m.referencia ? <Referencia m={m} /> : null
 
         return (
           <React.Fragment key={m.id}>
@@ -268,7 +269,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
                 {deltaT}
               </div>
               <div className={clsx('text-[13.5px] text-dark [font-variant-numeric:tabular-nums]', riscado && 'line-through')}>
-                {m.custoUnitario != null ? moeda(m.custoUnitario, 2) : '—'}
+                {m.custoUnitario != null ? moeda(m.custoUnitario) : '—'}
               </div>
               <div className={clsx(
                 'text-[13px]',
@@ -302,7 +303,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
               )}>
                 <span className="[font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</span>
                 <span className="text-[#D8D4CC]">·</span>
-                <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario, 2) : '—'}</span>
+                <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario) : '—'}</span>
                 {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
               </div>
               {m.observacao && (
@@ -371,7 +372,7 @@ export default function DetalheInsumoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [modal, setModal] = useState<'baixa' | null>(null)
-  const [aba, setAba] = useState<'historico' | 'fichas'>('historico')
+  const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores'>('historico')
   const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
   const [histPage, setHistPage] = useState(0)
@@ -384,6 +385,7 @@ export default function DetalheInsumoPage() {
   const ABAS = [
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: History, size: 17 },
     { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Layers, size: 18 },
+    { id: 'fornecedores' as const, label: 'Fornecedores', icon: Truck, size: 17 },
   ]
 
   useEffect(() => {
@@ -502,31 +504,17 @@ export default function DetalheInsumoPage() {
         </div>
       </div>
 
-      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
-          {[
-            { k: 'Unidade de medida',    v: insumo.unidadeMedida },
-            { k: 'Saldo atual',          v: `${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}`, big: true, warn: isLow },
-            { k: 'Estoque mínimo',       v: insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}` : '—' },
-            { k: 'Custo unitário atual', v: `${moeda(insumo.custoUnitario, 2)} / ${insumo.unidadeMedida}`, accent: true },
-          ].map((c, i) => (
-            <div key={i} className="bg-white px-5 py-[18px]">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{c.k}</div>
-              <div className={clsx(
-                'mt-[7px] [font-variant-numeric:tabular-nums]',
-                c.big ? 'text-[28px] font-bold tracking-[-0.02em]' : c.accent ? 'text-lg font-bold' : 'text-base font-semibold',
-                c.warn ? 'text-warning' : (c.big || c.accent) ? 'text-teal' : 'text-dark'
-              )}>
-                {c.v}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-[11px] border-t border-line px-5 py-4">
-          <Button variant="ghost" icon={<Minus size={17} />} onClick={() => setModal('baixa')}>
-            Edição manual
-          </Button>
-        </div>
+      {/* #604 (RN-NOVA-34) — cartões padrão com esconder/mostrar; #603: custo com 2 casas. */}
+      <div className="animate-[fadeUp_.4s_ease_both]">
+        <BigNumberGroup tela="detalhe-insumo" testid="numeros-insumo" colunas="sm:grid-cols-2 xl:grid-cols-4"
+          acoes={<Button variant="ghost" size="sm" icon={<Minus size={15} />} onClick={() => setModal('baixa')}>Edição manual</Button>}>
+          <BigNumber titulo="Unidade de medida" valor={insumo.unidadeMedida} />
+          <BigNumber titulo="Saldo atual" tom={isLow ? 'aviso' : 'destaque'}
+            valor={`${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}`} />
+          <BigNumber titulo="Estoque mínimo"
+            valor={insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}` : '—'} />
+          <BigNumber titulo="Custo unitário atual" destaque valor={`${moeda(insumo.custoUnitario)} / ${insumo.unidadeMedida}`} />
+        </BigNumberGroup>
       </div>
 
       <div className="mt-[26px] flex gap-1 overflow-x-auto border-b-[1.5px] border-line">
@@ -565,8 +553,10 @@ export default function DetalheInsumoPage() {
               <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida} fracionavel={insumo.fracionavel} tipoExibicaoQuantidade={insumo.tipoExibicaoQuantidade} />
             )}
           </>
-        ) : (
+        ) : aba === 'fichas' ? (
           <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
+        ) : (
+          <VinculosFornecedorInsumo modo="insumo" id={insumo.id} />
         )}
       </div>
 

@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -13,8 +14,8 @@ import {
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
 
-const PRODUTO_URL = 'http://localhost:8080/produtos'
-const INSUMO_URL = 'http://localhost:8080/insumos'
+const PRODUTO_URL = `${E2E_API_URL}/produtos`
+const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * Homologação P-QA-003 / OpenProject #120 — Finalizar Produção (Fluxo C), cenários 168-169.
@@ -224,7 +225,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
       headers: { Authorization: `Bearer ${token}` },
     })).json()
 
-    const res = await request.post(`http://localhost:8080/producoes/${producao.id}/finalizar`, {
+    const res = await request.post(`${E2E_API_URL}/producoes/${producao.id}/finalizar`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { perdas: [{ produtoId: produto.id, quantidadePerdida: 3 }] },
     })
@@ -250,7 +251,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
     const producao = await criarProducaoEmAndamento(request, token, [{ produtoId: produto.id, quantidade: 5 }])
     criadasProducaoIds.push(producao.id)
 
-    const res = await request.post(`http://localhost:8080/producoes/${producao.id}/finalizar`, {
+    const res = await request.post(`${E2E_API_URL}/producoes/${producao.id}/finalizar`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { perdas: [{ produtoId: produto.id, quantidadePerdida: 11 }] },
     })

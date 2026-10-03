@@ -5,6 +5,16 @@ import CadastroPage from '../pages/auth/CadastroPage'
 import OnboardingPage from '../pages/auth/OnboardingPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
 import ClientesPage from '../pages/clientes/ClientesPage'
+import FormClientePage from '../pages/clientes/FormClientePage'
+import DetalheClientePage from '../pages/clientes/DetalheClientePage'
+import ComprasPage from '../pages/compras/ComprasPage'
+import DashboardComprasPage from '../pages/compras/DashboardComprasPage'
+import FormCompraPage from '../pages/compras/FormCompraPage'
+import DetalheCompraPage from '../pages/compras/DetalheCompraPage'
+import PreviewPdfCompraPage from '../pages/compras/PreviewPdfCompraPage'
+import ListaComprasPage from '../pages/compras/ListaComprasPage'
+import DetalheListaCompraPage from '../pages/compras/DetalheListaCompraPage'
+import PreviewPdfListaCompraPage from '../pages/compras/PreviewPdfListaCompraPage'
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
 import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
@@ -43,7 +53,10 @@ export const router = createBrowserRouter([
       { path: '/onboarding', element: <OnboardingPage /> },
 
       { path: '/dashboard',  element: <DashboardPage /> },
-      { path: '/clientes',   element: <ClientesPage /> },
+      { path: '/clientes',            element: <ClientesPage /> },
+      { path: '/clientes/novo',       element: <FormClientePage /> },
+      { path: '/clientes/:id/editar', element: <FormClientePage /> },
+      { path: '/clientes/:id',        element: <DetalheClientePage /> },
 
       { path: '/orcamentos',                          element: <ListaOrcamentosPage /> },
       { path: '/orcamentos/novo',                     element: <CriarOrcamentoPage /> },
@@ -56,6 +69,16 @@ export const router = createBrowserRouter([
       { path: '/orcamentos/:id/recibo-estorno',       element: <ReciboEstornoPage /> },
 
       { path: '/caixa',                element: <CaixaPage /> },
+
+      { path: '/compras',              element: <ComprasPage /> },
+      { path: '/compras/dashboard',    element: <DashboardComprasPage /> },
+      { path: '/compras/nova',         element: <FormCompraPage /> },
+      { path: '/compras/lista',        element: <ListaComprasPage /> },
+      { path: '/compras/lista/:id',    element: <DetalheListaCompraPage /> },
+      { path: '/compras/lista/:id/pdf', element: <PreviewPdfListaCompraPage /> },
+      { path: '/compras/:id/editar',   element: <FormCompraPage /> },
+      { path: '/compras/:id',          element: <DetalheCompraPage /> },
+      { path: '/compras/:id/pdf',      element: <PreviewPdfCompraPage /> },
 
       { path: '/insumos',              element: <ListaInsumosPage /> },
       { path: '/insumos/novo',         element: <FormInsumoPage /> },

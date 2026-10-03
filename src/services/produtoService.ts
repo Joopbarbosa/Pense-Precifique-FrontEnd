@@ -6,8 +6,10 @@ import type { PageResponse } from '../types/shared'
 export const produtoService = {
   // #459 (V0.10.0, parent #336) — ativo filtra server-side (era sem filtro nenhum: a categoria
   // "Inativos" mostrava a mesma lista que "Todos", mesma classe de bug do #336 original).
-  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean, ativo?: boolean): Promise<PageResponse<ProdutoResponse>> => {
+  // #616 (RN-NOVA-40) — `incluirInativos`: seletores mostram os inativos depois dos ativos (ignora `ativo`).
+  listar: async (page: number, size = 20, tipo?: string, busca?: string, semCatalogo?: boolean, ativo?: boolean, incluirInativos = false): Promise<PageResponse<ProdutoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort: 'nome' }
+    if (incluirInativos) params.incluirInativos = true
     if (tipo) params.tipo = tipo
     if (busca) params.busca = busca
     if (semCatalogo) params.semCatalogo = true
@@ -67,7 +69,8 @@ export const produtoService = {
   // #347 — ativo=true filtra já na busca (antes só bloqueava ao salvar a ficha técnica, deixando
   // inativos aparecerem/serem selecionáveis na lista de resultados).
   buscarInsumos: async (busca: string): Promise<InsumoResponse[]> => {
-    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome', ativo: true } })
+    // #641 (RN-NOVA-40) — incluirInativos: o seletor da ficha técnica mostra o inativo riscado, sem poder escolher.
+    const response = await api.get('/insumos', { params: { page: 0, size: 20, busca, sort: 'nome', incluirInativos: true } })
     return response.data.content
   },
 
@@ -75,7 +78,7 @@ export const produtoService = {
   // ativos, agora podem ser componente de ficha técnica. Antes só tipo=PRODUTO.
   // #347 — ativo=true filtra já na busca (mesmo motivo de buscarInsumos acima).
   buscarProdutosComponente: async (busca: string): Promise<ProdutoResponse[]> => {
-    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome', ativo: true } })
+    const response = await api.get('/produtos', { params: { page: 0, size: 20, busca, sort: 'nome', incluirInativos: true } })
     return response.data.content
   },
 

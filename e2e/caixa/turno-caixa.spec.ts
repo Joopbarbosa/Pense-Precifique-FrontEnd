@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -104,7 +105,7 @@ test.describe('#488 — Turno de Caixa', () => {
     // no repositório de backend) — no Frontend não há caminho para tentar abrir um 2º, porque
     // AbrirCaixaView só renderiza quando GET /caixa/turnos/atual não encontra nenhum.
     const token = await apiLogin(request)
-    await request.post('http://localhost:8080/caixa/turnos', {
+    await request.post(`${E2E_API_URL}/caixa/turnos`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { valorAbertura: 50 },
     })

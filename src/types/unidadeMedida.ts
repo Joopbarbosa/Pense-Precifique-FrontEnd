@@ -9,6 +9,8 @@ export interface UnidadeMedidaResponse {
   id: string
   nome: string
   sigla: string
+  /** #605 (Alteração de INS-015) — unidade do sistema: sem editar nem excluir. */
+  padrao: boolean
   createdAt: string
   updatedAt: string
 }

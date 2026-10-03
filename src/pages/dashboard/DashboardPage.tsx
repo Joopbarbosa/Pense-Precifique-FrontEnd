@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui'
+import { BigNumber, BigNumberGroup, Button } from '../../components/ui'
 import { Box, Factory, FileText, ArrowRight, DollarSign, Files, AlertTriangle } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { dashboardService } from '../../services/dashboardService'
@@ -12,45 +12,9 @@ import type { DashboardResponse } from '../../types/dashboard'
 import type { InsumoResponse } from '../../types/insumo'
 import type { StatusOrcamento } from '../../types'
 
-function hexA(hex: string, a: number): string {
-  const h = hex.replace('#', '')
-  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16)
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
-}
 
 function fmtBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-// ── MetricCard ─────────────────────────────────────────────────────────────
-interface MetricProps {
-  icon: React.ReactNode
-  iconBg: string
-  iconColor: string
-  label: string
-  value: string
-  valueColor: string
-  sub?: string
-}
-
-function MetricCard({ icon, iconBg, iconColor, label, value, valueColor, sub }: MetricProps) {
-  return (
-    <Card padding="20px 22px" className="animate-[fadeUp_.45s_ease_both]">
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-[13.5px] font-medium text-dim">{label}</span>
-        <span
-          className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-xl"
-          style={{ background: iconBg, color: iconColor }}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-2.5 text-[30px] font-bold leading-[1.1] tracking-[-0.02em]" style={{ color: valueColor }}>
-        {value}
-      </div>
-      <div className="mt-[9px] text-[12.5px] text-faint">{sub ?? ' '}</div>
-    </Card>
-  )
 }
 
 // ── Status labels ───────────────────────────────────────────────────────────
@@ -67,8 +31,6 @@ const STATUS_LABEL: Record<StatusOrcamento, string> = {
   CANCELADO:        'Cancelado',
 }
 
-const ORANGE = '#F97316'
-const TEAL   = '#2A9D8F'
 
 const ACOES_RAPIDAS = [
   { label: 'Cadastrar insumo',  icon: <Box size={20} />,      rota: '/insumos/novo'    },
@@ -133,35 +95,19 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Metrics */}
-      <div className="grid grid-cols-1 gap-section md:grid-cols-3">
-        <MetricCard
-          icon={<DollarSign size={22} />}
-          iconBg={hexA(ORANGE, 0.12)} iconColor={ORANGE}
-          label="Faturamento do Mês"
-          value={loading ? '—' : fmtBRL(data?.receitaMes ?? 0)}
-          valueColor={ORANGE}
-          sub={!loading && (data?.receitaMes ?? 0) === 0 ? 'Sem receita este mês' : undefined}
-        />
-        <MetricCard
-          icon={<Box size={20} />}
-          iconBg={hexA(TEAL, 0.12)} iconColor={TEAL}
-          label="Produtos Cadastrados"
-          value={loading ? '—' : String(produtosCadastrados)}
-          valueColor={TEAL}
-          sub={!loading && produtosCadastrados === 0 ? 'Nenhum produto ainda' : undefined}
-        />
-        <MetricCard
-          icon={<Files size={22} />}
-          iconBg="#F1F0EC" iconColor="#7C786F"
-          label="Orçamentos Pendentes"
-          value={loading ? '—' : String(data?.orcamentosPendentes ?? 0)}
-          valueColor="#2D2A26"
-          sub={!loading && (data?.orcamentosPendentes ?? 0) === 0
-            ? 'Nenhum pendente'
-            : !loading ? 'Aguardando resposta' : undefined}
-        />
-      </div>
+      {/* Números — #604 (RN-NOVA-34): cartão padrão com esconder/mostrar. */}
+      <BigNumberGroup tela="dashboard-inicial" testid="numeros-dashboard-inicial" colunas="md:grid-cols-3">
+        <BigNumber icone={<DollarSign size={14} />} titulo="Faturamento do mês" destaque
+          valor={loading ? '—' : fmtBRL(data?.receitaMes ?? 0)}>
+          {!loading && (data?.receitaMes ?? 0) === 0 && <span>Sem receita este mês</span>}
+        </BigNumber>
+        <BigNumber icone={<Box size={14} />} titulo="Produtos cadastrados" valor={loading ? '—' : String(produtosCadastrados)}>
+          {!loading && produtosCadastrados === 0 && <span>Nenhum produto ainda</span>}
+        </BigNumber>
+        <BigNumber icone={<Files size={14} />} titulo="Orçamentos pendentes" valor={loading ? '—' : String(data?.orcamentosPendentes ?? 0)}>
+          {!loading && <span>{(data?.orcamentosPendentes ?? 0) === 0 ? 'Nenhum pendente' : 'Aguardando resposta'}</span>}
+        </BigNumber>
+      </BigNumberGroup>
 
       {/* Alerta de insumos com estoque baixo */}
       {!loading && insumosEstoqueBaixo.length > 0 && (

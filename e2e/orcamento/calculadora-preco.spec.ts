@@ -1,3 +1,4 @@
+import { E2E_API_URL, E2E_BROWSER_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -11,7 +12,7 @@ import {
 import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #399 — ORC-020 (REVISÃO)/RN-NOVA-22 (REVISÃO)/RN-NOVA-23/RN-NOVA-1/RN-NOVA-2/
@@ -74,6 +75,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await expect(page.getByText('PREÇO SUGERIDO')).toBeVisible()
     const sugerido = await lerPrecoSugerido(page)
     expect(sugerido).toBeGreaterThan(0)
+    await expect(precoFinalInput(page)).toHaveValue((produto.precoVenda as number).toFixed(2).replace('.', ','))
 
     await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     await expect(page.getByText(produto.nome, { exact: true })).toBeVisible()
@@ -152,6 +154,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await expect(page.getByText('Calculadora de Preço').first()).toBeVisible()
     const sugerido = await lerPrecoSugerido(page)
     expect(sugerido).toBe((itens[0] as { precoSugerido: number }).precoSugerido)
+    await expect(precoFinalInput(page)).toHaveValue((itens[0] as { precoVenda: number }).precoVenda.toFixed(2).replace('.', ','))
 
     await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     await expect(page.getByText(`QA-399d-Item-${ts}`, { exact: true })).toBeVisible()
@@ -202,7 +205,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await login(page)
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
-    await page.route(`${API_URL}/configuracoes/precificacao`, route => route.fulfill({ status: 500, body: '{}' }))
+    await page.route(`${E2E_BROWSER_API_URL}/configuracoes/precificacao`, route => route.fulfill({ status: 500, body: '{}' }))
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
     await page.getByText(produto.nome, { exact: true }).click()
 
@@ -234,7 +237,7 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     catalogoIds.push(catalogo.id)
     const item = itens[0] as { id: string; nome: string }
 
-    await page.route(`${API_URL}/catalogos/${catalogo.id}/itens`, async route => {
+    await page.route(`${E2E_BROWSER_API_URL}/catalogos/${catalogo.id}/itens`, async route => {
       const res = await route.fetch()
       const body = await res.json()
       const atualizado = (body as Array<Record<string, unknown>>).map(i =>

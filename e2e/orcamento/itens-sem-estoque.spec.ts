@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -5,7 +6,7 @@ import { criarProdutoComEstoque, criarProdutoComFichaEEstoque, inativarProduto }
 import { criarInsumoFracionavel } from '../helpers/insumo'
 import { criarCliente, criarOrcamentoViaApi, criarProducaoVinculadaViaApi } from '../helpers/orcamento'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * Bloco 2/P-TESTE-001 (V0.6.1) — RN-NOVA-5 (#194): backend implementa o endpoint somente leitura

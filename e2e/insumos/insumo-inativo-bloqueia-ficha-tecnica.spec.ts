@@ -1,19 +1,19 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin, criarInsumo, inativarInsumo } from '../helpers/api'
 import { inativarProduto } from '../helpers/producao'
 
-const API_URL = 'http://localhost:8080'
+const API_URL = E2E_API_URL
 
 /**
  * OpenProject #228 — Insumo inativo não pode ser adicionado a nova ficha técnica (INS-011).
  * CEN-NOVO-12 (DECISOES_V0.7.md, RN-NOVA-8).
  *
- * Desde #347 (V0.14.0) a busca de componente envia `ativo=true` — o insumo inativo não aparece mais
- * na busca (antes aparecia e só era barrado ao salvar). O bloqueio ao salvar continua no backend
- * (`FichaTecnicaService`), mas não é mais alcançável pela UI.
+ * #641 (V0.15.0) passou a mostrar o insumo inativo riscado e indisponível na busca.
+ * O bloqueio ao salvar continua no backend (`FichaTecnicaService`).
  */
-test.describe('OpenProject #228/#347 — Insumo inativo fora da busca de ficha técnica', () => {
+test.describe('OpenProject #228/#347/#641 — Insumo inativo indisponível na ficha técnica', () => {
   let insumoId: string
   let insumoNome: string
   let produtoId: string | null = null
@@ -32,7 +32,7 @@ test.describe('OpenProject #228/#347 — Insumo inativo fora da busca de ficha t
     await inativarInsumo(request, token, insumoId) // soft-delete permanente — limpeza final
   })
 
-  test('CEN-NOVO-12 — insumo inativo não aparece na busca de componente da ficha técnica', async ({ page }) => {
+  test('CEN-NOVO-12/RN-NOVA-40 — insumo inativo aparece riscado e não pode ser escolhido', async ({ page }) => {
     await login(page)
     await page.goto('/produtos/novo')
     await page.getByPlaceholder('Ex: Kit Convite Casamento').fill(`QA-CEN12-Produto-${Date.now()}`)
@@ -41,7 +41,10 @@ test.describe('OpenProject #228/#347 — Insumo inativo fora da busca de ficha t
 
     const busca = page.getByPlaceholder('Buscar insumo ou produto...')
     await busca.fill(insumoNome)
-    await expect(page.getByText('Nenhum componente encontrado')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(insumoNome, { exact: true })).toHaveCount(0)
+    const opcao = page.getByTestId('opcao-inativa').filter({ hasText: insumoNome })
+    await expect(opcao).toBeVisible({ timeout: 5000 })
+    await expect(opcao).toHaveAttribute('aria-disabled', 'true')
+    await opcao.click()
+    await expect(page.getByText('Nenhum componente ainda. Use a busca acima para adicionar.')).toBeVisible()
   })
 })

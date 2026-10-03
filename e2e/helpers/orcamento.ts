@@ -5,7 +5,8 @@ import { resolverUnidadeMedidaId } from './unidadeMedida'
 export async function criarCliente(request: APIRequestContext, token: string, nome: string) {
   const res = await request.post(`${API_URL}/clientes`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: { nome },
+    // V0.15.0 (#536): papel obrigatório — sem ele o POST /clientes responde 400.
+    data: { nome, ehCliente: true, ehFornecedor: false },
   })
   if (!res.ok()) {
     throw new Error(`Falha ao criar cliente de teste: ${res.status()} ${await res.text()}`)

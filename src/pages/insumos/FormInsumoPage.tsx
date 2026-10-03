@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
 import ModalShell from '../../components/ui/ModalShell'
 import SegmentedControl from '../../components/ui/SegmentedControl'
+import type { RegraPrecoReferencia } from '../../types/insumo'
 import SectionTitle from '../../components/shared/SectionTitle'
 import Spinner from '../../components/ui/Spinner'
 import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
@@ -68,6 +69,12 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+const DICA_REGRA: Record<RegraPrecoReferencia, string> = {
+  MEDIA: 'Média do preço pago (pela quantidade) nas compras confirmadas de cada fornecedor nos últimos 12 meses. A lista de compras sugere o fornecedor de menor preço.',
+  MENOR_VALOR: 'Menor preço pago nas compras confirmadas de cada fornecedor nos últimos 12 meses.',
+  MANUAL: 'O preço que você digitar no vínculo com o fornecedor; as compras não mudam o valor.',
+}
+
 export default function FormInsumoPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -88,6 +95,7 @@ export default function FormInsumoPage() {
   const [precoTocado, setPrecoTocado] = useState(false)
   const [qtdTocado, setQtdTocado] = useState(false)
   const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
+  const [regraPreco, setRegraPreco] = useState<RegraPrecoReferencia>('MEDIA')
   const [modal, setModal] = useState<'desativar' | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
@@ -121,6 +129,7 @@ export default function FormInsumoPage() {
           setMinimo(data.estoqueMinimo?.toString() ?? '')
           setCustoUnitarioExistente(data.custoUnitario)
           setPermitirEstoqueNegativo(data.permitirEstoqueNegativo)
+          setRegraPreco(data.regraPrecoReferencia ?? 'MEDIA')
         })
         .catch(() => setError('Não foi possível carregar os dados do insumo.'))
         .finally(() => setLoadingData(false))
@@ -185,6 +194,7 @@ export default function FormInsumoPage() {
           tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
           estoqueMinimo: minimo ? num(minimo) : undefined,
           permitirEstoqueNegativo,
+          regraPrecoReferencia: regraPreco,
         }
         await insumoService.editar(id, data)
         navigate(`/insumos/${id}`)
@@ -199,6 +209,7 @@ export default function FormInsumoPage() {
           precoTotalCompraInicial: preco,
           quantidadeCompradaInicial: qComprada,
           permitirEstoqueNegativo,
+          regraPrecoReferencia: regraPreco,
         }
         const novoInsumo = await insumoService.cadastrar(data)
         navigate(`/insumos/${novoInsumo.id}`)
@@ -253,7 +264,7 @@ export default function FormInsumoPage() {
       </div>
 
       {/* CARD FORM */}
-      <div className="max-w-[760px] animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+      <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
         {/* SEÇÃO 1 — Identificação */}
         <div className="border-b border-line px-[26px] py-6">
@@ -460,6 +471,20 @@ export default function FormInsumoPage() {
               </span>
             </span>
           </label>
+          {/* #590 (RN-NOVA-39) — regra do preço de referência, vale para todos os fornecedores deste insumo. */}
+          <div className="mt-5 max-w-[520px]">
+            <Field label="Regra do preço de referência" group hint={DICA_REGRA[regraPreco]}>
+              <SegmentedControl
+                options={[
+                  { value: 'MEDIA' as RegraPrecoReferencia, label: 'Média' },
+                  { value: 'MENOR_VALOR' as RegraPrecoReferencia, label: 'Menor valor' },
+                  { value: 'MANUAL' as RegraPrecoReferencia, label: 'Manual' },
+                ]}
+                value={regraPreco}
+                onChange={setRegraPreco}
+              />
+            </Field>
+          </div>
           {estoqueNegativoErro && (
             <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-[#FECACA] bg-danger-bg-soft px-5 py-[18px]">
               <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-[#DC2626] shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">

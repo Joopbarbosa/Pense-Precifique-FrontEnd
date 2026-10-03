@@ -1,3 +1,4 @@
+import { E2E_API_URL } from '../helpers/target'
 import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
@@ -68,7 +69,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     await teardownProducoes(request, token, criadasProducaoIds)
     for (const id of criadosProdutoIds) await inativarProduto(request, token, id)
     for (const id of criadosInsumoIds) {
-      await request.delete(`http://localhost:8080/insumos/${id}`, {
+      await request.delete(`${E2E_API_URL}/insumos/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => {})
     }
@@ -82,7 +83,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
 
-    const insumoAntes = await (await request.get(`http://localhost:8080/insumos/${insumo.id}`, {
+    const insumoAntes = await (await request.get(`${E2E_API_URL}/insumos/${insumo.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
 
@@ -105,7 +106,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
     const producaoApi = await buscarProducao(request, token, idProducao)
     expect(producaoApi.estado).toBe('AGUARDANDO_INICIO')
 
-    const insumoDepois = await (await request.get(`http://localhost:8080/insumos/${insumo.id}`, {
+    const insumoDepois = await (await request.get(`${E2E_API_URL}/insumos/${insumo.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
     expect(insumoDepois.estoqueAtual).toBe(insumoAntes.estoqueAtual)

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
-import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag } from 'lucide-react'
+import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
@@ -23,8 +23,24 @@ const GRUPO_VENDAS = {
   ],
 } as const
 
+// V0.15.0 (RN-NOVA-16, DT-NOVA-13) — grupo Compras, mesmo padrão recolhível de Vendas.
+// "Minhas compras" (/compras) fica ativo também em registrar/detalhe/edição de uma compra, mas não
+// em /compras/lista, que tem item próprio. #567: "Registrar compra" saiu do menu — o botão fica em
+// Minhas compras.
+const GRUPO_COMPRAS = {
+  id: 'compras',
+  label: 'Compras',
+  itens: [
+    // #598 (RN-NOVA-37) — Dashboard vira o primeiro item do grupo.
+    { id: 'compras-dashboard', label: 'Dashboard',     icon: BarChart3,     size: 20, href: '/compras/dashboard' },
+    { id: 'compras-minhas', label: 'Minhas compras',   icon: ClipboardList, size: 20, href: '/compras',
+      ativoEm: (path: string) => path === '/compras' || (path.startsWith('/compras/') && !path.startsWith('/compras/lista') && !path.startsWith('/compras/dashboard')) },
+    { id: 'compras-lista',  label: 'Lista de compras', icon: ShoppingCart,  size: 20, href: '/compras/lista' },
+  ],
+} as const
+
 const NAV_RESTANTE = [
-  { id: 'clientes',  label: 'Clientes',      icon: Users,    size: 20, href: '/clientes' },
+  { id: 'clientes',  label: 'Clientes e Fornecedores', icon: Users, size: 20, href: '/clientes' },
   { id: 'insumos',   label: 'Insumos',       icon: Package,  size: 20, href: '/insumos' },
   { id: 'produtos',  label: 'Produtos',      icon: Box,      size: 20, href: '/produtos' },
   { id: 'catalogos', label: 'Catálogos',     icon: Files,    size: 22, href: '/catalogos' },
@@ -33,7 +49,7 @@ const NAV_RESTANTE = [
 ] as const
 
 interface SidebarProps {
-  active: 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config'
+  active: 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config'
   open: boolean
   onClose: () => void
   collapsed: boolean
@@ -46,37 +62,42 @@ interface NavItemDef {
   icon: typeof LayoutGrid
   size: number
   href: string
+  /** Regra de "ativo" própria (default: prefixo da URL, comportamento do NavLink). */
+  ativoEm?: (pathname: string) => boolean
 }
 
 function renderNavItem(
-  { id, label, icon: Icon, size, href }: NavItemDef,
+  { id, label, icon: Icon, size, href, ativoEm }: NavItemDef,
   collapsed: boolean,
   onClick: () => void,
   indent = false,
+  pathname = '',
 ) {
+  const ativo = (isActive: boolean) => ativoEm ? ativoEm(pathname) : isActive
   return (
     <NavLink
       key={id}
       to={href}
+      end={!!ativoEm}
       onClick={onClick}
       title={collapsed ? label : undefined}
-      className={({ isActive }) => clsx(
+      className={({ isActive: navAtivo }) => { const isActive = ativo(navAtivo); return clsx(
         'flex items-center gap-[13px] rounded-[11px] px-[13px] py-[11px] text-[14.5px] no-underline transition-colors hover:bg-cream',
         collapsed && 'md:justify-center md:px-0',
         indent && !collapsed && 'ml-5',
         isActive
           ? 'bg-orange/[0.08] font-semibold text-orange shadow-[inset_3px_0_0_#F97316]'
           : 'font-medium text-body'
-      )}
+      ) }}
     >
-      {({ isActive }) => (
+      {({ isActive: navAtivo }) => { const isActive = ativo(navAtivo); return (
         <>
           <span className={clsx('flex', isActive ? 'text-orange' : 'text-muted')}>
             <Icon size={size} />
           </span>
           <span className={clsx(collapsed && 'md:hidden')}>{label}</span>
         </>
-      )}
+      ) }}
     </NavLink>
   )
 }
@@ -86,32 +107,55 @@ function renderNavItem(
 // expandido a cada clique num link. Só afeta o layout interno do Sidebar (não a largura da coluna
 // como `collapsed`), então o estado fica local aqui em vez de subir pro AppLayout.
 const SIDEBAR_VENDAS_EXPANDIDO_KEY = 'sidebarVendasExpandido'
+const SIDEBAR_COMPRAS_EXPANDIDO_KEY = 'sidebarComprasExpandido'
 
-function readVendasExpandidoPreference(): boolean {
+function readExpandidoPreference(chave: string): boolean {
   try {
-    const v = localStorage.getItem(SIDEBAR_VENDAS_EXPANDIDO_KEY)
+    const v = localStorage.getItem(chave)
     return v === null ? true : v === '1'
   } catch {
     return true
   }
 }
 
-export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }: SidebarProps) {
-  const navigate = useNavigate()
-  const clearAuth = useAuthStore((s) => s.clearAuth)
-  const [vendasExpandido, setVendasExpandido] = useState(readVendasExpandidoPreference)
-
-  function toggleVendasExpandido() {
-    setVendasExpandido(prev => {
+/** Mesmo mecanismo para os grupos recolhíveis (Vendas V0.12.0, Compras V0.15.0). */
+function useGrupoExpandido(chave: string): [boolean, () => void] {
+  const [expandido, setExpandido] = useState(() => readExpandidoPreference(chave))
+  const alternar = () => {
+    setExpandido(prev => {
       const next = !prev
       try {
-        localStorage.setItem(SIDEBAR_VENDAS_EXPANDIDO_KEY, next ? '1' : '0')
+        localStorage.setItem(chave, next ? '1' : '0')
       } catch {
         // localStorage indisponível (ex: modo privado) — preferência só não persiste, sem quebrar a UI
       }
       return next
     })
   }
+  return [expandido, alternar]
+}
+
+export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }: SidebarProps) {
+  const navigate = useNavigate()
+  const clearAuth = useAuthStore((s) => s.clearAuth)
+  const { pathname } = useLocation()
+  const [vendasExpandido, toggleVendasExpandido] = useGrupoExpandido(SIDEBAR_VENDAS_EXPANDIDO_KEY)
+  const [comprasExpandido, toggleComprasExpandido] = useGrupoExpandido(SIDEBAR_COMPRAS_EXPANDIDO_KEY)
+
+  const cabecalhoGrupo = (label: string, Icone: typeof LayoutGrid, expandido: boolean, alternar: () => void) => !collapsed && (
+    <button
+      type="button"
+      onClick={alternar}
+      aria-expanded={expandido}
+      className="flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-left font-[inherit] text-[14.5px] font-medium text-body transition-colors hover:bg-cream"
+    >
+      <span className="flex text-muted">
+        <Icone size={20} />
+      </span>
+      <span className="flex-1">{label}</span>
+      <ChevronDown size={15} className={clsx('flex-shrink-0 text-muted transition-transform duration-150', !expandido && '-rotate-90')} />
+    </button>
+  )
 
   function closeIfMobile() {
     if (window.innerWidth < MOBILE_BREAKPOINT_PX) onClose()
@@ -153,7 +197,8 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
         </div>
 
         {/* Nav */}
-        <div className="flex flex-1 flex-col gap-[3px] p-[14px]">
+        {/* #567 — rolagem própria quando os itens passam da altura da tela (grupos expandidos). */}
+        <div className="flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto p-[14px]">
           {renderNavItem(ITEM_DASHBOARD, collapsed, closeIfMobile)}
 
           {/* #501/#513 — grupo recolhível só faz sentido com o sidebar expandido: no modo ícone
@@ -161,21 +206,11 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
               sempre aparecem, ignorando `vendasExpandido`. Cabeçalho segue o mesmo padrão visual
               dos demais itens de navegação (ícone, mesma fonte, sem caixa alta) — a única
               diferença é expandir/recolher ao clicar (achado do teste manual, correção do #501). */}
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={toggleVendasExpandido}
-              aria-expanded={vendasExpandido}
-              className="flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-left font-[inherit] text-[14.5px] font-medium text-body transition-colors hover:bg-cream"
-            >
-              <span className="flex text-muted">
-                <ShoppingBag size={20} />
-              </span>
-              <span className="flex-1">{GRUPO_VENDAS.label}</span>
-              <ChevronDown size={15} className={clsx('flex-shrink-0 text-muted transition-transform duration-150', !vendasExpandido && '-rotate-90')} />
-            </button>
-          )}
+          {cabecalhoGrupo(GRUPO_VENDAS.label, ShoppingBag, vendasExpandido, toggleVendasExpandido)}
           {(vendasExpandido || collapsed) && GRUPO_VENDAS.itens.map(item => renderNavItem(item, collapsed, closeIfMobile, true))}
+
+          {cabecalhoGrupo(GRUPO_COMPRAS.label, ShoppingCart, comprasExpandido, toggleComprasExpandido)}
+          {(comprasExpandido || collapsed) && GRUPO_COMPRAS.itens.map(item => renderNavItem(item, collapsed, closeIfMobile, true, pathname))}
 
           {NAV_RESTANTE.map(item => renderNavItem(item, collapsed, closeIfMobile))}
         </div>
