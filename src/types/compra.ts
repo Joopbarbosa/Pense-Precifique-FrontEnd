@@ -3,6 +3,11 @@ import type { TipoMetodoPagamento } from './empresa'
 
 export type StatusCompra = 'RASCUNHO' | 'CONFIRMADA' | 'CANCELADA'
 
+/** V0.16.0 (#683) — de onde a compra nasceu: à mão ou por nota fiscal. */
+export type OrigemCompra = 'MANUAL' | 'NFCE_QR' | 'NFE_PDF' | 'NFE_FOTO' | 'NFE_XML'
+
+export type ComprovanteTipo = 'LINK' | 'PDF' | 'IMAGEM' | 'XML'
+
 export interface CadastroRef {
   id: string
   identificador: string
@@ -58,7 +63,7 @@ export interface CompraResponse {
   pago: boolean
   metodoPagamento: MetodoPagamentoRef | null
   observacoes: string | null
-  origem: 'MANUAL'
+  origem: OrigemCompra
   total: number
   itens: CompraItemResponse[]
   confirmadaEm: string | null
@@ -75,6 +80,11 @@ export interface CompraResponse {
   parcelas: number | null
   /** #596 (RN-NOVA-41) — lista de onde a compra foi criada. */
   listaCompra: { id: string; identificador: string } | null
+  /** #683 (V0.16.0) — compra por nota: chave de acesso (44 posições) e comprovante; nulos nas manuais. */
+  chaveAcesso: string | null
+  comprovanteTipo: ComprovanteTipo | null
+  comprovanteNome: string | null
+  comprovanteUrl: string | null
 }
 
 export interface CompraResumoResponse {
