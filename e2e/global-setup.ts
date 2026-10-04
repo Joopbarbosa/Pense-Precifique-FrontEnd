@@ -21,17 +21,21 @@ import { execFileSync } from 'child_process'
  * e não depende de esperar o backend voltar a responder.
  */
 
-const CONTAINER = process.env.E2E_DB_CONTAINER ?? 'pense-precifique-db'
-const DB_NAME = process.env.E2E_DB_NAME ?? 'pense_precifique_db'
+const CONTAINER = process.env.DB_CONTAINER ?? 'pense-precifique-db'
+const DB_NAME = process.env.DB_NAME ?? 'pense_precifique_db'
 const DB_USER = 'pense_user'
 
-const targetKeys = ['E2E_BASE_URL', 'E2E_API_URL', 'E2E_DB_CONTAINER', 'E2E_DB_NAME'] as const
+const targetKeys = ['E2E_BASE_URL', 'E2E_API_URL', 'DB_CONTAINER', 'DB_NAME'] as const
 const configuredKeys = targetKeys.filter((key) => process.env[key])
 if (configuredKeys.length > 0 && configuredKeys.length !== targetKeys.length) {
   throw new Error(`Alvo E2E incompleto: defina ${targetKeys.join(', ')} juntos.`)
 }
 if (configuredKeys.length > 0 && ['pense_precifique_db', 'pense_precifique_test_v015'].includes(DB_NAME)) {
   throw new Error(`Banco ${DB_NAME} não pode ser usado no E2E isolado.`)
+}
+// Ambiente isolado do pocket (.pocket.env): POCKET_TEST_DB=1 só vale com banco e container `test_*`.
+if (process.env.POCKET_TEST_DB === '1' && !(DB_NAME.startsWith('test_') && CONTAINER.startsWith('test_'))) {
+  throw new Error(`Alvo E2E isolado exige banco e container test_*: ${CONTAINER}/${DB_NAME}.`)
 }
 
 // Todas as tabelas de domínio (schema V0.15.0 conferido em 2026-09-30;

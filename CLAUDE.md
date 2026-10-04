@@ -36,7 +36,7 @@ rodar sempre pelo Playwright (`npx playwright test`), nunca specs direto, senão
 dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 
 **Alvo do E2E por variável de ambiente** (V0.15.0/#535): `E2E_BASE_URL`, `E2E_API_URL`,
-`E2E_DB_CONTAINER` e `E2E_DB_NAME` vão **juntas ou nenhuma** (o `global-setup.ts` aborta com alvo
+`DB_CONTAINER` e `DB_NAME` (antes `E2E_DB_CONTAINER`/`E2E_DB_NAME`, renomeadas na V0.16.0 para casar com o `.pocket.env` do portão) vão **juntas ou nenhuma** (o `global-setup.ts` aborta com alvo
 incompleto e recusa `pense_precifique_db`/`pense_precifique_test_v015` como banco isolado). O proxy
 do Vite para a API isolada usa `E2E_API_PROXY_TARGET`; os specs leem os alvos de
 `e2e/helpers/target.ts` — nunca `localhost:8080` fixo num spec novo. **Sem as variáveis, o padrão
