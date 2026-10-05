@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreVertical } from 'lucide-react'
 import clsx from 'clsx'
@@ -16,6 +16,9 @@ interface ActionMenuProps {
   align?: 'right' | 'left'
 }
 
+// Distância mínima entre o menu e a borda da janela.
+const MARGEM_JANELA = 8
+
 interface DropdownPos {
   top: number
   left?: number
@@ -27,11 +30,13 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
   const [pos, setPos] = useState<DropdownPos | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<DOMRect | null>(null)
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (open) { setOpen(false); return }
     const rect = btnRef.current!.getBoundingClientRect()
+    anchorRef.current = rect
     const dropW = 180
     if (align === 'right') {
       setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right })
@@ -44,6 +49,19 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
     }
     setOpen(true)
   }
+
+  // Perto do rodapé o menu abre para cima; se não couber em nenhum dos lados, encosta na borda
+  // inferior da janela (#699). Roda antes da pintura, sem piscar na posição de baixo.
+  useLayoutEffect(() => {
+    const rect = anchorRef.current
+    if (!open || !rect || !dropRef.current) return
+    const altura = dropRef.current.offsetHeight
+    const limite = window.innerHeight - MARGEM_JANELA
+    if (rect.bottom + 6 + altura <= limite) return
+    const acima = rect.top - 6 - altura
+    const top = acima >= MARGEM_JANELA ? acima : Math.max(MARGEM_JANELA, limite - altura)
+    setPos((p) => (p && p.top !== top ? { ...p, top } : p))
+  }, [open])
 
   useEffect(() => {
     if (!open) return
