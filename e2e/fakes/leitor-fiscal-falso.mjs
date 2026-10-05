@@ -23,6 +23,9 @@ const bloqueio = (res, motivo) => responder(res, 400, {
   comoResolver: 'Confira o QR code ou a chave e tente de novo.', itens: [],
 })
 
+if (process.env.E2E_LEITOR_REAL_REPO) {
+  await import('./leitor-fiscal-integrado.mjs')
+} else {
 createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/saude') return responder(res, 200, { status: 'ok' })
   if (req.method === 'POST' && req.url === '/_fixture') {
@@ -45,3 +48,5 @@ createServer(async (req, res) => {
   }
   responder(res, 404, { erro: 'rota inexistente' })
 }).listen(PORTA, () => console.log(`leitor-fiscal falso na porta ${PORTA}`))
+
+}
