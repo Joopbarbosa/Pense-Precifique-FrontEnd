@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileSearch } from 'lucide-react'
+import { ArrowLeft, Camera, FileSearch } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, Field, SegmentedControl, Spinner } from '../../components/ui'
 import ModalConciliacaoNota from '../../components/compra/nota/ModalConciliacaoNota'
 import ModalNotaJaRegistrada from '../../components/compra/nota/ModalNotaJaRegistrada'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import { prepararArquivoNota } from '../../components/compra/nota/prepararArquivoNota'
+const CameraNota = lazy(() => import('../../components/compra/nota/CameraNota'))
 import { notaCompraService, type EntradaLeituraNota } from '../../services/notaCompraService'
 import { useModalErro } from '../../hooks/useModalErro'
 import { extrairErroExplicado } from '../../utils/apiError'
@@ -28,6 +31,11 @@ export default function LerNotaPage() {
   const [modelo, setModelo] = useState<ModeloNota>('NFCE')
   const [texto, setTexto] = useState('')
   const [xml, setXml] = useState<File | null>(null)
+  const [camera, setCamera] = useState(false)
+  const [preparando, setPreparando] = useState(false)
+  const [avisoEnvio, setAvisoEnvio] = useState<EntradaLeituraNota | null>(null)
+  const preparoAtual = useRef(0)
+  useEffect(() => () => { preparoAtual.current++ }, [])
   const [lendo, setLendo] = useState(false)
   const [leitura, setLeitura] = useState<NotaLeituraResponse | null>(null)
   const [entrada, setEntrada] = useState<EntradaLeituraNota | null>(null)
@@ -40,8 +48,19 @@ export default function LerNotaPage() {
     return /^https?:\/\//i.test(valor) ? { modelo, qrUrl: valor } : { modelo, chaveAcesso: valor.replace(/\s/g, '') }
   }
 
-  const ler = async () => {
-    const pedido = montarEntrada()
+  const escolherArquivo = async (arquivo: File | null) => {
+    const id = ++preparoAtual.current
+    setXml(null); setPreparando(Boolean(arquivo))
+    if (!arquivo) return
+    try { const pronto = await prepararArquivoNota(arquivo); if (id === preparoAtual.current) setXml(pronto) }
+    catch (e) { if (id === preparoAtual.current) mostrarErro({ titulo: 'Arquivo não pode ser enviado', mensagem: e instanceof Error ? e.message : 'Não foi possível preparar o arquivo.', motivo: 'O arquivo precisa ter um formato aceito e caber no limite de upload.', comoResolver: 'Escolha XML, PDF, JPG ou PNG; tente uma foto mais nítida ou um arquivo menor.' }) }
+    finally { if (id === preparoAtual.current) setPreparando(false) }
+  }
+
+  const ler = async (pedido: EntradaLeituraNota = montarEntrada()) => {
+    if (pedido.arquivo && !['application/xml', 'text/xml'].includes(pedido.arquivo.type) && !pedido.confirmouEnvioIa) {
+      setAvisoEnvio(pedido); return
+    }
     setLendo(true)
     try {
       const r = await notaCompraService.ler(pedido)
@@ -68,7 +87,7 @@ export default function LerNotaPage() {
     setEntrada(null)
   }
 
-  const podeLer = !lendo && (xml != null || texto.trim().length > 0)
+  const podeLer = !lendo && !preparando && (xml != null || texto.trim().length > 0)
 
   return (
     <AppLayout active="compras" compact>
@@ -82,23 +101,30 @@ export default function LerNotaPage() {
 
       <div className="flex max-w-[640px] flex-col gap-4 rounded-card border border-[#F0EEE9] bg-white px-[26px] py-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <Field label="Tipo de documento">
-          <SegmentedControl options={MODELOS} value={modelo} onChange={setModelo} height="h-11" />
+          <SegmentedControl options={MODELOS} value={modelo} onChange={valor => { if (!lendo && !preparando) setModelo(valor) }} height="h-11" />
         </Field>
         <Field label="Link do QR code ou chave de acesso" hint="Cole o link lido do QR code do cupom, ou os 44 caracteres da chave de acesso.">
-          <input data-testid="campo-link-chave" className={inputBase} value={texto} disabled={xml != null}
+          <input data-testid="campo-link-chave" className={inputBase} value={texto} disabled={xml != null || lendo || preparando}
             placeholder="https://… ou 3526 1011 2223 …" onChange={e => setTexto(e.target.value)} />
         </Field>
-        <Field label="Ou o arquivo XML da nota" hint="O XML é lido sem IA.">
-          <input data-testid="campo-xml" type="file" accept=".xml,application/xml,text/xml"
-            onChange={e => setXml(e.target.files?.[0] ?? null)} className="text-[13.5px]" />
+        {modelo === 'NFCE' && <Button variant="ghost" icon={<Camera size={16} />} onClick={() => setCamera(true)} disabled={lendo || preparando}>Ler QR pela câmera</Button>}
+        <Field label="Ou envie XML, foto, print ou PDF" hint="Fotos são reduzidas antes do envio. Limite de 5MB. XML é lido sem IA.">
+          <input data-testid="campo-xml" type="file" accept=".xml,.pdf,.jpg,.jpeg,.png,application/xml,text/xml,application/pdf,image/jpeg,image/png"
+            disabled={lendo || preparando} onChange={e => { const arquivo = e.target.files?.[0] ?? null; e.target.value = ''; void escolherArquivo(arquivo) }} className="text-[13.5px]" />
+          {preparando && <span className="text-sm text-muted">Preparando a foto…</span>}
+          {xml && <div className="mt-2 flex items-center gap-2 text-sm text-muted"><span data-testid="arquivo-nota-preparado">{xml.name} · {(xml.size / 1024).toFixed(0)} KB</span><Button variant="ghost" onClick={() => { preparoAtual.current++; setXml(null) }} disabled={lendo}>Remover arquivo</Button></div>}
         </Field>
         <div>
-          <Button variant="primary" icon={lendo ? <Spinner size={15} /> : <FileSearch size={16} />} onClick={ler} disabled={!podeLer}>
+          <Button variant="primary" icon={lendo ? <Spinner size={15} /> : <FileSearch size={16} />} onClick={() => { void ler() }} disabled={!podeLer}>
             {lendo ? 'Lendo a nota…' : 'Ler nota'}
           </Button>
         </div>
       </div>
 
+      {camera && <Suspense fallback={<Spinner />}><CameraNota onClose={() => setCamera(false)} onQr={qrUrl => { setCamera(false); setXml(null); setTexto(qrUrl); void ler({ modelo: 'NFCE', qrUrl }) }} /></Suspense>}
+      <ConfirmacaoModal open={avisoEnvio != null} onClose={() => setAvisoEnvio(null)} title="Enviar documento para leitura" confirmLabel="Aceitar e ler documento"
+        description="Para ler foto ou PDF, o documento pode ser enviado a um serviço externo de inteligência artificial. Ele pode conter seu CPF, e a imagem não será ocultada antes do envio. Você precisa conferir os dados depois da leitura."
+        onConfirm={() => { if (avisoEnvio) { const pedido = { ...avisoEnvio, confirmouEnvioIa: true }; setAvisoEnvio(null); void ler(pedido) } }} />
       {leitura && entrada && (
         <ModalConciliacaoNota leitura={leitura} arquivo={entrada.arquivo}
           comprovanteLink={entrada.qrUrl ?? null}

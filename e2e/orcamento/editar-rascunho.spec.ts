@@ -10,6 +10,30 @@ import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi, editarOrcament
  * `e2e/scripts-avulsos/validar-editar-orcamento-rascunho.mjs` (P-F007, 25/25 verde) como spec
  * oficial, reaproveitando os helpers de `e2e/helpers/`.
  */
+async function aguardarSimulacao(page: import('@playwright/test').Page, produtoId: string) {
+  const resposta = await page.waitForResponse(response => {
+    if (response.request().method() !== 'POST' || !new URL(response.url()).pathname.endsWith('/orcamentos/simular-alertas')) return false
+    const itens = response.request().postDataJSON()
+    return Array.isArray(itens) && itens.some(item => item.produtoId === produtoId)
+  })
+  expect(resposta.ok()).toBe(true)
+  await resposta.finished()
+}
+
+async function salvarComAviso(page: import('@playwright/test').Page, orcamentoId: string) {
+  const salvamento = page.waitForResponse(response =>
+    response.request().method() === 'PUT'
+    && new URL(response.url()).pathname.endsWith(`/orcamentos/${orcamentoId}`),
+  )
+  await page.getByRole('button', { name: 'Salvar alterações' }).click()
+  const aviso = page.getByRole('dialog').filter({ hasText: 'Aviso antes de salvar as alterações' })
+  await expect(aviso).toBeVisible()
+  await aviso.getByRole('button', { name: 'Salvar mesmo assim' }).click()
+  const resposta = await salvamento
+  expect(resposta.ok()).toBe(true)
+  await resposta.finished()
+}
+
 test.describe('CEN-NOVO-C/D/E — Editar orçamento em RASCUNHO', () => {
   let criadosProdutoIds: string[] = []
   let criadosClienteIds: string[] = []
@@ -45,13 +69,15 @@ test.describe('CEN-NOVO-C/D/E — Editar orçamento em RASCUNHO', () => {
     await page.goto(`/orcamentos/${orcamento.id}`)
     await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible()
 
+    const simulacao = aguardarSimulacao(page, produto.id)
     await page.getByRole('button', { name: 'Editar' }).click()
     await page.waitForURL(new RegExp(`/orcamentos/${orcamento.id}/editar`), { timeout: 10_000 })
     await page.getByRole('heading', { name: 'Editar Orçamento' }).waitFor({ timeout: 10_000 })
 
     const novaObservacao = `Observação de teste ${Date.now()}`
     await page.getByPlaceholder('Ex: Entrega combinada para 15/06').last().fill(novaObservacao)
-    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await simulacao
+    await salvarComAviso(page, orcamento.id)
     await page.waitForURL(new RegExp(`/orcamentos/${orcamento.id}$`), { timeout: 10_000 })
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
@@ -98,10 +124,12 @@ test.describe('CEN-NOVO-C/D/E — Editar orçamento em RASCUNHO', () => {
     await page.getByText('Preço final de venda', { exact: true })
       .locator('xpath=following-sibling::div[1]//input')
       .fill(produtoY.precoVenda.toFixed(2).replace('.', ','))
+    const simulacao = aguardarSimulacao(page, produtoY.id)
     await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
     await expect(page.getByText(produtoY.nome, { exact: true })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await simulacao
+    await salvarComAviso(page, orcamento.id)
     await page.waitForURL(new RegExp(`/orcamentos/${orcamento.id}$`), { timeout: 10_000 })
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)

@@ -1,6 +1,6 @@
 import { test, expect, APIRequestContext } from '@playwright/test'
 import { login, API_URL } from '../helpers/auth'
-import { apiLogin } from '../helpers/api'
+import { apiLogin, criarInsumo } from '../helpers/api'
 import { carregarAte } from '../helpers/list'
 
 /**
@@ -96,11 +96,19 @@ test.describe('#687 — Insumo em rascunho', () => {
     const padrao = await (await request.get(`${API_URL}/insumos`, { headers, params: { busca: nome } })).json()
     expect(padrao.content).toHaveLength(0)
 
+    // Reproduz a paginação/rolagem presente quando este cenário roda na suíte completa.
+    for (let i = 0; i < 21; i++) await criarInsumo(request, token, `E2E697 Fundo ${Date.now()} ${i}`)
     await login(page)
     await page.goto('/insumos')
     await carregarAte(page, nome)
     const linha = page.getByText(nome, { exact: true }).first().locator('xpath=../..')
     await expect(linha.getByText('Rascunho', { exact: true })).toBeVisible()
+    await linha.evaluate(async element => {
+      await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined)))
+    })
+    await linha.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }))
+    // Deixa o evento de scroll terminar antes de o menu instalar seu listener de fechamento.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
     await linha.getByRole('button', { name: 'Mais ações' }).click()
     await expect(page.getByText('Completar cadastro', { exact: true })).toBeVisible()
     await expect(page.getByText('Inativar', { exact: true })).toHaveCount(0)
