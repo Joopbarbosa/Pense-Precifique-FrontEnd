@@ -51,34 +51,39 @@ test.describe('CEN-NOVO-21 — Ordenação de colunas na Lista de Orçamentos (#
 
     await login(page)
     await page.goto('/orcamentos')
+    const esperaBusca = page.waitForResponse(r => {
+      const u = new URL(r.url())
+      return u.pathname.endsWith('/orcamentos') && u.searchParams.get('busca') === 'ZZOrdenacao' && r.ok()
+    })
     await page.getByPlaceholder('Buscar por cliente ou número…').fill('ZZOrdenacao')
-    await page.waitForTimeout(500)
+    await (await esperaBusca).finished()
 
     const ordemPorPreco = (asc: boolean) => {
       const idx = [0, 1, 2].sort((a, b) => (asc ? precos[a] - precos[b] : precos[b] - precos[a]))
       return idx.map((i) => nomes[i])
     }
-    const indicesEmOrdem = async (ordem: string[]) => {
-      const texto = await page.locator('body').innerText()
-      return ordem.map((n) => texto.indexOf(n))
+    const conferirOrdem = async (ordem: string[]) => {
+      // Aguarda todos os registros e a ordem aplicada, não um tempo arbitrário (#691).
+      await expect.poll(async () => {
+        const texto = await page.locator('body').innerText()
+        const indices = ordem.map(n => texto.indexOf(n))
+        return indices.every(i => i >= 0) && indices.every((i, p) => p === 0 || indices[p - 1] < i)
+      }, { message: `Ordem esperada: ${ordem.join(', ')}` }).toBe(true)
     }
 
-    await page.getByRole('button', { name: 'Total', exact: true }).click()
-    await page.waitForTimeout(500)
-    let indices = await indicesEmOrdem(ordemPorPreco(true))
-    expect(indices[0]).toBeLessThan(indices[1])
-    expect(indices[1]).toBeLessThan(indices[2])
-
-    await page.getByRole('button', { name: 'Total', exact: true }).click()
-    await page.waitForTimeout(500)
-    indices = await indicesEmOrdem(ordemPorPreco(false))
-    expect(indices[0]).toBeLessThan(indices[1])
-    expect(indices[1]).toBeLessThan(indices[2])
-
-    await page.getByRole('button', { name: 'Cliente', exact: true }).click()
-    await page.waitForTimeout(500)
-    indices = await indicesEmOrdem([...nomes].sort())
-    expect(indices[0]).toBeLessThan(indices[1])
-    expect(indices[1]).toBeLessThan(indices[2])
+    for (const nome of nomes) await expect(page.getByText(nome, { exact: true }).filter({ visible: true })).toBeVisible()
+    const ordenar = async (label: string, sort: string, ordem: string[]) => {
+      const espera = page.waitForResponse(r => {
+        const u = new URL(r.url())
+        return u.pathname.endsWith('/orcamentos') && u.searchParams.get('busca') === 'ZZOrdenacao'
+          && u.searchParams.get('sort') === sort && r.ok()
+      })
+      await page.getByRole('button', { name: label, exact: true }).click()
+      await (await espera).finished()
+      await conferirOrdem(ordem)
+    }
+    await ordenar('Total', 'total,asc', ordemPorPreco(true))
+    await ordenar('Total', 'total,desc', ordemPorPreco(false))
+    await ordenar('Cliente', 'cliente.nome,asc', [...nomes].sort())
   })
 })
