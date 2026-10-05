@@ -18,6 +18,7 @@ export interface VinculoNotaResponse {
 export interface FiltrosVinculoNota {
   busca?: string
   fornecedorId?: string
+  emitenteCnpj?: string
   insumoId?: string
   ignorar?: boolean
   sort?: string

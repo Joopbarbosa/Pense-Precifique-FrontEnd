@@ -27,12 +27,14 @@ export default function HistoricoVinculosNotaPage() {
   const { modalErro, mostrarErro } = useModalErro()
   const [busca, setBusca] = useState('')
   const termo = useDebouncedValue(busca)
+  const [cnpj, setCnpj] = useState('')
+  const emitenteCnpj = useDebouncedValue(cnpj)
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
   const [insumoFiltro, setInsumoFiltro] = useState<InsumoProposto | null>(null)
   const [estado, setEstado] = useState('')
   const [ordem, setOrdem] = useState('updatedAt,desc')
-  const filtros = useMemo(() => ({ busca: termo.trim() || undefined, fornecedorId: fornecedor?.id, insumoId: insumoFiltro?.id,
-    ignorar: estado === '' ? undefined : estado === 'ignorados', sort: ordem }), [termo, fornecedor, insumoFiltro, estado, ordem])
+  const filtros = useMemo(() => ({ busca: termo.trim() || undefined, fornecedorId: fornecedor?.id, insumoId: insumoFiltro?.id, emitenteCnpj: emitenteCnpj.trim() || undefined,
+    ignorar: estado === '' ? undefined : estado === 'ignorados', sort: ordem }), [termo, fornecedor, insumoFiltro, emitenteCnpj, estado, ordem])
   const [pagina, setPagina] = useState(0)
   const [resultado, setResultado] = useState<PageResponse<VinculoNotaResponse> | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -79,12 +81,13 @@ export default function HistoricoVinculosNotaPage() {
         <p className="mt-2 text-sm text-muted">Itens das notas associados aos seus insumos, por fornecedor. Alterações valem para as próximas notas.</p></div>
       <Button variant="secondary" onClick={() => navigate('/compras/nota')}>Ler nota fiscal</Button>
     </div>
-    <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
       <Field label="Buscar vínculo"><input className={campo} value={busca} onChange={e => setBusca(e.target.value)} placeholder="Item da nota, fornecedor ou insumo" /></Field>
-      <Field label="Fornecedor" group><FornecedorSelect value={fornecedor} onChange={setFornecedor} /></Field>
+      <Field label="Fornecedor" group><FornecedorSelect value={fornecedor} onChange={setFornecedor} permitirInativos /></Field>
       <Field label="Insumo" group>{insumoFiltro ? <div className="flex h-12 items-center gap-2 rounded-input border border-line bg-white px-3">
         <span className="min-w-0 flex-1 truncate text-sm">{insumoFiltro.nome}</span><button aria-label="Remover filtro de insumo" onClick={() => setInsumoFiltro(null)} className="text-muted hover:text-danger"><X size={16} /></button>
-      </div> : <InsumoPicker placeholder="Filtrar por insumo…" onSelect={i => setInsumoFiltro({ id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, rascunho: i.rascunho })} />}</Field>
+      </div> : <InsumoPicker placeholder="Filtrar por insumo…" permitirInativos onSelect={i => setInsumoFiltro({ id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, rascunho: i.rascunho })} />}</Field>
+      <Field label="CNPJ do emitente"><input className={campo} value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="Com ou sem cadastro" /></Field>
       <Field label="Situação"><select className={campo} value={estado} onChange={e => setEstado(e.target.value)}><option value="">Todos</option><option value="vinculados">Vinculados</option><option value="ignorados">Ignorados</option></select></Field>
     </div>
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

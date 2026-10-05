@@ -24,11 +24,11 @@ async function ler(request: APIRequestContext, token: string, cnpj: string, nome
   expect(resposta.ok(), await resposta.text()).toBe(true)
   return resposta.json()
 }
-async function salvar(request: APIRequestContext, token: string, leitura: NotaLeituraResponse, destinos: string[]): Promise<CompraResponse> {
+async function salvar(request: APIRequestContext, token: string, leitura: NotaLeituraResponse, destinos: string[], acaoFornecedor: 'SEM_FORNECEDOR' | null = null): Promise<CompraResponse> {
   const r = await request.post(`${API_URL}/compras/nota/rascunho`, { headers: headers(token), data: {
     notaLida: leitura.nota, assinatura: leitura.assinatura,
     escolhas: destinos.map((insumoId, posicao) => ({ posicao, insumoId, fator: 1, ignorar: false })),
-    fornecedor: null, comprovanteLink: null,
+    fornecedor: acaoFornecedor, comprovanteLink: null,
   } })
   expect(r.ok(), await r.text()).toBe(true)
   return (await r.json()).compra
@@ -133,4 +133,34 @@ test('histórico: erro permite nova tentativa; página e busca preservam filtro 
   await expect(page.getByRole('button', { name: 'Próxima' })).toBeDisabled()
   await page.getByLabel('Buscar vínculo').fill('AURORA')
   await expect(page.getByText('Nenhum vínculo encontrado', { exact: true })).toBeVisible()
+})
+
+
+test('histórico: filtro CNPJ inclui emitente sem cadastro e filtro de insumo inclui inativo', async ({ page, request }) => {
+  const token = await apiLogin(request); const sfx = Date.now().toString(36)
+  const insumo = await criarInsumo(request, token, `Insumo histórico ${sfx}`)
+  const cnpj = cnpjValido(); const nome = `Emitente sem cadastro ${sfx}`
+  await salvar(request, token, await ler(request, token, cnpj, [`ITEM SEM CADASTRO ${sfx}`], nome), [insumo.id], 'SEM_FORNECEDOR')
+  const cadastro = await fornecedor(request, token, `Fornecedor histórico ${sfx}`, cnpjValido())
+  await salvar(request, token, await ler(request, token, cadastro.documento, [`ITEM CADASTRADO ${sfx}`], cadastro.nome), [insumo.id])
+  expect((await request.post(`${API_URL}/insumos/${insumo.id}/inativar`, { headers: headers(token) })).ok()).toBe(true)
+  expect((await request.post(`${API_URL}/clientes/${cadastro.id}/inativar`, { headers: headers(token) })).ok()).toBe(true)
+  await login(page); await page.goto('/compras/nota/vinculos')
+  await page.getByLabel('CNPJ do emitente').fill(cnpj)
+  await expect(tabela(page).getByRole('row')).toHaveCount(2)
+  await expect(tabela(page)).toContainText(nome)
+  await page.getByPlaceholder('Filtrar por insumo…').fill(insumo.nome)
+  await page.getByRole('button', { name: new RegExp(insumo.nome) }).click()
+  await expect(tabela(page).getByRole('row')).toHaveCount(2)
+  await expect(tabela(page)).toContainText(insumo.nome)
+  await page.getByLabel('CNPJ do emitente').fill('')
+  await page.getByPlaceholder('Buscar fornecedor…').fill(cadastro.nome)
+  await page.getByRole('button', { name: new RegExp(cadastro.nome) }).click()
+  await expect(tabela(page).getByRole('row')).toHaveCount(2)
+  await expect(tabela(page)).toContainText(cadastro.nome)
+  await tabela(page).getByRole('button', { name: 'Editar', exact: true }).click()
+  const editor = page.getByRole('dialog').filter({ hasText: 'Editar vínculo' })
+  await editor.getByRole('button', { name: 'Trocar insumo' }).click()
+  await editor.getByPlaceholder('Escolher insumo do vínculo…').fill(insumo.nome)
+  await expect(editor.getByTestId('opcao-inativa').filter({ hasText: insumo.nome })).toHaveAttribute('aria-disabled', 'true')
 })
