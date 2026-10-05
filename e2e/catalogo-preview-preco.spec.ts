@@ -190,17 +190,27 @@ test.describe('RN-NOVA-1/2/4 — Composição e preview de preço de Item de Cat
     await page.goto(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)
     await page.getByPlaceholder('Ex: Kit Presente Dia das Mães').fill('Kit preço ao vivo')
     await page.getByPlaceholder('Buscar insumo, produto ou customização...').fill(nomeInsumo)
+    const esperarPreview = (quantidade: number) => page.waitForResponse(r => {
+      if (new URL(r.url()).pathname !== `/api/catalogos/${catalogo.id}/itens/preview-preco`
+        && new URL(r.url()).pathname !== `/catalogos/${catalogo.id}/itens/preview-preco`) return false
+      const pedido = r.request().postDataJSON() as { componentes?: { insumoId?: string; quantidade?: number }[] } | null
+      return r.ok() && !!pedido?.componentes?.some(c => c.insumoId === insumo.id && c.quantidade === quantidade)
+    })
+    const primeiraResposta = esperarPreview(1)
     await page.getByText(nomeInsumo, { exact: true }).click()
 
     const precoSugeridoLocator = page.getByText('Preço sugerido', { exact: true }).locator('xpath=following-sibling::div[1]')
     const qtdInput = page.locator('input[value="1"]').first()
 
-    await qtdInput.fill('1')
-    await page.waitForTimeout(900)
+    const preview1 = await (await primeiraResposta).json()
+    const moeda = (valor: number) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    await expect(precoSugeridoLocator).toHaveText(moeda(preview1.precoSugerido))
     const precoCom1 = await precoSugeridoLocator.textContent()
 
+    const segundaResposta = esperarPreview(10)
     await qtdInput.fill('10')
-    await page.waitForTimeout(900)
+    const preview10 = await (await segundaResposta).json()
+    await expect(precoSugeridoLocator).toHaveText(moeda(preview10.precoSugerido))
     const precoCom10 = await precoSugeridoLocator.textContent()
 
     expect(precoCom10).not.toBe(precoCom1)
