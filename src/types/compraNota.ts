@@ -41,16 +41,35 @@ export interface FornecedorProposta {
   cnpj: string | null
 }
 
+/** #681 (RN-NOVA-14) — de onde veio a ligação proposta do item. */
+export type OrigemLigacao = 'VINCULO_SALVO' | 'CASAMENTO_NOME' | 'SUGESTAO_IA' | 'SEM_LIGACAO'
+
+/** Insumo proposto ou candidato; rascunho participa da conciliação (RN-NOVA-12). */
+export interface InsumoProposto {
+  id: string
+  identificador: string
+  nome: string
+  marca: string | null
+  unidade: string | null
+  rascunho: boolean
+}
+
 export interface ItemConciliacao {
   posicao: number
   nome: string
   quantidade: number
   valorFinal: number
   unidade: string | null
-  /** SEM_LIGACAO nesta etapa; vínculo salvo, nome e IA chegam com a conciliação (#681). */
-  origemLigacao: string
-  insumoId: string | null
+  origemLigacao: OrigemLigacao
+  /** Ligação proposta (vínculo salvo, nome ou sugestão da IA); nula quando sem ligação. */
+  insumo: InsumoProposto | null
   fator: number | null
+  /** O vínculo salvo manda ignorar este item. */
+  ignorar: boolean
+  /** Mais de um insumo casou pelo nome, ou o vínculo aponta para insumo inativo. */
+  candidatos: InsumoProposto[]
+  /** Ex.: "o insumo vinculado está inativo". */
+  aviso: string | null
 }
 
 export interface NotaLeituraResponse {
@@ -61,6 +80,8 @@ export interface NotaLeituraResponse {
   /** Preenchido quando a nota já está num rascunho: a tela abre esse rascunho (RN-NOVA-5). */
   rascunhoExistente: { id: string; identificador: string } | null
   itens: ItemConciliacao[]
+  /** Avisos gerais da conciliação (ex.: limite mensal de sugestões da IA atingido). */
+  avisos: string[]
 }
 
 export type AcaoFornecedor = 'ADICIONAR_PAPEL' | 'CADASTRAR' | 'SEM_FORNECEDOR'
@@ -70,6 +91,8 @@ export interface EscolhaItemNota {
   insumoId: string | null
   fator: number | null
   ignorar: boolean
+  /** De onde veio a ligação aceita (só registro no vínculo); trocada à mão = MANUAL (ausente). */
+  origem?: OrigemLigacao | null
 }
 
 export interface NotaRascunhoRequest {
