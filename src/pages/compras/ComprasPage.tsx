@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users } from 'lucide-react'
+import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users, FileSearch } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -157,6 +157,7 @@ export default function ComprasPage() {
           <Button variant="ghost" icon={<BarChart3 size={16} />} onClick={() => navigate('/compras/dashboard')}>Dashboard</Button>
           <Button variant="ghost" icon={<Users size={16} />} onClick={() => navigate('/clientes')}>Clientes e Fornecedores</Button>
           <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista?aba=nova')}>Gerar lista de compras</Button>
+          <Button variant="secondary" icon={<FileSearch size={16} />} onClick={() => navigate('/compras/nota')}>Ler nota fiscal</Button>
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/compras/nova')}>Registrar compra</Button>
         </div>
       </div>

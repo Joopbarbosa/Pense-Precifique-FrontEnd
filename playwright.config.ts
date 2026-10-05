@@ -13,6 +13,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  // V0.16.0 (#681) — leitor-fiscal falso para o E2E da compra por nota; o backend da pilha de teste aponta
+  // LEITOR_FISCAL_BASE_URL para http://localhost:${E2E_LEITOR_FALSO_PORT ?? 13501}.
+  webServer: {
+    command: 'node e2e/fakes/leitor-fiscal-falso.mjs',
+    url: `http://localhost:${process.env.E2E_LEITOR_FALSO_PORT ?? 13501}/saude`,
+    reuseExistingServer: true,
+    timeout: 10_000,
+  },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
