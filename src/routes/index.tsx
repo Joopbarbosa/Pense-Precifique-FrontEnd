@@ -11,6 +11,7 @@ import ComprasPage from '../pages/compras/ComprasPage'
 import DashboardComprasPage from '../pages/compras/DashboardComprasPage'
 import FormCompraPage from '../pages/compras/FormCompraPage'
 import LerNotaPage from '../pages/compras/LerNotaPage'
+import HistoricoVinculosNotaPage from '../pages/compras/HistoricoVinculosNotaPage'
 import DetalheCompraPage from '../pages/compras/DetalheCompraPage'
 import PreviewPdfCompraPage from '../pages/compras/PreviewPdfCompraPage'
 import ListaComprasPage from '../pages/compras/ListaComprasPage'
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
       { path: '/compras/dashboard',    element: <DashboardComprasPage /> },
       { path: '/compras/nova',         element: <FormCompraPage /> },
       { path: '/compras/nota',         element: <LerNotaPage /> },
+      { path: '/compras/nota/vinculos', element: <HistoricoVinculosNotaPage /> },
       { path: '/compras/lista',        element: <ListaComprasPage /> },
       { path: '/compras/lista/:id',    element: <DetalheListaCompraPage /> },
       { path: '/compras/lista/:id/pdf', element: <PreviewPdfListaCompraPage /> },
