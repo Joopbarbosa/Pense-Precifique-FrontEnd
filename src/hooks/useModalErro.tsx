@@ -10,7 +10,9 @@ type Foco = HTMLElement | null | undefined | (() => HTMLElement | null | undefin
  * `foco` é o campo (ou uma função que o acha depois da tela redesenhar, ex.: o primeiro campo
  * marcado com `aria-invalid`) que recebe o foco ao clicar OK. Renderize `modalErro` na tela.
  */
-export function useModalErro(): { modalErro: ReactNode; mostrarErro: (err: unknown, fallback?: string, foco?: Foco) => void } {
+export function useModalErro(opcoes?: { extra?: (erro: ErroExplicado) => ReactNode }): {
+  modalErro: ReactNode; mostrarErro: (err: unknown, fallback?: string, foco?: Foco) => void
+} {
   const [erro, setErro] = useState<ErroExplicado | null>(null)
   const foco = useRef<Foco>(null)
 
@@ -29,7 +31,7 @@ export function useModalErro(): { modalErro: ReactNode; mostrarErro: (err: unkno
     }, 0)
   }
 
-  return { modalErro: erro ? <ModalErro erro={erro} onOk={ok} /> : null, mostrarErro }
+  return { modalErro: erro ? <ModalErro erro={erro} onOk={ok} extra={opcoes?.extra?.(erro)} /> : null, mostrarErro }
 }
 
 /** Primeiro campo marcado como inválido dentro de `raiz` (padrão: a página). */

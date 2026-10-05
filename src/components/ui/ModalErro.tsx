@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import ModalShell from './ModalShell'
 import Button from './Button'
@@ -6,7 +7,8 @@ import type { ErroExplicado } from '../../utils/apiError'
 // V0.15.0 (#602, RN-NOVA-32) — modal de erro padrão: o que aconteceu, por quê e como resolver, com um
 // único botão OK. O campo com erro continua vermelho na tela; ao clicar OK, o foco volta para ele.
 
-export default function ModalErro({ erro, onOk }: { erro: ErroExplicado; onOk: () => void }) {
+// V0.16.0 (#687) — `extra`: ações próprias do erro (ex.: atalho "Completar o insumo"), abaixo de "Como resolver".
+export default function ModalErro({ erro, onOk, extra }: { erro: ErroExplicado; onOk: () => void; extra?: ReactNode }) {
   const itens = erro.itens?.length ? erro.itens : null
   return (
     <ModalShell open onClose={onOk} width={520} title={erro.titulo ?? 'Não foi possível continuar'}
@@ -39,6 +41,7 @@ export default function ModalErro({ erro, onOk }: { erro: ErroExplicado; onOk: (
             <p className="m-0 text-dark">{erro.comoResolver}</p>
           </section>
         )}
+        {extra}
       </div>
     </ModalShell>
   )

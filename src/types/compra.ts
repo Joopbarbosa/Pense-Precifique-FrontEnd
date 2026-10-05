@@ -15,7 +15,7 @@ export interface InsumoRef {
   identificador: string
   nome: string
   marca: string | null
-  unidade: string
+  unidade: string | null
   ativo: boolean
 }
 
