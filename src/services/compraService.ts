@@ -4,7 +4,7 @@ import type {
   CompraConfirmacaoResponse, CompraFiltros, ContagensCompra, StatusListaCompra, CompraRequest, CompraResponse, CompraResumoResponse,
   DashboardComprasResponse, EvolucaoPrecoResponse, FiltrosPreviaLista, FornecedorInsumoResponse,
   GerarListaCompraRequest, ListaCompraResponse, ListaCompraResumoResponse, PreviaListaCompraResponse,
-  SimulacaoCancelamentoResponse,
+  SimulacaoCancelamentoResponse, VendasCmvResponse,
 } from '../types/compra'
 
 // V0.15.0 — módulo Compras (#541 e seguintes). Contrato: modulos/COMPRAS/contrato-compras.md.
@@ -20,6 +20,10 @@ const paramsSerializer = (params: Record<string, unknown>) => {
 }
 
 export const compraService = {
+  vendasCmv: async (filtro: { de: string; ate: string; mes?: string }, page = 0, size = 20): Promise<VendasCmvResponse> => {
+    const response = await api.get('/compras/dashboard/vendas-cmv', { params: { ...filtro, page, size } })
+    return response.data
+  },
   listar: async (page: number, size = 20, filtros: CompraFiltros = {}): Promise<PageResponse<CompraResumoResponse>> => {
     const response = await api.get('/compras', { params: { page, size, ...filtros }, paramsSerializer })
     return response.data
