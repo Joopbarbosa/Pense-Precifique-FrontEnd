@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { Camera } from 'lucide-react'
 import { Button, ModalShell } from '../../ui'
 
+// O jsQR acerta ou erra conforme a escala em que o QR chega (a mesma foto lê em uma e falha em outra). A câmera
+// lê um quadro a cada 200 ms, então cada quadro usa uma escala diferente, sem custo extra por quadro (#704).
+const LADOS = [1280, 960, 640]
+
 /** Leitura local de QR; câmera e biblioteca só existem enquanto esta modal estiver aberta. */
 export default function CameraNota({ onQr, onClose }: { onQr: (texto: string) => void; onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null)
   const aoLer = useRef(onQr); aoLer.current = onQr
   const [erro, setErro] = useState<string | null>(null)
   useEffect(() => {
-    let ativa = true; let stream: MediaStream | undefined; let frame = 0; let ultimo = 0
+    let ativa = true; let stream: MediaStream | undefined; let frame = 0; let ultimo = 0; let tentativa = 0
     const liberar = () => { stream?.getTracks().forEach(t => t.stop()); cancelAnimationFrame(frame) }
     const iniciar = async () => {
       try {
@@ -24,7 +28,7 @@ export default function CameraNota({ onQr, onClose }: { onQr: (texto: string) =>
         const ler = (agora: number) => {
           if (!ativa) return
           if (agora - ultimo >= 200 && elemento.readyState >= 2 && elemento.videoWidth) {
-            ultimo = agora; const escala = Math.min(1, 1280 / elemento.videoWidth)
+            ultimo = agora; const escala = Math.min(1, LADOS[tentativa++ % LADOS.length]! / elemento.videoWidth)
             canvas.width = Math.max(1, Math.round(elemento.videoWidth * escala)); canvas.height = Math.max(1, Math.round(elemento.videoHeight * escala))
             ctx.drawImage(elemento, 0, 0, canvas.width, canvas.height)
             const imagem = ctx.getImageData(0, 0, canvas.width, canvas.height)
