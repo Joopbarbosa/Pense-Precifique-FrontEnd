@@ -34,7 +34,7 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
     const minha = ++seq.current
     setCarregando(true); setErro(null)
     // #616 (RN-NOVA-40) — inativos aparecem depois dos ativos, riscados e sem poder marcar.
-    insumoService.listar(pagina, POR_PAGINA, termo || undefined, undefined, 'nome,asc', true)
+    insumoService.listar(pagina, POR_PAGINA, termo || undefined, undefined, 'nome,asc', true, true)
       .then(r => {
         if (minha !== seq.current) return
         setInsumos(prev => pagina === 0 ? r.content : [...prev, ...r.content])

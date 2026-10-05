@@ -13,6 +13,9 @@ export interface InsumoRequest {
   permitirEstoqueNegativo?: boolean
   /** #590 (RN-NOVA-39) — nulo na edição = mantém. */
   regraPrecoReferencia?: RegraPrecoReferencia
+  /** V0.16.0 (#687, RN-NOVA-18) — só ao completar insumo em rascunho: custo = preço ÷ quantidade. */
+  precoTotalCompraInicial?: number
+  quantidadeCompradaInicial?: number
 }
 
 /** #590 (RN-NOVA-39) — como o preço de referência dos fornecedores deste insumo é calculado. */
@@ -40,10 +43,11 @@ export interface InsumoResponse {
   nome: string
   marca?: string
   qualquerMarca: boolean
-  /** Sigla denormalizada, mantida para exibição (telas de histórico/listagem já consomem como texto). */
-  unidadeMedida: string
+  /** Sigla denormalizada, mantida para exibição (telas de histórico/listagem já consomem como texto).
+   *  V0.16.0 (#687) — nula só em insumo em rascunho criado sem unidade conhecida. */
+  unidadeMedida: string | null
   /** #298 (V0.14.0) — id da UnidadeMedida real, usado para preselecionar o dropdown na edição. */
-  unidadeMedidaId: string
+  unidadeMedidaId: string | null
   fracionavel: boolean
   tipoExibicaoQuantidade: TipoExibicaoQuantidade | null
   permitirEstoqueNegativo: boolean
@@ -54,6 +58,19 @@ export interface InsumoResponse {
   regraPrecoReferencia: RegraPrecoReferencia
   createdAt: string
   updatedAt: string
+  /** V0.16.0 (#687, RN-NOVA-18) — rascunho vindo da nota: não entra em ficha, orçamento nem estoque. */
+  rascunho: boolean
+  /** Custo calculado a partir da nota, mostrado como "proposto, a revisar". */
+  custoProposto: boolean
+}
+
+/** V0.16.0 (#687, RN-NOVA-18) — POST /insumos/rascunho: o backend propõe unidade e custo a partir do item. */
+export interface InsumoRascunhoRequest {
+  nome: string
+  marca?: string
+  unidadeNota?: string
+  quantidadeNota?: number
+  valorFinalNota?: number
 }
 
 // RN-NOVA-4 (V0.10.0, #336) — GET /insumos/contagens, badges de filtro de ListaInsumosPage.tsx.

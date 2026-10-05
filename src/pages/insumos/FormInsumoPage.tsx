@@ -105,6 +105,10 @@ export default function FormInsumoPage() {
   const [loadingData, setLoadingData] = useState(false)
   const [error, setError] = useState('')
   const [custoUnitarioExistente, setCustoUnitarioExistente] = useState<number | null>(null)
+  // V0.16.0 (#687, RN-NOVA-18) — editar um rascunho é completar o cadastro: pede preço e quantidade
+  // como o cadastro novo, e o backend o ativa ao salvar.
+  const [rascunho, setRascunho] = useState(false)
+  const [custoProposto, setCustoProposto] = useState<number | null>(null)
   const unRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -127,7 +131,7 @@ export default function FormInsumoPage() {
           setNome(data.nome)
           setMarca(data.marca ?? '')
           setQualquerMarca(data.qualquerMarca ?? false)
-          setUnidadeMedidaId(data.unidadeMedidaId)
+          setUnidadeMedidaId(data.unidadeMedidaId ?? '')
           setFracao(data.fracionavel ?? true)
           setTipoExibicao(data.tipoExibicaoQuantidade ?? 'DECIMAL')
           setEstoque(data.estoqueAtual.toString())
@@ -135,6 +139,8 @@ export default function FormInsumoPage() {
           setCustoUnitarioExistente(data.custoUnitario)
           setPermitirEstoqueNegativo(data.permitirEstoqueNegativo)
           setRegraPreco(data.regraPrecoReferencia ?? 'MEDIA')
+          setRascunho(data.rascunho)
+          setCustoProposto(data.custoProposto ? data.custoUnitario : null)
         })
         .catch(() => setError('Não foi possível carregar os dados do insumo.'))
         .finally(() => setLoadingData(false))
@@ -155,7 +161,8 @@ export default function FormInsumoPage() {
   const preco = num(precoCompra)
   const qComprada = num(qtdCompra)
   // Em edição: usa custoUnitario existente da API; em cadastro: calcula pelo preço/qtd da compra inicial
-  const custoUnit = editando && custoUnitarioExistente !== null
+  const pedeCompra = !editando || rascunho
+  const custoUnit = editando && !rascunho && custoUnitarioExistente !== null
     ? custoUnitarioExistente
     : (qComprada > 0 ? preco / qComprada : null)
   // #458 (V0.10.0) — sempre 2 casas com arredondamento matemático padrão (antes: até 3 casas
@@ -169,14 +176,14 @@ export default function FormInsumoPage() {
   // entrada manual ou compra de lote (telas separadas, pós-cadastro).
   const precoValido = preco > 0
   const qtdValida = qComprada > 0
-  const precoErro = !editando && precoTocado && !precoValido ? 'Custo do Insumo é obrigatório' : undefined
-  const qtdErro = !editando && qtdTocado && !qtdValida ? 'Quantidade é obrigatória' : undefined
+  const precoErro = pedeCompra && precoTocado && !precoValido ? 'Custo do Insumo é obrigatório' : undefined
+  const qtdErro = pedeCompra && qtdTocado && !qtdValida ? 'Quantidade é obrigatória' : undefined
   // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
   const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && num(estoque) < 0
   const estoqueNegativoErro = bloqueioEstoqueNegativo
     ? 'Não é possível desmarcar "Permitir estoque negativo" pois este insumo está com estoque negativo. Regularize o estoque antes de desmarcar esta opção.'
     : undefined
-  const podeSubmeter = !!unidadeMedidaId && (editando ? !bloqueioEstoqueNegativo : (precoValido && qtdValida))
+  const podeSubmeter = !!unidadeMedidaId && (pedeCompra ? (precoValido && qtdValida) : !bloqueioEstoqueNegativo)
 
   const alternarQualquerMarca = () => {
     if (qualquerMarca) { setQualquerMarca(false); return }
@@ -186,7 +193,7 @@ export default function FormInsumoPage() {
   }
 
   const handleSubmit = async () => {
-    if (!editando && !podeSubmeter) {
+    if (pedeCompra && !podeSubmeter) {
       setPrecoTocado(true)
       setQtdTocado(true)
       return
@@ -208,6 +215,7 @@ export default function FormInsumoPage() {
           estoqueMinimo: minimo ? num(minimo) : undefined,
           permitirEstoqueNegativo,
           regraPrecoReferencia: regraPreco,
+          ...(rascunho ? { precoTotalCompraInicial: preco, quantidadeCompradaInicial: qComprada } : {}),
         }
         await insumoService.editar(id, data)
         navigate(`/insumos/${id}`)
@@ -270,11 +278,17 @@ export default function FormInsumoPage() {
             Insumos
           </span>
           <ChevronRight size={15} className="text-dim" />
-          <span className="font-semibold text-body">{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
+          <span className="font-semibold text-body">{rascunho ? 'Completar insumo' : editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
         </div>
         <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
-          {editando ? 'Editar Insumo' : 'Novo Insumo'}
+          {rascunho ? 'Completar insumo' : editando ? 'Editar Insumo' : 'Novo Insumo'}
         </h1>
+        {rascunho && (
+          <p data-testid="aviso-rascunho" className="m-0 mt-2 max-w-[640px] text-[13.5px] text-body">
+            Este insumo veio de uma nota e ainda é um rascunho. Informe unidade, custo e quantidade e salve para
+            ativá-lo; até lá ele não entra em ficha técnica, orçamento nem estoque.
+          </p>
+        )}
       </div>
 
       {/* CARD FORM */}
@@ -381,9 +395,9 @@ export default function FormInsumoPage() {
 
         {/* SEÇÃO 3 — Estoque e custo */}
         <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="3" title="Estoque e custo" subtitle={editando ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe o custo e a quantidade para calcular o custo unitário automaticamente.'} />
+          <SectionTitle number="3" title="Estoque e custo" subtitle={editando && !rascunho ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe o custo e a quantidade para calcular o custo unitário automaticamente.'} />
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            {editando && (
+            {editando && !rascunho && (
               <Field label="Quantidade em estoque *" hint="O estoque só muda via baixa manual ou compra de lote.">
                 <div className="relative">
                   <input
@@ -399,9 +413,10 @@ export default function FormInsumoPage() {
               </Field>
             )}
 
-            {!editando && (
+            {pedeCompra && (
               <>
-                <Field label="Custo do Insumo *" erro={precoErro}>
+                <Field label="Custo do Insumo *" erro={precoErro}
+                  hint={custoProposto != null ? `Proposto pela nota: R$ ${custoProposto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por unidade (a revisar).` : undefined}>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-dim">
                       R$
@@ -441,7 +456,7 @@ export default function FormInsumoPage() {
           </div>
 
           {/* CARD RESULTADO */}
-          {(editando || custoUnit != null) && (
+          {((editando && !rascunho) || custoUnit != null) && (
             <div
               key={custoFmt}
               className={clsx(

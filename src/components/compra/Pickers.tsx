@@ -12,7 +12,7 @@ import type { CadastroRef } from '../../types/compra'
 // (INS-011) e cadastro ativo com papel Fornecedor (RN-NOVA-3). O backend valida de novo.
 // #583/#616 (RN-NOVA-40): os inativos aparecem depois dos ativos, riscados, sem poder escolher.
 
-/** Busca de insumo ativo. `excluir`: ids que não devem aparecer (ex.: já na lista). */
+/** Busca de insumo (ativos, inativos riscados e rascunhos da compra — #687). `excluir`: ids que não devem aparecer (ex.: já na lista). */
 export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder = 'Buscar insumo pelo nome…', autoFocus }: {
   onSelect: (i: InsumoResponse) => void
   excluir?: string[]
@@ -22,7 +22,7 @@ export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder 
 }) {
   return (
     <ComboBusca<InsumoResponse>
-      buscar={termo => insumoService.listar(0, 20, termo || undefined, undefined, 'nome,asc', true).then(p => p.content.filter(i => !excluir.includes(i.id)))}
+      buscar={termo => insumoService.listar(0, 20, termo || undefined, undefined, 'nome,asc', true, true).then(p => p.content.filter(i => !excluir.includes(i.id)))}
       onSelect={onSelect}
       getKey={i => i.id}
       inativo={i => !i.ativo}
@@ -36,6 +36,7 @@ export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder 
             <span className="text-[12px] font-semibold text-muted">{i.identificador}</span>
             <span className="truncate text-[14px] font-semibold text-dark">{i.nome}</span>
             {i.marca && <span className="truncate text-[12.5px] text-muted">{i.marca}</span>}
+            {i.rascunho && <span className="shrink-0 rounded-full bg-orange/10 px-2 text-[11px] font-semibold text-orange">Rascunho</span>}
           </div>
           <div className="text-[12px] text-muted">
             Estoque {formatQuantidade(i.estoqueAtual, i.fracionavel, i.tipoExibicaoQuantidade)} {i.unidadeMedida}

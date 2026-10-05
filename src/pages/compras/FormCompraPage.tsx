@@ -16,6 +16,7 @@ import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
 import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
+import { atalhosCompletarInsumo } from '../../components/compra/AtalhosCompletarInsumo'
 import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef, TipoDesconto } from '../../types/compra'
 
 // V0.15.0 — "Registrar compra" (#541, RN-NOVA-4) com método de pagamento (#550, RN-NOVA-23).
@@ -88,7 +89,8 @@ export default function FormCompraPage() {
   const [descontoNota, setDescontoNota] = useState('')
 
   const [salvando, setSalvando] = useState<'rascunho' | 'confirmar' | null>(null)
-  const { modalErro, mostrarErro } = useModalErro()
+  // #687 (RN-NOVA-19) — confirmar com insumo em rascunho mostra o atalho "Completar o insumo".
+  const { modalErro, mostrarErro } = useModalErro({ extra: erro => atalhosCompletarInsumo(erro, linhas.map(l => l.insumo)) })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirmarAberto, setConfirmarAberto] = useState(false)
   const [impacto, setImpacto] = useState<{ impacto: ImpactoCompraResponse; compraId: string; identificador: string } | null>(null)
@@ -126,7 +128,7 @@ export default function FormCompraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const adicionarInsumo = (i: { id: string; identificador?: string; nome: string; marca?: string | null; unidadeMedida: string; ativo: boolean }) => {
+  const adicionarInsumo = (i: { id: string; identificador?: string; nome: string; marca?: string | null; unidadeMedida: string | null; ativo: boolean }) => {
     setLinhas(prev => [...prev, {
       key: novaChave(),
       insumo: { id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, ativo: i.ativo },
@@ -352,7 +354,7 @@ export default function FormCompraPage() {
                         {valor != null ? BRL(valor) : '—'}
                       </span>
                       <span data-testid="custo-unitario-linha" className={clsx('text-[12.5px] [font-variant-numeric:tabular-nums]', unit != null ? 'font-semibold text-teal' : 'text-faint')}>
-                        {unit != null ? `${moeda(Math.round(unit * 10000) / 10000)} / ${l.insumo.unidade}` : ''}
+                        {unit != null ? `${moeda(Math.round(unit * 10000) / 10000)}${l.insumo.unidade ? ` / ${l.insumo.unidade}` : ''}` : ''}
                       </span>
                     </div>
                     <div className="flex min-h-11 items-center justify-end">

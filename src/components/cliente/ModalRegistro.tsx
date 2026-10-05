@@ -87,7 +87,7 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
     pessoa: c.multiplosFornecedores ? 'Vários fornecedores' : c.fornecedor?.nome,
     linhas: c.itens.map(i => ({
       nome: i.insumo.nome,
-      quantidade: i.quantidade != null ? `${qtd(i.quantidade)} ${i.insumo.unidade}` : '—',
+      quantidade: i.quantidade != null ? `${qtd(i.quantidade)} ${i.insumo.unidade ?? ''}`.trim() : '—',
       unitario: moeda(c.status === 'RASCUNHO' ? i.precoUnitario : i.precoUnitarioPago),
       subtotal: i.precoTotal != null ? BRL(i.precoTotal) : '—',
       detalhe: c.multiplosFornecedores ? (i.fornecedor?.nome ?? 'Sem fornecedor') : undefined,

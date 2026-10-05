@@ -99,11 +99,11 @@ export default function GraficoPrecoInsumos({ inicial, de, ate }: {
     return () => { cancelado = true }
   }, [sel, de, ate, mobile])
 
-  const adicionar = (i: { id: string; nome: string; unidadeMedida: string }) => {
+  const adicionar = (i: { id: string; nome: string; unidadeMedida: string | null }) => {
     setSel(prev => {
       if (prev.length >= MAX_INSUMOS || prev.some(s => s.id === i.id)) return prev
       const livres = [0, 1, 2, 3, 4].filter(n => !prev.some(s => s.slot === n))
-      return [...prev, { id: i.id, nome: i.nome, unidade: i.unidadeMedida, slot: livres[0] }]
+      return [...prev, { id: i.id, nome: i.nome, unidade: i.unidadeMedida ?? '', slot: livres[0] }]
     })
   }
   const remover = (id: string) => setSel(prev => prev.filter(s => s.id !== id))
