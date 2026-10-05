@@ -23,7 +23,7 @@ export const notaCompraService = {
     if (entrada.chaveAcesso) form.append('chaveAcesso', entrada.chaveAcesso)
     if (entrada.arquivo) form.append('arquivo', entrada.arquivo)
     form.append('confirmouEnvioIa', String(entrada.confirmouEnvioIa === true))
-    const response = await api.post('/compras/nota/leitura', form)
+    const response = await api.post('/compras/nota/leitura', form, { headers: { 'Content-Type': 'multipart/form-data' } })
     return response.data
   },
 
@@ -39,7 +39,7 @@ export const notaCompraService = {
     const form = new FormData()
     form.append('dados', new Blob([JSON.stringify(dados)], { type: 'application/json' }))
     form.append('arquivo', arquivo)
-    const response = await api.post('/compras/nota/rascunho', form, { params: { simular } })
+    const response = await api.post('/compras/nota/rascunho', form, { params: { simular }, headers: { 'Content-Type': 'multipart/form-data' } })
     return response.data
   },
 
