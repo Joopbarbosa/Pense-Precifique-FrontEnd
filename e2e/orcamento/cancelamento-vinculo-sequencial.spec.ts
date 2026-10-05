@@ -8,6 +8,7 @@ import {
   criarOrcamentoViaApi,
   buscarOrcamento,
   vincularProducaoViaApi,
+  aguardarDesvinculoPelaInterface,
 } from '../helpers/orcamento'
 import {
   criarProdutoComFicha,
@@ -82,6 +83,12 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Orçamento com vínculo 
     const orcamentoAntes = await buscarOrcamento(request, token, orcamento.id)
     expect(orcamentoAntes.producoesVinculadas).toHaveLength(2)
 
+    // Resposta deliberadamente acima dos 5s da asserção para cobrir o atraso do achado #693.
+    await page.route(`**/orcamentos/${orcamento.id}/cancelar`, async route => {
+      const resposta = await route.fetch()
+      await new Promise(resolve => setTimeout(resolve, 5200))
+      await route.fulfill({ response: resposta })
+    })
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
     // A fila de vínculos roda ANTES da modal de cancelamento (arquitetura corrigida — ver
@@ -97,11 +104,20 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Orçamento com vínculo 
     // 2º vínculo — responde "Sim" (CEN-NOVO-13: modal seguinte abre sozinha, sequencial)
     const dialog2 = page.getByRole('dialog')
     await expect(dialog2.getByText('Vínculo 2 de 2')).toBeVisible()
+    const desvinculo = aguardarDesvinculoPelaInterface(page)
     await dialog2.getByRole('button', { name: 'Sim, desfazer vínculo' }).click()
+    await desvinculo
 
     // fila esgotada — só agora abre a modal real de cancelamento
     await expect(page.getByRole('dialog').getByRole('button', { name: 'Sim, cancelar' })).toBeVisible()
+    const cancelamento = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname.endsWith(`/orcamentos/${orcamento.id}/cancelar`),
+    )
     await page.getByRole('button', { name: 'Sim, cancelar' }).click()
+    const respostaCancelamento = await cancelamento
+    expect(respostaCancelamento.ok()).toBe(true)
+    await respostaCancelamento.finished()
     await expect(page.getByRole('dialog')).toHaveCount(0)
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
@@ -152,6 +168,7 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Orçamento com vínculo 
     const dialog1 = page.getByRole('dialog')
     await expect(dialog1.getByText('Desfazer vínculo com a produção?')).toBeVisible()
     await expect(dialog1.getByText(producao.identificador)).toBeVisible()
+    const desvinculo = aguardarDesvinculoPelaInterface(page)
     await dialog1.getByRole('button', { name: 'Sim, desfazer vínculo' }).click()
 
     const dialog2 = page.getByRole('dialog')
@@ -159,9 +176,17 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Orçamento com vínculo 
     await expect(dialog2.getByText(nomeProduto)).toBeVisible()
     await expect(dialog2.getByText(/não são revertidos/)).toBeVisible() // aviso explícito de perda, sempre visível
     await dialog2.getByRole('button', { name: 'Sim, manter', exact: true }).click()
+    await desvinculo
 
     await expect(page.getByRole('dialog').getByRole('button', { name: 'Sim, cancelar' })).toBeVisible()
+    const cancelamento = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname.endsWith(`/orcamentos/${orcamento.id}/cancelar`),
+    )
     await page.getByRole('button', { name: 'Sim, cancelar' }).click()
+    const respostaCancelamento = await cancelamento
+    expect(respostaCancelamento.ok()).toBe(true)
+    await respostaCancelamento.finished()
     await expect(page.getByRole('dialog')).toHaveCount(0)
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
@@ -204,14 +229,23 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Orçamento com vínculo 
     await page.getByRole('button', { name: 'Cancelar orçamento' }).click()
 
     const dialog1 = page.getByRole('dialog')
+    const desvinculo = aguardarDesvinculoPelaInterface(page)
     await dialog1.getByRole('button', { name: 'Sim, desfazer vínculo' }).click()
 
     const dialog2 = page.getByRole('dialog')
     await expect(dialog2.getByText(/não são revertidos/)).toBeVisible()
     await dialog2.getByRole('button', { name: 'Não, remover' }).click()
+    await desvinculo
 
     await expect(page.getByRole('dialog').getByRole('button', { name: 'Sim, cancelar' })).toBeVisible()
+    const cancelamento = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname.endsWith(`/orcamentos/${orcamento.id}/cancelar`),
+    )
     await page.getByRole('button', { name: 'Sim, cancelar' }).click()
+    const respostaCancelamento = await cancelamento
+    expect(respostaCancelamento.ok()).toBe(true)
+    await respostaCancelamento.finished()
     await expect(page.getByRole('dialog')).toHaveCount(0)
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
