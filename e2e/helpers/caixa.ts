@@ -1,4 +1,4 @@
-import { APIRequestContext } from '@playwright/test'
+import { APIRequestContext, Page, expect } from '@playwright/test'
 import { API_URL } from './auth'
 import { resolverUnidadeMedidaId } from './unidadeMedida'
 
@@ -128,4 +128,16 @@ export async function apiCriarCatalogoComItem(
   const item = await resItem.json()
 
   return { catalogo, item, produtoPrincipal, produtoCustomizacao }
+}
+
+export async function concluirFechamentoPelaInterface(page: Page) {
+  const turnoAtual = page.waitForResponse(response =>
+    response.request().method() === 'GET'
+    && new URL(response.url()).pathname.endsWith('/caixa/turnos/atual'),
+  )
+  await page.getByRole('button', { name: 'Concluir' }).click()
+  const resposta = await turnoAtual
+  expect(resposta.status()).toBe(404)
+  await resposta.finished()
+  await expect(page.getByRole('heading', { name: 'Abrir o Caixa' })).toBeVisible()
 }
