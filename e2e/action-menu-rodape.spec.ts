@@ -72,3 +72,42 @@ test.describe('#699 — ActionMenu perto do rodapé', () => {
     expect(item.y).toBeGreaterThan(botao.y + botao.height)
   })
 })
+
+/**
+ * OpenProject #710 — a rolagem que já estava em curso ao abrir o menu não o fecha
+ *
+ * Dado que a listagem tem mais de uma página e a artesã rolou até "Carregar mais"
+ * Quando ela abre o menu "Mais ações" de uma linha lá em cima (o navegador rola de volta até a linha)
+ * Então o menu continua aberto e a ação pode ser clicada
+ */
+test.describe('#710 — ActionMenu e a rolagem logo ao abrir', () => {
+  const ids: string[] = []
+  let alvo: string
+
+  test.beforeEach(async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const base = Date.now()
+    for (let i = 0; i < 21; i++) ids.push((await criarInsumo(request, token, `E2E Rolagem ${base} ${i}`)).id)
+    alvo = `E2E Rolagem Alvo ${base}`
+    ids.push((await criarInsumo(request, token, alvo)).id)
+    await login(page)
+    await page.goto('/insumos')
+  })
+
+  test.afterEach(async ({ request }) => {
+    const token = await apiLogin(request)
+    for (const id of ids.splice(0)) {
+      await request.delete(`${API_URL}/insumos/${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+    }
+  })
+
+  test('menu de uma linha do topo abre e fica aberto depois de "Carregar mais"', async ({ page }) => {
+    await page.getByRole('button', { name: /Carregar mais/ }).click()
+    await page.waitForTimeout(400)
+    const linha = page.getByText(alvo, { exact: true }).first().locator('xpath=../..')
+    await linha.getByRole('button', { name: 'Mais ações' }).click()
+    await page.getByText('Excluir', { exact: true }).click({ timeout: 5_000 })
+    await expect(page.getByText(`Excluir "${alvo}" permanentemente?`)).toBeVisible()
+    await page.getByRole('button', { name: 'Cancelar' }).click()
+  })
+})
