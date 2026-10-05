@@ -5,6 +5,8 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Field from '../../components/ui/Field'
 import ModalShell from '../../components/ui/ModalShell'
+import Toggle from '../../components/ui/Toggle'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import SegmentedControl from '../../components/ui/SegmentedControl'
 import type { RegraPrecoReferencia } from '../../types/insumo'
 import SectionTitle from '../../components/shared/SectionTitle'
@@ -82,6 +84,8 @@ export default function FormInsumoPage() {
 
   const [nome, setNome] = useState('')
   const [marca, setMarca] = useState('')
+  const [qualquerMarca, setQualquerMarca] = useState(false)
+  const [confirmarMarca, setConfirmarMarca] = useState(false)
   const [unidades, setUnidades] = useState<UnidadeMedidaResponse[]>([])
   const [loadingUnidades, setLoadingUnidades] = useState(true)
   const [unidadeMedidaId, setUnidadeMedidaId] = useState('')
@@ -122,6 +126,7 @@ export default function FormInsumoPage() {
         .then(data => {
           setNome(data.nome)
           setMarca(data.marca ?? '')
+          setQualquerMarca(data.qualquerMarca ?? false)
           setUnidadeMedidaId(data.unidadeMedidaId)
           setFracao(data.fracionavel ?? true)
           setTipoExibicao(data.tipoExibicaoQuantidade ?? 'DECIMAL')
@@ -173,6 +178,13 @@ export default function FormInsumoPage() {
     : undefined
   const podeSubmeter = !!unidadeMedidaId && (editando ? !bloqueioEstoqueNegativo : (precoValido && qtdValida))
 
+  const alternarQualquerMarca = () => {
+    if (qualquerMarca) { setQualquerMarca(false); return }
+    if (marca.trim()) { setConfirmarMarca(true); return }
+    setMarca('')
+    setQualquerMarca(true)
+  }
+
   const handleSubmit = async () => {
     if (!editando && !podeSubmeter) {
       setPrecoTocado(true)
@@ -189,6 +201,7 @@ export default function FormInsumoPage() {
         const data: InsumoRequest = {
           nome: nome.trim(),
           marca: marca.trim() || undefined,
+          qualquerMarca,
           unidadeMedidaId,
           fracionavel: fracao,
           tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
@@ -202,6 +215,7 @@ export default function FormInsumoPage() {
         const data: NovoInsumoRequest = {
           nome: nome.trim(),
           marca: marca.trim() || undefined,
+          qualquerMarca,
           unidadeMedidaId,
           fracionavel: fracao,
           tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
@@ -274,8 +288,12 @@ export default function FormInsumoPage() {
               <input placeholder="Papel couchê 180g" className={inputBase} {...bind(nome, setNome)} />
             </Field>
             <Field label="Marca" opt>
-              <input placeholder="Suzano" className={inputBase} {...bind(marca, setMarca)} />
+              <input placeholder="Suzano" className={clsx(inputBase, "disabled:bg-cream disabled:text-muted")} disabled={qualquerMarca} {...bind(marca, setMarca)} />
             </Field>
+          </div>
+          <div className="mt-3.5 flex items-center gap-3">
+            <Toggle checked={qualquerMarca} onChange={alternarQualquerMarca} label="Não validar marca" />
+            <span className="text-sm text-body">Não validar marca</span>
           </div>
           <div className="mt-3.5 flex gap-[9px] rounded-[11px] border border-teal/[0.15] bg-teal/[0.05] px-[13px] py-[11px]">
             <Info size={15} className="mt-px flex-shrink-0 text-teal" />
@@ -511,6 +529,10 @@ export default function FormInsumoPage() {
         </div>
       </div>
 
+      <ConfirmacaoModal open={confirmarMarca} onClose={() => setConfirmarMarca(false)}
+        title="Não validar marca" description={`A marca ${marca} será apagada`}
+        confirmLabel="Apagar marca e confirmar"
+        onConfirm={() => { setMarca(''); setQualquerMarca(true); setConfirmarMarca(false) }} />
       {modal === 'desativar' && <DesativarModal onClose={() => setModal(null)} />}
 
     </AppLayout>

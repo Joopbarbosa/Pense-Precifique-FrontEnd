@@ -19,7 +19,7 @@ export async function criarFornecedor(request: APIRequestContext, token: string,
   return res.json() as Promise<{ id: string; nome: string }>
 }
 
-export async function criarInsumo(request: APIRequestContext, token: string, nome: string) {
+export async function criarInsumo(request: APIRequestContext, token: string, nome: string, opcoes: { marca?: string; qualquerMarca?: boolean } = {}) {
   const unidadeMedidaId = await resolverUnidadeMedidaId(request, token, 'unidade')
   const res = await request.post(`${API_URL}/insumos`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -31,6 +31,7 @@ export async function criarInsumo(request: APIRequestContext, token: string, nom
       precoTotalCompraInicial: 10,
       quantidadeCompradaInicial: 10,
       permitirEstoqueNegativo: true,
+      ...opcoes,
     },
   })
   if (!res.ok()) {

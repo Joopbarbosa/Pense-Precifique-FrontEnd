@@ -487,7 +487,7 @@ export default function DetalheInsumoPage() {
               <FracionavelBadge fracionavel={insumo.fracionavel} />
             </div>
             <div className="mt-1 text-sm text-muted">
-              Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong>
+              {insumo.qualquerMarca ? 'Qualquer marca' : <>Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong></>}
             </div>
           </div>
         </div>
