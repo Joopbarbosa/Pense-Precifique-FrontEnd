@@ -371,7 +371,7 @@ export default function FormCompraPage() {
             <InsumoPicker onSelect={adicionarInsumo} excluir={multiplos ? [] : idsNaCompra} placeholder="Adicionar insumo à compra…" />
           </div>
           {linhas.length === 0 && (
-            <p className="mb-0 mt-2.5 text-[13px] text-muted">Nenhum insumo ainda. Busque acima para adicionar. Só insumos ativos e em rascunho aparecem.</p>
+            <p className="mb-0 mt-2.5 text-[13px] text-muted">Nenhum insumo ainda. Busque acima para adicionar. Só insumos ativos aparecem.</p>
           )}
           {multiplos && (
             <p className="mb-0 mt-2.5 flex items-center gap-1.5 text-[12.5px] text-muted">
