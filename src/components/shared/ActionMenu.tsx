@@ -77,8 +77,11 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
     const onScroll = () => setOpen(false)
     document.addEventListener('mousedown', close)
     document.addEventListener('keydown', onKey)
-    window.addEventListener('scroll', onScroll, true)
+    // A rolagem que já estava em curso quando o menu abriu (linha levada à vista pouco antes do clique)
+    // chega no quadro seguinte e não deve fechá-lo (#710): o listener só entra depois desse quadro.
+    const quadro = requestAnimationFrame(() => window.addEventListener('scroll', onScroll, true))
     return () => {
+      cancelAnimationFrame(quadro)
       document.removeEventListener('mousedown', close)
       document.removeEventListener('keydown', onKey)
       window.removeEventListener('scroll', onScroll, true)
