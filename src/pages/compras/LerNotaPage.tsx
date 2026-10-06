@@ -26,6 +26,8 @@ const MODELOS = [
   { value: 'NFE' as ModeloNota, label: 'Nota (NF-e)' },
 ]
 
+const ehLink = (texto: string) => /^https?:\/\//i.test(texto.trim())
+
 export default function LerNotaPage() {
   const navigate = useNavigate()
   const [modelo, setModelo] = useState<ModeloNota>('NFCE')
@@ -45,16 +47,40 @@ export default function LerNotaPage() {
   const montarEntrada = (): EntradaLeituraNota => {
     if (xml) return { modelo, arquivo: xml }
     const valor = texto.trim()
-    return /^https?:\/\//i.test(valor) ? { modelo, qrUrl: valor } : { modelo, chaveAcesso: valor.replace(/\s/g, '') }
+    return ehLink(valor) ? { modelo, qrUrl: valor } : { modelo, chaveAcesso: valor.replace(/\s/g, '') }
   }
 
   const escolherArquivo = async (arquivo: File | null) => {
     const id = ++preparoAtual.current
-    setXml(null); setPreparando(Boolean(arquivo))
+    setXml(null)
+    setPreparando(Boolean(arquivo))
     if (!arquivo) return
-    try { const pronto = await prepararArquivoNota(arquivo); if (id === preparoAtual.current) setXml(pronto) }
-    catch (e) { if (id === preparoAtual.current) mostrarErro({ titulo: 'Arquivo não pode ser enviado', mensagem: e instanceof Error ? e.message : 'Não foi possível preparar o arquivo.', motivo: 'O arquivo precisa ter um formato aceito e caber no limite de upload.', comoResolver: 'Escolha XML, PDF, JPG ou PNG; tente uma foto mais nítida ou um arquivo menor.' }) }
-    finally { if (id === preparoAtual.current) setPreparando(false) }
+    try {
+      const pronto = await prepararArquivoNota(arquivo)
+      if (id === preparoAtual.current) setXml(pronto)
+    } catch (e) {
+      if (id === preparoAtual.current) {
+        mostrarErro({
+          titulo: 'Arquivo não pode ser enviado',
+          mensagem: e instanceof Error ? e.message : 'Não foi possível preparar o arquivo.',
+          motivo: 'O arquivo precisa ter um formato aceito e caber no limite de upload.',
+          comoResolver: 'Escolha XML, PDF, JPG ou PNG; tente uma foto mais nítida ou um arquivo menor.',
+        })
+      }
+    } finally {
+      if (id === preparoAtual.current) setPreparando(false)
+    }
+  }
+
+  const selecionarArquivo = (campo: HTMLInputElement) => {
+    const arquivo = campo.files?.[0] ?? null
+    campo.value = ''
+    void escolherArquivo(arquivo)
+  }
+
+  const removerArquivo = () => {
+    preparoAtual.current++
+    setXml(null)
   }
 
   const ler = async (pedido: EntradaLeituraNota = montarEntrada()) => {
@@ -80,6 +106,13 @@ export default function LerNotaPage() {
     } finally {
       setLendo(false)
     }
+  }
+
+  const lerQrDaCamera = (qrUrl: string) => {
+    setCamera(false)
+    setXml(null)
+    setTexto(qrUrl)
+    void ler({ modelo: 'NFCE', qrUrl })
   }
 
   const recomecar = () => {
@@ -109,10 +142,21 @@ export default function LerNotaPage() {
         </Field>
         {modelo === 'NFCE' && <Button variant="ghost" icon={<Camera size={16} />} onClick={() => setCamera(true)} disabled={lendo || preparando}>Ler QR pela câmera</Button>}
         <Field label="Ou envie XML, foto, print ou PDF" hint="Fotos são reduzidas antes do envio. Limite de 5MB. XML é lido sem IA.">
-          <input data-testid="campo-xml" type="file" accept=".xml,.pdf,.jpg,.jpeg,.png,application/xml,text/xml,application/pdf,image/jpeg,image/png"
-            disabled={lendo || preparando} onChange={e => { const arquivo = e.target.files?.[0] ?? null; e.target.value = ''; void escolherArquivo(arquivo) }} className="text-[13.5px]" />
+          <input
+            data-testid="campo-xml"
+            type="file"
+            accept=".xml,.pdf,.jpg,.jpeg,.png,application/xml,text/xml,application/pdf,image/jpeg,image/png"
+            disabled={lendo || preparando}
+            onChange={e => selecionarArquivo(e.target)}
+            className="text-[13.5px]"
+          />
           {preparando && <span className="text-sm text-muted">Preparando a foto…</span>}
-          {xml && <div className="mt-2 flex items-center gap-2 text-sm text-muted"><span data-testid="arquivo-nota-preparado">{xml.name} · {(xml.size / 1024).toFixed(0)} KB</span><Button variant="ghost" onClick={() => { preparoAtual.current++; setXml(null) }} disabled={lendo}>Remover arquivo</Button></div>}
+          {xml && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted">
+              <span data-testid="arquivo-nota-preparado">{xml.name} · {(xml.size / 1024).toFixed(0)} KB</span>
+              <Button variant="ghost" onClick={removerArquivo} disabled={lendo}>Remover arquivo</Button>
+            </div>
+          )}
         </Field>
         <div>
           <Button variant="primary" icon={lendo ? <Spinner size={15} /> : <FileSearch size={16} />} onClick={() => { void ler() }} disabled={!podeLer}>
@@ -121,7 +165,11 @@ export default function LerNotaPage() {
         </div>
       </div>
 
-      {camera && <Suspense fallback={<Spinner />}><CameraNota onClose={() => setCamera(false)} onQr={qrUrl => { setCamera(false); setXml(null); setTexto(qrUrl); void ler({ modelo: 'NFCE', qrUrl }) }} /></Suspense>}
+      {camera && (
+        <Suspense fallback={<Spinner />}>
+          <CameraNota onClose={() => setCamera(false)} valido={ehLink} onQr={lerQrDaCamera} />
+        </Suspense>
+      )}
       <ConfirmacaoModal open={avisoEnvio != null} onClose={() => setAvisoEnvio(null)} title="Enviar documento para leitura" confirmLabel="Aceitar e ler documento"
         description="Para ler foto ou PDF, o documento pode ser enviado a um serviço externo de inteligência artificial. Ele pode conter seu CPF, e a imagem não será ocultada antes do envio. Você precisa conferir os dados depois da leitura."
         onConfirm={() => { if (avisoEnvio) { const pedido = { ...avisoEnvio, confirmouEnvioIa: true }; setAvisoEnvio(null); void ler(pedido) } }} />
