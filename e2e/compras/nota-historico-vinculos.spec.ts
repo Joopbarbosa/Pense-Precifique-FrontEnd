@@ -238,3 +238,16 @@ test('CEN-NOVO-67: aba do insumo lista os itens de nota ligados e mostra mensage
   await page.getByRole('button', { name: 'Histórico de Nota Fiscal' }).click()
   await expect(page.getByTestId('historico-nota-vazio')).toContainText('Nenhum item de nota foi ligado a este insumo ainda.')
 })
+
+// #722: na aba do insumo, clicar no registro leva para a compra em que o vínculo foi feito.
+test('#722: clicar no registro da aba do insumo abre a compra', async ({ page, request }) => {
+  const token = await apiLogin(request); const sfx = Date.now().toString(36)
+  const insumo = await criarInsumo(request, token, `Insumo aba compra ${sfx}`)
+  const cadastro = await fornecedor(request, token, `Fornecedor aba compra ${sfx}`, cnpjValido())
+  const compra = await salvar(request, token, await ler(request, token, cadastro.documento, [`ITEM ABA COMPRA ${sfx}`], cadastro.nome), [insumo.id])
+  await login(page)
+  await page.goto(`/insumos/${insumo.id}`)
+  await page.getByRole('button', { name: 'Histórico de Nota Fiscal' }).click()
+  await page.getByRole('table', { name: 'Histórico de Nota Fiscal do insumo' }).getByRole('row').filter({ hasText: `ITEM ABA COMPRA ${sfx}` }).getByText(`ITEM ABA COMPRA ${sfx}`).click()
+  await expect(page).toHaveURL(new RegExp(`/compras/${compra.id}$`))
+})
