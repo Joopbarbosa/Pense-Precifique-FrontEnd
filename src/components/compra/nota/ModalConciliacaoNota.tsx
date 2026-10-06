@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { AlertTriangle, Check, FileSearch, PackagePlus, RotateCcw, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, Check, FileSearch, PackagePlus, RotateCcw, Sparkles, UserPlus, X } from 'lucide-react'
 import { Button, ModalShell } from '../../ui'
 import ConfirmacaoModal from '../../shared/ConfirmacaoModal'
 import { InsumoPicker } from '../Pickers'
 import { moeda, paraCampo, parseDecimal, qtd } from '../formato'
 import DecisaoFornecedorNota from './DecisaoFornecedorNota'
 import ModalCadastrarInsumoNota from './ModalCadastrarInsumoNota'
+import ModalCadastrarFornecedorNota from './ModalCadastrarFornecedorNota'
 import { notaCompraService } from '../../../services/notaCompraService'
 import { useModalErro } from '../../../hooks/useModalErro'
 import { extrairErroExplicado } from '../../../utils/apiError'
+import type { ClienteResponse } from '../../../types/cliente'
 import type { CompraResponse } from '../../../types/compra'
 import type { InsumoResponse } from '../../../types/insumo'
 import type {
@@ -67,7 +69,10 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
   const nota = leitura.nota!
   const [estados, setEstados] = useState<EstadoItem[]>(() => leitura.itens.map(inicial))
   const [mexeu, setMexeu] = useState(false)
-  const [acaoFornecedor, setAcaoFornecedor] = useState<AcaoFornecedor | null>(null)
+  // #713 (RN-NOVA-23) — fornecedor cadastrado pela modal nesta conferência, ou papel a adicionar ao cadastro existente.
+  const [fornecedorCriado, setFornecedorCriado] = useState<ClienteResponse | null>(null)
+  const [papelAdicionado, setPapelAdicionado] = useState(false)
+  const [modalFornecedor, setModalFornecedor] = useState<'cadastrar' | 'papel' | null>(null)
   const [cadastrando, setCadastrando] = useState<ItemConciliacao | null>(null)
   const [trocando, setTrocando] = useState<number | null>(null)
   const [previa, setPrevia] = useState<NotaRascunhoResponse | null>(null)
@@ -78,8 +83,10 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
   const sequencia = useRef(0)
 
   const todosResolvidos = estados.every(resolvido)
-  const precisaFornecedor = leitura.fornecedor != null && leitura.fornecedor.situacao !== 'FORNECEDOR_CADASTRADO'
-  const podeGerar = todosResolvidos && (!precisaFornecedor || acaoFornecedor != null) && !salvando
+  // Fornecedor cadastrado ou criado agora: o backend o encontra pelo CNPJ. Sem clique no botão, segue sem fornecedor.
+  const semFornecedorCadastrado = leitura.fornecedor != null && leitura.fornecedor.situacao !== 'FORNECEDOR_CADASTRADO' && !fornecedorCriado
+  const acaoFornecedor: AcaoFornecedor | null = !semFornecedorCadastrado ? null : papelAdicionado ? 'ADICIONAR_PAPEL' : 'SEM_FORNECEDOR'
+  const podeGerar = todosResolvidos && !salvando
 
   const alterar = (posicao: number, patch: Partial<EstadoItem>, manual = true) => {
     setEstados(prev => prev.map((e, i) => i === posicao ? { ...e, ...patch, ...(manual ? { origem: null, pendenteIa: false } : {}) } : e))
@@ -94,7 +101,7 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
     notaLida: nota,
     assinatura: leitura.assinatura!,
     escolhas,
-    fornecedor: precisaFornecedor ? acaoFornecedor : null,
+    fornecedor: acaoFornecedor,
     comprovanteLink,
   })
 
@@ -142,7 +149,8 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
             <p key={a} className="m-0 rounded-input border border-line bg-cream px-3.5 py-2.5 text-[13px] text-body">{a}</p>
           ))}
           {leitura.fornecedor && (
-            <DecisaoFornecedorNota proposta={leitura.fornecedor} valor={acaoFornecedor} onChange={setAcaoFornecedor} />
+            <DecisaoFornecedorNota proposta={leitura.fornecedor} cadastradoAgora={fornecedorCriado?.nome ?? null} papelAdicionado={papelAdicionado}
+              onCadastrar={() => setModalFornecedor('cadastrar')} onAdicionarPapel={() => setModalFornecedor('papel')} />
           )}
 
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
@@ -256,6 +264,16 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
         <ModalCadastrarInsumoNota item={cadastrando} onClose={() => setCadastrando(null)}
           onCriado={i => { alterar(cadastrando.posicao, { insumo: deInsumo(i), fator: estados[cadastrando.posicao].fator || '1' }); setCadastrando(null) }} />
       )}
+
+      {modalFornecedor === 'cadastrar' && leitura.fornecedor && (
+        <ModalCadastrarFornecedorNota proposta={leitura.fornecedor} onClose={() => setModalFornecedor(null)}
+          onCriado={f => { setFornecedorCriado(f); setModalFornecedor(null) }} />
+      )}
+      <ConfirmacaoModal open={modalFornecedor === 'papel'} onClose={() => setModalFornecedor(null)}
+        onConfirm={() => { setPapelAdicionado(true); setModalFornecedor(null) }}
+        title="Adicionar como fornecedor?" icon={<UserPlus size={17} />}
+        description={`${leitura.fornecedor?.nome ?? 'O emitente'} já é seu cliente. Ele passa a ser também fornecedor quando você gerar o rascunho da compra.`}
+        confirmLabel="Adicionar como fornecedor" />
 
       <ConfirmacaoModal open={confirmarDescarte} onClose={() => setConfirmarDescarte(false)}
         onConfirm={() => { setConfirmarDescarte(false); onTentarNovamente() }}
