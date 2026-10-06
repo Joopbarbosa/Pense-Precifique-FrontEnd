@@ -14,7 +14,15 @@ async function fixture(request: APIRequestContext, origem = 'NFE_FOTO') {
   const r = await request.post(`${leitor}/_fixture`, { data: { chave: acesso, nota } }); expect(r.ok(), await r.text()).toBeTruthy()
   return { nome, qrUrl, nota }
 }
-const observacoes = async (request: APIRequestContext) => (await request.get(`${leitor}/_observacoes`)).json()
+// /_observacoes só existe no leitor integrado (e2e/fakes/leitor-fiscal-integrado.mjs), que sobe com E2E_LEITOR_REAL_REPO
+// apontando para o checkout compilado (dist) do leitor-fiscal. Sem isso o leitor falso devolve "rota inexistente".
+const observacoes = async (request: APIRequestContext) => {
+  const corpo = await (await request.get(`${leitor}/_observacoes`)).json()
+  if ('erro' in corpo) {
+    throw new Error('Leitor de teste sem /_observacoes: defina E2E_LEITOR_REAL_REPO com o checkout compilado (dist) do leitor-fiscal, na versão do commit fixado.')
+  }
+  return corpo
+}
 
 test('CEN6: foto NF-e reduzida, cancelamento não envia, aceite abre conciliação com IA sem QR', async ({ page, request }) => {
   const f = await fixture(request)
@@ -78,4 +86,29 @@ test('XML válido continua sem aviso e usa parser real sem IA/QR', async ({ page
   await page.getByTestId('campo-xml').setInputFiles({ name: 'nota.xml', mimeType: 'application/xml', buffer: Buffer.from(xml) }); await page.getByRole('button', { name: 'Ler nota', exact: true }).click()
   await expect(page.getByTestId('item-nota-0')).toContainText(f.nome); await expect(page.getByRole('button', { name: 'Aceitar e ler documento', exact: true })).toHaveCount(0)
   expect(await observacoes(request)).toMatchObject({ qrChamadas: 0, iaChamadas: 0 })
+})
+
+// #729: QR lido pela câmera que não é link (ex.: Pix) não vai ao backend; a câmera segue aberta com a orientação.
+test('câmera: QR que não é link orienta e não envia ao backend', async ({ page }) => {
+  const png = await QRCode.toDataURL('00020126580014BR.GOV.BCB.PIX0136chave-pix-de-teste5204000053039865802BR', { width: 640, margin: 4 })
+  await page.addInitScript(({ imagem }) => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => {
+      const c = document.createElement('canvas'); c.width = 640; c.height = 640
+      const ctx = c.getContext('2d')!
+      const img = new Image()
+      const pronta = new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject })
+      img.src = imagem
+      await pronta
+      ctx.drawImage(img, 0, 0)
+      return c.captureStream(10)
+    } } })
+  }, { imagem: png })
+  let envios = 0
+  page.on('request', r => { if (r.url().includes('/compras/nota/leitura')) envios++ })
+  await login(page)
+  await page.goto('/compras/nota')
+  await page.getByRole('button', { name: 'Ler QR pela câmera', exact: true }).click()
+  await expect(page.getByTestId('camera-nota-aviso')).toContainText('não é o link de uma nota fiscal', { timeout: 15_000 })
+  await expect(page.getByTestId('camera-nota')).toBeVisible()
+  expect(envios).toBe(0)
 })
