@@ -49,11 +49,7 @@ export default function HistoricoNotaInsumo({ insumoId, unidade }: { insumoId: s
             <tr key={v.id} data-testid={`vinculo-insumo-${v.id}`}
               className={v.compraId ? 'cursor-pointer border-t border-line hover:bg-cream' : 'border-t border-line'}
               onClick={v.compraId ? () => navigate(`/compras/${v.compraId}`) : undefined}>
-              <td className="px-5 py-3.5 font-semibold text-dark">
-                {v.compraId
-                  ? <button type="button" aria-label={`Abrir a compra de ${v.nomeItem}`} className="border-none bg-transparent p-0 text-left font-[inherit] font-semibold text-dark">{v.nomeItem}</button>
-                  : v.nomeItem}
-              </td>
+              <td className="px-5 py-3.5 font-semibold text-dark">{v.nomeItem}</td>
               <td className="px-5 py-3.5">{v.fornecedorNome}</td>
               <td className="px-5 py-3.5 [font-variant-numeric:tabular-nums]">{qtd(v.fator)} {unidade}</td>
               <td className="px-5 py-3.5">{formatarData(v.updatedAt)}</td>
