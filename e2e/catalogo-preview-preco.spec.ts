@@ -191,8 +191,9 @@ test.describe('RN-NOVA-1/2/4 — Composição e preview de preço de Item de Cat
     await page.getByPlaceholder('Ex: Kit Presente Dia das Mães').fill('Kit preço ao vivo')
     await page.getByPlaceholder('Buscar insumo, produto ou customização...').fill(nomeInsumo)
     const esperarPreview = (quantidade: number) => page.waitForResponse(r => {
-      if (new URL(r.url()).pathname !== `/api/catalogos/${catalogo.id}/itens/preview-preco`
-        && new URL(r.url()).pathname !== `/catalogos/${catalogo.id}/itens/preview-preco`) return false
+      const caminho = new URL(r.url()).pathname
+      if (caminho !== `/api/catalogos/${catalogo.id}/itens/preview-preco`
+        && caminho !== `/catalogos/${catalogo.id}/itens/preview-preco`) return false
       const pedido = r.request().postDataJSON() as { componentes?: { insumoId?: string; quantidade?: number }[] } | null
       return r.ok() && !!pedido?.componentes?.some(c => c.insumoId === insumo.id && c.quantidade === quantidade)
     })
