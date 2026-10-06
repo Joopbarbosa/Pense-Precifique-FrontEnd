@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { History } from 'lucide-react'
 import Spinner from '../../ui/Spinner'
 import { formatarData, qtd } from '../formato'
@@ -12,11 +13,13 @@ const ORIGENS: Record<VinculoNotaResponse['origem'], string> = {
 /**
  * #717 (V0.16.0, RN-NOVA-25) — aba "Histórico de Nota Fiscal" do detalhe do insumo: os itens de nota já ligados a
  * este insumo (nome na nota, fornecedor, fator e origem). Só leitura; editar e desfazer ficam no Histórico de Nota
- * Fiscal. Textos são rascunho até a validação do Gestor.
+ * Fiscal. Clicar no registro abre a compra em que o vínculo foi feito (#722); registro sem compra não é clicável.
+ * Textos são rascunho até a validação do Gestor.
  */
 export default function HistoricoNotaInsumo({ insumoId, unidade }: { insumoId: string; unidade: string }) {
   const [vinculos, setVinculos] = useState<VinculoNotaResponse[] | null>(null)
   const [erro, setErro] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     let atual = true
@@ -43,8 +46,14 @@ export default function HistoricoNotaInsumo({ insumoId, unidade }: { insumoId: s
         </thead>
         <tbody>
           {vinculos.map(v => (
-            <tr key={v.id} className="border-t border-line" data-testid={`vinculo-insumo-${v.id}`}>
-              <td className="px-5 py-3.5 font-semibold text-dark">{v.nomeItem}</td>
+            <tr key={v.id} data-testid={`vinculo-insumo-${v.id}`}
+              className={v.compraId ? 'cursor-pointer border-t border-line hover:bg-cream' : 'border-t border-line'}
+              onClick={v.compraId ? () => navigate(`/compras/${v.compraId}`) : undefined}>
+              <td className="px-5 py-3.5 font-semibold text-dark">
+                {v.compraId
+                  ? <button type="button" aria-label={`Abrir a compra de ${v.nomeItem}`} className="border-none bg-transparent p-0 text-left font-[inherit] font-semibold text-dark">{v.nomeItem}</button>
+                  : v.nomeItem}
+              </td>
               <td className="px-5 py-3.5">{v.fornecedorNome}</td>
               <td className="px-5 py-3.5 [font-variant-numeric:tabular-nums]">{qtd(v.fator)} {unidade}</td>
               <td className="px-5 py-3.5">{formatarData(v.updatedAt)}</td>
