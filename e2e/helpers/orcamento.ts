@@ -1,4 +1,4 @@
-import { APIRequestContext, Page, expect } from '@playwright/test'
+import { APIRequestContext, Page } from '@playwright/test'
 import { API_URL } from './auth'
 import { resolverUnidadeMedidaId } from './unidadeMedida'
 
@@ -330,13 +330,4 @@ export async function criarProducaoVinculadaViaApi(
     throw new Error(`Falha ao criar produção vinculada via API: ${res.status()} ${await res.text()}`)
   }
   return res.json()
-}
-
-export async function aguardarDesvinculoPelaInterface(page: Page) {
-  const resposta = await page.waitForResponse(response =>
-    response.request().method() === 'DELETE'
-    && /^\/(?:api\/)?orcamentos\/[^/]+\/vincular-producao\/[^/]+$/.test(new URL(response.url()).pathname),
-  )
-  expect(resposta.status()).toBe(204)
-  await resposta.finished()
 }

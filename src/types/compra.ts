@@ -343,22 +343,3 @@ export interface EvolucaoPrecoResponse {
   ate: string
   series: { insumo: InsumoRef; pontos: PontoEvolucaoPreco[] }[]
 }
-
-// V0.16.0 #615 — valores prontos do backend, sem cálculo na interface.
-export interface VendaCmvResponse {
-  id: string
-  tipo: 'ORCAMENTO' | 'VENDA_CAIXA'
-  identificador: string
-  data: string
-  cliente: string | null
-  itens: string
-  faturamento: number
-  custoMaterial: number
-  cmvPercentual: number
-  estimado: boolean
-  semCusto: boolean
-}
-export interface VendasCmvResponse {
-  vendas: import('./shared').PageResponse<VendaCmvResponse>
-  totalCustoMaterial: number
-}

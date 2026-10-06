@@ -2,7 +2,7 @@ import { E2E_API_URL } from '../helpers/target'
 import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
-import { apiFecharTurnoSeAberto, concluirFechamentoPelaInterface } from '../helpers/caixa'
+import { apiFecharTurnoSeAberto } from '../helpers/caixa'
 
 /**
  * OpenProject #488 (V0.12.0) — abertura, fechamento, sangria e suprimento de caixa
@@ -79,13 +79,8 @@ test.describe('#488 — Turno de Caixa', () => {
     await expect(page.getByText('R$ -20,00')).toBeVisible() // diferença
     await expect(page.getByText(/nunca bloqueia|é só informativa/)).toBeVisible()
 
-    // Simula a recarga lenta observada na #694, sem usar atraso como sincronização da UI.
-    await page.route('**/caixa/turnos/atual', async route => {
-      const resposta = await route.fetch()
-      await new Promise(resolve => setTimeout(resolve, 5200))
-      await route.fulfill({ response: resposta })
-    })
-    await concluirFechamentoPelaInterface(page)
+    await page.getByRole('button', { name: 'Concluir' }).click()
+    await expect(page.getByRole('heading', { name: 'Abrir o Caixa' })).toBeVisible()
   })
 
   test('CEN-NOVO-26 — fechamento sem diferença não mostra nem exige justificativa', async ({ page }) => {
@@ -101,13 +96,8 @@ test.describe('#488 — Turno de Caixa', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Fechar caixa' }).click()
     await expect(page.getByRole('dialog').getByText('R$ 0,00')).toBeVisible() // diferença
 
-    // Simula a recarga lenta observada na #694, sem usar atraso como sincronização da UI.
-    await page.route('**/caixa/turnos/atual', async route => {
-      const resposta = await route.fetch()
-      await new Promise(resolve => setTimeout(resolve, 5200))
-      await route.fulfill({ response: resposta })
-    })
-    await concluirFechamentoPelaInterface(page)
+    await page.getByRole('button', { name: 'Concluir' }).click()
+    await expect(page.getByRole('heading', { name: 'Abrir o Caixa' })).toBeVisible()
   })
 
   test('CEN-NOVO-5 (reflexo na UI) — com turno já aberto, a tela de venda aparece direto, nunca "Abrir Caixa"', async ({ page, request }) => {

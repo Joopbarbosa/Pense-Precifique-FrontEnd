@@ -3,7 +3,6 @@ import clsx from 'clsx'
 import { ArrowDown, ArrowUp, BadgePercent, Calculator, Monitor, Receipt, TrendingUp, Wallet, AlertCircle } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import Spinner from '../ui/Spinner'
-import ModalVendasCmv, { type FiltroVendasCmv } from './ModalVendasCmv'
 import { BigNumber, BigNumberGroup, Button, SegmentedControl } from '../ui'
 import GraficoPrecoInsumos from './GraficoPrecoInsumos'
 import ModalListagemRegistros, { type FiltroInicial } from '../shared/ModalListagemRegistros'
@@ -18,7 +17,7 @@ import type { DashboardComprasResponse, NumeroPainel } from '../../types/compra'
 // #577/#578 (RN-NOVA-29) — Dashboard de compras. Tudo vem calculado do backend (só compras CONFIRMADAS,
 // período + período anterior); aqui só escolha de período, formatação e os cliques que abrem a modal de
 // listagem de compras (RN-NOVA-24). #598: página própria no menu Compras. #601 (RN-NOVA-37): lupa em
-// todos os números; #615 acrescenta lupa/listagem de vendas e cliques nos gráficos do CMV.
+// todos os números, exceto CMV (lupa, listagem de vendas e cliques no CMV ficam para o #615).
 // #604 (RN-NOVA-34): cartões padrão (`BigNumber`) com esconder/mostrar.
 
 type Periodo = 'mes' | '3' | '6' | '12' | 'personalizado'
@@ -129,7 +128,6 @@ function Ranking({ dados, cor, formato, onClique, testid }: {
 
 export default function DashboardCompras() {
   const mobile = useIsMobile()
-  const [vendasCmv, setVendasCmv] = useState<FiltroVendasCmv | null>(null)
   const [periodo, setPeriodo] = useState<Periodo>('mes')
   const [deLivre, setDeLivre] = useState('')
   const [ateLivre, setAteLivre] = useState(hojeIso())
@@ -153,7 +151,6 @@ export default function DashboardCompras() {
   useEffect(carregar, [faixa.de, faixa.ate])
 
   const abrir = (titulo: string, filtro: FiltroInicial) => setListagem({ titulo, filtro: { status: ['CONFIRMADA'], ...filtro } })
-  const abrirCmv = (mes?: string) => { if (d) setVendasCmv({ de: d.de, ate: d.ate, ...(mes ? { mes: mes.slice(0, 7) } : {}) }) }
   const anterior = d ? rotuloPeriodoAnterior(d.deAnterior, d.ateAnterior) : ''
   const doPeriodo: FiltroInicial = d ? { de: d.de, ate: d.ate } : {}
   const numero = (n: NumeroPainel, f: (v: number) => string) => n.valor == null ? '—' : f(n.valor)
@@ -210,7 +207,7 @@ export default function DashboardCompras() {
               <span>{pct(d.economia.percentual)} sobre {BRL(d.economia.totalCheio)} cheios</span>
               <Comparacao n={d.economia} formato={BRL} periodo={anterior} />
             </BigNumber>
-            <BigNumber testid="card-dashboard" icone={<Calculator size={14} />} titulo="CMV" onLupa={() => abrirCmv()} valor={<>{BRL(d.cmv.valor)} <span className="text-[15px] font-semibold text-muted">· {pct(d.cmv.percentual)}</span></>}>
+            <BigNumber testid="card-dashboard" icone={<Calculator size={14} />} titulo="CMV" valor={<>{BRL(d.cmv.valor)} <span className="text-[15px] font-semibold text-muted">· {pct(d.cmv.percentual)}</span></>}>
               <span>Custo de material do que foi vendido ÷ faturamento de {BRL(d.cmv.faturamento)}</span>
               {d.cmv.estimado > 0 && <span data-testid="cmv-estimado">inclui {BRL(d.cmv.estimado)} estimado (vendas anteriores a esta versão)</span>}
               {d.cmv.vendasSemCusto > 0 && <span>{d.cmv.vendasSemCusto} {d.cmv.vendasSemCusto === 1 ? 'venda' : 'vendas'} sem custo</span>}
@@ -257,8 +254,7 @@ export default function DashboardCompras() {
                       <XAxis dataKey="rotulo" tick={eixo} axisLine={false} tickLine={false} />
                       <YAxis width={72} tickFormatter={v => reaisCurto(Number(v))} tick={eixo} axisLine={false} tickLine={false} />
                       <Tooltip content={<Dica formato={BRL} />} cursor={{ fill: 'rgba(232,102,27,0.06)' }} />
-                      <Bar dataKey="cmv" fill={PALETA_SERIES[1]} radius={[4, 4, 0, 0]} maxBarSize={36} cursor="pointer"
-                        onClick={(x: { payload?: { mes: string } }) => x.payload && abrirCmv(x.payload.mes)} />
+                      <Bar dataKey="cmv" fill={PALETA_SERIES[1]} radius={[4, 4, 0, 0]} maxBarSize={36} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -266,13 +262,13 @@ export default function DashboardCompras() {
               <Painel titulo="CMV % por mês" subtitulo="CMV ÷ faturamento do mês" testid="grafico-cmv-percentual">
                 <div className="h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart onClick={(x: { activePayload?: { payload?: { mes?: string } }[] }) => { const mes = x.activePayload?.[0]?.payload?.mes; if (mes) abrirCmv(mes) }} data={d.meses.map(m => ({ ...m, rotulo: rotuloMes(m.mes) }))} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                    <LineChart data={d.meses.map(m => ({ ...m, rotulo: rotuloMes(m.mes) }))} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                       <CartesianGrid vertical={false} stroke={GRAFICO_GRID} />
                       <XAxis dataKey="rotulo" tick={eixo} axisLine={false} tickLine={false} />
                       <YAxis width={52} tickFormatter={v => `${v}%`} tick={eixo} axisLine={false} tickLine={false} />
                       <Tooltip content={<Dica formato={v => pct(v)} />} />
                       {/* #599 — mês sem faturamento vem 0% do backend: a linha não tem buraco. */}
-                      <Line dataKey="cmvPercentual" stroke={PALETA_SERIES[1]} strokeWidth={2} cursor="pointer" dot={{ r: 4, strokeWidth: 2, fill: '#fff', cursor: 'pointer' }} />
+                      <Line dataKey="cmvPercentual" stroke={PALETA_SERIES[1]} strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -311,7 +307,6 @@ export default function DashboardCompras() {
         </div>
       )}
 
-      {vendasCmv && <ModalVendasCmv filtro={vendasCmv} onClose={() => setVendasCmv(null)} />}
       {listagem && (
         <ModalListagemRegistros titulo={listagem.titulo} subtitulo="Compras confirmadas" fonte={{ tipo: 'compras' }}
           filtro={listagem.filtro} onClose={() => setListagem(null)} />
