@@ -110,12 +110,14 @@ test('CEN22/23/24: filtrar, editar, ignorar, vincular novamente e desfazer só a
 
 test('histórico: erro permite nova tentativa; página e busca preservam filtro e total', async ({ page }) => {
   let falhar = true
+  const pedidos: string[] = []
   const insumoId = '22222222-2222-4222-8222-222222222222'
   const vinculo = (n: number) => ({ id: `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`, nomeItem: `ITEM ${n}`, emitenteCnpj: '11222333000181', emitenteNome: 'Fornecedor sem cadastro', fornecedorId: null, fornecedorNome: 'Fornecedor sem cadastro',
     insumo: { id: insumoId, identificador: 'INS-1', nome: 'Caneta', marca: null, unidade: 'un', rascunho: false }, fator: 1, ignorar: false, origem: 'CASAMENTO_NOME', createdAt: '2026-10-01T10:00:00', updatedAt: '2026-10-01T10:00:00' })
   await page.route('**/compras/nota/vinculos?*', async route => {
     if (falhar) return route.fulfill({ status: 503, json: { message: 'Indisponível' } })
     const u = new URL(route.request().url()); const pg = Number(u.searchParams.get('page'))
+    pedidos.push(u.search)
     const filtrado = u.searchParams.get('busca') === 'AURORA'
     const content = filtrado ? [] : pg === 0 ? Array.from({ length: 20 }, (_, i) => vinculo(i + 1)) : [vinculo(21)]
     await route.fulfill({ json: { content, number: pg, size: 20, totalElements: filtrado ? 0 : 21, totalPages: filtrado ? 0 : 2, first: pg === 0, last: filtrado || pg === 1 } })
@@ -134,6 +136,8 @@ test('histórico: erro permite nova tentativa; página e busca preservam filtro 
   await expect(page.getByRole('button', { name: 'Próxima' })).toBeDisabled()
   await page.getByLabel('Buscar vínculo').fill('AURORA')
   await expect(page.getByText('Nenhum vínculo encontrado', { exact: true })).toBeVisible()
+  // #731: mudar o filtro na página 2 volta à página 0 sem pedir antes a página antiga com o filtro novo.
+  expect(pedidos.some(q => q.includes('busca=AURORA') && q.includes('page=1'))).toBe(false)
 })
 
 
