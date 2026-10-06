@@ -105,7 +105,7 @@ export function useFormInsumo({ editando, inicial }: { editando: boolean; inicia
   const carregar = (data: InsumoResponse) => {
     setNome(data.nome)
     setMarca(data.marca ?? '')
-    setQualquerMarca(data.qualquerMarca ?? false)
+    setQualquerMarca(data.qualquerMarca)
     setUnidadeMedidaId(data.unidadeMedidaId ?? '')
     setFracao(data.fracionavel ?? true)
     setTipoExibicao(data.tipoExibicaoQuantidade ?? 'DECIMAL')
