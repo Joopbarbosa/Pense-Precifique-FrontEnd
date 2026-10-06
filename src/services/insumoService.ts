@@ -1,5 +1,5 @@
 import api from './api'
-import type { BaixaManualInsumoRequest, InsumoContagensResponse, InsumoRascunhoRequest, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse, ResolverVinculosInsumoRequest } from '../types/insumo'
+import type { BaixaManualInsumoRequest, InsumoContagensResponse, InsumoRequest, InsumoResponse, MovimentacaoInsumoResponse, NovoInsumoRequest, ProdutoRelacionadoResponse, ResolverVinculosInsumoRequest } from '../types/insumo'
 import type { PageResponse } from '../types/shared'
 
 export const insumoService = {
@@ -8,15 +8,11 @@ export const insumoService = {
   // #295 (V0.14.0, RN-NOVA-2) — `sort` agora é parâmetro, default `numero,desc` (identificador
   // decrescente) quando o chamador não passa nada — antes era sempre `nome` fixo.
   // #616 (RN-NOVA-40) — `incluirInativos`: seletores mostram os inativos depois dos ativos (ignora `ativo`).
-  // V0.16.0 (#687, DT-NOVA-12) — `incluirRascunhos`: só a listagem de Insumos e os seletores da compra;
-  // ficha técnica, catálogo e orçamento nunca recebem rascunho (o backend o deixa fora por padrão).
-  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc', incluirInativos = false,
-                 incluirRascunhos = false): Promise<PageResponse<InsumoResponse>> => {
+  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc', incluirInativos = false): Promise<PageResponse<InsumoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort }
     if (busca) params.busca = busca
     if (ativo != null) params.ativo = ativo
     if (incluirInativos) params.incluirInativos = true
-    if (incluirRascunhos) params.incluirRascunhos = true
     const response = await api.get('/insumos', { params })
     return response.data
   },
@@ -34,12 +30,6 @@ export const insumoService = {
 
   cadastrar: async (data: NovoInsumoRequest): Promise<InsumoResponse> => {
     const response = await api.post('/insumos', data)
-    return response.data
-  },
-
-  /** V0.16.0 (#687, RN-NOVA-18) — insumo em rascunho a partir do item da nota; `simular` só devolve a proposta. */
-  criarRascunho: async (data: InsumoRascunhoRequest, simular = false): Promise<InsumoResponse> => {
-    const response = await api.post('/insumos/rascunho', data, { params: simular ? { simular: true } : undefined })
     return response.data
   },
 

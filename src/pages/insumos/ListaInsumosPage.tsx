@@ -64,16 +64,6 @@ const moeda = BRL
 function InsumoStatusBadge({ insumo, small = false }: { insumo: InsumoResponse; small?: boolean }) {
   const low = isLow(insumo)
 
-  // V0.16.0 (#687, RN-NOVA-18) — rascunho vindo da nota, ainda a completar.
-  if (insumo.rascunho) return (
-    <span className={clsx(
-      'inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-orange/10 px-2.5 font-semibold text-orange',
-      small ? 'h-6 text-[11.5px]' : 'h-7 text-[12.5px]'
-    )}>
-      Rascunho
-    </span>
-  )
-
   if (low) return (
     <span className={clsx(
       'inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-warning-bg px-2.5 font-semibold text-warning',
@@ -110,12 +100,6 @@ function montarMenuItems(insumo: InsumoResponse, { onVer, onEditar, onInativar, 
   onReativar: () => void
   onExcluir: () => void
 }): ActionMenuItem[] {
-  // RN-NOVA-18 — rascunho não é inativado: só completado ou excluído.
-  if (insumo.rascunho) return [
-    { label: 'Ver detalhes',       icon: <Eye size={18} />,    onClick: onVer },
-    { label: 'Completar cadastro', icon: <Pencil size={16} />, onClick: onEditar },
-    { label: 'Excluir', icon: <Trash2 size={16} />, onClick: onExcluir, danger: true, dividerBefore: true },
-  ]
   return [
     { label: 'Ver detalhes', icon: <Eye size={18} />,    onClick: onVer },
     { label: 'Editar',       icon: <Pencil size={16} />, onClick: onEditar },
@@ -686,7 +670,7 @@ export default function ListaInsumosPage() {
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`, false, true),
+    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`, false),
   })
 
   const carregarContadores = () => {

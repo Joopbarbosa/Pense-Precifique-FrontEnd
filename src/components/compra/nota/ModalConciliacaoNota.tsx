@@ -36,6 +36,7 @@ interface EstadoItem {
 
 const ROTULO_ORIGEM: Record<OrigemLigacao, string> = {
   VINCULO_SALVO: 'Vínculo salvo',
+  VINCULO_OUTRO_FORNECEDOR: 'Vínculo de outro fornecedor',
   CASAMENTO_NOME: 'Casamento por nome',
   SUGESTAO_IA: 'Sugestão da IA',
   SEM_LIGACAO: 'Sem ligação',
@@ -52,7 +53,7 @@ const inicial = (item: ItemConciliacao): EstadoItem => ({
 const resolvido = (e: EstadoItem) => e.ignorar || (!!e.insumo && !e.pendenteIa)
 
 const deInsumo = (i: InsumoResponse): InsumoProposto => ({
-  id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, rascunho: i.rascunho,
+  id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida,
 })
 
 export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink, onTentarNovamente, onCriado, onClose }: {
@@ -178,7 +179,6 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
                         <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
                           <span className="text-muted">Insumo:</span>
                           <strong className="text-dark" data-testid="insumo-ligado">{e.insumo.nome}</strong>
-                          {e.insumo.rascunho && <span className="rounded-full bg-orange/10 px-2 text-[11px] font-semibold text-orange">Rascunho</span>}
                           <Button variant="ghost" size="sm" onClick={() => setTrocando(item.posicao)}>Trocar</Button>
                         </div>
                       )}
@@ -197,7 +197,7 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
                           {item.candidatos.map(c => (
                             <button key={c.id} type="button" onClick={() => alterar(item.posicao, { insumo: c, fator: e.fator || '1' })}
                               className="cursor-pointer rounded-full border border-line bg-white px-2.5 py-1 font-semibold text-dark hover:border-teal">
-                              {c.nome}{c.rascunho ? ' (rascunho)' : ''}
+                              {c.nome}
                             </button>
                           ))}
                         </div>

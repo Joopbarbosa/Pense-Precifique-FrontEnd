@@ -16,7 +16,6 @@ import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
 import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
-import { atalhosCompletarInsumo } from '../../components/compra/AtalhosCompletarInsumo'
 import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef, TipoDesconto } from '../../types/compra'
 
 // V0.15.0 — "Registrar compra" (#541, RN-NOVA-4) com método de pagamento (#550, RN-NOVA-23).
@@ -89,8 +88,7 @@ export default function FormCompraPage() {
   const [descontoNota, setDescontoNota] = useState('')
 
   const [salvando, setSalvando] = useState<'rascunho' | 'confirmar' | null>(null)
-  // #687 (RN-NOVA-19) — confirmar com insumo em rascunho mostra o atalho "Completar o insumo".
-  const { modalErro, mostrarErro } = useModalErro({ extra: erro => atalhosCompletarInsumo(erro, linhas.map(l => l.insumo)) })
+  const { modalErro, mostrarErro } = useModalErro()
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirmarAberto, setConfirmarAberto] = useState(false)
   const [impacto, setImpacto] = useState<{ impacto: ImpactoCompraResponse; compraId: string; identificador: string } | null>(null)

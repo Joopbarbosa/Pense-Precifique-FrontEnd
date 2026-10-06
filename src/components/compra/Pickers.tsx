@@ -25,7 +25,7 @@ export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder 
 }) {
   return (
     <ComboBusca<InsumoResponse>
-      buscar={termo => insumoService.listar(0, 20, termo || undefined, undefined, 'nome,asc', true, true).then(p => p.content.filter(i => !excluir.includes(i.id)))}
+      buscar={termo => insumoService.listar(0, 20, termo || undefined, undefined, 'nome,asc', true).then(p => p.content.filter(i => !excluir.includes(i.id)))}
       onSelect={onSelect}
       getKey={i => i.id}
       inativo={i => !permitirInativos && !i.ativo}
@@ -40,7 +40,6 @@ export function InsumoPicker({ onSelect, excluir = [], size = 'md', placeholder 
             <span className="truncate text-[14px] font-semibold text-dark">{i.nome}</span>
             {i.marca && <span className="truncate text-[12.5px] text-muted">{i.marca}</span>}
             {permitirInativos && !i.ativo && <span className="text-xs text-muted">Inativo</span>}
-            {i.rascunho && <span className="shrink-0 rounded-full bg-orange/10 px-2 text-[11px] font-semibold text-orange">Rascunho</span>}
           </div>
           <div className="text-[12px] text-muted">
             Estoque {formatQuantidade(i.estoqueAtual, i.fracionavel, i.tipoExibicaoQuantidade)} {i.unidadeMedida}
