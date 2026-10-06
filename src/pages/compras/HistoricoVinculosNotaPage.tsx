@@ -17,7 +17,7 @@ import type { InsumoProposto } from '../../types/compraNota'
 import type { VinculoNotaResponse } from '../../types/vinculoNota'
 import type { PageResponse } from '../../types/shared'
 
-const ORIGENS = { CASAMENTO_NOME: 'Casamento por nome', SUGESTAO_IA: 'Sugestão da IA', MANUAL: 'Manual' }
+const ORIGENS = { CASAMENTO_NOME: 'Casamento por nome', SUGESTAO_IA: 'Sugestão da IA', MANUAL: 'Manual', OUTRO_FORNECEDOR: 'Vínculo de outro fornecedor' }
 type Acao = { tipo: 'editar' | 'desmarcar' | 'ignorar' | 'desfazer'; vinculo: VinculoNotaResponse }
 const campo = 'h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3 text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/10'
 
@@ -86,7 +86,7 @@ export default function HistoricoVinculosNotaPage() {
       <Field label="Fornecedor" group><FornecedorSelect value={fornecedor} onChange={setFornecedor} permitirInativos /></Field>
       <Field label="Insumo" group>{insumoFiltro ? <div className="flex h-12 items-center gap-2 rounded-input border border-line bg-white px-3">
         <span className="min-w-0 flex-1 truncate text-sm">{insumoFiltro.nome}</span><button aria-label="Remover filtro de insumo" onClick={() => setInsumoFiltro(null)} className="text-muted hover:text-danger"><X size={16} /></button>
-      </div> : <InsumoPicker placeholder="Filtrar por insumo…" permitirInativos onSelect={i => setInsumoFiltro({ id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, rascunho: i.rascunho })} />}</Field>
+      </div> : <InsumoPicker placeholder="Filtrar por insumo…" permitirInativos onSelect={i => setInsumoFiltro({ id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida })} />}</Field>
       <Field label="CNPJ do emitente"><input className={campo} value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="Com ou sem cadastro" /></Field>
       <Field label="Situação"><select className={campo} value={estado} onChange={e => setEstado(e.target.value)}><option value="">Todos</option><option value="vinculados">Vinculados</option><option value="ignorados">Ignorados</option></select></Field>
     </div>
@@ -104,7 +104,7 @@ export default function HistoricoVinculosNotaPage() {
         <tbody>{resultado.content.map(v => <tr key={v.id} data-testid={`vinculo-${v.id}`} className="border-t border-line">
           <td className="px-4 py-4 font-semibold text-dark">{v.nomeItem}</td>
           <td className="px-4 py-4"><div>{v.fornecedorNome}</div><div className="text-xs text-muted">{v.emitenteCnpj}</div></td>
-          <td className="px-4 py-4">{v.ignorar ? <span className="rounded-full bg-cream px-2 py-1 text-muted">Ignorado</span> : <><div>{v.insumo?.nome ?? '—'}</div><div className="text-xs text-muted">{v.insumo?.identificador}{v.insumo?.rascunho ? ' · Rascunho' : ''}</div></>}</td>
+          <td className="px-4 py-4">{v.ignorar ? <span className="rounded-full bg-cream px-2 py-1 text-muted">Ignorado</span> : <><div>{v.insumo?.nome ?? '—'}</div><div className="text-xs text-muted">{v.insumo?.identificador}</div></>}</td>
           <td className="px-4 py-4">{qtd(v.fator)}{v.insumo?.unidade ? ` ${v.insumo.unidade}` : ''}</td><td className="px-4 py-4">{formatarData(v.updatedAt)}</td><td className="px-4 py-4">{ORIGENS[v.origem]}</td>
           <td className="px-4 py-4"><div className="flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => abrir(v.ignorar ? 'desmarcar' : 'editar', v)}>{v.ignorar ? 'Vincular insumo' : 'Editar'}</Button>
@@ -122,7 +122,7 @@ export default function HistoricoVinculosNotaPage() {
       <div className="flex flex-col gap-4 p-5"><p className="m-0 text-sm text-body">{acao.vinculo.nomeItem} · {acao.vinculo.fornecedorNome}</p>
         <p className="m-0 text-sm text-muted">Compras já registradas permanecem como estão. Esta escolha vale para as próximas notas.</p>
         <Field label="Insumo do vínculo" group>{destino ? <div className="flex items-center gap-2 rounded-input border border-line p-3"><span className="flex-1 text-sm">{destino.nome}</span>
-          <Button variant="ghost" size="sm" onClick={() => setDestino(null)}>Trocar insumo</Button></div> : <InsumoPicker placeholder="Escolher insumo do vínculo…" onSelect={i => setDestino({ id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, rascunho: i.rascunho })} />}</Field>
+          <Button variant="ghost" size="sm" onClick={() => setDestino(null)}>Trocar insumo</Button></div> : <InsumoPicker placeholder="Escolher insumo do vínculo…" onSelect={i => setDestino({ id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida })} />}</Field>
         <Field label="Fator de conversão" hint="Quantidade do insumo para cada unidade do item da nota."><input className={campo} inputMode="decimal" value={fator} onChange={e => setFator(e.target.value)} /></Field>
       </div>
     </ModalShell>}

@@ -42,16 +42,15 @@ export interface FornecedorProposta {
 }
 
 /** #681 (RN-NOVA-14) — de onde veio a ligação proposta do item. */
-export type OrigemLigacao = 'VINCULO_SALVO' | 'CASAMENTO_NOME' | 'SUGESTAO_IA' | 'SEM_LIGACAO'
+export type OrigemLigacao = 'VINCULO_SALVO' | 'VINCULO_OUTRO_FORNECEDOR' | 'CASAMENTO_NOME' | 'SUGESTAO_IA' | 'SEM_LIGACAO'
 
-/** Insumo proposto ou candidato; rascunho participa da conciliação (RN-NOVA-12). */
+/** Insumo proposto ou candidato da conciliação (RN-NOVA-12). */
 export interface InsumoProposto {
   id: string
   identificador: string
   nome: string
   marca: string | null
   unidade: string | null
-  rascunho: boolean
 }
 
 export interface ItemConciliacao {

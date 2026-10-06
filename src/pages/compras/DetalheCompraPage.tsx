@@ -18,7 +18,6 @@ import { compraService } from '../../services/compraService'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 import { useModalErro } from '../../hooks/useModalErro'
-import { atalhosCompletarInsumo } from '../../components/compra/AtalhosCompletarInsumo'
 import { rotuloPagamento } from '../../components/compra/formato'
 import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import type { CompraResponse, ImpactoCompraResponse } from '../../types/compra'
@@ -45,8 +44,7 @@ export default function DetalheCompraPage() {
   const [erroCarga, setErroCarga] = useState<string | null>(null)
   const [modal, setModal] = useState<'excluir' | 'confirmar' | 'pagamento' | 'cancelar' | null>(null)
   const [processando, setProcessando] = useState(false)
-  // #687 (RN-NOVA-19) — confirmar com insumo em rascunho mostra o atalho "Completar o insumo".
-  const { modalErro, mostrarErro } = useModalErro({ extra: erro => atalhosCompletarInsumo(erro, compra?.itens.map(i => i.insumo) ?? []) })
+  const { modalErro, mostrarErro } = useModalErro()
   const { pedir: pedirDuplicar, processando: duplicando, modal: modalDuplicar } = useDuplicarCompra(mostrarErro)
   const [impacto, setImpacto] = useState<{ titulo: string; impacto: ImpactoCompraResponse } | null>(null)
   const [insumoAberto, setInsumoAberto] = useState<string | null>(null)

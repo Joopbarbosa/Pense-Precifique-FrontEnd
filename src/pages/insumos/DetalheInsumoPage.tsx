@@ -474,11 +474,7 @@ export default function DetalheInsumoPage() {
                 <span className="flex-shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{insumo.identificador}</span>
               )}
               <h1 className="m-0 text-[25px] font-bold tracking-[-0.02em] text-dark">{insumo.nome}</h1>
-              {insumo.rascunho ? (
-                <span data-testid="tag-rascunho" className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-orange/10 px-[11px] text-[12.5px] font-semibold text-orange">
-                  Rascunho
-                </span>
-              ) : insumo.ativo ? (
+              {insumo.ativo ? (
                 <span className="inline-flex h-[27px] items-center gap-1.5 rounded-full bg-success-bg px-[11px] text-[12.5px] font-semibold text-success">
                   <span className="h-1.5 w-1.5 rounded-full bg-success" /> Ativo
                 </span>
@@ -503,7 +499,7 @@ export default function DetalheInsumoPage() {
             Novo insumo
           </Button>
           <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/insumos/${id}/editar`)}>
-            {insumo.rascunho ? 'Completar cadastro' : 'Editar'}
+            Editar
           </Button>
         </div>
       </div>
@@ -511,16 +507,14 @@ export default function DetalheInsumoPage() {
       {/* #604 (RN-NOVA-34) — cartões padrão com esconder/mostrar; #603: custo com 2 casas. */}
       <div className="animate-[fadeUp_.4s_ease_both]">
         <BigNumberGroup tela="detalhe-insumo" testid="numeros-insumo" colunas="sm:grid-cols-2 xl:grid-cols-4"
-          acoes={insumo.rascunho ? undefined : <Button variant="ghost" size="sm" icon={<Minus size={15} />} onClick={() => setModal('baixa')}>Edição manual</Button>}>
+          acoes={<Button variant="ghost" size="sm" icon={<Minus size={15} />} onClick={() => setModal('baixa')}>Edição manual</Button>}>
           <BigNumber titulo="Unidade de medida" valor={insumo.unidadeMedida ?? '—'} />
           <BigNumber titulo="Saldo atual" tom={isLow ? 'aviso' : 'destaque'}
             valor={`${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida ?? ''}`.trim()} />
           <BigNumber titulo="Estoque mínimo"
             valor={insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida ?? ''}`.trim() : '—'} />
-          {/* RN-NOVA-18 — rascunho: custo "proposto, a revisar" (vindo da nota) ou "sem custo". */}
-          <BigNumber titulo={insumo.custoProposto ? 'Custo proposto, a revisar' : 'Custo unitário atual'} destaque
-            valor={insumo.rascunho && !insumo.custoProposto ? 'Sem custo'
-              : `${moeda(insumo.custoUnitario)}${insumo.unidadeMedida ? ` / ${insumo.unidadeMedida}` : ''}`} />
+          <BigNumber titulo="Custo unitário atual" destaque
+            valor={`${moeda(insumo.custoUnitario)}${insumo.unidadeMedida ? ` / ${insumo.unidadeMedida}` : ''}`} />
         </BigNumberGroup>
       </div>
 
