@@ -36,7 +36,11 @@ export default function HistoricoVinculosNotaPage() {
   const [ordem, setOrdem] = useState('updatedAt,desc')
   const filtros = useMemo(() => ({ busca: termo.trim() || undefined, fornecedorId: fornecedor?.id, insumoId: insumoFiltro?.id, emitenteCnpj: emitenteCnpj.trim() || undefined,
     ignorar: estado === '' ? undefined : estado === 'ignorados', sort: ordem }), [termo, fornecedor, insumoFiltro, emitenteCnpj, estado, ordem])
-  const [pagina, setPagina] = useState(0)
+  // A página volta a 0 quando os filtros mudam, sem efeito extra (que disparava uma requisição com a página antiga).
+  const [estadoPagina, setEstadoPagina] = useState({ filtros, valor: 0 })
+  const pagina = estadoPagina.filtros === filtros ? estadoPagina.valor : 0
+  const setPagina = (atualizar: (atual: number) => number) =>
+    setEstadoPagina(e => ({ filtros, valor: atualizar(e.filtros === filtros ? e.valor : 0) }))
   const [resultado, setResultado] = useState<PageResponse<VinculoNotaResponse> | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erroLista, setErroLista] = useState(false)
@@ -48,7 +52,6 @@ export default function HistoricoVinculosNotaPage() {
   const [fator, setFator] = useState('')
   const [salvando, setSalvando] = useState(false)
   // Página explícita e descarte de respostas obsoletas: filtros/ações não podem restaurar dados antigos.
-  useEffect(() => { setPagina(0) }, [filtros])
   useEffect(() => {
     let vigente = true
     setCarregando(true); setErroLista(false)
