@@ -61,6 +61,36 @@ test('câmera: jsQR decodifica vídeo controlado, usa link e libera stream ao ab
   expect(await observacoes(request)).toMatchObject({ qrChamadas: 0, iaChamadas: 0 })
 })
 
+// #738 (achado Alta da QA da #704): com vídeo de 640 px as três escalas (1280/960/640) viram todas 1, e o teste
+// passava sem exercitar a alternância. Aqui o vídeo tem 1920 px e o teste lê as larguras realmente decodificadas.
+test('câmera: vídeo largo alterna as escalas 1280/960/640 e ainda lê o QR depois de quadros sem QR', async ({ page, request }) => {
+  const f = await fixture(request, 'NFCE_QR'); const png = await QRCode.toDataURL(f.qrUrl, { width: 640, margin: 4 })
+  await page.addInitScript(({ imagem }) => {
+    const w = window as typeof window & { __larguras?: number[] }
+    w.__larguras = []
+    const original = CanvasRenderingContext2D.prototype.getImageData
+    CanvasRenderingContext2D.prototype.getImageData = function (this: CanvasRenderingContext2D, ...args: Parameters<typeof original>) {
+      w.__larguras!.push(args[2] as number); return original.apply(this, args)
+    }
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => {
+      const c = document.createElement('canvas'); c.width = 1920; c.height = 1080; const ctx = c.getContext('2d')!
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height)
+      const img = new Image(); const pronta = new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject }); img.src = imagem; await pronta
+      // Os quadros saem sem QR até a câmera ter decodificado uma volta completa das três escalas; só então o QR aparece.
+      // O canvas é redesenhado a cada 100 ms porque captureStream só emite quadro quando o canvas muda.
+      setInterval(() => {
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height)
+        if ([1280, 960, 640].every(l => w.__larguras!.includes(l))) ctx.drawImage(img, 420, 0, 1080, 1080)
+      }, 100)
+      return c.captureStream(10)
+    } } })
+  }, { imagem: png })
+  await login(page); await page.goto('/compras/nota'); await page.getByRole('button', { name: 'Ler QR pela câmera', exact: true }).click()
+  await expect(page.getByText('Conferir itens da nota', { exact: true })).toBeVisible({ timeout: 15_000 }); await expect(page.getByTestId('item-nota-0')).toContainText(f.nome)
+  const larguras = await page.evaluate(() => (window as typeof window & { __larguras?: number[] }).__larguras ?? [])
+  expect(new Set(larguras)).toEqual(new Set([1280, 960, 640]))
+})
+
 test('PDF textual pede aceite e percorre cadeia IA', async ({ page, request }) => {
   const f = await fixture(request, 'NFE_PDF'); const pdf = await PDFDocument.create(); const pagina = pdf.addPage(); const fonte = await pdf.embedFont(StandardFonts.Helvetica); pagina.drawText('NOTA FISCAL DE TESTE. ITENS Papel 3 unidades 17,43.', { font: fonte, size: 12 }); const dados = Buffer.from(await pdf.save())
   await login(page); await page.goto('/compras/nota'); await page.getByRole('button', { name: 'Nota (NF-e)', exact: true }).click()
