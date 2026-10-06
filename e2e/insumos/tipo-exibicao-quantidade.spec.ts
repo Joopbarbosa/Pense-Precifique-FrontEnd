@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin, inativarInsumo } from '../helpers/api'
 import { criarInsumoFracionavel } from '../helpers/insumo'
@@ -10,6 +10,9 @@ import { criarInsumoFracionavel } from '../helpers/insumo'
  *
  * Ver docs/SCENARIOS.md para o Gherkin completo de cada um.
  */
+// O formulário tem dois Não/Sim ("Não validar marca" e fracionado): escopa pelo grupo rotulado.
+const fracionado = (page: Page) => page.getByLabel('Este item pode ser fracionado?')
+
 test.describe('Cenário 227 — Rótulo e tipoExibicaoQuantidade no formulário de Insumo (#186)', () => {
   let insumoId: string | null = null
 
@@ -46,7 +49,7 @@ test.describe('Cenário 227 — Rótulo e tipoExibicaoQuantidade no formulário 
     await page.getByPlaceholder('Papel couchê 180g').fill(nome)
 
     // liga fracionavel=sim — campo de exibição aparece
-    await page.getByRole('button', { name: 'Sim', exact: true }).click()
+    await fracionado(page).getByRole('button', { name: 'Sim', exact: true }).click()
     await expect(page.getByText('Como exibir a quantidade?')).toBeVisible()
     await page.getByRole('button', { name: 'Fração', exact: true }).click()
 
@@ -73,7 +76,7 @@ test.describe('Cenário 227 — Rótulo e tipoExibicaoQuantidade no formulário 
     await expect(page.getByRole('button', { name: 'Fração', exact: true })).toHaveClass(/bg-teal/)
 
     // desliga fracionavel — campo de exibição some, e tipoExibicaoQuantidade não é mais enviado
-    await page.getByRole('button', { name: 'Não', exact: true }).click()
+    await fracionado(page).getByRole('button', { name: 'Não', exact: true }).click()
     await expect(page.getByText('Como exibir a quantidade?')).not.toBeVisible()
     await page.getByRole('button', { name: 'Salvar insumo' }).click()
     await expect(page).toHaveURL(`/insumos/${insumoId}`, { timeout: 10_000 })
@@ -91,14 +94,14 @@ test.describe('Cenário 231 — Acessibilidade dos toggles group do Field (Insum
   })
 
   test('cada botão dos dois toggles tem nome acessível igual ao próprio texto, não ao rótulo do campo', async ({ page }) => {
-    // toggle fracionavel: Não/Sim — nome acessível é só o texto do botão
-    await expect(page.getByRole('button', { name: 'Não', exact: true })).toHaveCount(1)
-    await expect(page.getByRole('button', { name: 'Sim', exact: true })).toHaveCount(1)
+    // toggle fracionavel: Não/Sim — nome acessível é só o texto do botão (o "Não validar marca" também é Não/Sim, #712)
+    await expect(fracionado(page).getByRole('button', { name: 'Não', exact: true })).toHaveCount(1)
+    await expect(fracionado(page).getByRole('button', { name: 'Sim', exact: true })).toHaveCount(1)
     // nenhum dos dois herda o texto do rótulo do campo como nome acessível
     await expect(page.getByRole('button', { name: /Este item pode ser fracionado\?/ })).toHaveCount(0)
 
     // revela o segundo toggle (Decimal/Fração)
-    await page.getByRole('button', { name: 'Sim', exact: true }).click()
+    await fracionado(page).getByRole('button', { name: 'Sim', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Decimal', exact: true })).toHaveCount(1)
     await expect(page.getByRole('button', { name: 'Fração', exact: true })).toHaveCount(1)
     await expect(page.getByRole('button', { name: /Como exibir a quantidade\?/ })).toHaveCount(0)

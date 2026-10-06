@@ -104,7 +104,8 @@ test('CEN22/23/24: filtrar, editar, ignorar, vincular novamente e desfazer só a
   await linha.getByRole('button', { name: 'Desfazer', exact: true }).click()
   await page.getByRole('button', { name: 'Desfazer vínculo', exact: true }).click()
   await expect(page.getByText('Nenhum vínculo encontrado', { exact: true })).toBeVisible()
-  expect((await ler(request, token, cnpj, [nomes[0]], estrela.nome)).itens[0].origemLigacao).toBe('SEM_LIGACAO')
+  // Sem vínculo do mesmo CNPJ, o do outro fornecedor (mesmo nome de item) liga o item antes da IA (#718, RN-NOVA-26).
+  expect((await ler(request, token, cnpj, [nomes[0]], estrela.nome)).itens[0].origemLigacao).toBe('VINCULO_OUTRO_FORNECEDOR')
 })
 
 test('histórico: erro permite nova tentativa; página e busca preservam filtro e total', async ({ page }) => {
@@ -187,11 +188,17 @@ test('CEN-NOVO-66: clique no registro oferece compra, fornecedor e insumo', asyn
   await (await abrirDestinos()).getByRole('button', { name: `Compra ${compra.identificador}` }).click()
   await expect(page).toHaveURL(new RegExp(`/compras/${compra.id}$`))
   await page.goBack()
+  await expect(page).toHaveURL(/\/compras\/nota\/vinculos$/)
+  await expect(page.getByTestId('destinos-vinculo-nota')).toHaveCount(0)
   await page.getByLabel('Buscar vínculo').fill(`ITEM DESTINO ${sfx}`)
+  await expect(tabela(page).getByRole('row')).toHaveCount(2)
   await (await abrirDestinos()).getByRole('button', { name: `Fornecedor ${cadastro.nome}` }).click()
   await expect(page).toHaveURL(new RegExp(`/clientes/${cadastro.id}$`))
   await page.goBack()
+  await expect(page).toHaveURL(/\/compras\/nota\/vinculos$/)
+  await expect(page.getByTestId('destinos-vinculo-nota')).toHaveCount(0)
   await page.getByLabel('Buscar vínculo').fill(`ITEM DESTINO ${sfx}`)
+  await expect(tabela(page).getByRole('row')).toHaveCount(2)
   await (await abrirDestinos()).getByRole('button', { name: `Insumo ${insumo.nome}` }).click()
   await expect(page).toHaveURL(new RegExp(`/insumos/${insumo.id}$`))
 })

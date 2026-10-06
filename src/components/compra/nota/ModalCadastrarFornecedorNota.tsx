@@ -50,15 +50,15 @@ export default function ModalCadastrarFornecedorNota({ proposta, onClose, onCria
         <Button variant="primary" onClick={salvar} disabled={salvando || !nome.trim()}>{salvando ? 'Salvando…' : 'Cadastrar fornecedor'}</Button>
       </>}>
       <div className="flex flex-col gap-3.5" data-testid="modal-cadastrar-fornecedor-nota">
-        <Input label="Nome" value={nome} onChange={setNome} required />
-        <Input label="CNPJ" value={proposta.cnpj ?? ''} onChange={() => undefined} disabled />
+        <Input id="fornecedor-nota-nome" label="Nome" value={nome} onChange={setNome} required />
+        <Input id="fornecedor-nota-cnpj" label="CNPJ" value={proposta.cnpj ?? ''} onChange={() => undefined} disabled />
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-          <Input label="E-mail" type="email" value={email} onChange={setEmail} />
-          <Input label="WhatsApp" type="tel" value={whatsapp} onChange={setWhatsapp} />
-          <Input label="Telefone" type="tel" value={telefone} onChange={setTelefone} />
-          <Input label="Site" value={site} onChange={setSite} />
+          <Input id="fornecedor-nota-email" label="E-mail" type="email" value={email} onChange={setEmail} />
+          <Input id="fornecedor-nota-whatsapp" label="WhatsApp" type="tel" value={whatsapp} onChange={setWhatsapp} />
+          <Input id="fornecedor-nota-telefone" label="Telefone" type="tel" value={telefone} onChange={setTelefone} />
+          <Input id="fornecedor-nota-site" label="Site" value={site} onChange={setSite} />
         </div>
-        <Input label="Endereço" value={endereco} onChange={setEndereco} />
+        <Input id="fornecedor-nota-endereco" label="Endereço" value={endereco} onChange={setEndereco} />
         <Field label="Observações" opt><TextArea value={observacoes} onChange={setObservacoes} /></Field>
         {erro && <p className="m-0 text-[13px] text-danger-deep" role="alert">{erro}</p>}
       </div>

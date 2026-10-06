@@ -132,7 +132,7 @@ export default function HistoricoVinculosNotaPage() {
     <ConfirmacaoModal open={acao?.tipo === 'desfazer' || acao?.tipo === 'ignorar'} title={acao?.tipo === 'desfazer' ? 'Desfazer vínculo?' : 'Ignorar item nas próximas notas?'}
       description={acao?.tipo === 'desfazer' ? 'A próxima nota pedirá uma nova ligação para este item e fornecedor. Compras já registradas permanecem como estão.' : 'Este item e fornecedor serão lembrados como ignorados. Compras já registradas permanecem como estão.'}
       onClose={fechar} onConfirm={() => void executar()} confirmLabel={acao?.tipo === 'desfazer' ? 'Desfazer vínculo' : 'Ignorar item'} confirming={salvando} variant={acao?.tipo === 'desfazer' ? 'danger' : 'default'} />
-    {destinoDe && <ModalDestinoVinculoNota vinculo={destinoDe} onIr={rota => navigate(rota)} onClose={() => setDestinoDe(null)} />}
+    {destinoDe && <ModalDestinoVinculoNota vinculo={destinoDe} onIr={rota => { setDestinoDe(null); navigate(rota) }} onClose={() => setDestinoDe(null)} />}
     {modalErro}
   </AppLayout>
 }

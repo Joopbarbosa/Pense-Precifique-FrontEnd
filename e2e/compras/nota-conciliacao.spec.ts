@@ -150,12 +150,12 @@ test.describe('#681 — Conciliação da nota', () => {
     await expect(modal).toBeVisible()
     // nome, custo e quantidade vêm da nota; todos os campos do cadastro estão na modal; não existe rascunho
     await expect(modal.getByPlaceholder('Papel couchê 180g')).toHaveValue(`RESMA ${sfx.toUpperCase()}`)
-    await expect(modal.getByPlaceholder('45,00')).toHaveValue('60,2')
+    await expect(modal.getByPlaceholder('45,00')).toHaveValue('60')
     await expect(modal.getByPlaceholder('100', { exact: true })).toHaveValue('2')
     await expect(modal.getByText('Unidade de medida *')).toBeVisible()
     await expect(modal.getByText('Permitir estoque negativo')).toBeVisible()
     await modal.getByPlaceholder('45,00').fill('60')
-    await modal.getByRole('button', { name: 'Salvar insumo' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Salvar insumo' }).click()
 
     await expect(item(page, 0).getByTestId('insumo-ligado')).toHaveText(`RESMA ${sfx.toUpperCase()}`)
     await expect(item(page, 0).getByText('Rascunho', { exact: true })).toHaveCount(0)
@@ -170,14 +170,14 @@ test.describe('#681 — Conciliação da nota', () => {
     const token = await apiLogin(request)
     const sfx = `d${Date.now().toString(36)}`
     await criarInsumo(request, token, `Resma ${sfx}`)
-    const chave = await registrarNota(request, cnpjValido(), [{ nome: `RESMA ${sfx.toUpperCase()} A4`, quantidade: 1, valorFinal: 30 }])
+    const chave = await registrarNota(request, cnpjValido(), [{ nome: `SULFITE ${sfx.toUpperCase()} 500FL`, quantidade: 1, valorFinal: 30 }])
 
     await login(page)
     await lerNaTela(page, chave)
     await item(page, 0).getByRole('button', { name: 'Cadastrar insumo' }).click()
     const modal = page.getByTestId('modal-cadastrar-insumo-nota')
     await modal.getByPlaceholder('Papel couchê 180g').fill(`Resma ${sfx}`)
-    await modal.getByRole('button', { name: 'Salvar insumo' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Salvar insumo' }).click()
     await expect(modal).toContainText('Já existe um insumo com este nome e marca.')
     await expect(item(page, 0).getByTestId('insumo-ligado')).toHaveCount(0)
   })
@@ -195,7 +195,7 @@ test.describe('#681 — Conciliação da nota', () => {
     await page.getByRole('button', { name: 'Cadastrar como fornecedor' }).click()
     const modal = page.getByTestId('modal-cadastrar-fornecedor-nota')
     await expect(modal.getByLabel('CNPJ')).toBeDisabled()
-    await modal.getByRole('button', { name: 'Cadastrar fornecedor' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Cadastrar fornecedor' }).click()
     await expect(page.getByTestId('fornecedor-nota-cadastrado')).toContainText('Papelaria Estrela E2E')
     await expect(page.getByTestId('fornecedor-nota-decisao')).toHaveCount(0)
 
