@@ -218,7 +218,8 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
                     <Button variant="ghost" size="sm" onClick={() => alterar(item.posicao, { ignorar: !e.ignorar })}>
                       {e.ignorar ? 'Não ignorar' : 'Ignorar item'}
                     </Button>
-                    {!e.ignorar && (
+                    {/* #715 (RN-NOVA-22) — com o item já ligado a um insumo (cadastrado agora ou escolhido), o botão some. */}
+                    {!e.ignorar && !e.insumo && (
                       <Button variant="ghost" size="sm" icon={<PackagePlus size={14} />} onClick={() => setCadastrando(item)}>Cadastrar insumo</Button>
                     )}
                   </div>
