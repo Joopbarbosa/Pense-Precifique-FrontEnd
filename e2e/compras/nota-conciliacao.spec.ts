@@ -97,6 +97,8 @@ test.describe('#681 — Conciliação da nota', () => {
     const compra = await (await request.get(`${API_URL}/compras/${compraId}`, { headers: { Authorization: `Bearer ${token}` } })).json()
     expect(compra.status).toBe('RASCUNHO')
     expect(compra.origem).toBe('NFCE_QR')
+    // CEN-NOVO-65: sem clicar em "Cadastrar como fornecedor", a compra fica sem fornecedor.
+    expect(compra.fornecedor ?? null).toBeNull()
     expect(compra.itens).toHaveLength(2)
     const linhaFolha = compra.itens.find((l: { insumo: { id: string } }) => l.insumo.id === folha.id)
     expect(linhaFolha.quantidade).toBe(100)
@@ -204,6 +206,9 @@ test.describe('#681 — Conciliação da nota', () => {
     const compraId = page.url().split('/').pop()!
     const compra = await (await request.get(`${API_URL}/compras/${compraId}`, { headers: { Authorization: `Bearer ${token}` } })).json()
     expect(compra.fornecedor?.nome).toBe('Papelaria Estrela E2E')
+    // CEN-NOVO-65: o fornecedor salvo leva o CNPJ da nota (só dígitos, como o cadastro grava o documento).
+    const fornecedor = await (await request.get(`${API_URL}/clientes/${compra.fornecedor.id}`, { headers: { Authorization: `Bearer ${token}` } })).json()
+    expect(String(fornecedor.documento).replace(/\D/g, '')).toBe(cnpj)
     expect(compra.itens.some((l: { insumo: { id: string } }) => l.insumo.id === caneta.id)).toBe(true)
   })
   test('CEN-NOVO-68 — vínculo de outro fornecedor liga o item antes da IA, com o fator do vínculo', async ({ page, request }) => {
