@@ -55,6 +55,7 @@ export default function SegmentedControl<T>({
           <button
             key={i}
             type="button"
+            aria-pressed={ativo}
             onClick={() => onChange(opt.value)}
             className={clsx(
               optionWidth, textSize,

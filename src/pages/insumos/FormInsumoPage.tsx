@@ -1,32 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
-import Field from '../../components/ui/Field'
 import ModalShell from '../../components/ui/ModalShell'
-import Toggle from '../../components/ui/Toggle'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
-import SegmentedControl from '../../components/ui/SegmentedControl'
-import type { RegraPrecoReferencia } from '../../types/insumo'
-import SectionTitle from '../../components/shared/SectionTitle'
+import CamposInsumo from '../../components/insumo/CamposInsumo'
+import { useFormInsumo } from '../../components/insumo/useFormInsumo'
 import Spinner from '../../components/ui/Spinner'
-import { Box, Tag, AlertCircle, ChevronRight, Info, ChevronDown, Calculator, Check, AlertTriangle, Save } from 'lucide-react'
+import { Box, Tag, AlertCircle, ChevronRight, Save } from 'lucide-react'
 import { insumoService } from '../../services/insumoService'
-import { unidadeMedidaService } from '../../services/unidadeMedidaService'
-import type { InsumoRequest, NovoInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
-import type { UnidadeMedidaResponse } from '../../types/unidadeMedida'
 import { extractApiError } from '../../utils/apiError'
-import { tentarConverterFracao } from '../../utils/quantidade'
-
-const num = (v: string) => {
-  const fracao = tentarConverterFracao(v)
-  if (fracao !== null) return fracao
-  const n = parseFloat(v.replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
-
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 function DesativarModal({ onClose }: { onClose: () => void }) {
   const fichas = [
@@ -71,169 +54,46 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-const DICA_REGRA: Record<RegraPrecoReferencia, string> = {
-  MEDIA: 'Média do preço pago (pela quantidade) nas compras confirmadas de cada fornecedor nos últimos 12 meses. A lista de compras sugere o fornecedor de menor preço.',
-  MENOR_VALOR: 'Menor preço pago nas compras confirmadas de cada fornecedor nos últimos 12 meses.',
-  MANUAL: 'O preço que você digitar no vínculo com o fornecedor; as compras não mudam o valor.',
-}
-
 export default function FormInsumoPage() {
   const navigate = useNavigate()
   const { id } = useParams()
   const editando = !!id
 
-  const [nome, setNome] = useState('')
-  const [marca, setMarca] = useState('')
-  const [qualquerMarca, setQualquerMarca] = useState(false)
-  const [confirmarMarca, setConfirmarMarca] = useState(false)
-  const [unidades, setUnidades] = useState<UnidadeMedidaResponse[]>([])
-  const [loadingUnidades, setLoadingUnidades] = useState(true)
-  const [unidadeMedidaId, setUnidadeMedidaId] = useState('')
-  const [unidadeOpen, setUnidadeOpen] = useState(false)
-  const [fracao, setFracao] = useState(false)
-  const [tipoExibicao, setTipoExibicao] = useState<TipoExibicaoQuantidade>('DECIMAL')
-  const [estoque, setEstoque] = useState('')
-  const [minimo, setMinimo] = useState('')
-  const [precoCompra, setPrecoCompra] = useState('')
-  const [qtdCompra, setQtdCompra] = useState('')
-  const [precoTocado, setPrecoTocado] = useState(false)
-  const [qtdTocado, setQtdTocado] = useState(false)
-  const [permitirEstoqueNegativo, setPermitirEstoqueNegativo] = useState(true)
-  const [regraPreco, setRegraPreco] = useState<RegraPrecoReferencia>('MEDIA')
+  const form = useFormInsumo({ editando })
   const [modal, setModal] = useState<'desativar' | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
   const [error, setError] = useState('')
-  const [custoUnitarioExistente, setCustoUnitarioExistente] = useState<number | null>(null)
-  // V0.16.0 (#687, RN-NOVA-18) — editar um rascunho é completar o cadastro: pede preço e quantidade
-  // como o cadastro novo, e o backend o ativa ao salvar.
-  const [rascunho, setRascunho] = useState(false)
-  const [custoProposto, setCustoProposto] = useState<number | null>(null)
-  const unRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    unidadeMedidaService.listar()
-      .then(lista => {
-        setUnidades(lista)
-        // Cadastro novo: pré-seleciona a primeira unidade cadastrada (nenhuma equivalência a
-        // adivinhar — a artesã já tem suas unidades cadastradas em Configurações, #298).
-        if (!editando && lista.length > 0) setUnidadeMedidaId(lista[0].id)
-      })
-      .catch(() => setError('Não foi possível carregar as unidades de medida.'))
-      .finally(() => setLoadingUnidades(false))
-  }, [editando])
+    if (form.erroUnidades) setError(form.erroUnidades)
+  }, [form.erroUnidades])
 
   useEffect(() => {
     if (editando && id) {
       setLoadingData(true)
       insumoService.buscarPorId(id)
-        .then(data => {
-          setNome(data.nome)
-          setMarca(data.marca ?? '')
-          setQualquerMarca(data.qualquerMarca ?? false)
-          setUnidadeMedidaId(data.unidadeMedidaId ?? '')
-          setFracao(data.fracionavel ?? true)
-          setTipoExibicao(data.tipoExibicaoQuantidade ?? 'DECIMAL')
-          setEstoque(data.estoqueAtual.toString())
-          setMinimo(data.estoqueMinimo?.toString() ?? '')
-          setCustoUnitarioExistente(data.custoUnitario)
-          setPermitirEstoqueNegativo(data.permitirEstoqueNegativo)
-          setRegraPreco(data.regraPrecoReferencia ?? 'MEDIA')
-          setRascunho(data.rascunho)
-          setCustoProposto(data.custoProposto ? data.custoUnitario : null)
-        })
+        .then(form.carregar)
         .catch(() => setError('Não foi possível carregar os dados do insumo.'))
         .finally(() => setLoadingData(false))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editando, id])
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (unRef.current && !unRef.current.contains(e.target as Node)) setUnidadeOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const unidadeSelecionada = unidades.find(u => u.id === unidadeMedidaId)
-  const siglaAtual = unidadeSelecionada?.sigla ?? ''
-
-  const preco = num(precoCompra)
-  const qComprada = num(qtdCompra)
-  // Em edição: usa custoUnitario existente da API; em cadastro: calcula pelo preço/qtd da compra inicial
-  const pedeCompra = !editando || rascunho
-  const custoUnit = editando && !rascunho && custoUnitarioExistente !== null
-    ? custoUnitarioExistente
-    : (qComprada > 0 ? preco / qComprada : null)
-  // #458 (V0.10.0) — sempre 2 casas com arredondamento matemático padrão (antes: até 3 casas
-  // quando < R$0,10, sem RN que justifique casa extra nesse caso).
-  const custoFmt = custoUnit != null
-    ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : '—'
-
-  // RN-NOVA-1 (V0.10.0, #442) — cadastro só calcula/exibe o custo unitário; não
-  // grava movimentação nem popula estoque. Estoque nasce em 0, só muda por
-  // entrada manual ou compra de lote (telas separadas, pós-cadastro).
-  const precoValido = preco > 0
-  const qtdValida = qComprada > 0
-  const precoErro = pedeCompra && precoTocado && !precoValido ? 'Custo do Insumo é obrigatório' : undefined
-  const qtdErro = pedeCompra && qtdTocado && !qtdValida ? 'Quantidade é obrigatória' : undefined
-  // Estoque já negativo não pode ter "permitir estoque negativo" desmarcado sem regularizar antes.
-  const bloqueioEstoqueNegativo = editando && !permitirEstoqueNegativo && num(estoque) < 0
-  const estoqueNegativoErro = bloqueioEstoqueNegativo
-    ? 'Não é possível desmarcar "Permitir estoque negativo" pois este insumo está com estoque negativo. Regularize o estoque antes de desmarcar esta opção.'
-    : undefined
-  const podeSubmeter = !!unidadeMedidaId && (pedeCompra ? (precoValido && qtdValida) : !bloqueioEstoqueNegativo)
-
-  const alternarQualquerMarca = () => {
-    if (qualquerMarca) { setQualquerMarca(false); return }
-    if (marca.trim()) { setConfirmarMarca(true); return }
-    setMarca('')
-    setQualquerMarca(true)
-  }
-
   const handleSubmit = async () => {
-    if (pedeCompra && !podeSubmeter) {
-      setPrecoTocado(true)
-      setQtdTocado(true)
+    if (form.pedeCompra && !form.podeSubmeter) {
+      form.tocarObrigatorios()
       return
     }
-    if (editando && !podeSubmeter) return
+    if (editando && !form.podeSubmeter) return
     setLoading(true)
     setError('')
     try {
       if (editando && id) {
-        // estoqueAtual não é enviado: o campo é somente leitura nesta tela — o
-        // saldo só muda via baixa manual ou compra de lote (RN-052/RN-056).
-        const data: InsumoRequest = {
-          nome: nome.trim(),
-          marca: marca.trim() || undefined,
-          qualquerMarca,
-          unidadeMedidaId,
-          fracionavel: fracao,
-          tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
-          estoqueMinimo: minimo ? num(minimo) : undefined,
-          permitirEstoqueNegativo,
-          regraPrecoReferencia: regraPreco,
-          ...(rascunho ? { precoTotalCompraInicial: preco, quantidadeCompradaInicial: qComprada } : {}),
-        }
-        await insumoService.editar(id, data)
+        await insumoService.editar(id, form.pedidoEdicao())
         navigate(`/insumos/${id}`)
       } else {
-        const data: NovoInsumoRequest = {
-          nome: nome.trim(),
-          marca: marca.trim() || undefined,
-          qualquerMarca,
-          unidadeMedidaId,
-          fracionavel: fracao,
-          tipoExibicaoQuantidade: fracao ? tipoExibicao : undefined,
-          estoqueMinimo: minimo ? num(minimo) : undefined,
-          precoTotalCompraInicial: preco,
-          quantidadeCompradaInicial: qComprada,
-          permitirEstoqueNegativo,
-          regraPrecoReferencia: regraPreco,
-        }
-        const novoInsumo = await insumoService.cadastrar(data)
+        const novoInsumo = await insumoService.cadastrar(form.pedidoNovo())
         navigate(`/insumos/${novoInsumo.id}`)
       }
     } catch (err: any) {
@@ -242,17 +102,6 @@ export default function FormInsumoPage() {
       setLoading(false)
     }
   }
-
-  const bind = (val: string, set: (v: string) => void) => ({
-    value: val,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value),
-  })
-
-  const numBind = (val: string, set: (v: string) => void) => ({
-    value: val,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value.replace(/[^\d.,/]/g, '')),
-    inputMode: 'decimal' as const,
-  })
 
   if (loadingData) {
     return (
@@ -278,255 +127,17 @@ export default function FormInsumoPage() {
             Insumos
           </span>
           <ChevronRight size={15} className="text-dim" />
-          <span className="font-semibold text-body">{rascunho ? 'Completar insumo' : editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
+          <span className="font-semibold text-body">{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
         </div>
         <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
-          {rascunho ? 'Completar insumo' : editando ? 'Editar Insumo' : 'Novo Insumo'}
+          {editando ? 'Editar Insumo' : 'Novo Insumo'}
         </h1>
-        {rascunho && (
-          <p data-testid="aviso-rascunho" className="m-0 mt-2 max-w-[640px] text-[13.5px] text-body">
-            Este insumo veio de uma nota e ainda é um rascunho. Informe unidade, custo e quantidade e salve para
-            ativá-lo; até lá ele não entra em ficha técnica, orçamento nem estoque.
-          </p>
-        )}
       </div>
 
       {/* CARD FORM */}
       <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
 
-        {/* SEÇÃO 1 — Identificação */}
-        <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="1" title="Identificação" subtitle="Como você reconhece este insumo." />
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            <Field label="Nome do insumo *">
-              <input placeholder="Papel couchê 180g" className={inputBase} {...bind(nome, setNome)} />
-            </Field>
-            <Field label="Marca" opt>
-              <input placeholder="Suzano" className={clsx(inputBase, "disabled:bg-cream disabled:text-muted")} disabled={qualquerMarca} {...bind(marca, setMarca)} />
-            </Field>
-          </div>
-          <div className="mt-3.5 flex items-center gap-3">
-            <Toggle checked={qualquerMarca} onChange={alternarQualquerMarca} label="Não validar marca" />
-            <span className="text-sm text-body">Não validar marca</span>
-          </div>
-          <div className="mt-3.5 flex gap-[9px] rounded-[11px] border border-teal/[0.15] bg-teal/[0.05] px-[13px] py-[11px]">
-            <Info size={15} className="mt-px flex-shrink-0 text-teal" />
-            <p className="m-0 text-[12.3px] leading-[1.5] text-body">
-              O par <strong className="font-semibold">nome + marca</strong> deve ser único. O mesmo insumo de marcas diferentes pode ser cadastrado separadamente.
-            </p>
-          </div>
-        </div>
-
-        {/* SEÇÃO 2 — Medida e fracionamento */}
-        <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="2" title="Medida e fracionamento" subtitle="Como este insumo é medido e consumido." />
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            <Field label="Unidade de medida *">
-              {!loadingUnidades && unidades.length === 0 ? (
-                <div className="flex items-center gap-[9px] rounded-[11px] border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13px] text-danger-deep">
-                  <AlertCircle size={15} className="flex-shrink-0" />
-                  Nenhuma unidade cadastrada.{' '}
-                  <a href="/configuracoes" className="font-semibold underline underline-offset-2">Cadastre em Configurações</a>.
-                </div>
-              ) : (
-                <div ref={unRef} className="relative">
-                  <button
-                    type="button"
-                    disabled={loadingUnidades}
-                    onClick={() => setUnidadeOpen(o => !o)}
-                    className={clsx(
-                      inputBase,
-                      'flex cursor-pointer items-center justify-between text-left',
-                      unidadeOpen && 'border-teal ring-4 ring-teal/[0.12]'
-                    )}
-                  >
-                    {loadingUnidades ? 'Carregando…' : (unidadeSelecionada ? `${unidadeSelecionada.nome} (${unidadeSelecionada.sigla})` : 'Selecione')}
-                    <span className="flex text-muted"><ChevronDown size={16} /></span>
-                  </button>
-                  {unidadeOpen && (
-                    <div className="absolute inset-x-0 top-[52px] z-30 max-h-64 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-                      {unidades.map(u => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => { setUnidadeMedidaId(u.id); setUnidadeOpen(false) }}
-                          className={clsx(
-                            'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                            u.id === unidadeMedidaId ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
-                          )}
-                        >
-                          {u.nome} ({u.sigla})
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </Field>
-            <Field
-              label="Este item pode ser fracionado?"
-              hint={fracao ? 'Permite consumo de 0,5g, por exemplo.' : 'Sempre será consumido em quantidades inteiras.'}
-              group
-            >
-              <SegmentedControl
-                options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
-                value={fracao}
-                onChange={setFracao}
-              />
-            </Field>
-            {fracao && (
-              <Field
-                label="Como exibir a quantidade?"
-                hint={tipoExibicao === 'FRACAO' ? 'Ex.: ⅓ folha.' : 'Ex.: 1ml de tinta.'}
-                group
-              >
-                <SegmentedControl
-                  options={[
-                    { value: 'DECIMAL' as TipoExibicaoQuantidade, label: 'Decimal' },
-                    { value: 'FRACAO' as TipoExibicaoQuantidade, label: 'Fração' },
-                  ]}
-                  value={tipoExibicao}
-                  onChange={setTipoExibicao}
-                />
-              </Field>
-            )}
-          </div>
-        </div>
-
-        {/* SEÇÃO 3 — Estoque e custo */}
-        <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="3" title="Estoque e custo" subtitle={editando && !rascunho ? 'Gerencie o estoque via baixa manual ou registrando uma compra.' : 'Informe o custo e a quantidade para calcular o custo unitário automaticamente.'} />
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            {editando && !rascunho && (
-              <Field label="Quantidade em estoque *" hint="O estoque só muda via baixa manual ou compra de lote.">
-                <div className="relative">
-                  <input
-                    placeholder="100"
-                    readOnly
-                    {...numBind(estoque, setEstoque)}
-                    className={clsx(inputBase, 'pr-16 bg-cream text-subtle')}
-                  />
-                  <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                    {siglaAtual}
-                  </span>
-                </div>
-              </Field>
-            )}
-
-            {pedeCompra && (
-              <>
-                <Field label="Custo do Insumo *" erro={precoErro}
-                  hint={custoProposto != null ? `Proposto pela nota: R$ ${custoProposto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por unidade (a revisar).` : undefined}>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center rounded-l-input border-r border-line bg-cream text-sm font-semibold text-dim">
-                      R$
-                    </span>
-                    <input
-                      placeholder="45,00"
-                      {...numBind(precoCompra, setPrecoCompra)}
-                      onBlur={() => setPrecoTocado(true)}
-                      className={clsx(inputBase, 'pl-14', precoErro && 'border-danger-deep focus:border-danger-deep focus:ring-danger-deep/10')}
-                    />
-                  </div>
-                </Field>
-                <Field label="Quantidade *" erro={qtdErro}>
-                  <div className="relative">
-                    <input
-                      placeholder="100"
-                      {...numBind(qtdCompra, setQtdCompra)}
-                      onBlur={() => setQtdTocado(true)}
-                      className={clsx(inputBase, 'pr-16', qtdErro && 'border-danger-deep focus:border-danger-deep focus:ring-danger-deep/10')}
-                    />
-                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                      {siglaAtual}
-                    </span>
-                  </div>
-                </Field>
-              </>
-            )}
-
-            <Field label="Estoque mínimo para alerta" opt>
-              <div className="relative">
-                <input placeholder="10" {...numBind(minimo, setMinimo)} className={clsx(inputBase, 'pr-16')} />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-dim">
-                  {siglaAtual}
-                </span>
-              </div>
-            </Field>
-          </div>
-
-          {/* CARD RESULTADO */}
-          {((editando && !rascunho) || custoUnit != null) && (
-            <div
-              key={custoFmt}
-              className={clsx(
-                'mt-[18px] flex items-center gap-[15px] rounded-2xl border-[1.5px] border-teal/25 bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.05))] px-5 py-[18px]',
-                custoUnit != null && 'animate-flash'
-              )}
-            >
-              <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-teal shadow-[0_4px_12px_-4px_rgba(31,122,111,0.3)]">
-                <Calculator size={20} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">
-                  Custo unitário calculado
-                </div>
-                <div className="mt-[3px] flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold tracking-[-0.01em] text-teal [font-variant-numeric:tabular-nums]">
-                    {custoFmt}
-                  </span>
-                  {custoUnit != null && <span className="text-[15px] font-semibold text-body">/ {siglaAtual}</span>}
-                </div>
-                {custoUnit == null && (
-                  <div className="mt-0.5 text-[12.5px] text-muted">
-                    Atualize o custo registrando uma nova compra na tela de insumos.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* SEÇÃO 4 — Configurações de estoque */}
-        <div className="border-b border-line px-[26px] py-6">
-          <SectionTitle number="4" title="Configurações de estoque" subtitle="Comportamento quando o estoque fica insuficiente." />
-          <label onClick={() => setPermitirEstoqueNegativo(v => !v)} className="flex cursor-pointer items-start gap-3">
-            <span className={clsx(
-              'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
-              permitirEstoqueNegativo ? 'border-teal bg-teal' : 'border-line bg-white'
-            )}>
-              {permitirEstoqueNegativo && <Check size={14} className="text-white" />}
-            </span>
-            <span>
-              <span className="block text-[14.5px] font-semibold text-dark">Permitir estoque negativo</span>
-              <span className="mt-[3px] block text-[12.5px] leading-[1.5] text-muted">
-                Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
-              </span>
-            </span>
-          </label>
-          {/* #590 (RN-NOVA-39) — regra do preço de referência, vale para todos os fornecedores deste insumo. */}
-          <div className="mt-5 max-w-[520px]">
-            <Field label="Regra do preço de referência" group hint={DICA_REGRA[regraPreco]}>
-              <SegmentedControl
-                options={[
-                  { value: 'MEDIA' as RegraPrecoReferencia, label: 'Média' },
-                  { value: 'MENOR_VALOR' as RegraPrecoReferencia, label: 'Menor valor' },
-                  { value: 'MANUAL' as RegraPrecoReferencia, label: 'Manual' },
-                ]}
-                value={regraPreco}
-                onChange={setRegraPreco}
-              />
-            </Field>
-          </div>
-          {estoqueNegativoErro && (
-            <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-[#FECACA] bg-danger-bg-soft px-5 py-[18px]">
-              <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-[#DC2626] shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
-                <AlertTriangle size={20} />
-              </span>
-              <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-[#DC2626]">{estoqueNegativoErro}</p>
-            </div>
-          )}
-        </div>
+        <CamposInsumo form={form} />
 
         {/* BOTÕES */}
         <div className="flex flex-col gap-3 px-[26px] py-[18px]">
@@ -537,17 +148,17 @@ export default function FormInsumoPage() {
           )}
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate('/insumos')}>Cancelar</Button>
-            <Button variant="primary" icon={<Save size={16} />} disabled={loading || !podeSubmeter} onClick={handleSubmit}>
+            <Button variant="primary" icon={<Save size={16} />} disabled={loading || !form.podeSubmeter} onClick={handleSubmit}>
               {loading ? 'Salvando…' : 'Salvar insumo'}
             </Button>
           </div>
         </div>
       </div>
 
-      <ConfirmacaoModal open={confirmarMarca} onClose={() => setConfirmarMarca(false)}
-        title="Não validar marca" description={`A marca ${marca} será apagada`}
+      <ConfirmacaoModal open={form.confirmarMarca} onClose={() => form.setConfirmarMarca(false)}
+        title="Não validar marca" description={`A marca ${form.marca} será apagada`}
         confirmLabel="Apagar marca e confirmar"
-        onConfirm={() => { setMarca(''); setQualquerMarca(true); setConfirmarMarca(false) }} />
+        onConfirm={form.confirmarApagarMarca} />
       {modal === 'desativar' && <DesativarModal onClose={() => setModal(null)} />}
 
     </AppLayout>
