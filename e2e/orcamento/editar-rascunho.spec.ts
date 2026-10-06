@@ -20,6 +20,10 @@ async function aguardarSimulacao(page: import('@playwright/test').Page, produtoI
   await resposta.finished()
 }
 
+/**
+ * Salva passando pelo aviso de estoque. Pressupõe fixtures com produto SEM estoque (é isso que dispara o aviso
+ * "Aviso antes de salvar as alterações"); com estoque o aviso não aparece e o helper falha (#737).
+ */
 async function salvarComAviso(page: import('@playwright/test').Page, orcamentoId: string) {
   const salvamento = page.waitForResponse(response =>
     response.request().method() === 'PUT'
