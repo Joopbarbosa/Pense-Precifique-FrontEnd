@@ -24,10 +24,10 @@ async function ler(request: APIRequestContext, token: string, cnpj: string, nome
   expect(resposta.ok(), await resposta.text()).toBe(true)
   return resposta.json()
 }
-async function salvar(request: APIRequestContext, token: string, leitura: NotaLeituraResponse, destinos: string[], acaoFornecedor: 'SEM_FORNECEDOR' | null = null): Promise<CompraResponse> {
+async function salvar(request: APIRequestContext, token: string, leitura: NotaLeituraResponse, destinos: string[], acaoFornecedor: 'SEM_FORNECEDOR' | null = null, fator = 1): Promise<CompraResponse> {
   const r = await request.post(`${API_URL}/compras/nota/rascunho`, { headers: headers(token), data: {
     notaLida: leitura.nota, assinatura: leitura.assinatura,
-    escolhas: destinos.map((insumoId, posicao) => ({ posicao, insumoId, fator: 1, ignorar: false })),
+    escolhas: destinos.map((insumoId, posicao) => ({ posicao, insumoId, fator, ignorar: false })),
     fornecedor: acaoFornecedor, comprovanteLink: null,
   } })
   expect(r.ok(), await r.text()).toBe(true)
@@ -230,7 +230,7 @@ test('CEN-NOVO-67: aba do insumo lista os itens de nota ligados e mostra mensage
   const comVinculo = await criarInsumo(request, token, `Insumo com nota ${sfx}`)
   const semVinculo = await criarInsumo(request, token, `Insumo sem nota ${sfx}`)
   const cadastro = await fornecedor(request, token, `Fornecedor aba ${sfx}`, cnpjValido())
-  await salvar(request, token, await ler(request, token, cadastro.documento, [`PAPEL COUCHE ABA ${sfx}`], cadastro.nome), [comVinculo.id])
+  await salvar(request, token, await ler(request, token, cadastro.documento, [`PAPEL COUCHE ABA ${sfx}`], cadastro.nome), [comVinculo.id], null, 100)
   await login(page)
   await page.goto(`/insumos/${comVinculo.id}`)
   await page.getByRole('button', { name: 'Histórico de Nota Fiscal' }).click()
@@ -238,6 +238,8 @@ test('CEN-NOVO-67: aba do insumo lista os itens de nota ligados e mostra mensage
   await expect(tabelaInsumo).toContainText(`PAPEL COUCHE ABA ${sfx}`)
   await expect(tabelaInsumo).toContainText(cadastro.nome)
   await expect(tabelaInsumo).toContainText('Manual')
+  // CEN-NOVO-67 / RN-NOVA-25: o fator do vínculo (100) aparece na linha, seguido da unidade do insumo.
+  await expect(tabelaInsumo.getByRole('row').filter({ hasText: `PAPEL COUCHE ABA ${sfx}` }).getByRole('cell', { name: /^100 \S+$/ })).toBeVisible()
   await page.goto(`/insumos/${semVinculo.id}`)
   await page.getByRole('button', { name: 'Histórico de Nota Fiscal' }).click()
   await expect(page.getByTestId('historico-nota-vazio')).toContainText('Nenhum item de nota foi ligado a este insumo ainda.')
