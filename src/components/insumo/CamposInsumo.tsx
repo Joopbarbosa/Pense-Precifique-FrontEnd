@@ -57,12 +57,7 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
         <Field label="Nome do insumo *">
           <input placeholder="Papel couchê 180g" className={inputBase} {...bind(form.nome, form.setNome)} />
         </Field>
-        <div className="mt-3.5 grid grid-cols-1 items-start gap-3.5 md:grid-cols-[1fr_auto]">
-          <Field label="Marca" opt>
-            <input placeholder="Suzano"
-              className={clsx(inputBase, 'disabled:cursor-not-allowed disabled:bg-line-soft disabled:text-dim')}
-              disabled={qualquerMarca} {...bind(form.marca, form.setMarca)} />
-          </Field>
+        <div className="mt-3.5 grid grid-cols-1 items-start gap-3.5 md:grid-cols-[auto_1fr]">
           <Field label="Não validar marca" group>
             <SegmentedControl
               options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
@@ -71,6 +66,11 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
               {...PEQUENO}
               className="mt-1.5"
             />
+          </Field>
+          <Field label="Marca" opt>
+            <input placeholder="Suzano"
+              className={clsx(inputBase, 'disabled:cursor-not-allowed disabled:bg-line-soft disabled:text-dim')}
+              disabled={qualquerMarca} {...bind(form.marca, form.setMarca)} />
           </Field>
         </div>
         <div className="mt-3.5 flex gap-[9px] rounded-[11px] border border-teal/[0.15] bg-teal/[0.05] px-[13px] py-[11px]">

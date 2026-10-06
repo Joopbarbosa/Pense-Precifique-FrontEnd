@@ -87,3 +87,15 @@ test('CEN-NOVO-49: cancelar preserva marca; confirmar apaga e marca a opção', 
   await expect(page).toHaveURL(`/insumos/${insumo.id}`)
   await expect(page.getByText('Qualquer marca', { exact: true })).toBeVisible()
 })
+
+// #721 — "Não validar marca" fica à esquerda do campo Marca, na mesma linha (abaixo do nome).
+test('#721 — o alternador "Não validar marca" fica à esquerda do campo Marca', async ({ page }) => {
+  await page.goto('/insumos/novo')
+  const nome = await page.getByPlaceholder('Papel couchê 180g').boundingBox()
+  const alternador = await opcaoNaoValidarMarca(page).boundingBox()
+  const marca = await page.getByPlaceholder('Suzano').boundingBox()
+  expect(nome && alternador && marca).toBeTruthy()
+  expect(alternador!.x + alternador!.width).toBeLessThanOrEqual(marca!.x)
+  expect(alternador!.y).toBeGreaterThan(nome!.y + nome!.height)
+  expect(Math.abs((alternador!.y + alternador!.height / 2) - (marca!.y + marca!.height / 2))).toBeLessThan(40)
+})
