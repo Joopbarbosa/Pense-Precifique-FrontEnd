@@ -35,8 +35,9 @@ const GRUPO_COMPRAS = {
     { id: 'compras-dashboard', label: 'Dashboard',     icon: BarChart3,     size: 20, href: '/compras/dashboard' },
     { id: 'compras-minhas', label: 'Minhas compras',   icon: ClipboardList, size: 20, href: '/compras',
       ativoEm: (path: string) => path === '/compras' || (path.startsWith('/compras/') && !path.startsWith('/compras/lista') && !path.startsWith('/compras/dashboard') && !path.startsWith('/compras/nota/vinculos')) },
-    { id: 'compras-vinculos', label: 'Histórico de vínculos', icon: History, size: 20, href: '/compras/nota/vinculos' },
     { id: 'compras-lista',  label: 'Lista de compras', icon: ShoppingCart,  size: 20, href: '/compras/lista' },
+    // #716 (RN-NOVA-24) — antes "Histórico de vínculos"; fica embaixo da Lista de compras.
+    { id: 'compras-vinculos', label: 'Histórico de Nota Fiscal', icon: History, size: 20, href: '/compras/nota/vinculos' },
   ],
 } as const
 
