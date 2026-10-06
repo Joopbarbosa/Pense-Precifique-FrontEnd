@@ -1,3 +1,4 @@
+import ModalDestinoVinculoNota from '../../components/compra/nota/ModalDestinoVinculoNota'
 import { useEffect, useMemo, useState } from 'react'
 import { History, Pencil, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -41,6 +42,8 @@ export default function HistoricoVinculosNotaPage() {
   const [erroLista, setErroLista] = useState(false)
   const [rodada, setRodada] = useState(0)
   const [acao, setAcao] = useState<Acao | null>(null)
+  // #716 (RN-NOVA-24) — clique no registro: modal "Ir para…" (compra, fornecedor ou insumo).
+  const [destinoDe, setDestinoDe] = useState<VinculoNotaResponse | null>(null)
   const [destino, setDestino] = useState<InsumoProposto | null>(null)
   const [fator, setFator] = useState('')
   const [salvando, setSalvando] = useState(false)
@@ -77,8 +80,8 @@ export default function HistoricoVinculosNotaPage() {
   return <AppLayout active="compras" compact>
     <Toast message={toast} />
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <div><h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Histórico de vínculos</h1>
-        <p className="mt-2 text-sm text-muted">Itens das notas associados aos seus insumos, por fornecedor. Alterações valem para as próximas notas.</p></div>
+      <div><h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Histórico de Nota Fiscal</h1>
+        <p className="mt-2 text-sm text-muted">Itens das notas associados aos seus insumos, por fornecedor. Clique num registro para abrir a compra, o fornecedor ou o insumo. Alterações valem para as próximas notas.</p></div>
       <Button variant="secondary" onClick={() => navigate('/compras/nota')}>Ler nota fiscal</Button>
     </div>
     <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -99,14 +102,14 @@ export default function HistoricoVinculosNotaPage() {
     {carregando ? <div className="grid min-h-48 place-items-center"><Spinner /></div> : erroLista ? <div role="alert" className="rounded-input border border-line bg-white p-6">
       <p>Não foi possível carregar os vínculos.</p><Button variant="secondary" onClick={() => setRodada(r => r + 1)}>Tentar novamente</Button>
     </div> : !resultado?.content.length ? <EmptyState icon={<History size={26} />} title="Nenhum vínculo encontrado" description="Os vínculos aparecem aqui depois que você confere e salva uma compra por nota." /> : <>
-      <div className="overflow-x-auto rounded-card border border-line bg-white"><table className="w-full min-w-[850px] text-left text-sm" aria-label="Histórico de vínculos">
+      <div className="overflow-x-auto rounded-card border border-line bg-white"><table className="w-full min-w-[850px] text-left text-sm" aria-label="Histórico de Nota Fiscal">
         <thead className="bg-cream text-muted"><tr>{['Item da nota', 'Fornecedor', 'Insumo', 'Fator', 'Atualizado em', 'Origem', 'Ações'].map(t => <th key={t} className="px-4 py-3 font-semibold">{t}</th>)}</tr></thead>
-        <tbody>{resultado.content.map(v => <tr key={v.id} data-testid={`vinculo-${v.id}`} className="border-t border-line">
-          <td className="px-4 py-4 font-semibold text-dark">{v.nomeItem}</td>
+        <tbody>{resultado.content.map(v => <tr key={v.id} data-testid={`vinculo-${v.id}`} onClick={() => setDestinoDe(v)} className="cursor-pointer border-t border-line hover:bg-cream/60">
+          <td className="px-4 py-4 font-semibold text-dark"><button type="button" aria-label={`Abrir destinos de ${v.nomeItem}`} className="border-none bg-transparent p-0 text-left font-[inherit] font-semibold text-dark">{v.nomeItem}</button></td>
           <td className="px-4 py-4"><div>{v.fornecedorNome}</div><div className="text-xs text-muted">{v.emitenteCnpj}</div></td>
           <td className="px-4 py-4">{v.ignorar ? <span className="rounded-full bg-cream px-2 py-1 text-muted">Ignorado</span> : <><div>{v.insumo?.nome ?? '—'}</div><div className="text-xs text-muted">{v.insumo?.identificador}</div></>}</td>
           <td className="px-4 py-4">{qtd(v.fator)}{v.insumo?.unidade ? ` ${v.insumo.unidade}` : ''}</td><td className="px-4 py-4">{formatarData(v.updatedAt)}</td><td className="px-4 py-4">{ORIGENS[v.origem]}</td>
-          <td className="px-4 py-4"><div className="flex flex-wrap gap-2">
+          <td className="px-4 py-4" onClick={e => e.stopPropagation()}><div className="flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => abrir(v.ignorar ? 'desmarcar' : 'editar', v)}>{v.ignorar ? 'Vincular insumo' : 'Editar'}</Button>
             {!v.ignorar && <Button variant="ghost" size="sm" onClick={() => abrir('ignorar', v)}>Ignorar</Button>}
             <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => abrir('desfazer', v)}>Desfazer</Button>
@@ -129,6 +132,7 @@ export default function HistoricoVinculosNotaPage() {
     <ConfirmacaoModal open={acao?.tipo === 'desfazer' || acao?.tipo === 'ignorar'} title={acao?.tipo === 'desfazer' ? 'Desfazer vínculo?' : 'Ignorar item nas próximas notas?'}
       description={acao?.tipo === 'desfazer' ? 'A próxima nota pedirá uma nova ligação para este item e fornecedor. Compras já registradas permanecem como estão.' : 'Este item e fornecedor serão lembrados como ignorados. Compras já registradas permanecem como estão.'}
       onClose={fechar} onConfirm={() => void executar()} confirmLabel={acao?.tipo === 'desfazer' ? 'Desfazer vínculo' : 'Ignorar item'} confirming={salvando} variant={acao?.tipo === 'desfazer' ? 'danger' : 'default'} />
+    {destinoDe && <ModalDestinoVinculoNota vinculo={destinoDe} onIr={rota => navigate(rota)} onClose={() => setDestinoDe(null)} />}
     {modalErro}
   </AppLayout>
 }

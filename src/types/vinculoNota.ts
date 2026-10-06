@@ -11,9 +11,12 @@ export interface VinculoNotaResponse {
   insumo: InsumoProposto | null
   fator: number | null
   ignorar: boolean
-  origem: 'CASAMENTO_NOME' | 'SUGESTAO_IA' | 'MANUAL'
+  origem: 'CASAMENTO_NOME' | 'SUGESTAO_IA' | 'MANUAL' | 'OUTRO_FORNECEDOR'
   createdAt: string
   updatedAt: string
+  /** #716 — compra (rascunho gerado da nota) em que o vínculo foi feito; nula se excluída ou sem compra. */
+  compraId: string | null
+  compraIdentificador: string | null
 }
 export interface FiltrosVinculoNota {
   busca?: string

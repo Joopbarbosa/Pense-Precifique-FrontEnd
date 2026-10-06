@@ -8,8 +8,9 @@ import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
 import TextArea from '../../components/ui/TextArea'
-import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers, Truck } from 'lucide-react'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers, Truck, FileText } from 'lucide-react'
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
+import HistoricoNotaInsumo from '../../components/compra/nota/HistoricoNotaInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
@@ -372,7 +373,7 @@ export default function DetalheInsumoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [modal, setModal] = useState<'baixa' | null>(null)
-  const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores'>('historico')
+  const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores' | 'notas'>('historico')
   const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
   const [histPage, setHistPage] = useState(0)
@@ -386,6 +387,8 @@ export default function DetalheInsumoPage() {
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: History, size: 17 },
     { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Layers, size: 18 },
     { id: 'fornecedores' as const, label: 'Fornecedores', icon: Truck, size: 17 },
+    // #717 (RN-NOVA-25) — itens de nota ligados a este insumo.
+    { id: 'notas' as const, label: 'Histórico de Nota Fiscal', icon: FileText, size: 17 },
   ]
 
   useEffect(() => {
@@ -556,6 +559,8 @@ export default function DetalheInsumoPage() {
           </>
         ) : aba === 'fichas' ? (
           <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
+        ) : aba === 'notas' ? (
+          <HistoricoNotaInsumo insumoId={insumo.id} unidade={insumo.unidadeMedida} />
         ) : (
           <VinculosFornecedorInsumo modo="insumo" id={insumo.id} />
         )}

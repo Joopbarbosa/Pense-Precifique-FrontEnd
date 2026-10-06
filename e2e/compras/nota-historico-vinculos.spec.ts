@@ -38,7 +38,7 @@ async function fornecedor(request: APIRequestContext, token: string, nome: strin
   expect(r.ok(), await r.text()).toBe(true)
   return r.json()
 }
-const tabela = (page: Page) => page.getByRole('table', { name: 'Histórico de vínculos' })
+const tabela = (page: Page) => page.getByRole('table', { name: 'Histórico de Nota Fiscal' })
 
 // CEN22/23/24: vínculos criados pelo fluxo real, não por SQL; editar não muda rascunho antigo.
 test('CEN22/23/24: filtrar, editar, ignorar, vincular novamente e desfazer só afetam notas futuras', async ({ page, request }) => {
@@ -52,7 +52,7 @@ test('CEN22/23/24: filtrar, editar, ignorar, vincular novamente e desfazer só a
   const antigo = await salvar(request, token, await ler(request, token, cnpj, nomes, estrela.nome), [azul.id, azul.id, preta.id])
   await salvar(request, token, await ler(request, token, outro, [nomes[0]], `Distribuidora Aurora ${sfx}`), [azul.id])
   await login(page); await page.goto('/compras')
-  await page.getByRole('link', { name: 'Histórico de vínculos', exact: true }).click()
+  await page.getByRole('link', { name: 'Histórico de Nota Fiscal', exact: true }).click()
   await page.getByLabel('Buscar vínculo').fill(sfx)
   await expect(tabela(page).getByRole('row')).toHaveCount(5)
   await page.getByPlaceholder('Buscar fornecedor…').fill(estrela.nome)
@@ -163,4 +163,71 @@ test('histórico: filtro CNPJ inclui emitente sem cadastro e filtro de insumo in
   await editor.getByRole('button', { name: 'Trocar insumo' }).click()
   await editor.getByPlaceholder('Escolher insumo do vínculo…').fill(insumo.nome)
   await expect(editor.getByTestId('opcao-inativa').filter({ hasText: insumo.nome })).toHaveAttribute('aria-disabled', 'true')
+})
+
+// #716 (CEN-NOVO-66): clicar no registro abre "Ir para…" com compra, fornecedor e insumo; cada um abre o destino certo.
+test('CEN-NOVO-66: clique no registro oferece compra, fornecedor e insumo', async ({ page, request }) => {
+  const token = await apiLogin(request); const sfx = Date.now().toString(36)
+  const insumo = await criarInsumo(request, token, `Insumo destino ${sfx}`)
+  const cadastro = await fornecedor(request, token, `Fornecedor destino ${sfx}`, cnpjValido())
+  const compra = await salvar(request, token, await ler(request, token, cadastro.documento, [`ITEM DESTINO ${sfx}`], cadastro.nome), [insumo.id])
+  await login(page); await page.goto('/compras')
+  await page.getByRole('link', { name: 'Histórico de Nota Fiscal', exact: true }).click()
+  await page.getByLabel('Buscar vínculo').fill(`ITEM DESTINO ${sfx}`)
+  await expect(tabela(page).getByRole('row')).toHaveCount(2)
+
+  const abrirDestinos = async () => {
+    await tabela(page).getByRole('row').filter({ hasText: `ITEM DESTINO ${sfx}` }).getByText(`ITEM DESTINO ${sfx}`).click()
+    const modal = page.getByTestId('destinos-vinculo-nota')
+    await expect(modal.getByRole('button', { name: `Compra ${compra.identificador}` })).toBeVisible()
+    await expect(modal.getByRole('button', { name: `Fornecedor ${cadastro.nome}` })).toBeVisible()
+    await expect(modal.getByRole('button', { name: `Insumo ${insumo.nome}` })).toBeVisible()
+    return modal
+  }
+  await (await abrirDestinos()).getByRole('button', { name: `Compra ${compra.identificador}` }).click()
+  await expect(page).toHaveURL(new RegExp(`/compras/${compra.id}$`))
+  await page.goBack()
+  await page.getByLabel('Buscar vínculo').fill(`ITEM DESTINO ${sfx}`)
+  await (await abrirDestinos()).getByRole('button', { name: `Fornecedor ${cadastro.nome}` }).click()
+  await expect(page).toHaveURL(new RegExp(`/clientes/${cadastro.id}$`))
+  await page.goBack()
+  await page.getByLabel('Buscar vínculo').fill(`ITEM DESTINO ${sfx}`)
+  await (await abrirDestinos()).getByRole('button', { name: `Insumo ${insumo.nome}` }).click()
+  await expect(page).toHaveURL(new RegExp(`/insumos/${insumo.id}$`))
+})
+
+test('CEN-NOVO-66: compra excluída deixa de ser destino e as ações da linha não abrem a modal', async ({ page, request }) => {
+  const token = await apiLogin(request); const sfx = Date.now().toString(36)
+  const insumo = await criarInsumo(request, token, `Insumo sem compra ${sfx}`)
+  const compra = await salvar(request, token, await ler(request, token, cnpjValido(), [`ITEM SEM COMPRA ${sfx}`], `Emitente ${sfx}`), [insumo.id], 'SEM_FORNECEDOR')
+  expect((await request.delete(`${API_URL}/compras/${compra.id}`, { headers: headers(token) })).ok()).toBe(true)
+  await login(page); await page.goto('/compras/nota/vinculos')
+  await page.getByLabel('Buscar vínculo').fill(`ITEM SEM COMPRA ${sfx}`)
+  const linha = tabela(page).getByRole('row').filter({ hasText: `ITEM SEM COMPRA ${sfx}` })
+  await linha.getByRole('button', { name: 'Editar', exact: true }).click()
+  await expect(page.getByTestId('destinos-vinculo-nota')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Cancelar' }).click()
+  await linha.getByText(`ITEM SEM COMPRA ${sfx}`).click()
+  const modal = page.getByTestId('destinos-vinculo-nota')
+  await expect(modal.getByRole('button', { name: /^Compra / })).toHaveCount(0)
+  await expect(modal.getByRole('button', { name: `Insumo ${insumo.nome}` })).toBeVisible()
+})
+
+// #717 (CEN-NOVO-67): aba Histórico de Nota Fiscal no detalhe do insumo.
+test('CEN-NOVO-67: aba do insumo lista os itens de nota ligados e mostra mensagem quando não há', async ({ page, request }) => {
+  const token = await apiLogin(request); const sfx = Date.now().toString(36)
+  const comVinculo = await criarInsumo(request, token, `Insumo com nota ${sfx}`)
+  const semVinculo = await criarInsumo(request, token, `Insumo sem nota ${sfx}`)
+  const cadastro = await fornecedor(request, token, `Fornecedor aba ${sfx}`, cnpjValido())
+  await salvar(request, token, await ler(request, token, cadastro.documento, [`PAPEL COUCHE ABA ${sfx}`], cadastro.nome), [comVinculo.id])
+  await login(page)
+  await page.goto(`/insumos/${comVinculo.id}`)
+  await page.getByRole('button', { name: 'Histórico de Nota Fiscal' }).click()
+  const tabelaInsumo = page.getByRole('table', { name: 'Histórico de Nota Fiscal do insumo' })
+  await expect(tabelaInsumo).toContainText(`PAPEL COUCHE ABA ${sfx}`)
+  await expect(tabelaInsumo).toContainText(cadastro.nome)
+  await expect(tabelaInsumo).toContainText('Manual')
+  await page.goto(`/insumos/${semVinculo.id}`)
+  await page.getByRole('button', { name: 'Histórico de Nota Fiscal' }).click()
+  await expect(page.getByTestId('historico-nota-vazio')).toContainText('Nenhum item de nota foi ligado a este insumo ainda.')
 })
