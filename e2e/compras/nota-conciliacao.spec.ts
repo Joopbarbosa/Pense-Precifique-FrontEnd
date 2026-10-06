@@ -150,12 +150,12 @@ test.describe('#681 — Conciliação da nota', () => {
     await expect(modal).toBeVisible()
     // nome, custo e quantidade vêm da nota; todos os campos do cadastro estão na modal; não existe rascunho
     await expect(modal.getByPlaceholder('Papel couchê 180g')).toHaveValue(`RESMA ${sfx.toUpperCase()}`)
-    await expect(modal.getByPlaceholder('45,00')).toHaveValue('60,2')
+    await expect(modal.getByPlaceholder('45,00')).toHaveValue('60')
     await expect(modal.getByPlaceholder('100', { exact: true })).toHaveValue('2')
     await expect(modal.getByText('Unidade de medida *')).toBeVisible()
     await expect(modal.getByText('Permitir estoque negativo')).toBeVisible()
     await modal.getByPlaceholder('45,00').fill('60')
-    await modal.getByRole('button', { name: 'Salvar insumo' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Salvar insumo' }).click()
 
     await expect(item(page, 0).getByTestId('insumo-ligado')).toHaveText(`RESMA ${sfx.toUpperCase()}`)
     await expect(item(page, 0).getByText('Rascunho', { exact: true })).toHaveCount(0)
@@ -170,14 +170,14 @@ test.describe('#681 — Conciliação da nota', () => {
     const token = await apiLogin(request)
     const sfx = `d${Date.now().toString(36)}`
     await criarInsumo(request, token, `Resma ${sfx}`)
-    const chave = await registrarNota(request, cnpjValido(), [{ nome: `RESMA ${sfx.toUpperCase()} A4`, quantidade: 1, valorFinal: 30 }])
+    const chave = await registrarNota(request, cnpjValido(), [{ nome: `SULFITE ${sfx.toUpperCase()} 500FL`, quantidade: 1, valorFinal: 30 }])
 
     await login(page)
     await lerNaTela(page, chave)
     await item(page, 0).getByRole('button', { name: 'Cadastrar insumo' }).click()
     const modal = page.getByTestId('modal-cadastrar-insumo-nota')
     await modal.getByPlaceholder('Papel couchê 180g').fill(`Resma ${sfx}`)
-    await modal.getByRole('button', { name: 'Salvar insumo' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Salvar insumo' }).click()
     await expect(modal).toContainText('Já existe um insumo com este nome e marca.')
     await expect(item(page, 0).getByTestId('insumo-ligado')).toHaveCount(0)
   })
@@ -195,7 +195,7 @@ test.describe('#681 — Conciliação da nota', () => {
     await page.getByRole('button', { name: 'Cadastrar como fornecedor' }).click()
     const modal = page.getByTestId('modal-cadastrar-fornecedor-nota')
     await expect(modal.getByLabel('CNPJ')).toBeDisabled()
-    await modal.getByRole('button', { name: 'Cadastrar fornecedor' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Cadastrar fornecedor' }).click()
     await expect(page.getByTestId('fornecedor-nota-cadastrado')).toContainText('Papelaria Estrela E2E')
     await expect(page.getByTestId('fornecedor-nota-decisao')).toHaveCount(0)
 
@@ -205,5 +205,28 @@ test.describe('#681 — Conciliação da nota', () => {
     const compra = await (await request.get(`${API_URL}/compras/${compraId}`, { headers: { Authorization: `Bearer ${token}` } })).json()
     expect(compra.fornecedor?.nome).toBe('Papelaria Estrela E2E')
     expect(compra.itens.some((l: { insumo: { id: string } }) => l.insumo.id === caneta.id)).toBe(true)
+  })
+  test('CEN-NOVO-68 — vínculo de outro fornecedor liga o item antes da IA, com o fator do vínculo', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const sfx = `o${Date.now().toString(36)}`
+    const folha = await criarInsumo(request, token, `Folha ${sfx}`)
+    const nome = `PAPEL COUCHE ${sfx.toUpperCase()} C/100`
+    const primeira = await registrarNota(request, cnpjValido(), [{ nome, quantidade: 1, valorFinal: 38 }])
+
+    await login(page)
+    await lerNaTela(page, primeira)
+    await item(page, 0).getByPlaceholder('Escolher insumo…').fill(`Folha ${sfx}`)
+    await page.getByText(`Folha ${sfx}`, { exact: true }).last().click()
+    await item(page, 0).getByLabel('Fator de conversão do item 1').fill('100')
+    await page.getByRole('button', { name: 'Gerar rascunho da compra' }).click()
+    await expect(page).toHaveURL(/\/compras\/[0-9a-f-]{36}$/)
+
+    // Outro fornecedor (outro CNPJ) com o mesmo nome de item: vem ligado ao mesmo insumo e fator.
+    const segunda = await registrarNota(request, cnpjValido(), [{ nome, quantidade: 2, valorFinal: 76 }])
+    await lerNaTela(page, segunda)
+    await expect(item(page, 0).getByTestId('origem-ligacao')).toHaveText('Vínculo de outro fornecedor')
+    await expect(item(page, 0).getByTestId('insumo-ligado')).toHaveText(`Folha ${sfx}`)
+    await expect(item(page, 0).getByLabel('Fator de conversão do item 1')).toHaveValue('100')
+    expect(folha.id).toBeTruthy()
   })
 })
