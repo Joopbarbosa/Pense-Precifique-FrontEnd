@@ -1,25 +1,13 @@
 import { test, expect, APIRequestContext, Page } from '@playwright/test'
 import { login, API_URL } from '../helpers/auth'
 import { apiLogin, criarInsumo } from '../helpers/api'
+import { cnpjValido, registrarNotaFalsa } from '../helpers/nota-fiscal'
 import type { NotaLeituraResponse } from '../../src/types/compraNota'
 import type { CompraResponse } from '../../src/types/compra'
 
-const FALSO = `http://localhost:${process.env.E2E_LEITOR_FALSO_PORT ?? 13501}`
 const headers = (token: string) => ({ Authorization: `Bearer ${token}` })
-function cnpjValido() {
-  const base = Array.from({ length: 12 }, (_, i) => i < 8 ? Math.floor(Math.random() * 10) : [0, 0, 0, 1][i - 8]).join('')
-  const dv = (s: string, p: number[]) => { const r = [...s].reduce((v, c, i) => v + Number(c) * p[i], 0) % 11; return r < 2 ? 0 : 11 - r }
-  const d = dv(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-  return base + d + dv(base + d, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-}
 async function ler(request: APIRequestContext, token: string, cnpj: string, nomes: string[], emitenteNome: string): Promise<NotaLeituraResponse> {
-  const chave = `3526101122233300018165001${Date.now().toString().padStart(13, '0')}${Math.floor(Math.random() * 1e6).toString().padStart(6, '0')}`
-  const nota = { emitente: { cnpj, nome: emitenteNome, uf: 'SP' }, chaveAcesso: chave, numero: '1', serie: '1',
-    dataEmissao: `${new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)}T10:00:00-03:00`,
-    totalPago: nomes.length * 10, descontoGeral: 0, acrescimos: 0,
-    itens: nomes.map(nome => ({ nome, quantidade: 1, valorFinal: 10, unidade: 'UN' })),
-    origem: 'NFCE_QR', metodo: 'LEITOR_UF', doCache: false, uf: 'SP', leiaute: 'SP-1', avisos: [] }
-  expect((await request.post(`${FALSO}/_fixture`, { data: { chave, nota } })).ok()).toBe(true)
+  const { chave } = await registrarNotaFalsa(request, { cnpj, emitenteNome, itens: nomes.map(nome => ({ nome, quantidade: 1, valorFinal: 10 })) })
   const resposta = await request.post(`${API_URL}/compras/nota/leitura`, { headers: headers(token), multipart: { modelo: 'NFCE', chaveAcesso: chave, confirmouEnvioIa: 'false' } })
   expect(resposta.ok(), await resposta.text()).toBe(true)
   return resposta.json()

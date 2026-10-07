@@ -1,6 +1,7 @@
 import { test, expect, APIRequestContext, Page } from '@playwright/test'
 import { login, API_URL } from '../helpers/auth'
 import { apiLogin, criarInsumo } from '../helpers/api'
+import { cnpjValido, registrarNotaFalsa, type ItemNotaFalsa } from '../helpers/nota-fiscal'
 
 /**
  * V0.16.0 (#681, UC-NOVO-1, UC-NOVO-3, RN-NOVA-12 a 15) — compra por nota de ponta a ponta, com o
@@ -10,40 +11,10 @@ import { apiLogin, criarInsumo } from '../helpers/api'
  * CEN-NOVO-20: "Tentar novamente" com ligação manual pede confirmação; UC-NOVO-4 e CEN-NOVO-45 na modal.
  */
 
-const FALSO = `http://localhost:${process.env.E2E_LEITOR_FALSO_PORT ?? 13501}`
-
-function cnpjValido(): string {
-  const base = Array.from({ length: 12 }, (_, i) => (i < 8 ? Math.floor(Math.random() * 10) : [0, 0, 0, 1][i - 8])).join('')
-  const dv = (s: string, pesos: number[]) => {
-    const soma = s.split('').reduce((t, c, i) => t + Number(c) * pesos[i], 0)
-    const r = soma % 11
-    return r < 2 ? 0 : 11 - r
-  }
-  const d1 = dv(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-  const d2 = dv(base + d1, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-  return `${base}${d1}${d2}`
-}
-
-function chaveUnica(): string {
-  return `3526101122233300018165001${String(Date.now()).padStart(13, '0')}${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`
-}
-
-type ItemNota = { nome: string; quantidade: number; valorFinal: number; unidade?: string }
+type ItemNota = ItemNotaFalsa
 
 async function registrarNota(request: APIRequestContext, cnpj: string, itens: ItemNota[], descontoGeral = 0) {
-  const chave = chaveUnica()
-  const ontem = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
-  const soma = itens.reduce((t, i) => t + i.valorFinal, 0)
-  const nota = {
-    emitente: { cnpj, nome: 'Papelaria Estrela E2E', uf: 'SP' },
-    chaveAcesso: chave, numero: '1', serie: '1', dataEmissao: `${ontem}T10:00:00-03:00`,
-    totalPago: Math.round((soma - descontoGeral) * 100) / 100, descontoGeral, acrescimos: 0,
-    itens: itens.map(i => ({ ...i, unidade: i.unidade ?? 'UN' })),
-    origem: 'NFCE_QR', metodo: 'LEITOR_UF', doCache: false, uf: 'SP', leiaute: 'SP-1', avisos: [],
-  }
-  const res = await request.post(`${FALSO}/_fixture`, { data: { chave, nota } })
-  expect(res.ok()).toBe(true)
-  return chave
+  return (await registrarNotaFalsa(request, { cnpj, itens, descontoGeral })).chave
 }
 
 async function lerNaTela(page: Page, chave: string) {

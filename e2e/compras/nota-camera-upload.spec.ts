@@ -3,15 +3,14 @@ import QRCode from 'qrcode'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { login } from '../helpers/auth'
 import { apiLogin, criarInsumo } from '../helpers/api'
+import { LEITOR_FALSO, registrarNotaFalsa } from '../helpers/nota-fiscal'
 
-const leitor = `http://localhost:${process.env.E2E_LEITOR_FALSO_PORT ?? 13502}`
-const chave = () => '35' + String(Date.now()).padStart(13, '0') + String(Math.floor(Math.random() * 1e9)).padStart(29, '0')
+const leitor = LEITOR_FALSO
 async function fixture(request: APIRequestContext, origem = 'NFE_FOTO') {
   const token = await apiLogin(request); const nome = `Papel E2E682 ${Date.now()}`
   await criarInsumo(request, token, nome)
-  const acesso = chave(); const qrUrl = `https://www.nfce.fazenda.sp.gov.br/qrcode?p=${acesso}|2|1|1|HASH`
-  const nota = { emitente: { cnpj: '11222333000181', nome: 'Papelaria Estrela E2E', uf: 'SP' }, chaveAcesso: acesso, numero: '1', serie: '1', dataEmissao: new Date(Date.now() - 86_400_000).toISOString(), totalPago: '17.43', descontoGeral: '0', acrescimos: '0', itens: [{ nome, quantidade: '3', valorFinal: '17.43', unidade: 'UN' }], origem, metodo: origem === 'NFCE_QR' ? 'LEITOR_UF' : 'IA', doCache: false, uf: 'SP', leiaute: 'SP-E2E682', avisos: [] }
-  const r = await request.post(`${leitor}/_fixture`, { data: { chave: acesso, nota } }); expect(r.ok(), await r.text()).toBeTruthy()
+  const { chave: acesso, nota } = await registrarNotaFalsa(request, { cnpj: '11222333000181', itens: [{ nome, quantidade: 3, valorFinal: 17.43 }], origem, leiaute: 'SP-E2E682', dataEmissao: new Date(Date.now() - 86_400_000).toISOString() })
+  const qrUrl = `https://www.nfce.fazenda.sp.gov.br/qrcode?p=${acesso}|2|1|1|HASH`
   return { nome, qrUrl, nota }
 }
 // /_observacoes só existe no leitor integrado (e2e/fakes/leitor-fiscal-integrado.mjs), que sobe com E2E_LEITOR_REAL_REPO
