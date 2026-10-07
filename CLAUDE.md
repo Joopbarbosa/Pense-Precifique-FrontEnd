@@ -40,7 +40,9 @@ dispara e estados terminais sem hard-delete se acumulam entre rodadas.
 incompleto e recusa `pense_precifique_db`/`pense_precifique_test_v015` como banco isolado). O proxy
 do Vite para a API isolada usa `E2E_API_PROXY_TARGET`; os specs leem os alvos de
 `e2e/helpers/target.ts` — nunca `localhost:8080` fixo num spec novo. **Sem as variáveis, o padrão
-continua sendo o container/banco de dev, que o `TRUNCATE` apaga** — confirmar o alvo antes de rodar.
+é o container/banco de dev, que o `TRUNCATE` apaga — por isso o `global-setup.ts` para antes do banco, a menos que
+`CONFIRMO_APAGAR_BANCO_DEV=1` esteja definida** (#746). Para o alvo isolado nada muda: com as quatro variáveis juntas
+(e banco/container `test_*` no pocket) não precisa confirmar. As travas vivem em `e2e/helpers/alvo-e2e.ts`.
 
 **Unidade de medida em E2E** (V0.14.0/#298): `POST/PUT /insumos` exige `unidadeMedidaId` (FK), não
 mais texto livre. `global-setup.ts` semeia 1 unidade padrão ("unidade") logo após o `TRUNCATE` —
