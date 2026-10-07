@@ -40,4 +40,16 @@ test.describe('Travas do alvo do E2E (global-setup)', () => {
     expect(() => validarAlvoE2E({ ...isolado, DB_NAME: 'meu_banco', POCKET_TEST_DB: '1' })).toThrow(/exige banco e container test_\*/)
     expect(() => validarAlvoE2E({ ...isolado, DB_CONTAINER: 'pense-precifique-db', POCKET_TEST_DB: '1' })).toThrow(/exige banco e container test_\*/)
   })
+
+  test('#752: alvo configurado fora de test_* é recusado mesmo sem POCKET_TEST_DB', () => {
+    const fora = { E2E_BASE_URL: 'http://target.invalid', E2E_API_URL: 'http://target.invalid', DB_CONTAINER: 'prod-container', DB_NAME: 'prod_db' }
+    expect(() => validarAlvoE2E(fora)).toThrow(/exige banco e container test_\*/)
+    expect(() => validarAlvoE2E({ ...fora, [VARIAVEL_DE_CONFIRMACAO]: '1' })).toThrow(/exige banco e container test_\*/)
+    expect(() => validarAlvoE2E({ ...isolado, DB_CONTAINER: 'prod-container' })).toThrow(/exige banco e container test_\*/)
+    expect(() => validarAlvoE2E({ ...isolado, DB_NAME: 'prod_db' })).toThrow(/exige banco e container test_\*/)
+  })
+
+  test('#752: a confirmação do banco de dev não libera alvo configurado sem test_*', () => {
+    expect(() => validarAlvoE2E({ ...isolado, DB_NAME: 'meu_banco', [VARIAVEL_DE_CONFIRMACAO]: '1' })).toThrow(/exige banco e container test_\*/)
+  })
 })
