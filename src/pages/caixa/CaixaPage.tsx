@@ -418,7 +418,7 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
     >
       {cancelando ? (
         <div className="flex flex-col gap-[14px]">
-          <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] leading-[1.5] text-danger-deep">
+          <div className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] leading-[1.5] text-danger-deep">
             Confira se o estoque deve voltar antes de confirmar. Para corrigir um erro, cancele e registre uma nova venda.
           </div>
           <Field label="Motivo do cancelamento" size="md">
@@ -517,7 +517,7 @@ function AvisoEstoqueNegativoModal({ open, avisos, onCancel, onConfirmar, confir
     >
       <div className="flex flex-col gap-3">
         {avisos.map(a => (
-          <div key={a.componenteId} className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] leading-[1.5] text-danger-deep">
+          <div key={a.componenteId} className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] leading-[1.5] text-danger-deep">
             {a.mensagem}
           </div>
         ))}

@@ -244,7 +244,7 @@ function EdicaoManualProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }
         </label>
 
         {erro && (
-          <div className="rounded-[9px] border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">
+          <div className="rounded-[9px] border border-danger-line bg-danger-tint px-3.5 py-2.5 text-[13px] text-danger-deep">
             {erro}
           </div>
         )}

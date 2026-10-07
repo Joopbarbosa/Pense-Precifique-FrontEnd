@@ -700,11 +700,11 @@ function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boole
         </span>
       </label>
       {erro && (
-        <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-[#FECACA] bg-danger-bg-soft px-5 py-[18px]">
-          <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-[#DC2626] shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
+        <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-danger-line-soft bg-danger-bg-soft px-5 py-[18px]">
+          <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-danger-alt shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
             <AlertTriangle size={20} />
           </span>
-          <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-[#DC2626]">{erro}</p>
+          <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-danger-alt">{erro}</p>
         </div>
       )}
     </div>
@@ -1004,7 +1004,7 @@ export default function CadastrarProdutoPage() {
       {aba !== 'dados' && (
         <div className="mt-[26px]">
           {(erro || estoqueNegativoErro || Object.keys(fieldErrors).length > 0) && (
-            <div className="mb-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+            <div className="mb-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
               <div>{erro}</div>
               {estoqueNegativoErro && <div>{estoqueNegativoErro}</div>}
               {Object.keys(fieldErrors).length > 0 && (

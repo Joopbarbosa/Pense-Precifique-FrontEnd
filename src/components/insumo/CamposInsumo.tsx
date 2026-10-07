@@ -87,7 +87,7 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
           <Field label="Unidade de medida *">
             {!form.loadingUnidades && form.unidades.length === 0 ? (
-              <div className="flex items-center gap-[9px] rounded-[11px] border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13px] text-danger-deep">
+              <div className="flex items-center gap-[9px] rounded-[11px] border border-danger-line bg-danger-tint px-3.5 py-3 text-[13px] text-danger-deep">
                 <AlertCircle size={15} className="flex-shrink-0" />
                 Nenhuma unidade cadastrada.{' '}
                 <a href="/configuracoes" className="font-semibold underline underline-offset-2">Cadastre em Configurações</a>.
@@ -285,11 +285,11 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
           </Field>
         </div>
         {form.estoqueNegativoErro && (
-          <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-[#FECACA] bg-danger-bg-soft px-5 py-[18px]">
-            <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-[#DC2626] shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
+          <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-danger-line-soft bg-danger-bg-soft px-5 py-[18px]">
+            <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-danger-alt shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
               <AlertTriangle size={20} />
             </span>
-            <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-[#DC2626]">{form.estoqueNegativoErro}</p>
+            <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-danger-alt">{form.estoqueNegativoErro}</p>
           </div>
         )}
       </div>

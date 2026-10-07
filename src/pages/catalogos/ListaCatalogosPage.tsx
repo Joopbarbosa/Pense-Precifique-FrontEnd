@@ -92,7 +92,7 @@ function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
           {fieldErrors.nome && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{fieldErrors.nome}</span>}
         </label>
         {erro && (
-          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
+          <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
             {erro}
           </p>
         )}
@@ -312,7 +312,7 @@ export default function ListaCatalogosPage() {
       </div>
 
       {erroAcao && (
-        <div className="mb-4 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+        <div className="mb-4 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           {erroAcao}
         </div>
       )}
@@ -337,7 +337,7 @@ export default function ListaCatalogosPage() {
           Carregando catálogos…
         </div>
       ) : erro ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           <span>{erro}</span>
           <Button variant="ghost" onClick={carregar}>Tentar novamente</Button>
         </div>

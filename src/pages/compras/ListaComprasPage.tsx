@@ -253,7 +253,7 @@ function Historico() {
     : { campo, dir: campo === 'status' ? 'asc' : 'desc' })
 
   if (loading) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
-  if (error) return <div role="alert" className="flex items-center justify-between rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">{error}<Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button></div>
+  if (error) return <div role="alert" className="flex items-center justify-between rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{error}<Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button></div>
   if (items.length === 0) return <EmptyState icon={<History size={20} />} title="Nenhuma lista ainda" description="As listas que você gerar ou salvar como rascunho ficam aqui para consultar e baixar em PDF." />
 
   return (
@@ -290,7 +290,7 @@ function NovaListaOuRascunho({ rascunhoId }: { rascunhoId: string | null }) {
     }).catch(err => setErro(extractApiError(err, 'Não foi possível abrir o rascunho.')))
   }, [rascunhoId])
   if (!rascunhoId) return <NovaLista rascunho={null} />
-  if (erro) return <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">{erro}</div>
+  if (erro) return <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{erro}</div>
   if (!rascunho) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Abrindo rascunho…</div>
   return (
     <div className="flex flex-col gap-3">
