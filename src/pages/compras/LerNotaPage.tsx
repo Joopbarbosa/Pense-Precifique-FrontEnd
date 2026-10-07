@@ -19,7 +19,7 @@ import type { ModeloNota, NotaLeituraResponse } from '../../types/compraNota'
  * aqui pela #682. A leitura abre a modal de conciliação; nota em rascunho abre o rascunho existente e nota
  * já confirmada ou cancelada mostra o aviso com o link da compra (RN-NOVA-5). Textos são rascunho.
  */
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 const MODELOS = [
   { value: 'NFCE' as ModeloNota, label: 'Cupom (NFC-e)' },
@@ -126,7 +126,7 @@ export default function LerNotaPage() {
     <AppLayout active="compras" compact>
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Ler nota fiscal</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Ler nota fiscal</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Registre a compra a partir do cupom ou da nota: o sistema lê os itens e você confere.</p>
         </div>
         <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/compras')}>Voltar</Button>

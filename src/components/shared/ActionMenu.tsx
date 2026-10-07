@@ -95,7 +95,7 @@ export default function ActionMenu({ items, align = 'right' }: ActionMenuProps) 
         top: pos.top,
         ...(pos.right !== undefined ? { right: pos.right } : { left: pos.left }),
       }}
-      className="fixed z-[9999] w-[180px] animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
+      className="fixed z-9999 w-[180px] animate-pop rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]"
     >
       {items.map((item, i) => (
         <React.Fragment key={i}>

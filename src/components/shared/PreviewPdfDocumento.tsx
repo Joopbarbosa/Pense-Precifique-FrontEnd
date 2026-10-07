@@ -57,7 +57,7 @@ export default function PreviewPdfDocumento({ active, trilha, titulo, badge, vol
 
   return (
     <AppLayout active={active} compact noPad>
-      <div className="flex-shrink-0 border-b border-line bg-white px-7 py-3.5 max-[767px]:px-4">
+      <div className="shrink-0 border-b border-line bg-white px-7 py-3.5 max-[767px]:px-4">
         <div className="mx-auto flex max-w-[820px] flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-1.5 flex flex-wrap items-center gap-[7px] text-[12.5px] text-muted">
@@ -85,7 +85,7 @@ export default function PreviewPdfDocumento({ active, trilha, titulo, badge, vol
         </div>
       </div>
 
-      <div className="mt-4 flex-1 overflow-auto bg-[#EDECEA] px-9 pb-14 pt-7 max-[767px]:px-3.5 max-[767px]:pt-[18px]">
+      <div className="mt-4 flex-1 overflow-auto bg-[#EDECEA] px-9 pb-14 pt-7 max-[767px]:px-3.5 max-[767px]:pt-section">
         <div className="mx-auto max-w-[820px]">
           {status === 'carregando' && (
             <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 rounded-[4px] border border-line bg-white text-muted">

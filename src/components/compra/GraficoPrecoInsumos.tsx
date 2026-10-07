@@ -139,7 +139,7 @@ export default function GraficoPrecoInsumos({ inicial, de, ate }: {
       </div>
 
       {mobile ? (
-        <div className="flex items-center gap-2.5 px-5 py-4 text-[13.5px] text-body"><Monitor size={18} className="flex-shrink-0 text-teal" /> {MENSAGEM_GRAFICO_CELULAR}</div>
+        <div className="flex items-center gap-2.5 px-5 py-4 text-[13.5px] text-body"><Monitor size={18} className="shrink-0 text-teal" /> {MENSAGEM_GRAFICO_CELULAR}</div>
       ) : (
         <div className="flex flex-col gap-4 px-5 py-4">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">

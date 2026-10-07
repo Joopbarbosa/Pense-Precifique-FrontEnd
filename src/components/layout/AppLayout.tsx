@@ -45,7 +45,7 @@ export default function AppLayout({ active, children, noPad, fullHeight, compact
     <div className="flex h-screen overflow-hidden bg-app">
       <div
         className={clsx(
-          'fixed inset-0 z-[49] bg-black/[0.35] md:hidden',
+          'fixed inset-0 z-49 bg-black/35 md:hidden',
           drawerOpen ? 'block' : 'hidden'
         )}
         onClick={() => setDrawerOpen(false)}
@@ -61,7 +61,7 @@ export default function AppLayout({ active, children, noPad, fullHeight, compact
         <TopBar drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen(v => !v)} />
         {noPad ? children : (
           <div className={clsx(
-            'w-full pb-14 pt-[34px] max-md:px-[18px] max-md:pb-12 max-md:pt-[22px]',
+            'w-full pb-14 pt-[34px] max-md:px-section max-md:pb-12 max-md:pt-[22px]',
             compact ? 'px-4' : 'mx-auto max-w-[1280px] px-10',
             fullHeight && 'flex min-h-0 flex-1 flex-col'
           )}>

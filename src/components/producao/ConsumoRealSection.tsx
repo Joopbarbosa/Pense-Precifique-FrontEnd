@@ -49,7 +49,7 @@ export default function ConsumoRealSection({ insumosConsumidos, valores, onChang
                 onChange(chave, isNaN(raw) ? 0 : Math.max(raw, 0))
               }}
               data-testid={`consumo-real-input-${testIdBase}`}
-              className="h-11 w-[100px] flex-shrink-0 rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              className="h-11 w-[100px] shrink-0 rounded-input border-[1.5px] border-line bg-white px-3 text-center font-[inherit] text-[14.5px] font-semibold text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/12"
             />
           </div>
         )

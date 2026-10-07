@@ -16,7 +16,7 @@ export default function Toast({ message, variant = 'success' }: ToastProps) {
       role={isError ? 'alert' : undefined}
       aria-live={isError ? 'assertive' : undefined}
       className={clsx(
-        'fixed left-1/2 top-5 z-[200] -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input px-5 py-3 text-sm font-semibold text-white',
+        'fixed left-1/2 top-5 z-200 -translate-x-1/2 animate-[fadeUp_.25s_ease_both] whitespace-nowrap rounded-input px-5 py-3 text-sm font-semibold text-white',
         isError
           ? 'bg-danger shadow-[0_8px_24px_-8px_rgba(192,73,43,0.6)]'
           : 'bg-teal shadow-[0_8px_24px_-8px_rgba(42,157,143,0.6)]'

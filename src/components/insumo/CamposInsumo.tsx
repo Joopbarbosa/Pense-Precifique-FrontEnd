@@ -7,7 +7,7 @@ import { AlertCircle, AlertTriangle, Calculator, Check, ChevronDown, Info } from
 import type { FormInsumo } from './useFormInsumo'
 import type { RegraPrecoReferencia, TipoExibicaoQuantidade } from '../../types/insumo'
 
-export const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
+export const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 // Alternadores Sim/Não do cadastro: pequenos, na altura dos demais campos compactos (#712).
 const PEQUENO = { height: 'h-9', display: 'inline-flex' as const, optionWidth: 'w-16', textSize: 'text-[13px]' }
@@ -73,9 +73,9 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
               disabled={qualquerMarca} {...bind(form.marca, form.setMarca)} />
           </Field>
         </div>
-        <div className="mt-3.5 flex gap-[9px] rounded-[11px] border border-teal/[0.15] bg-teal/[0.05] px-[13px] py-[11px]">
-          <Info size={15} className="mt-px flex-shrink-0 text-teal" />
-          <p className="m-0 text-[12.3px] leading-[1.5] text-body">
+        <div className="mt-3.5 flex gap-[9px] rounded-[11px] border border-teal/15 bg-teal/5 px-[13px] py-[11px]">
+          <Info size={15} className="mt-px shrink-0 text-teal" />
+          <p className="m-0 text-[12.3px] leading-normal text-body">
             O par <strong className="font-semibold">nome + marca</strong> deve ser único. O mesmo insumo de marcas diferentes pode ser cadastrado separadamente.
           </p>
         </div>
@@ -88,7 +88,7 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
           <Field label="Unidade de medida *">
             {!form.loadingUnidades && form.unidades.length === 0 ? (
               <div className="flex items-center gap-[9px] rounded-[11px] border border-danger-line bg-danger-tint px-3.5 py-3 text-[13px] text-danger-deep">
-                <AlertCircle size={15} className="flex-shrink-0" />
+                <AlertCircle size={15} className="shrink-0" />
                 Nenhuma unidade cadastrada.{' '}
                 <a href="/configuracoes" className="font-semibold underline underline-offset-2">Cadastre em Configurações</a>.
               </div>
@@ -101,7 +101,7 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
                   className={clsx(
                     inputBase,
                     'flex cursor-pointer items-center justify-between text-left',
-                    unidadeOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                    unidadeOpen && 'border-teal ring-4 ring-teal/12'
                   )}
                 >
                   {form.loadingUnidades ? 'Carregando…' : (unidadeSelecionada ? `${unidadeSelecionada.nome} (${unidadeSelecionada.sigla})` : 'Selecione')}
@@ -116,7 +116,7 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
                         onClick={() => { form.setUnidadeMedidaId(u.id); setUnidadeOpen(false) }}
                         className={clsx(
                           'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                          u.id === form.unidadeMedidaId ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
+                          u.id === form.unidadeMedidaId ? 'bg-teal/8 font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
                         )}
                       >
                         {u.nome} ({u.sigla})
@@ -226,11 +226,11 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
           <div
             key={form.custoFmt}
             className={clsx(
-              'mt-[18px] flex items-center gap-[15px] rounded-2xl border-[1.5px] border-teal/25 bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.05))] px-5 py-[18px]',
+              'mt-section flex items-center gap-[15px] rounded-2xl border-[1.5px] border-teal/focus bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.05))] px-5 py-section',
               form.custoUnit != null && 'animate-flash'
             )}
           >
-            <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-teal shadow-[0_4px_12px_-4px_rgba(31,122,111,0.3)]">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] bg-white text-teal shadow-[0_4px_12px_-4px_rgba(31,122,111,0.3)]">
               <Calculator size={20} />
             </span>
             <div className="min-w-0 flex-1">
@@ -258,14 +258,14 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
         <SectionTitle number="4" title="Configurações de estoque" subtitle="Comportamento quando o estoque fica insuficiente." />
         <label onClick={() => form.setPermitirEstoqueNegativo(v => !v)} className="flex cursor-pointer items-start gap-3">
           <span className={clsx(
-            'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
+            'mt-px grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
             form.permitirEstoqueNegativo ? 'border-teal bg-teal' : 'border-line bg-white'
           )}>
             {form.permitirEstoqueNegativo && <Check size={14} className="text-white" />}
           </span>
           <span>
             <span className="block text-[14.5px] font-semibold text-dark">Permitir estoque negativo</span>
-            <span className="mt-[3px] block text-[12.5px] leading-[1.5] text-muted">
+            <span className="mt-[3px] block text-[12.5px] leading-normal text-muted">
               Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
             </span>
           </span>
@@ -285,11 +285,11 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
           </Field>
         </div>
         {form.estoqueNegativoErro && (
-          <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-danger-line-soft bg-danger-bg-soft px-5 py-[18px]">
-            <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-danger-alt shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
+          <div className="mt-section flex items-center gap-[15px] rounded-2xl border border-danger-line-soft bg-danger-bg-soft px-5 py-section">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] bg-white text-danger-alt shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
               <AlertTriangle size={20} />
             </span>
-            <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-danger-alt">{form.estoqueNegativoErro}</p>
+            <p className="m-0 text-[13.5px] font-normal leading-normal text-danger-alt">{form.estoqueNegativoErro}</p>
           </div>
         )}
       </div>

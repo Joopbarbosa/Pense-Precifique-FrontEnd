@@ -41,7 +41,7 @@ const TIPO_API_TO_LABEL: Record<string, string> = {
   'CUSTOMIZACAO': 'Customização',
 }
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 interface ItemDb {
   /** #641 (RN-NOVA-40) — só no seletor: false = inativo, riscado e sem poder escolher. */
@@ -109,14 +109,14 @@ function TipoSelector({ value, onChange }: { value: string; onChange: (v: string
             className={clsx(
               'flex flex-col gap-1.5 rounded-input border-[1.5px] px-3.5 py-[13px] text-left font-[inherit] transition-[border-color,box-shadow] duration-150',
               on
-                ? 'border-teal bg-teal/[0.06] shadow-[0_0_0_3px_rgba(42,157,143,0.12)]'
+                ? 'border-teal bg-teal/6 shadow-[0_0_0_3px_rgba(42,157,143,0.12)]'
                 : 'border-line bg-white hover:border-[#DCD8D0]'
             )}
           >
             <span className="flex items-center justify-between gap-2">
               <span className={clsx('whitespace-nowrap text-sm font-bold', on ? 'text-[#1F7A6F]' : 'text-dark')}>{tp.v}</span>
               <span className={clsx(
-                'grid h-[18px] w-[18px] flex-shrink-0 place-items-center rounded-full border-[1.5px]',
+                'grid h-section w-section shrink-0 place-items-center rounded-full border-[1.5px]',
                 on ? 'border-teal bg-teal' : 'border-dim bg-white'
               )}>
                 {on && <Check size={11} strokeWidth={3} className="text-white" />}
@@ -281,7 +281,7 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
     const b = tipoProdutoBadge(tipo === 'produto' ? 'PRODUTO' : 'CUSTOMIZACAO')
     return (
       <span
-        className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
+        className="inline-flex h-section items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
         style={{ background: b.bg, color: b.fg }}
       >
         {b.label}
@@ -289,7 +289,7 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
     )
   }
   return (
-    <span className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full bg-line-soft px-[7px] text-[10.5px] font-semibold tracking-[0.01em] text-subtle">
+    <span className="inline-flex h-section items-center whitespace-nowrap rounded-full bg-line-soft px-[7px] text-[10.5px] font-semibold tracking-[0.01em] text-subtle">
       Insumo
     </span>
   )
@@ -360,7 +360,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 
   const grupo = (titulo: string, itens: ItemDb[]) => itens.length === 0 ? null : (
     <div key={titulo}>
-      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
+      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-wider text-dim">{titulo}</div>
       {/* #641 (RN-NOVA-40) — inativo: riscado, com "Inativo", sem poder escolher (a API manda depois dos ativos). */}
       {itens.map(i => i.ativo === false ? (
         <OpcaoInativa key={i.id} className="px-[11px] py-2.5">
@@ -374,9 +374,9 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
-            'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
-            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal'
-              : i.tipo === 'customizacao' ? 'bg-[#2A9D8F]/[0.12] text-[#2A9D8F]'
+            'grid h-8 w-8 shrink-0 place-items-center rounded-lg',
+            i.tipo === 'produto' ? 'bg-teal/12 text-teal'
+              : i.tipo === 'customizacao' ? 'bg-teal/12 text-teal'
               : 'bg-line-soft text-dim'
           )}>
             <Box size={16} />
@@ -388,7 +388,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
             </span>
             <span className="block text-xs text-muted">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
           </span>
-          <Plus size={16} className="flex-shrink-0 text-teal" />
+          <Plus size={16} className="shrink-0 text-teal" />
         </button>
       ))}
     </div>
@@ -404,7 +404,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         onChange={e => { setQ(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
         placeholder="Buscar insumo ou produto..."
-        className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+        className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
       />
       {open && (
         <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
@@ -451,7 +451,7 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
           onChange(cleaned)
         }}
         inputMode={fracionavel ? 'decimal' : 'numeric'}
-        className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
+        className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/12"
       />
       <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-dim">{un}</span>
     </div>
@@ -540,7 +540,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             </button>
           </div>
         ))}
-        <div className="border-t border-line px-[22px] py-[18px]">
+        <div className="border-t border-line px-[22px] py-section">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <span className="mb-2 block text-[13.5px] font-semibold text-body">
@@ -568,7 +568,7 @@ function MargemInput({ value, onChange }: { value: string; onChange: (v: string)
         value={value}
         onChange={e => onChange(e.target.value.replace(/[^\d]/g, ''))}
         inputMode="numeric"
-        className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
+        className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/12"
       />
       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-dim">%</span>
     </div>
@@ -687,24 +687,24 @@ function ConfiguracoesEstoque({ permitir, setPermitir, erro }: { permitir: boole
       <span className="mb-2 block text-[13.5px] font-semibold text-body">Configurações de estoque</span>
       <label onClick={() => setPermitir(!permitir)} className="flex cursor-pointer items-start gap-3">
         <span className={clsx(
-          'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
+          'mt-px grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-150',
           permitir ? 'border-teal bg-teal' : 'border-line bg-white'
         )}>
           {permitir && <Check size={14} className="text-white" />}
         </span>
         <span>
           <span className="block text-[14.5px] font-semibold text-dark">Permitir estoque negativo</span>
-          <span className="mt-[3px] block text-[12.5px] leading-[1.5] text-muted">
+          <span className="mt-[3px] block text-[12.5px] leading-normal text-muted">
             Se desmarcado, operações que levariam ao estoque negativo serão bloqueadas.
           </span>
         </span>
       </label>
       {erro && (
-        <div className="mt-[18px] flex items-center gap-[15px] rounded-2xl border border-danger-line-soft bg-danger-bg-soft px-5 py-[18px]">
-          <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-[13px] bg-white text-danger-alt shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
+        <div className="mt-section flex items-center gap-[15px] rounded-2xl border border-danger-line-soft bg-danger-bg-soft px-5 py-section">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] bg-white text-danger-alt shadow-[0_4px_12px_-4px_rgba(220,38,38,0.25)]">
             <AlertTriangle size={20} />
           </span>
-          <p className="m-0 text-[13.5px] font-normal leading-[1.5] text-danger-alt">{erro}</p>
+          <p className="m-0 text-[13.5px] font-normal leading-normal text-danger-alt">{erro}</p>
         </div>
       )}
     </div>
@@ -936,7 +936,7 @@ export default function CadastrarProdutoPage() {
 
       {/* HEADER */}
       <div className="mb-[22px] flex items-center gap-[15px]">
-        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
+        <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
           {editando ? <Pencil size={26} /> : <Box size={26} />}
         </span>
         <h1 className="m-0 whitespace-nowrap text-[26px] font-bold tracking-[-0.02em] text-dark">
@@ -953,18 +953,18 @@ export default function CadastrarProdutoPage() {
               key={a.id}
               onClick={() => setAba(a.id)}
               className={clsx(
-                'relative flex items-center gap-[9px] whitespace-nowrap border-none bg-transparent px-[18px] py-3 font-[inherit] text-[14.5px] transition-colors duration-150',
+                'relative flex items-center gap-[9px] whitespace-nowrap border-none bg-transparent px-section py-3 font-[inherit] text-[14.5px] transition-colors duration-150',
                 on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body'
               )}
             >
               <span className={clsx(
                 'grid h-6 w-6 place-items-center rounded-[7px] text-xs font-bold',
-                on ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
+                on ? 'bg-teal/12 text-teal' : 'bg-line-soft text-dim'
               )}>
                 {i + 1}
               </span>
               {a.label}
-              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+              {on && <span className="absolute bottom-[-1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}
@@ -1008,7 +1008,7 @@ export default function CadastrarProdutoPage() {
               <div>{erro}</div>
               {estoqueNegativoErro && <div>{estoqueNegativoErro}</div>}
               {Object.keys(fieldErrors).length > 0 && (
-                <ul className={clsx('pl-[18px]', (erro || estoqueNegativoErro) ? 'mt-1.5' : 'mt-0')}>
+                <ul className={clsx('pl-section', (erro || estoqueNegativoErro) ? 'mt-1.5' : 'mt-0')}>
                   {Object.entries(fieldErrors).map(([k, v]) => (
                     <li key={k}>{v}</li>
                   ))}

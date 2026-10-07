@@ -72,13 +72,13 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
           value={busca}
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar customização..."
-          className="h-[42px] w-full rounded-input border-[1.5px] border-line bg-white pl-9 pr-3.5 font-[inherit] text-sm text-dark outline-none transition-colors duration-150 focus:border-teal"
+          className="h-[42px] w-full rounded-input border-[1.5px] border-line bg-white pl-9 pr-3.5 font-[inherit] text-sm text-dark outline-hidden transition-colors duration-150 focus:border-teal"
         />
       </div>
 
       {/* Lista de customizações — RN-NOVA-7: até 8 itens visíveis por vez, resto via rolagem.
           Altura calibrada para a linha de 72px + gap-2 (8px), medida via Playwright: 8*72 + 7*8 = 632px.
-          `flex-shrink-0` em cada linha é obrigatório: sem ele, um flex-col com max-height/overflow-y-auto
+          `shrink-0` em cada linha é obrigatório: sem ele, um flex-col com max-height/overflow-y-auto
           encolhe os itens para caber em vez de habilitar rolagem (gotcha clássico de flexbox). */}
       <div className="flex max-h-[632px] flex-col gap-2 overflow-y-auto">
         {loading ? (
@@ -99,7 +99,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
 
           return (
             <div key={c.id} className={clsx(
-              'flex-shrink-0 overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
+              'shrink-0 overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
               on ? 'border-orange/40 bg-orange/[0.07]' : 'border-line bg-cream'
             )}>
               {/* Linha principal */}
@@ -109,7 +109,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
               >
                 <div className="flex items-center gap-2.5">
                   <span className={clsx(
-                    'grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
+                    'grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
                     on ? 'border-orange bg-orange' : 'border-[#D4D0C8] bg-transparent'
                   )}>
                     {on && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
@@ -153,7 +153,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
 
       {/* Rodapé de totais */}
       {mostrarTotal && selecionadas.length > 0 && (
-        <div className="mt-4 flex items-center justify-between rounded-input border border-orange/20 bg-orange/[0.08] px-[15px] py-3">
+        <div className="mt-4 flex items-center justify-between rounded-input border border-orange/20 bg-orange/8 px-[15px] py-3">
           <span className="text-[13.5px] font-semibold text-warning-alt">
             {selecionadas.length} customização{selecionadas.length > 1 ? 'ões' : ''} selecionada{selecionadas.length > 1 ? 's' : ''}
           </span>

@@ -56,7 +56,7 @@ function HistTipo({ mov }: { mov: MovimentacaoProdutoResponse }) {
   const Ic = m.icon
   return (
     <div className="flex min-w-0 items-center gap-[11px]">
-      <span className={clsx('grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-[9px]', m.bgClass, m.textClass)}>
+      <span className={clsx('grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px]', m.bgClass, m.textClass)}>
         <Ic size={m.size} />
       </span>
       <span className="text-[13.8px] font-semibold text-dark">{MovTitulo(mov)}</span>
@@ -79,7 +79,7 @@ function ReferenciaCell({ mov }: { mov: MovimentacaoProdutoResponse }) {
           isCatalogo ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim'
         )}
       >
-        <Ic size={11} className="flex-shrink-0" />
+        <Ic size={11} className="shrink-0" />
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
           {mov.catalogoReferencia}
         </span>
@@ -127,7 +127,7 @@ function EdicaoManualProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }
   const qtdNum = parseFloat((qtd || '0').replace(/\./g, '').replace(',', '.')) || 0
   const podeRegistrar = qtdNum > 0 && obs.trim().length >= 30 && !salvando
 
-  const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
+  const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
   const registrar = async () => {
     setErro(null)
@@ -203,7 +203,7 @@ function EdicaoManualProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }
                 className={clsx(
                   inputBase,
                   'flex cursor-pointer items-center justify-between text-left',
-                  selOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                  selOpen && 'border-teal ring-4 ring-teal/12'
                 )}
               >
                 {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
@@ -217,7 +217,7 @@ function EdicaoManualProdutoModal({ produtoId, nomeProduto, onClose, onSuccess }
                       onClick={() => { setMotivo(m.api as BaixaManualProdutoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
                       className={clsx(
                         'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                        m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
+                        m.api === motivo ? 'bg-teal/8 font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
                       )}
                     >
                       {m.label}
@@ -369,15 +369,15 @@ export default function DetalheProdutoPage() {
         <span className="whitespace-nowrap font-semibold text-body">{produto.nome}</span>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-section">
         <div className="flex min-w-0 items-center gap-[15px]">
-          <span className="grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
+          <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
             <Box size={26} />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               {produto.identificador && (
-                <span className="flex-shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
+                <span className="shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
               )}
               <h1 className="m-0 whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{produto.nome}</h1>
               <span
@@ -446,7 +446,7 @@ export default function DetalheProdutoPage() {
             >
               <span className={clsx('flex', on ? 'text-teal' : 'text-dim')}><a.icon size={a.size} /></span>
               {a.label}
-              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+              {on && <span className="absolute bottom-[-1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}
@@ -496,7 +496,7 @@ export default function DetalheProdutoPage() {
                     </div>
                   </div>
                   <div className={clsx(
-                    'block animate-fade-up border-t border-line px-[18px] py-[15px] md:hidden',
+                    'block animate-fade-up border-t border-line px-section py-[15px] md:hidden',
                     riscado && 'opacity-60',
                     isEstorno && 'bg-danger-bg'
                   )}>
@@ -539,8 +539,8 @@ export default function DetalheProdutoPage() {
                   )}
                 >
                   <span className={clsx(
-                    'grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]',
-                    item.produtoBaseId ? 'bg-teal/[0.12] text-teal' : 'bg-line-soft text-dim'
+                    'grid h-10 w-10 shrink-0 place-items-center rounded-[11px]',
+                    item.produtoBaseId ? 'bg-teal/12 text-teal' : 'bg-line-soft text-dim'
                   )}>
                     <Box size={20} />
                   </span>
@@ -563,7 +563,7 @@ export default function DetalheProdutoPage() {
                         : item.quantidade} {item.unidadeMedida || 'un'}
                     </div>
                   </div>
-                  <span className="flex-shrink-0 whitespace-nowrap text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                  <span className="shrink-0 whitespace-nowrap text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
                     {moeda(item.custoTotal)}
                   </span>
                 </div>
@@ -589,7 +589,7 @@ export default function DetalheProdutoPage() {
               disabled={movLoadingMore}
               className={clsx(
                 'inline-flex h-[42px] items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-5 font-[inherit] text-[13.5px] font-semibold text-teal transition-colors duration-100',
-                movLoadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/[0.06]'
+                movLoadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
               )}
             >
               {movLoadingMore

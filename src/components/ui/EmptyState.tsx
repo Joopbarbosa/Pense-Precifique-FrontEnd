@@ -56,14 +56,14 @@ export default function EmptyState({
           ))}
         </svg>
         <div
-          className="absolute -top-[50px] right-10 h-40 w-40 animate-[floaty_10s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-teal/[0.08]"
+          className="absolute top-[-50px] right-10 h-40 w-40 animate-[floaty_10s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-teal/8"
         />
       </div>
 
       {/* Content */}
       <div className="relative">
         <span
-          className="mb-[18px] inline-grid h-[74px] w-[74px] place-items-center rounded-full"
+          className="mb-section inline-grid h-[74px] w-[74px] place-items-center rounded-full"
           style={{ background: iconBg, color: iconColor }}
         >
           {icon ?? <PackageOpen size={32} />}

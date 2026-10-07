@@ -132,7 +132,7 @@ export default function PreviewPdfOrcamentoPage() {
     <AppLayout active="orcamentos" compact noPad>
 
       {/* BARRA DE AÇÕES */}
-      <div className="flex-shrink-0 border-b border-line bg-white px-7 py-3.5">
+      <div className="shrink-0 border-b border-line bg-white px-7 py-3.5">
         <div className="mx-auto flex max-w-[820px] flex-wrap items-center justify-between gap-4">
 
           {/* Breadcrumb + título */}
@@ -144,7 +144,7 @@ export default function PreviewPdfOrcamentoPage() {
               >
                 Orçamentos
               </button>
-              <ChevronRight size={15} className="flex-shrink-0 text-dim" />
+              <ChevronRight size={15} className="shrink-0 text-dim" />
               <button
                 onClick={() => navigate(`/orcamentos/${orcamento.id}`)}
                 className="cursor-pointer whitespace-nowrap border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-150 hover:text-teal"
@@ -192,7 +192,7 @@ export default function PreviewPdfOrcamentoPage() {
       </div>
 
       {/* DOCUMENTO A4 */}
-      <div className="mt-4 flex-1 overflow-auto bg-[#EDECEA] px-9 pb-14 pt-7 max-[767px]:px-3.5 max-[767px]:pb-14 max-[767px]:pt-[18px]">
+      <div className="mt-4 flex-1 overflow-auto bg-[#EDECEA] px-9 pb-14 pt-7 max-[767px]:px-3.5 max-[767px]:pb-14 max-[767px]:pt-section">
         <div className="mx-auto max-w-[820px]">
           {previewStatus === 'carregando' && (
             <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 rounded-[4px] border border-line bg-white text-muted">

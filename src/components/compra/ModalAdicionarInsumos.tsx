@@ -71,11 +71,11 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input autoFocus value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar insumo pelo nome"
             aria-label="Buscar insumo"
-            className="h-10 w-full rounded-input border-[1.5px] border-line bg-white pl-9 pr-3 font-[inherit] text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+            className="h-10 w-full rounded-input border-[1.5px] border-line bg-white pl-9 pr-3 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
         </label>
 
         <div className="max-h-[420px] overflow-y-auto rounded-input border border-line" data-testid="modal-adicionar-insumos">
-          <div className="sticky top-0 z-[1] hidden grid-cols-[32px_0.7fr_2fr_1.2fr_0.9fr] gap-3 bg-cream px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim sm:grid">
+          <div className="sticky top-0 z-1 hidden grid-cols-[32px_0.7fr_2fr_1.2fr_0.9fr] gap-3 bg-cream px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim sm:grid">
             <span /><span>Código</span><span>Insumo</span><span>Estoque / mínimo</span><span>Custo atual</span>
           </div>
           {erro ? (

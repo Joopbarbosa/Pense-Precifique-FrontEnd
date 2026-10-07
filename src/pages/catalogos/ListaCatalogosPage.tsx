@@ -25,8 +25,8 @@ const COLUNAS: { label: string; campo: CampoOrdenacao | null }[] = [
 ]
 
 const inputClass = (hasError?: boolean) => clsx(
-  'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-  hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+  'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150',
+  hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/12'
 )
 
 function EditarCatalogoModal({ catalogo, onClose, onSuccess }: {
@@ -152,7 +152,7 @@ function CatalogoRow({ catalogo, index, onVer, onEditar, onDuplicar, onDesativar
   return (
     <div
       className={clsx(
-        'hidden cursor-pointer grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-cream sm:grid',
+        'hidden cursor-pointer grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] items-center gap-3 border-b border-line px-section py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-cream sm:grid',
         !catalogo.ativo && 'opacity-[0.72]'
       )}
       onClick={onVer}
@@ -183,7 +183,7 @@ function CatalogoCard({ catalogo, index, onVer, onEditar, onDuplicar, onDesativa
 
   return (
     <div
-      className={clsx('block cursor-pointer border-b border-line px-[18px] py-4 sm:hidden', !catalogo.ativo && 'opacity-[0.72]')}
+      className={clsx('block cursor-pointer border-b border-line px-section py-4 sm:hidden', !catalogo.ativo && 'opacity-[0.72]')}
       onClick={onVer}
       style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.04}s` }}
     >
@@ -195,7 +195,7 @@ function CatalogoCard({ catalogo, index, onVer, onEditar, onDuplicar, onDesativa
             <CatalogoStatusBadge ativo={catalogo.ativo} small />
           </div>
         </div>
-        <div className="flex flex-shrink-0 items-start gap-1">
+        <div className="flex shrink-0 items-start gap-1">
           <div className="text-right">
             <div className="text-[11px] uppercase tracking-[0.04em] text-muted">Itens</div>
             <div className="text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{catalogo.quantidadeItens}</div>
@@ -301,7 +301,7 @@ export default function ListaCatalogosPage() {
     <AppLayout active="catalogos" compact>
 
       {/* HEADER */}
-      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-section">
         <div>
           <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Meus Catálogos</h1>
           <p className="mb-0 mt-1.5 text-[14.5px] text-muted">Organize seus produtos em catálogos personalizados.</p>
@@ -318,7 +318,7 @@ export default function ListaCatalogosPage() {
       )}
 
       {/* BUSCA */}
-      <div className="group relative mb-[18px] max-w-[420px]">
+      <div className="group relative mb-section max-w-[420px]">
         <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-dim group-focus-within:text-teal">
           <Search size={18} />
         </span>
@@ -326,7 +326,7 @@ export default function ListaCatalogosPage() {
           value={busca}
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar por nome..."
-          className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
         />
       </div>
 
@@ -351,7 +351,7 @@ export default function ListaCatalogosPage() {
       ) : (
         <>
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <div className="hidden grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
+            <div className="hidden grid-cols-[0.8fr_2.6fr_0.9fr_0.9fr_40px] gap-3 border-b border-line px-section py-[13px] sm:grid">
               {COLUNAS.map((col, k) => (
                 <div key={k} className={clsx(!col.campo && 'flex items-center text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim')}>
                   {col.campo ? (

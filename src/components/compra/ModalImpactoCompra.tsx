@@ -92,8 +92,8 @@ export default function ModalImpactoCompra({ impacto, titulo, onClose }: {
             )}
           </div>
 
-          <div className="flex items-start gap-2 rounded-input border border-teal/20 bg-teal/[0.06] px-3.5 py-2.5 text-[12.5px] text-body">
-            <Info size={15} className="mt-px flex-shrink-0 text-teal" />
+          <div className="flex items-start gap-2 rounded-input border border-teal/20 bg-teal/6 px-3.5 py-2.5 text-[12.5px] text-body">
+            <Info size={15} className="mt-px shrink-0 text-teal" />
             O preço de venda dos produtos não muda sozinho. "Indireto" é o produto que usa outro produto afetado como componente.
           </div>
         </div>

@@ -171,10 +171,10 @@ export default function DashboardCompras() {
         {periodo === 'personalizado' && (
           <div className="flex flex-wrap items-center gap-2 text-[12.5px] font-semibold text-body">
             <input type="date" aria-label="Data inicial do painel" value={deLivre} max={ateLivre || hojeIso()} onChange={e => setDeLivre(e.target.value)}
-              className="h-[34px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-none focus:border-teal" />
+              className="h-[34px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-hidden focus:border-teal" />
             até
             <input type="date" aria-label="Data final do painel" value={ateLivre} min={deLivre || undefined} max={hojeIso()} onChange={e => setAteLivre(e.target.value)}
-              className="h-[34px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-none focus:border-teal" />
+              className="h-[34px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-hidden focus:border-teal" />
           </div>
         )}
         {d && (
@@ -227,7 +227,7 @@ export default function DashboardCompras() {
 
           {mobile ? (
             <div className="flex items-center gap-2.5 rounded-card border border-line bg-cream px-4 py-3.5 text-[13.5px] text-body">
-              <Monitor size={18} className="flex-shrink-0 text-teal" /> {MENSAGEM_GRAFICO_CELULAR}
+              <Monitor size={18} className="shrink-0 text-teal" /> {MENSAGEM_GRAFICO_CELULAR}
             </div>
           ) : <>
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

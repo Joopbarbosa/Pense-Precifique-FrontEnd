@@ -22,7 +22,7 @@ export default function ModoToggle({ modo, onChange }: {
       display="inline-flex"
       optionWidth="whitespace-nowrap px-4"
       textSize="text-[13.5px]"
-      className="flex-shrink-0"
+      className="shrink-0"
     />
   )
 }

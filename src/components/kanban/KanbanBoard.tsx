@@ -36,7 +36,7 @@ function KanbanCard<T extends { id: string }>({ item, renderCard }: {
       {...listeners}
       {...attributes}
       data-testid={`kanban-card-${item.id}`}
-      className="cursor-grab touch-none rounded-card outline-none active:cursor-grabbing focus-visible:ring-[3px] focus-visible:ring-teal focus-visible:ring-offset-2"
+      className="cursor-grab touch-none rounded-card outline-hidden active:cursor-grabbing focus-visible:ring-[3px] focus-visible:ring-teal focus-visible:ring-offset-2"
     >
       {renderCard(item, isDragging)}
     </div>
@@ -50,14 +50,14 @@ function KanbanColumnView<T extends { id: string }>({ column, items, renderCard 
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   return (
-    <div data-testid={`kanban-column-${column.id}`} className="flex h-full w-[280px] flex-shrink-0 flex-col rounded-card border border-line bg-white">
-      <div className="flex flex-shrink-0 items-center justify-between rounded-t-card border-b px-3.5 py-3" style={column.headerStyle}>
+    <div data-testid={`kanban-column-${column.id}`} className="flex h-full w-[280px] shrink-0 flex-col rounded-card border border-line bg-white">
+      <div className="flex shrink-0 items-center justify-between rounded-t-card border-b px-3.5 py-3" style={column.headerStyle}>
         <span className="text-[13px] font-bold text-dark">{column.label}</span>
         <span className="text-[12px] font-semibold text-muted">{items.length}</span>
       </div>
       <div
         ref={setNodeRef}
-        className={clsx('flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-2.5 transition-colors duration-100', isOver && 'bg-teal/[0.05]')}
+        className={clsx('flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-2.5 transition-colors duration-100', isOver && 'bg-teal/5')}
       >
         {items.map(item => (
           <KanbanCard key={item.id} item={item} renderCard={renderCard} />

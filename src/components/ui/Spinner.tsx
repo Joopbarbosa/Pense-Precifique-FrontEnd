@@ -13,7 +13,7 @@ export default function Spinner({
 }: SpinnerProps) {
   return (
     <span
-      className="inline-block flex-shrink-0 animate-spin rounded-full"
+      className="inline-block shrink-0 animate-spin rounded-full"
       style={{
         width: size,
         height: size,

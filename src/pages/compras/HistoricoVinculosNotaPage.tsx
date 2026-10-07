@@ -19,7 +19,7 @@ import type { VinculoNotaResponse } from '../../types/vinculoNota'
 import type { PageResponse } from '../../types/shared'
 
 type Acao = { tipo: 'editar' | 'desmarcar' | 'ignorar' | 'desfazer'; vinculo: VinculoNotaResponse }
-const campo = 'h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3 text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/10'
+const campo = 'h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3 text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/10'
 
 export default function HistoricoVinculosNotaPage() {
   const navigate = useNavigate()

@@ -20,8 +20,8 @@ export default function Toggle({ checked, onChange, disabled, label }: TogglePro
       disabled={disabled}
       onClick={onChange}
       className={clsx(
-        'relative h-6 w-11 flex-shrink-0 rounded-full border-none transition-colors duration-150',
-        'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal/[0.25]',
+        'relative h-6 w-11 shrink-0 rounded-full border-none transition-colors duration-150',
+        'focus-visible:outline-hidden focus-visible:ring-4 focus-visible:ring-teal/focus',
         'disabled:cursor-not-allowed disabled:opacity-50',
         checked ? 'bg-teal' : 'bg-line'
       )}

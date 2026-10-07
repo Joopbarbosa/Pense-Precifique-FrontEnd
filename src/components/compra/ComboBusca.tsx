@@ -63,7 +63,7 @@ export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, pl
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
         className={clsx(
-          'w-full rounded-input border-[1.5px] border-line bg-white pr-3.5 font-[inherit] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus',
+          'w-full rounded-input border-[1.5px] border-line bg-white pr-3.5 font-[inherit] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus',
           size === 'sm' ? 'h-11 pl-10 text-sm' : 'h-12 pl-[42px] text-[14.5px]'
         )}
       />
