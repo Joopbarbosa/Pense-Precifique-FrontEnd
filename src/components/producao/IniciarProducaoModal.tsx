@@ -160,7 +160,7 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
       >
         <div className="flex flex-col gap-3">
           <div className="flex items-start gap-2.5 rounded-input border border-danger/40 bg-danger-bg px-3.5 py-3 text-[13.5px] text-danger">
-            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <span>{justificativaTrava || 'Insumo(s) bloqueante(s) impediram o início da produção.'}</span>
           </div>
           {erro && <div className="text-[13px] text-danger">{erro}</div>}
@@ -204,10 +204,10 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
                     key={i}
                     className={clsx(
                       'flex items-start gap-2.5 rounded-input border px-3.5 py-3 text-[13.5px]',
-                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/[0.08] text-warning-alt'
+                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/8 text-warning-alt'
                     )}
                   >
-                    <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                     <span>
                       <strong>{a.nomeInsumo}:</strong> necessário {a.quantidadeNecessaria}, disponível {a.estoqueAtual}
                       {bloqueio && ' (bloqueará ao iniciar)'}

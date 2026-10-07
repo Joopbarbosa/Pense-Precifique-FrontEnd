@@ -74,7 +74,7 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
     return (
       <div className="px-5 pb-5 pt-3.5">
         <div className="flex items-center gap-3.5 rounded-xl border border-teal/20 bg-teal/[0.07] px-4 py-3.5">
-          <span className="grid h-[46px] w-[46px] flex-shrink-0 place-items-center rounded-full bg-teal/[0.15] text-lg font-bold text-teal">
+          <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-teal/15 text-lg font-bold text-teal">
             {cliente.nome.charAt(0)}
           </span>
           <div className="min-w-0 flex-1">
@@ -86,7 +86,7 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
               <Phone size={16} className="text-teal" /> {cliente.whatsapp || 'Sem telefone'}
             </div>
           </div>
-          <button onClick={onClear} className="flex-shrink-0 cursor-pointer border-none bg-transparent px-2 py-1.5 text-[13px] font-semibold text-teal">
+          <button onClick={onClear} className="shrink-0 cursor-pointer border-none bg-transparent px-2 py-1.5 text-[13px] font-semibold text-teal">
             Trocar
           </button>
         </div>
@@ -105,7 +105,7 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
           onChange={e => { setQ(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           placeholder="Selecionar cliente..."
-          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
         />
         {open && estado === 'carregando' && results.length === 0 && (
           <div role="status" className="absolute inset-x-0 top-[54px] z-30 flex items-center gap-2.5 rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-muted shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
@@ -144,7 +144,7 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
                 onClick={() => { onSelect(c); setOpen(false); setQ('') }}
                 className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
               >
-                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-teal/[0.12] font-bold text-teal">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal/12 font-bold text-teal">
                   {c.nome.charAt(0)}
                 </span>
                 <div>

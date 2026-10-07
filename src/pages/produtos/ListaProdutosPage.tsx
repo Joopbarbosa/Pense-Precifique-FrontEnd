@@ -122,7 +122,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
   return (
     <div
       className={clsx(
-        'group flex cursor-pointer flex-col overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-card transition-[box-shadow,transform,background] duration-150 hover:-translate-y-[3px] hover:bg-line hover:shadow-[0_10px_26px_-10px_rgba(0,0,0,0.18)]',
+        'group flex cursor-pointer flex-col overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-card transition-[box-shadow,transform,background] duration-150 hover:translate-y-[-3px] hover:bg-line hover:shadow-[0_10px_26px_-10px_rgba(0,0,0,0.18)]',
         inativo ? 'opacity-70' : 'animate-fade-up'
       )}
       style={inativo ? undefined : { animationDelay: `${index * 0.05}s` }}
@@ -135,7 +135,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
             <img src={p.fotoUrl} alt={p.nome} className="h-full w-full object-cover" />
           ) : (
             <>
-              <div className="absolute inset-0 [background-image:repeating-linear-gradient(45deg,transparent,transparent_13px,rgba(0,0,0,0.018)_13px,rgba(0,0,0,0.018)_26px)]" />
+              <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_13px,rgba(0,0,0,0.018)_13px,rgba(0,0,0,0.018)_26px)]" />
               <div className="flex h-full flex-col items-center justify-center gap-2 text-[#C2BEB5]">
                 <Camera size={22} />
                 <span className="text-[11.5px] font-semibold tracking-[0.02em]">Sem foto</span>
@@ -156,7 +156,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
             </span>
           ) : (
             <span
-              className="inline-flex h-[25px] items-center whitespace-nowrap rounded-full px-[11px] text-[11.5px] font-bold tracking-[0.01em] shadow-[0_1px_4px_rgba(0,0,0,0.10)] backdrop-blur-[4px]"
+              className="inline-flex h-[25px] items-center whitespace-nowrap rounded-full px-[11px] text-[11.5px] font-bold tracking-[0.01em] shadow-[0_1px_4px_rgba(0,0,0,0.10)] backdrop-blur-xs"
               style={{ background: badge.bg, color: badge.fg }}
             >
               {badge.label}
@@ -266,7 +266,7 @@ function SeletorProdutoSubstituto({ label, tipoFiltro, produtoAtualId, seleciona
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
             placeholder="Buscar produto substituto…"
-            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
           />
           {open && (
             <div className="absolute inset-x-0 top-[44px] z-20 max-h-[220px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
@@ -304,7 +304,7 @@ function ListaVinculosInformativa({ itens }: { itens: { key: string; titulo: str
     <div className="overflow-hidden rounded-xl border border-line">
       {itens.map((it, i) => (
         <div key={it.key} className={clsx('flex items-center gap-3 px-3.5 py-3', i > 0 && 'border-t border-line')}>
-          <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
             <Box size={14} />
           </span>
           <div className="min-w-0 flex-1">
@@ -634,7 +634,7 @@ export default function ListaProdutosPage() {
       <Toast message={toast} />
 
       {/* HEADER */}
-      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-section">
         <div>
           <h1 className="m-0 text-[27px] font-bold tracking-[-0.02em] text-dark">Meus Produtos</h1>
           <p className="mt-1.5 mb-0 text-[14.5px] text-muted">O coração do seu negócio — tudo o que você cria e vende.</p>
@@ -645,7 +645,7 @@ export default function ListaProdutosPage() {
       </div>
 
       {/* BUSCA */}
-      <div className="mb-[18px] flex flex-wrap items-center gap-3.5">
+      <div className="mb-section flex flex-wrap items-center gap-3.5">
         <div className="relative max-w-[420px] flex-[1_1_260px] min-w-[220px]">
           <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-muted">
             <Search size={18} />
@@ -654,7 +654,7 @@ export default function ListaProdutosPage() {
             value={busca}
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar por nome..."
-            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+            className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
           />
         </div>
       </div>
@@ -677,7 +677,7 @@ export default function ListaProdutosPage() {
               {c}
               <span className={clsx(
                 'rounded-full px-[7px] py-px text-[11.5px] font-bold opacity-85',
-                active ? 'bg-white/25 text-white' : 'bg-[#F1F0EC] text-dim'
+                active ? 'bg-white/focus text-white' : 'bg-line-soft text-dim'
               )}>
                 {counts(c)}
               </span>
@@ -718,7 +718,7 @@ export default function ListaProdutosPage() {
           </div>
 
           {/* Contador + Carregar mais */}
-          <div className="mt-[18px] flex flex-col items-center gap-3">
+          <div className="mt-section flex flex-col items-center gap-3">
             <div className="w-full self-end text-right text-[13px] text-muted">
               {produtos.length} de {totalElements} {totalElements === 1 ? 'produto' : 'produtos'}
             </div>
@@ -728,7 +728,7 @@ export default function ListaProdutosPage() {
                 disabled={loadingMore}
                 className={clsx(
                   'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/[0.06]'
+                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
                 )}
               >
                 {loadingMore

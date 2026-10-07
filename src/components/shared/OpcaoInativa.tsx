@@ -11,7 +11,7 @@ export default function OpcaoInativa({ children, className = 'px-3 py-2.5' }: { 
     <div data-search-row data-testid="opcao-inativa" aria-disabled="true"
       className={`flex w-full cursor-default items-center gap-3 rounded-lg text-left ${className}`}>
       <div className="min-w-0 flex-1 text-dim line-through decoration-dim/70">{children}</div>
-      <span className="flex-shrink-0 no-underline"><InativoBadge /></span>
+      <span className="shrink-0 no-underline"><InativoBadge /></span>
     </div>
   )
 }

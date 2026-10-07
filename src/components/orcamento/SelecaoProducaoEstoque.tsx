@@ -39,15 +39,15 @@ export default function SelecaoProducaoEstoque({ itens, selecionados, onToggle, 
         return (
           <label
             key={p.produtoId}
-            className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 cursor-pointer"
+            className="flex flex-wrap items-center gap-2.5 rounded-input border border-orange/30 bg-orange/6 px-3.5 py-3 cursor-pointer"
           >
             <input
               type="checkbox"
               checked={selecionado}
               onChange={() => onToggle(p.produtoId)}
-              className="h-4 w-4 flex-shrink-0 accent-orange"
+              className="h-4 w-4 shrink-0 accent-orange"
             />
-            <AlertTriangle size={16} className="flex-shrink-0 text-orange" />
+            <AlertTriangle size={16} className="shrink-0 text-orange" />
             <span className="flex-1 text-[13px] leading-[1.4] text-warning-alt">
               {!ocultarNome && <strong className="font-semibold">{p.nomeProduto} — </strong>}
               disponível {p.estoqueAtual}, necessário {p.quantidadeNecessaria} (faltam {p.quantidadeFaltante} un.)

@@ -131,7 +131,7 @@ function SelecaoCheckbox({ checked, disabled, onToggle }: { checked: boolean; di
       disabled={disabled}
       onClick={e => { e.stopPropagation(); onToggle() }}
       className={clsx(
-        'grid h-6 w-6 flex-shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-100',
+        'grid h-6 w-6 shrink-0 place-items-center rounded-md border-[1.5px] transition-colors duration-100',
         disabled
           ? 'cursor-not-allowed border-line bg-line-soft text-muted opacity-50'
           : checked
@@ -190,7 +190,7 @@ function FiltroChips({ filtro, onChange, contadores }: {
             {f.label}
             {count != null && (
               <span className={clsx(
-                'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1.5 text-[11px] font-bold',
+                'grid h-section min-w-section place-items-center rounded-full px-1.5 text-[11px] font-bold',
                 on ? 'bg-white/[0.28] text-white' : 'bg-line-soft text-body'
               )}>
                 {count}
@@ -292,7 +292,7 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, onDesagr
   return (
     <div
       className={clsx(
-        'hidden grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid',
+        'hidden grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-section py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid',
         onClickRegistro ? 'cursor-pointer' : 'cursor-default'
       )}
       onClick={onClickRegistro}
@@ -358,7 +358,7 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
 
   return (
     <div
-      className={clsx('block border-b border-line px-[18px] py-4 sm:hidden', onClickRegistro ? 'cursor-pointer' : 'cursor-default')}
+      className={clsx('block border-b border-line px-section py-4 sm:hidden', onClickRegistro ? 'cursor-pointer' : 'cursor-default')}
       style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.05}s` }}
       onClick={onClickRegistro}
     >
@@ -387,11 +387,11 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
           </div>
         </div>
         {modoAgrupamento ? (
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <SelecaoCheckbox checked={selecionado} disabled={!agrupavel} onToggle={onToggleSelecao} />
           </div>
         ) : menuItems.length > 0 && (
-          <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+          <div className="shrink-0" onClick={e => e.stopPropagation()}>
             <ActionMenu items={menuItems} align="right" />
           </div>
         )}
@@ -696,9 +696,9 @@ export default function ListaProducaoPage() {
 
   return (
     <AppLayout active="producao" compact fullHeight={viewMode === 'kanban'}>
-      <div className="mb-[22px] flex flex-shrink-0 flex-wrap items-start justify-between gap-5">
+      <div className="mb-[22px] flex shrink-0 flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Produções</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Produções</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Acompanhe e gerencie o andamento das produções.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -734,7 +734,7 @@ export default function ListaProducaoPage() {
       </div>
 
       {viewMode === 'lista' && error && (
-        <div className="mb-[18px] rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-[18px] py-3.5 text-sm text-danger">
+        <div className="mb-section rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-section py-3.5 text-sm text-danger">
           {error}
         </div>
       )}
@@ -752,7 +752,7 @@ export default function ListaProducaoPage() {
         />
       ) : (
         <>
-          <div className="mb-[18px] flex flex-col gap-3.5">
+          <div className="mb-section flex flex-col gap-3.5">
             <FiltroChips filtro={filtro} onChange={handleFiltroChange} contadores={contadores} />
 
             {/* #472 (V0.10.0) — busca e filtro de data lado a lado (antes empilhados verticalmente,
@@ -766,7 +766,7 @@ export default function ListaProducaoPage() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder="Buscar por produto…"
-                  className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
               </div>
 
@@ -781,7 +781,7 @@ export default function ListaProducaoPage() {
                     max={dataInicioAte || undefined}
                     onChange={e => handleDataInicioDeChange(e.target.value)}
                     aria-label="Data de início — de"
-                    className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                    className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                   />
                   <span className="text-[13px] text-muted">até</span>
                   <input
@@ -790,7 +790,7 @@ export default function ListaProducaoPage() {
                     min={dataInicioDe || undefined}
                     onChange={e => handleDataInicioAteChange(e.target.value)}
                     aria-label="Data de início — até"
-                    className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                    className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                   />
                   {periodoAtivo && (
                     <button
@@ -805,7 +805,7 @@ export default function ListaProducaoPage() {
               </div>
 
               {viewMode === 'lista' && (
-                <div className="inline-flex h-11 flex-shrink-0 overflow-hidden rounded-input border-[1.5px] border-line">
+                <div className="inline-flex h-11 shrink-0 overflow-hidden rounded-input border-[1.5px] border-line">
                   <button
                     type="button"
                     onClick={() => setModoExibicao('simplificado')}
@@ -843,7 +843,7 @@ export default function ListaProducaoPage() {
           ) : (
             <>
               <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-                <div className="hidden grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-[18px] py-[13px] sm:grid">
+                <div className="hidden grid-cols-[90px_1.3fr_64px_1fr_1fr_50px_44px] items-center gap-3.5 border-b border-line px-section py-[13px] sm:grid">
                   <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Produção</div>
                   <SortableHeader label="Produtos" field="produto" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
                   <SortableHeader label="Qtd." field="quantidade" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
@@ -893,7 +893,7 @@ export default function ListaProducaoPage() {
                     onClick={handleCarregarMais}
                     disabled={loadingMore}
                     className={clsx(
-                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-[18px] font-[inherit] text-[13.5px] font-semibold text-body',
+                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-section font-[inherit] text-[13.5px] font-semibold text-body',
                       loadingMore ? 'cursor-default opacity-60' : 'cursor-pointer'
                     )}
                   >
@@ -908,7 +908,7 @@ export default function ListaProducaoPage() {
 
       {viewMode === 'kanban' && (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-[18px] flex flex-shrink-0 flex-col gap-3.5">
+          <div className="mb-section flex shrink-0 flex-col gap-3.5">
             <FiltroChips filtro={filtro} onChange={handleFiltroChange} contadores={contadores} />
 
             <div>
@@ -925,7 +925,7 @@ export default function ListaProducaoPage() {
                 className={clsx(
                   'flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13px] font-semibold transition-all duration-150',
                   filtro === 'NAO_REALIZADA' && 'cursor-not-allowed opacity-70',
-                  colunaNaoRealizadaVisivel ? 'border-teal bg-teal/[0.08] text-teal' : 'border-line bg-white text-muted hover:bg-cream'
+                  colunaNaoRealizadaVisivel ? 'border-teal bg-teal/8 text-teal' : 'border-line bg-white text-muted hover:bg-cream'
                 )}
               >
                 {colunaNaoRealizadaVisivel ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -941,7 +941,7 @@ export default function ListaProducaoPage() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Buscar por produto…"
-                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
               />
             </div>
 
@@ -956,7 +956,7 @@ export default function ListaProducaoPage() {
                   max={dataInicioAte || undefined}
                   onChange={e => handleDataInicioDeChange(e.target.value)}
                   aria-label="Data de início — de"
-                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
                 <span className="text-[13px] text-muted">até</span>
                 <input
@@ -965,7 +965,7 @@ export default function ListaProducaoPage() {
                   min={dataInicioDe || undefined}
                   onChange={e => handleDataInicioAteChange(e.target.value)}
                   aria-label="Data de início — até"
-                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-11 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
                 {periodoAtivo && (
                   <button
@@ -981,7 +981,7 @@ export default function ListaProducaoPage() {
           </div>
 
           {kanbanError && (
-            <div className="mb-[18px] flex-shrink-0 rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-[18px] py-3.5 text-sm text-danger">
+            <div className="mb-section shrink-0 rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-section py-3.5 text-sm text-danger">
               {kanbanError}
             </div>
           )}
@@ -1009,7 +1009,7 @@ export default function ListaProducaoPage() {
       {modoAgrupamento && !barraSelecaoOculta && (
         <>
           <div className="h-20" />
-          <div className="fixed inset-x-0 bottom-0 z-[150] flex flex-wrap items-center justify-between gap-3 border-t border-line bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+          <div className="fixed inset-x-0 bottom-0 z-150 flex flex-wrap items-center justify-between gap-3 border-t border-line bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
           <span className="text-sm font-semibold text-dark">
             {selecionadas.size} selecionada{selecionadas.size === 1 ? '' : 's'}
           </span>

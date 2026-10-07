@@ -36,9 +36,9 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
       className="flex cursor-pointer items-start gap-3.5 border-t border-line px-5 py-4 transition-colors duration-100 hover:bg-line"
     >
       {item.fotoUrl ? (
-        <img src={item.fotoUrl} alt={item.nome} className="h-10 w-10 flex-shrink-0 rounded-[11px] object-cover" />
+        <img src={item.fotoUrl} alt={item.nome} className="h-10 w-10 shrink-0 rounded-[11px] object-cover" />
       ) : (
-        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
           <Box size={20} />
         </span>
       )}
@@ -81,7 +81,7 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
           ))}
         </div>
       </div>
-      <div className="flex flex-shrink-0 items-center gap-2.5" onClick={e => e.stopPropagation()}>
+      <div className="flex shrink-0 items-center gap-2.5" onClick={e => e.stopPropagation()}>
         <span className="whitespace-nowrap text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">
           {moeda(item.precoVenda)}
         </span>
@@ -183,17 +183,17 @@ export default function DetalheCatalogoPage() {
         <span className="whitespace-nowrap font-semibold text-body">{catalogo.nome}</span>
       </div>
 
-      <div className="mb-5 flex items-start justify-between gap-[18px]">
+      <div className="mb-5 flex items-start justify-between gap-section">
         <div className="flex min-w-0 flex-1 items-center gap-[15px]">
-          <span className="grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
+          <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
             <Files size={26} />
           </span>
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex-shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{catalogo.identificador}</span>
+              <span className="shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{catalogo.identificador}</span>
               <h1 className="m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{catalogo.nome}</h1>
               <span className={clsx(
-                'inline-flex h-[27px] flex-shrink-0 items-center gap-1.5 rounded-full px-[11px] text-[12.5px] font-semibold',
+                'inline-flex h-[27px] shrink-0 items-center gap-1.5 rounded-full px-[11px] text-[12.5px] font-semibold',
                 catalogo.ativo ? 'bg-success-bg text-success' : 'bg-line-soft text-subtle'
               )}>
                 {catalogo.ativo && <span className="h-1.5 w-1.5 rounded-full bg-success" />}
@@ -212,7 +212,7 @@ export default function DetalheCatalogoPage() {
 
       <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px bg-line">
-          <div className="bg-white px-5 py-[18px]">
+          <div className="bg-white px-5 py-section">
             <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">Itens no catálogo</div>
             <div className="mt-[7px] text-[28px] font-bold tracking-[-0.02em] text-dark [font-variant-numeric:tabular-nums]">{catalogo.quantidadeItens}</div>
           </div>

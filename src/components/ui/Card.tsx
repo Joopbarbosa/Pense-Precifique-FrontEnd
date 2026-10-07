@@ -24,7 +24,7 @@ export function Card({ children, padding = 0, style, onClick, hoverable, classNa
     <div
       className={clsx(
         'overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]',
-        hoverable && 'transition-[box-shadow,transform] duration-[180ms] hover:-translate-y-[3px] hover:shadow-[0_10px_26px_-10px_rgba(0,0,0,0.18)]',
+        hoverable && 'transition-[box-shadow,transform] duration-180 hover:translate-y-[-3px] hover:shadow-[0_10px_26px_-10px_rgba(0,0,0,0.18)]',
         onClick && 'cursor-pointer',
         className
       )}

@@ -97,14 +97,14 @@ export function FornecedorSelect({ value, onChange, size = 'md', placeholder, se
   }
   return (
     <div className={clsx(
-      'flex items-center gap-2 rounded-input border-[1.5px] border-teal/30 bg-teal/[0.06] px-3',
+      'flex items-center gap-2 rounded-input border-[1.5px] border-teal/30 bg-teal/6 px-3',
       size === 'sm' ? 'h-11' : 'h-12'
     )}>
       <span className="text-[12px] font-semibold text-muted">{value.identificador}</span>
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-dark">{value.nome}</span>
       {!value.ativa && <span className="rounded-full bg-danger-bg px-2 py-0.5 text-[11px] font-semibold text-danger">Inativo</span>}
       <button type="button" aria-label={`Remover fornecedor ${value.nome}`} onClick={() => onChange(null)}
-        className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-md border-none bg-transparent text-muted hover:bg-white hover:text-danger">
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md border-none bg-transparent text-muted hover:bg-white hover:text-danger">
         <X size={15} />
       </button>
     </div>

@@ -12,7 +12,7 @@ export default function DashboardComprasPage() {
     <AppLayout active="compras" compact>
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Dashboard de compras</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Dashboard de compras</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Quanto você gastou, com quem e o que ficou mais caro.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">

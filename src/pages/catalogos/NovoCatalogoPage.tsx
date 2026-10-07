@@ -9,8 +9,8 @@ import { catalogoService } from '../../services/catalogoService'
 import type { CatalogoRequest } from '../../types/catalogo'
 
 const inputClass = (hasError?: boolean) =>
-  `h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 ${
-    hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+  `h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 ${
+    hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/12'
   }`
 
 export default function NovoCatalogoPage() {
@@ -65,10 +65,10 @@ export default function NovoCatalogoPage() {
           <span className="font-semibold text-body">Novo Catálogo</span>
         </div>
         <div className="flex items-center gap-[15px]">
-          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-[13px] bg-teal/10 text-teal">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-teal/10 text-teal">
             <Files size={22} />
           </span>
-          <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
+          <h1 className="m-0 text-[28px] font-bold tracking-tight text-dark">
             Novo Catálogo
           </h1>
         </div>
@@ -93,7 +93,7 @@ export default function NovoCatalogoPage() {
         </div>
 
         {/* BOTÕES */}
-        <div className="flex flex-col gap-3 border-t border-line px-[26px] py-[18px]">
+        <div className="flex flex-col gap-3 border-t border-line px-[26px] py-section">
           {error && (
             <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
               {error}

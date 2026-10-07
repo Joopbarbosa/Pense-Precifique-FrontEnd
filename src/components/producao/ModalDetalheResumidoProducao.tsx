@@ -58,7 +58,7 @@ export default function ModalDetalheResumidoProducao({ producao, onClose }: Prop
                   <div className="truncate text-sm font-semibold text-dark">{p.nomeProduto}</div>
                   <div className="text-[12px] text-muted">{p.tipoProduto}</div>
                 </div>
-                <span className="flex-shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                <span className="shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
                   ×{p.quantidade}
                 </span>
               </div>
@@ -94,10 +94,10 @@ export default function ModalDetalheResumidoProducao({ producao, onClose }: Prop
                     key={i}
                     className={clsx(
                       'flex items-start gap-2.5 rounded-input border px-3.5 py-3 text-[13.5px]',
-                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/[0.08] text-warning-alt'
+                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/8 text-warning-alt'
                     )}
                   >
-                    <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                     <span>
                       <strong>{a.nomeInsumo}:</strong> necessário {a.quantidadeNecessaria}, disponível {a.estoqueAtual}
                       {bloqueio && ' (bloqueará ao iniciar)'}

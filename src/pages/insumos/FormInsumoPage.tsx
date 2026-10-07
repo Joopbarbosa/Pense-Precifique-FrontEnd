@@ -40,7 +40,7 @@ function DesativarModal({ onClose }: { onClose: () => void }) {
       <div className="flex flex-col gap-[9px]">
         {fichas.map((f, i) => (
           <div key={i} className="flex items-center gap-3 rounded-[11px] border border-line bg-cream px-3.5 py-3">
-            <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
               <f.icon size={f.size} />
             </span>
             <span className="flex-1 text-sm font-semibold text-dark">{f.nome}</span>
@@ -129,7 +129,7 @@ export default function FormInsumoPage() {
           <ChevronRight size={15} className="text-dim" />
           <span className="font-semibold text-body">{editando ? 'Editar Insumo' : 'Novo Insumo'}</span>
         </div>
-        <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">
+        <h1 className="m-0 text-[28px] font-bold tracking-tight text-dark">
           {editando ? 'Editar Insumo' : 'Novo Insumo'}
         </h1>
       </div>
@@ -140,7 +140,7 @@ export default function FormInsumoPage() {
         <CamposInsumo form={form} />
 
         {/* BOTÕES */}
-        <div className="flex flex-col gap-3 px-[26px] py-[18px]">
+        <div className="flex flex-col gap-3 px-[26px] py-section">
           {error && (
             <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
               {error}

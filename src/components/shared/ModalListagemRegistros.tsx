@@ -121,7 +121,7 @@ function tomStatus(status: string) {
 }
 
 const POR_PAGINA = 20
-const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 // A ordenação pública da modal é sempre data/identificador/valor/status; compras usam os nomes do GET /compras.
 const CAMPO_COMPRAS: Record<Campo, string> = { data: 'dataCompra', identificador: 'numero', valor: 'total', status: 'status' }
@@ -239,7 +239,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input value={busca} onChange={e => setBusca(e.target.value)} aria-label="Buscar na listagem"
                 placeholder={fonte.tipo === 'compras' || (fonte.tipo === 'cadastro' && fonte.papel === 'FORNECEDOR') ? 'Buscar por número ou insumo' : 'Buscar por número ou item'}
-                className="h-9 w-full rounded-input border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+                className="h-9 w-full rounded-input border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
               De <input type="date" aria-label="Data inicial" value={de} max={hojeIso()} onChange={e => mudarPeriodo('de', e.target.value, e.currentTarget)} className={dateInput} />

@@ -15,7 +15,7 @@ export function StatusCompraBadge({ status, size = 'md' }: { status: StatusCompr
       size === 'sm' ? 'h-6 px-[9px] text-[11.5px]' : 'h-7 px-[11px] text-[12.5px]',
       COR[status].pill
     )}>
-      <span className={clsx('h-1.5 w-1.5 flex-shrink-0 rounded-full', COR[status].dot)} />
+      <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', COR[status].dot)} />
       {STATUS_COMPRA_LABEL[status]}
     </span>
   )
@@ -57,7 +57,7 @@ export function StatusListaBadge({ status, size = 'md' }: { status: StatusListaC
       size === 'sm' ? 'h-6 px-[9px] text-[11.5px]' : 'h-7 px-[11px] text-[12.5px]',
       COR_LISTA[status].pill
     )}>
-      <span className={clsx('h-1.5 w-1.5 flex-shrink-0 rounded-full', COR_LISTA[status].dot)} />
+      <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', COR_LISTA[status].dot)} />
       {STATUS_LISTA_LABEL[status]}
     </span>
   )

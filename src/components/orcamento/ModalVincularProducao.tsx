@@ -165,7 +165,7 @@ export default function ModalVincularProducao({
                 value={formDataInicio}
                 onChange={(e) => setFormDataInicio(e.target.value)}
                 disabled={criandoNova}
-                className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
               />
             </label>
             <label className="block flex-1 basis-[160px]">
@@ -179,7 +179,7 @@ export default function ModalVincularProducao({
                 onChange={(e) => setFormDataTermino(e.target.value)}
                 disabled={criandoNova}
                 className={clsx(
-                  'h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                  'h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12',
                   formErro && !formDataTermino ? 'border-danger' : 'border-line'
                 )}
               />
@@ -202,7 +202,7 @@ export default function ModalVincularProducao({
 
           {formErro && (
             <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{formErro}</span>
             </div>
           )}
@@ -243,7 +243,7 @@ export default function ModalVincularProducao({
 
         {!simulando && erroSimulacao && (
           <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
             <span>{erroSimulacao}</span>
           </div>
         )}
@@ -262,10 +262,10 @@ export default function ModalVincularProducao({
                       key={i}
                       className={clsx(
                         'flex items-start gap-2.5 rounded-input border px-3.5 py-3 text-[13.5px]',
-                        bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/[0.08] text-warning-alt'
+                        bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/8 text-warning-alt'
                       )}
                     >
-                      <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                       <span>
                         <strong>{a.nomeInsumo}:</strong> necessário {a.quantidadeNecessaria}, disponível {a.estoqueAtual}
                         {bloqueio && ' (vai bloquear o início dessa produção)'}
@@ -275,8 +275,8 @@ export default function ModalVincularProducao({
                 })}
               </div>
             ) : (
-              <div className="flex items-start gap-2.5 rounded-input border border-teal/30 bg-teal/[0.06] px-3.5 py-3 text-[13.5px] text-teal">
-                <Check size={16} className="mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2.5 rounded-input border border-teal/30 bg-teal/6 px-3.5 py-3 text-[13.5px] text-teal">
+                <Check size={16} className="mt-0.5 shrink-0" />
                 <span>Estoque de insumo suficiente para essa soma, sem alertas.</span>
               </div>
             )}
@@ -311,7 +311,7 @@ export default function ModalVincularProducao({
       {onCriarNova && (
         <button
           onClick={() => setModoCriarNova(true)}
-          className="mb-3.5 flex h-11 w-full items-center justify-center gap-[7px] rounded-input border-[1.5px] border-dashed border-teal/50 bg-teal/[0.05] font-[inherit] text-[13.5px] font-semibold text-teal transition-colors duration-150 hover:bg-teal/10"
+          className="mb-3.5 flex h-11 w-full items-center justify-center gap-[7px] rounded-input border-[1.5px] border-dashed border-teal/50 bg-teal/5 font-[inherit] text-[13.5px] font-semibold text-teal transition-colors duration-150 hover:bg-teal/10"
         >
           <Plus size={15} /> Criar produção nova
         </button>
@@ -325,7 +325,7 @@ export default function ModalVincularProducao({
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar por produto ou número da produção..."
-          className="w-full rounded-input border-[1.5px] border-line bg-white py-2.5 pl-9 pr-3.5 font-[inherit] text-[13.5px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          className="w-full rounded-input border-[1.5px] border-line bg-white py-2.5 pl-9 pr-3.5 font-[inherit] text-[13.5px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
         />
         {busca && (
           <button
@@ -346,7 +346,7 @@ export default function ModalVincularProducao({
 
       {!loading && erro && (
         <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-          <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <span>{erro}</span>
         </div>
       )}
@@ -380,7 +380,7 @@ export default function ModalVincularProducao({
                   'flex items-center justify-between gap-3 rounded-input border px-3.5 py-3 text-left transition-colors duration-150',
                   jaVinculada
                     ? 'cursor-default border-line bg-app/60'
-                    : 'border-line bg-white hover:border-teal/40 hover:bg-teal/[0.04] disabled:cursor-not-allowed disabled:opacity-60'
+                    : 'border-line bg-white hover:border-teal/40 hover:bg-teal/4 disabled:cursor-not-allowed disabled:opacity-60'
                 )}
               >
                 <div className="min-w-0">
@@ -398,11 +398,11 @@ export default function ModalVincularProducao({
                   </div>
                 </div>
                 {jaVinculada ? (
-                  <span className="flex flex-shrink-0 items-center gap-1 text-[12px] font-semibold text-teal">
+                  <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-teal">
                     <Check size={14} /> Vinculada
                   </span>
                 ) : (
-                  <span className="flex-shrink-0 text-[12px] font-semibold text-teal">Vincular</span>
+                  <span className="shrink-0 text-[12px] font-semibold text-teal">Vincular</span>
                 )}
               </button>
             )

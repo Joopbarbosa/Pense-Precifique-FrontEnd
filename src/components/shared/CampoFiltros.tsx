@@ -51,7 +51,7 @@ export default function CampoFiltros({ grupos, escolhidos, onChange }: {
       <div data-testid="campo-filtros" onClick={() => setAberto(true)}
         className={clsx('flex min-h-10 cursor-text flex-wrap items-center gap-1.5 rounded-input border-[1.5px] bg-white px-2 py-1.5 transition-[border-color,box-shadow]',
           aberto ? 'border-teal ring-4 ring-teal/focus' : 'border-line')}>
-        <ListFilter size={15} className="ml-1 flex-shrink-0 text-muted" />
+        <ListFilter size={15} className="ml-1 shrink-0 text-muted" />
         {escolhidos.length === 0 && <span className="px-1 text-[13px] text-faint">Filtrar por…</span>}
         {escolhidos.map(f => (
           <span key={`${f.grupo}:${f.valor}`} data-testid="chip-filtro"
@@ -74,7 +74,7 @@ export default function CampoFiltros({ grupos, escolhidos, onChange }: {
 
       {aberto && (
         <div role="listbox" aria-multiselectable="true" data-testid="painel-filtros"
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-[120] max-h-[340px] overflow-y-auto rounded-input border border-line bg-white p-3 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.35)]">
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-120 max-h-[340px] overflow-y-auto rounded-input border border-line bg-white p-3 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.35)]">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {grupos.filter(g => g.opcoes || g.buscar).map(g => (
               <div key={g.id} className="min-w-0">
@@ -126,7 +126,7 @@ function BuscaGrupo({ grupo, marcado, alternar }: {
         <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
         <input value={termo} onChange={e => setTermo(e.target.value)} aria-label={`Buscar ${grupo.rotulo.toLowerCase()}`}
           placeholder={`Buscar ${grupo.rotulo.toLowerCase()}…`}
-          className="h-8 w-full rounded-input border-[1.5px] border-line bg-white pl-7 pr-2 font-[inherit] text-[12.5px] text-dark outline-none focus:border-teal" />
+          className="h-8 w-full rounded-input border-[1.5px] border-line bg-white pl-7 pr-2 font-[inherit] text-[12.5px] text-dark outline-hidden focus:border-teal" />
       </label>
       <div className="mt-1.5 flex flex-col">
         {opcoes === null ? (
@@ -139,7 +139,7 @@ function BuscaGrupo({ grupo, marcado, alternar }: {
             <button key={o.valor} type="button" role="option" aria-selected={on} onClick={() => alternar(o.valor, o.rotulo)}
               className={clsx('flex cursor-pointer items-center gap-2 rounded-[7px] border-none px-2 py-1.5 text-left font-[inherit] text-[12.5px]',
                 on ? 'bg-teal/10 font-semibold text-teal' : 'bg-transparent text-body hover:bg-cream')}>
-              <span className={clsx('grid h-4 w-4 flex-shrink-0 place-items-center rounded-[4px] border-[1.5px]', on ? 'border-teal bg-teal text-white' : 'border-line')}>
+              <span className={clsx('grid h-4 w-4 shrink-0 place-items-center rounded-[4px] border-[1.5px]', on ? 'border-teal bg-teal text-white' : 'border-line')}>
                 {on && <Check size={10} strokeWidth={3} />}
               </span>
               <span className="truncate">{o.rotulo}</span>

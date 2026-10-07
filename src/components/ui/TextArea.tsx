@@ -65,14 +65,14 @@ export default function TextArea({
         onChange={e => onChange(e.target.value)}
         aria-invalid={erro ? true : undefined}
         className={clsx(
-          'box-border block w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] leading-[1.5] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus disabled:cursor-not-allowed disabled:bg-[#F5F4F2]',
+          'box-border block w-full resize-y rounded-input border-[1.5px] bg-white px-3.5 py-2.5 font-[inherit] leading-normal text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus disabled:cursor-not-allowed disabled:bg-[#F5F4F2]',
           !rows && minHeight, textSize,
           erro ? 'border-[#F2B8A6]' : 'border-line',
         )}
       />
       <div className="mt-1.5 flex items-start justify-between gap-3 text-xs">
         {esquerda}
-        <span className={clsx('flex-shrink-0 [font-variant-numeric:tabular-nums]', perto ? 'font-semibold text-warning-alt' : 'text-muted')}>
+        <span className={clsx('shrink-0 [font-variant-numeric:tabular-nums]', perto ? 'font-semibold text-warning-alt' : 'text-muted')}>
           {value.length}/{maxLength}
         </span>
       </div>

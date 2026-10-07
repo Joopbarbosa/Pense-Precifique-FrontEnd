@@ -215,7 +215,7 @@ export default function ModalConciliacaoNota({ leitura, arquivo, comprovanteLink
                           Fator de conversão
                           <input value={e.fator} inputMode="decimal" aria-label={`Fator de conversão do item ${item.posicao + 1}`}
                             onChange={ev => alterar(item.posicao, { fator: ev.target.value.replace(/[^\d.,]/g, '') })}
-                            className="h-9 w-24 rounded-input border-[1.5px] border-line px-2.5 text-[13.5px] outline-none focus:border-teal" />
+                            className="h-9 w-24 rounded-input border-[1.5px] border-line px-2.5 text-[13.5px] outline-hidden focus:border-teal" />
                           <span className="text-muted">unidades do insumo em 1 {item.unidade ?? 'unidade'} da nota</span>
                         </label>
                       )}

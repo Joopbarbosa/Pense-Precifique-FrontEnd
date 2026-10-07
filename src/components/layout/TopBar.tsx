@@ -8,9 +8,9 @@ interface TopBarProps {
 
 export default function TopBar({ drawerOpen, onToggleDrawer }: TopBarProps) {
   return (
-    // z-[60] — acima do Sidebar (z-50) e do overlay (z-[49]), pra que este botão
+    // z-60 — acima do Sidebar (z-50) e do overlay (z-[49]), pra que este botão
     // continue clicável/visível com o drawer mobile aberto (#181).
-    <header className="sticky top-0 z-[60] flex items-center justify-between border-b border-line bg-white px-4 py-[10px] md:hidden">
+    <header className="sticky top-0 z-60 flex items-center justify-between border-b border-line bg-white px-4 py-[10px] md:hidden">
       <button
         onClick={onToggleDrawer}
         aria-label={drawerOpen ? 'Fechar menu' : 'Abrir menu'}

@@ -46,21 +46,21 @@ export default function ModalShell({
   return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]"
+      className="fixed inset-0 z-100 flex animate-fade-in items-center justify-center bg-black/40 p-4 backdrop-blur-[1.5px]"
     >
       <div
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
         style={{ width: `min(${width}px, 100%)` }}
-        className="relative z-[110] flex max-h-[90vh] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
+        className="relative z-110 flex max-h-[90vh] animate-scale-in flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
       >
         {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-line px-6 py-5">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-6 py-5">
           <div className="flex min-w-0 items-center gap-3">
             {icon && (
               <span
-                className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px]"
                 style={{ background: iconBg, color: iconColor }}
               >
                 {icon}
@@ -81,7 +81,7 @@ export default function ModalShell({
           <button
             onClick={onClose}
             aria-label={closeLabel}
-            className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
+            className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] border-none bg-line-soft text-subtle"
           >
             <X size={20} />
           </button>
@@ -94,7 +94,7 @@ export default function ModalShell({
 
         {/* Footer */}
         {footer && (
-          <div className="flex flex-shrink-0 justify-end gap-2.5 border-t border-line px-6 py-4">
+          <div className="flex shrink-0 justify-end gap-2.5 border-t border-line px-6 py-4">
             {footer}
           </div>
         )}

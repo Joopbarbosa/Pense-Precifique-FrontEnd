@@ -17,7 +17,7 @@ interface SegmentedControlProps<T> {
   /** Largura de cada opção — `flex-1` (padrão, preenche) ou fixa (ex. `w-20`, ou `whitespace-nowrap px-4` p/ largura automática). */
   optionWidth?: string
   textSize?: string
-  /** Classes aditivas no container — nunca uma dimensão já coberta por `height`/`display` (ex. `flex-shrink-0`, `w-fit`). */
+  /** Classes aditivas no container — nunca uma dimensão já coberta por `height`/`display` (ex. `shrink-0`, `w-fit`). */
   className?: string
   /**
    * Cor de cada opção quando ativa, na mesma ordem de `options` — sobrescreve o padrão binário

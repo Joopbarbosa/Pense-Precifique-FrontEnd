@@ -86,7 +86,7 @@ export default function FinalizarProducaoModal({ producaoId, producao: producaoP
                       <div className="text-sm font-medium text-dark">{p.nomeProduto}</div>
                       <div className="text-[12.5px] text-muted">Planejado: ×{p.quantidade}</div>
                     </div>
-                    <div className="flex flex-shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                       <label htmlFor={`perda-${p.produtoId}`} className="text-[12.5px] text-muted">Perda</label>
                       <input
                         id={`perda-${p.produtoId}`}
@@ -96,7 +96,7 @@ export default function FinalizarProducaoModal({ producaoId, producao: producaoP
                         step={1}
                         value={perda}
                         onChange={e => handlePerdaChange(p.produtoId, e.target.value)}
-                        className="h-10 w-[76px] rounded-input border-[1.5px] border-line bg-white px-2 text-center font-[inherit] text-[14px] font-semibold text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                        className="h-10 w-[76px] rounded-input border-[1.5px] border-line bg-white px-2 text-center font-[inherit] text-[14px] font-semibold text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/12"
                       />
                     </div>
                   </div>

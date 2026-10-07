@@ -61,7 +61,7 @@ export default function MetodoPagamentoEscolha({ value, onChange, salvo, parcela
         return (
           <button key={m.id} type="button" aria-pressed={on} onClick={() => onChange(m.id)}
             className={clsx('inline-flex h-12 items-center gap-2 rounded-input border-[1.5px] px-4 font-[inherit] text-[14px] font-semibold transition-colors',
-              on ? 'border-teal bg-teal/[0.08] text-teal' : 'border-line bg-white text-body hover:bg-cream')}>
+              on ? 'border-teal bg-teal/8 text-teal' : 'border-line bg-white text-body hover:bg-cream')}>
             {ICON_TIPO_METODO_PAGAMENTO[m.tipo]} {m.nome}
             {!m.ativo && <span className="text-[11px] font-medium text-danger">(inativo)</span>}
             {on && <Check size={15} />}
@@ -73,7 +73,7 @@ export default function MetodoPagamentoEscolha({ value, onChange, salvo, parcela
       <label className="flex max-w-[260px] flex-col gap-1.5">
         <span className="text-[13.5px] font-semibold text-body">Em quantas vezes?<span className="ml-[3px] text-orange">*</span></span>
         <select aria-label="Em quantas vezes?" value={parcelas ?? 1} onChange={e => onParcelas(Number(e.target.value))}
-          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus">
+          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus">
           {Array.from({ length: maxParcelas }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}x</option>)}
         </select>
       </label>

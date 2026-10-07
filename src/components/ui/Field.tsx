@@ -47,7 +47,7 @@ export default function Field({ label, opt, required, hint, erro, size = 'sm', g
         : hint && (
           size === 'md'
             ? <span className="mt-1.5 block text-xs text-muted">{hint}</span>
-            : <p className="mt-1.5 mb-0 text-xs leading-[1.5] text-muted">{hint}</p>
+            : <p className="mt-1.5 mb-0 text-xs leading-normal text-muted">{hint}</p>
         )
       }
     </>

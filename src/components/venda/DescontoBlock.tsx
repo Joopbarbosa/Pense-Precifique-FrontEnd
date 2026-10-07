@@ -28,13 +28,13 @@ export default function DescontoBlock({ tipo, valor, onTipo, onValor, descontoAp
           height="h-[42px]"
           optionWidth="w-[42px]"
           textSize="text-[13.5px]"
-          className="flex-shrink-0"
+          className="shrink-0"
         />
         <input
           value={valor}
           onChange={e => onValor(e.target.value.replace(/[^\d.,]/g, ''))}
           inputMode="decimal" placeholder="0"
-          className="h-[42px] min-w-0 flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+          className="h-[42px] min-w-0 flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] font-semibold text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
         />
       </div>
     </div>

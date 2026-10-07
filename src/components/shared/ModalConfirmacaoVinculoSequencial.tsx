@@ -174,7 +174,7 @@ export default function ModalConfirmacaoVinculoSequencial({ fila, onConcluir, di
             </>
           )}
         </p>
-        <p className="m-0 mt-3 text-[12.5px] leading-[1.5] text-muted">
+        <p className="m-0 mt-3 text-[12.5px] leading-normal text-muted">
           Isto não afeta o cancelamento em andamento — respondendo "Não", o vínculo apenas fica
           registrado {direcao === 'orcamento' ? 'com a produção' : 'com o orçamento'} mesmo após o cancelamento.
         </p>
@@ -231,8 +231,8 @@ export default function ModalConfirmacaoVinculoSequencial({ fila, onConcluir, di
         )}{' '}
         Manter o produto sendo produzido mesmo sem vínculo ao orçamento?
       </p>
-      <div className="mt-3 flex items-start gap-2.5 rounded-input border border-danger/40 bg-danger-bg px-3.5 py-3 text-[13px] leading-[1.5] text-danger">
-        <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+      <div className="mt-3 flex items-start gap-2.5 rounded-input border border-danger/40 bg-danger-bg px-3.5 py-3 text-[13px] leading-normal text-danger">
+        <AlertTriangle size={16} className="mt-0.5 shrink-0" />
         <span>
           Se optar por remover, o material e o trabalho já aplicados a este produto <strong>não
           são revertidos</strong> — a perda é definitiva. Nenhuma movimentação de estoque nova é criada.
