@@ -10,6 +10,8 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
+    // #754: o backend usa America/Sao_Paulo; o navegador do teste também, para as datas locais baterem.
+    timezoneId: 'America/Sao_Paulo',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

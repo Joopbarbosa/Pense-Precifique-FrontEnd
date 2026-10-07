@@ -40,6 +40,7 @@ import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
+import { dataLocalISO } from "../../utils/dataLocal";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -754,7 +755,7 @@ function ModalCancelEstorno({
   const [step, setStep] = useState(1);
   const [estornar, setEstornar] = useState(true);
   const [dataEstorno, setDataEstorno] = useState(
-    new Date().toISOString().slice(0, 10),
+    dataLocalISO(),
   );
 
   const valorSinal = orcamento.valorSinal || 0;

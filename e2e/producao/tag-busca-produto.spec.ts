@@ -4,6 +4,7 @@ import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComFicha, inativarProduto } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
+import { hojeLocal } from '../helpers/data'
 
 const API_URL = E2E_API_URL
 
@@ -72,7 +73,7 @@ test.describe('OpenProject #215 — Tag fracionável/estoque negativo na busca d
 
     await login(page)
     await page.goto('/producao/nova')
-    await page.getByLabel(/Data de término prevista/).fill(new Date(Date.now() + 86400000).toISOString().slice(0, 10))
+    await page.getByLabel(/Data de término prevista/).fill(hojeLocal(1))
 
     const busca = page.getByPlaceholder('Buscar produto...')
 

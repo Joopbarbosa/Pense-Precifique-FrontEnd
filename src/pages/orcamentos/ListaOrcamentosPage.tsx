@@ -13,6 +13,7 @@ import { STATUS_LABEL } from '../../constants'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { dispararDownloadBlob } from '../../utils/download'
+import { dataLocalISO } from '../../utils/dataLocal'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -251,9 +252,8 @@ export default function ListaOrcamentosPage() {
     const today = new Date()
     const past = new Date(today)
     past.setDate(today.getDate() - days)
-    const iso = (d: Date) => d.toISOString().split('T')[0]
-    setDateFrom(iso(past))
-    setDateTo(iso(today))
+    setDateFrom(dataLocalISO(past))
+    setDateTo(dataLocalISO(today))
   }
 
   const handleAplicarPeriodo = () => {

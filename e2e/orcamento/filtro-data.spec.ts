@@ -4,6 +4,7 @@ import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi } from '../helpers/orcamento'
+import { hojeLocal } from '../helpers/data'
 
 const API_URL = E2E_API_URL
 
@@ -48,7 +49,7 @@ test.describe('Cenários 234-236 — Filtro de intervalo de data em Lista de Or�
       { produtoId: produto.id, precoUnitario: 20, margemAplicada: 50, quantidade: 1 },
     ])
 
-    const hoje = new Date().toISOString().slice(0, 10)
+    const hoje = hojeLocal()
     const resDentro = await request.get(
       `${API_URL}/orcamentos?busca=${encodeURIComponent(nomeCliente)}&dataCriacaoDe=${hoje}&dataCriacaoAte=${hoje}`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -90,11 +91,8 @@ test.describe('Cenários 234-236 — Filtro de intervalo de data em Lista de Or�
       ['Últimos 90 dias', 90],
     ] as const) {
       await page.getByRole('button', { name: label, exact: true }).click()
-      const hojeD = new Date()
-      const passado = new Date(hojeD.getTime() - dias * 86_400_000)
-      const iso = (d: Date) => d.toISOString().split('T')[0]
-      await expect(page.getByLabel('De')).toHaveValue(iso(passado))
-      await expect(page.getByLabel('Até')).toHaveValue(iso(hojeD))
+      await expect(page.getByLabel('De')).toHaveValue(hojeLocal(-dias))
+      await expect(page.getByLabel('Até')).toHaveValue(hojeLocal())
     }
 
     await page.getByRole('button', { name: 'Aplicar', exact: true }).click()

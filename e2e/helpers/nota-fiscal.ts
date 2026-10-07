@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext } from '@playwright/test'
+import { hojeLocal } from './data'
 
 /**
  * #749 (saúde técnica V0.16.0) — auxiliares dos specs de Compras que usam o leitor fiscal falso
@@ -44,7 +45,7 @@ export function montarNotaFalsa(dados: DadosNotaFalsa) {
   const chave = dados.chave ?? chaveAcessoUnica()
   const descontoGeral = dados.descontoGeral ?? 0
   const origem = dados.origem ?? 'NFCE_QR'
-  const ontem = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+  const ontem = hojeLocal(-1)
   const soma = dados.itens.reduce((t, i) => t + i.valorFinal, 0)
   return {
     emitente: { cnpj: dados.cnpj ?? cnpjValido(), nome: dados.emitenteNome ?? 'Papelaria Estrela E2E', uf: 'SP' },
