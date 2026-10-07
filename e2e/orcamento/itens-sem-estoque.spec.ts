@@ -5,6 +5,7 @@ import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, criarProdutoComFichaEEstoque, inativarProduto } from '../helpers/producao'
 import { criarInsumoFracionavel } from '../helpers/insumo'
 import { criarCliente, criarOrcamentoViaApi, criarProducaoVinculadaViaApi } from '../helpers/orcamento'
+import { hojeLocal } from '../helpers/data'
 
 const API_URL = E2E_API_URL
 
@@ -153,7 +154,7 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     await botaoAgregado.click()
 
     await expect(page.getByText('Cobre só o item selecionado', { exact: true })).toBeVisible()
-    const amanha = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    const amanha = hojeLocal(1)
     await page.locator('input[type="date"]').last().fill(amanha)
     await page.getByRole('button', { name: 'Criar produção', exact: true }).click()
 
@@ -181,7 +182,7 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
     const orcamento = await criarOrcamentoViaApi(request, token, cliente.id, [
       { produtoId: produto.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
     ])
-    const amanha = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    const amanha = hojeLocal(1)
     await criarProducaoVinculadaViaApi(request, token, orcamento.id, { dataTerminoPrevista: amanha })
 
     await login(page)
@@ -207,7 +208,7 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
       { produtoId: produtoA.id, margemAplicada: 50, precoUnitario: 20, quantidade: 10 },
       { produtoId: produtoB.id, margemAplicada: 50, precoUnitario: 20, quantidade: 8 },
     ])
-    const amanha = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    const amanha = hojeLocal(1)
     // Só o item A entra numa produção — item B fica deliberadamente sem vínculo.
     await criarProducaoVinculadaViaApi(request, token, orcamento.id, {
       dataTerminoPrevista: amanha,

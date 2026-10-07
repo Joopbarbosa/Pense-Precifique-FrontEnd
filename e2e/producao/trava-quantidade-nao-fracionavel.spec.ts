@@ -9,6 +9,7 @@ import {
   criarProducaoViaApi,
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
+import { hojeLocal } from '../helpers/data'
 
 const INSUMO_URL = `${E2E_API_URL}/insumos`
 
@@ -72,7 +73,7 @@ test.describe('Cenário 224 — Múltiplos do rendimento em produto com insumo n
 
     await login(page)
     await page.goto('/producao/nova')
-    await page.getByLabel(/Data de término prevista/).fill(new Date(Date.now() + 86400000).toISOString().slice(0, 10))
+    await page.getByLabel(/Data de término prevista/).fill(hojeLocal(1))
 
     await buscarEAdicionarProduto(page, nomeLivre)
     const linhaLivre = linhaProduto(page, nomeLivre)
@@ -129,7 +130,7 @@ test.describe('Cenário 224 — Múltiplos do rendimento em produto com insumo n
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 3 }], 2)
     criadosProdutoIds.push(produto.id)
 
-    const dataTerminoPrevista = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    const dataTerminoPrevista = hojeLocal(1)
 
     const resInvalido = await request.post(`${E2E_API_URL}/producoes`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -163,7 +164,7 @@ test.describe('Cenário 224 — Múltiplos do rendimento em produto com insumo n
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 3 }], 2)
     criadosProdutoIds.push(produto.id)
 
-    const dataTerminoPrevista = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    const dataTerminoPrevista = hojeLocal(1)
 
     // Múltiplo de 2 (rendimento), quantidade bem acima do que o estoque atual (5) comportaria sem
     // permitir negativo — passa livremente porque permitirEstoqueNegativo=true no insumo.

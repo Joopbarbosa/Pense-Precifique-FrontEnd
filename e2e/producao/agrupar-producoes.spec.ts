@@ -15,6 +15,7 @@ import {
   linhaProducaoDesktop,
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
+import { hojeLocal } from '../helpers/data'
 
 const API_URL = E2E_API_URL
 const INSUMO_URL = `${API_URL}/insumos`
@@ -82,9 +83,7 @@ async function confirmarAgrupamento(page: Page) {
 }
 
 function amanha(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  return hojeLocal(1)
 }
 
 async function criarProducaoComData(
@@ -379,7 +378,7 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
 
-    const hoje = new Date().toISOString().slice(0, 10)
+    const hoje = hojeLocal()
     const dataAmanha = amanha()
     const prd1 = await criarProducaoComData(request, token, produto.id, hoje)
     criadasProducaoIds.push(prd1.id)
@@ -430,9 +429,9 @@ test.describe('Cenários 191-195 — Agrupar Produções (Fluxo I) (#122)', () =
     const produto = await criarProdutoComFicha(request, token, nomeProduto, [{ insumoId: insumo.id, quantidade: 1 }], 1)
     criadosProdutoIds.push(produto.id)
 
-    const hoje = new Date().toISOString().slice(0, 10)
+    const hoje = hojeLocal()
     const dataAmanha = amanha()
-    const dataEditada = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10) // depois de amanhã
+    const dataEditada = hojeLocal(2) // depois de amanhã
     const prd1 = await criarProducaoComData(request, token, produto.id, hoje)
     criadasProducaoIds.push(prd1.id)
     const prd2 = await criarProducaoComData(request, token, produto.id, dataAmanha)

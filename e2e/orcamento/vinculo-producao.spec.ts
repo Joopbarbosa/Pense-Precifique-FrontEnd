@@ -23,6 +23,7 @@ import {
   buscarProducao,
   teardownProducoes,
 } from '../helpers/producao'
+import { hojeLocal } from '../helpers/data'
 
 const INSUMO_URL = `${E2E_API_URL}/insumos`
 
@@ -36,9 +37,7 @@ const INSUMO_URL = `${E2E_API_URL}/insumos`
  * o próprio comentário do service confirma "sem consumidor de UI ainda".
  */
 function dataFutura(diasAFrente: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + diasAFrente)
-  return d.toISOString().slice(0, 10)
+  return hojeLocal(diasAFrente)
 }
 
 test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)', () => {

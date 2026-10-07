@@ -1,5 +1,6 @@
 import { APIRequestContext, Page, expect } from '@playwright/test'
 import { API_URL } from './auth'
+import { hojeLocal } from './data'
 
 interface FichaItem {
   insumoId: string
@@ -169,9 +170,7 @@ export async function teardownProducoes(request: APIRequestContext, token: strin
 // ---------------------------------------------------------------------------
 
 function amanha(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  return hojeLocal(1)
 }
 
 export async function criarProducaoViaApi(

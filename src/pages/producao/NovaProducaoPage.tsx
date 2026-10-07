@@ -15,6 +15,7 @@ import type { AlertaInsumo } from '../../types/producao'
 import { useToast } from '../../hooks/useToast'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
+import { dataLocalISO } from '../../utils/dataLocal'
 
 interface ProdutoSelecionado {
   produtoId: string
@@ -201,7 +202,7 @@ export default function NovaProducaoPage() {
   const produtoIdParam = searchParams.get('produtoId')
   const quantidadeParam = searchParams.get('quantidade')
   const { toast, setToast } = useToast()
-  const [dataInicio, setDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
+  const [dataInicio, setDataInicio] = useState(() => dataLocalISO())
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [produtos, setProdutos] = useState<ProdutoSelecionado[]>([])

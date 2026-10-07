@@ -11,6 +11,7 @@ import {
   criarProducaoEmAndamento,
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
+import { hojeLocal } from '../helpers/data'
 
 /**
  * Homologação P-QA-002 / OpenProject #116 — Editar Produção (Fluxo A.1), cenários 158-159.
@@ -63,9 +64,7 @@ test.describe('Cenários 158-159 — Editar Produção (Fluxo A.1) (#116)', () =
     await login(page)
     await page.goto(`/producao/${producao.id}/editar`)
 
-    const novaData = new Date()
-    novaData.setDate(novaData.getDate() + 7)
-    const novaDataISO = novaData.toISOString().slice(0, 10)
+    const novaDataISO = hojeLocal(7)
     await page.getByLabel(/Data de término prevista/).fill(novaDataISO)
     // necessária vira 10 > estoque 5 (permite negativo) — força alerta AVISO recalculado
     await definirQuantidade(page, nomeProduto, 10)

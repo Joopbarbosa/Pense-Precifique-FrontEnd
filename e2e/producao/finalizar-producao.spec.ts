@@ -13,6 +13,7 @@ import {
   finalizarProducaoViaApi,
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
+import { hojeLocal } from '../helpers/data'
 
 const PRODUTO_URL = `${E2E_API_URL}/produtos`
 const INSUMO_URL = `${E2E_API_URL}/insumos`
@@ -78,7 +79,7 @@ test.describe('Cenários 168-169 — Finalizar Produção (Fluxo C) (#120)', () 
     const producaoApi = await buscarProducao(request, token, producao.id)
     expect(producaoApi.estado).toBe('FINALIZADA')
     expect(producaoApi.dataTerminoReal).not.toBeNull()
-    const hojeISO = new Date().toISOString().slice(0, 10)
+    const hojeISO = hojeLocal()
     expect(String(producaoApi.dataTerminoReal).slice(0, 10)).toBe(hojeISO)
   })
 
