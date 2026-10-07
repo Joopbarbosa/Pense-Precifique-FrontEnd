@@ -8,7 +8,7 @@ import Spinner from '../../components/ui/Spinner'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { FornecedorSelect, InsumoPicker } from '../../components/compra/Pickers'
-import { formatarData, paraCampo, parseDecimal, qtd } from '../../components/compra/formato'
+import { formatarData, ORIGENS_VINCULO_NOTA, paraCampo, parseDecimal, qtd } from '../../components/compra/formato'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useModalErro } from '../../hooks/useModalErro'
 import { useToast } from '../../hooks/useToast'
@@ -18,7 +18,6 @@ import type { InsumoProposto } from '../../types/compraNota'
 import type { VinculoNotaResponse } from '../../types/vinculoNota'
 import type { PageResponse } from '../../types/shared'
 
-const ORIGENS = { CASAMENTO_NOME: 'Casamento por nome', SUGESTAO_IA: 'Sugestão da IA', MANUAL: 'Manual', OUTRO_FORNECEDOR: 'Vínculo de outro fornecedor' }
 type Acao = { tipo: 'editar' | 'desmarcar' | 'ignorar' | 'desfazer'; vinculo: VinculoNotaResponse }
 const campo = 'h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3 text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/10'
 
@@ -111,7 +110,7 @@ export default function HistoricoVinculosNotaPage() {
           <td className="px-4 py-4 font-semibold text-dark"><button type="button" aria-label={`Abrir destinos de ${v.nomeItem}`} className="border-none bg-transparent p-0 text-left font-[inherit] font-semibold text-dark">{v.nomeItem}</button></td>
           <td className="px-4 py-4"><div>{v.fornecedorNome}</div><div className="text-xs text-muted">{v.emitenteCnpj}</div></td>
           <td className="px-4 py-4">{v.ignorar ? <span className="rounded-full bg-cream px-2 py-1 text-muted">Ignorado</span> : <><div>{v.insumo?.nome ?? '—'}</div><div className="text-xs text-muted">{v.insumo?.identificador}</div></>}</td>
-          <td className="px-4 py-4">{qtd(v.fator)}{v.insumo?.unidade ? ` ${v.insumo.unidade}` : ''}</td><td className="px-4 py-4">{formatarData(v.updatedAt)}</td><td className="px-4 py-4">{ORIGENS[v.origem]}</td>
+          <td className="px-4 py-4">{qtd(v.fator)}{v.insumo?.unidade ? ` ${v.insumo.unidade}` : ''}</td><td className="px-4 py-4">{formatarData(v.updatedAt)}</td><td className="px-4 py-4">{ORIGENS_VINCULO_NOTA[v.origem]}</td>
           <td className="px-4 py-4" onClick={e => e.stopPropagation()}><div className="flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => abrir(v.ignorar ? 'desmarcar' : 'editar', v)}>{v.ignorar ? 'Vincular insumo' : 'Editar'}</Button>
             {!v.ignorar && <Button variant="ghost" size="sm" onClick={() => abrir('ignorar', v)}>Ignorar</Button>}
