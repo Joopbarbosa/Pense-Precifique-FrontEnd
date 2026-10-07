@@ -1,0 +1,10 @@
+# #757 (V0.16.0) — risco aceito e contido, com prazo. Sem este arquivo o OSV-Scanner volta a reportar o achado.
+# braces <= 3.0.3 (GHSA-vfj7-8cjw-p6xm, HIGH): estouro de pilha por chaves muito aninhadas. Não existe versão corrigida.
+# Contenção: o pacote só vem do build, via tailwindcss 3 (chokidar e micromatch), e não entra na produção
+# (`npm ls --omit=dev braces` vazio). Os padrões de arquivo que ele expande são os do `tailwind.config.ts`
+# (`./index.html`, `./src/**/*.{ts,tsx}`), nunca entrada de usuário. A saída é migrar para o Tailwind 4, que não usa essa cadeia.
+# Revisar quando sair `braces` corrigido ou ao migrar o Tailwind, o que vier primeiro, e no máximo até a data abaixo.
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-31
+reason = "braces só no build (tailwind 3), fora da produção, padrões próprios; sem versão corrigida. Sair com o Tailwind 4."
