@@ -185,7 +185,7 @@ export default function DashboardCompras() {
       </div>
 
       {erro ? (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           {erro} <Button variant="ghost" size="sm" onClick={carregar}>Tentar de novo</Button>
         </div>
       ) : !d || (carregando && !d) ? (

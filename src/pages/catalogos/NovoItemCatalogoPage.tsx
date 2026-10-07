@@ -737,7 +737,7 @@ export default function NovoItemCatalogoPage() {
 
           {/* AÇÕES */}
           {erro && (
-            <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+            <div className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
               {erro}
             </div>
           )}

@@ -1187,7 +1187,7 @@ function UnidadesMedida() {
         description="Esta ação não pode ser desfeita."
       >
         {erroExclusao && (
-          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13px] text-danger-deep">
+          <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13px] text-danger-deep">
             {erroExclusao}
           </p>
         )}

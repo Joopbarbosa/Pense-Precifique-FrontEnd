@@ -39,7 +39,7 @@ export default function ModalInsumoResumo({ insumoId, onClose }: { insumoId: str
         </Button>
       </>}>
       {erro ? (
-        <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>
+        <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>
       ) : !insumo ? (
         <div className="flex items-center gap-2.5 py-6 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando insumo…</div>
       ) : (

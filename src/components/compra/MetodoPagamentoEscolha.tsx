@@ -48,7 +48,7 @@ export default function MetodoPagamentoEscolha({ value, onChange, salvo, parcela
   if (metodos === null) return <div className="text-sm text-muted">Carregando métodos…</div>
   if (opcoes.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13px] text-danger-deep">
+      <div className="flex items-center gap-2 rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13px] text-danger-deep">
         <AlertCircle size={15} /> Nenhum método de pagamento ativo. <a href="/configuracoes" className="font-semibold underline">Cadastre em Configurações</a>.
       </div>
     )

@@ -479,7 +479,7 @@ export default function DetalheClientePage() {
   if (erroCarga) {
     return (
       <AppLayout active="clientes" compact>
-        <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
+        <div className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
         <div className="mt-4"><Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/clientes')}>Voltar</Button></div>
       </AppLayout>
     )

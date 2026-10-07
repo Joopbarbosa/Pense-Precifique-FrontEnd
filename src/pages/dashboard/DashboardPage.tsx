@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
       {/* Erro de carregamento */}
       {erro && (
-        <div className="mb-section rounded-xl border border-[#FECACA] bg-danger-bg-soft px-5 py-4 text-sm text-[#B91C1C]">
+        <div className="mb-section rounded-xl border border-danger-line-soft bg-danger-bg-soft px-5 py-4 text-sm text-danger-strong">
           Falha ao carregar o dashboard. Tente novamente.
         </div>
       )}

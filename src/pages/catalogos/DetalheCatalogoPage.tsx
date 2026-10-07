@@ -163,7 +163,7 @@ export default function DetalheCatalogoPage() {
   if (erroCarregar || !catalogo) {
     return (
       <AppLayout active="catalogos" compact>
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           <span>{erroCarregar}</span>
           <Button variant="ghost" onClick={carregar}>Tentar novamente</Button>
         </div>
@@ -205,7 +205,7 @@ export default function DetalheCatalogoPage() {
       </div>
 
       {erroAcao && (
-        <div className="mb-4 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+        <div className="mb-4 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           {erroAcao}
         </div>
       )}

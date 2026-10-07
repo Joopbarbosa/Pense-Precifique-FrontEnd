@@ -35,6 +35,12 @@ export default {
           deep:    '#B23A1E',
           bg:      '#FBEDE9',
           'bg-soft': '#FEF2F2',
+          // #753 — hex de erro que estavam fixos nas telas, formalizados com o mesmo valor (nenhum tom mudou).
+          tint:        '#FBF0EE',  // fundo do aviso de erro (bg-danger-tint)
+          line:        '#F2D4CF',  // borda do aviso de erro (border-danger-line)
+          'line-soft': '#FECACA',  // borda do aviso de erro sobre bg-soft (border-danger-line-soft)
+          alt:         '#DC2626',  // texto e ícone do erro em destaque (text-danger-alt)
+          strong:      '#B91C1C',  // texto do erro sobre bg-soft (text-danger-strong)
         },
 
         // Success
