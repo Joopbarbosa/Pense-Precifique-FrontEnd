@@ -2,13 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { History } from 'lucide-react'
 import Spinner from '../../ui/Spinner'
-import { formatarData, qtd } from '../formato'
+import { formatarData, ORIGENS_VINCULO_NOTA, qtd } from '../formato'
 import { vinculoNotaService } from '../../../services/vinculoNotaService'
 import type { VinculoNotaResponse } from '../../../types/vinculoNota'
-
-const ORIGENS: Record<VinculoNotaResponse['origem'], string> = {
-  CASAMENTO_NOME: 'Casamento por nome', SUGESTAO_IA: 'Sugestão da IA', MANUAL: 'Manual', OUTRO_FORNECEDOR: 'Vínculo de outro fornecedor',
-}
 
 /**
  * #717 (V0.16.0, RN-NOVA-25) — aba "Histórico de Nota Fiscal" do detalhe do insumo: os itens de nota já ligados a
@@ -53,7 +49,7 @@ export default function HistoricoNotaInsumo({ insumoId, unidade }: { insumoId: s
               <td className="px-5 py-3.5">{v.fornecedorNome}</td>
               <td className="px-5 py-3.5 [font-variant-numeric:tabular-nums]">{qtd(v.fator)} {unidade}</td>
               <td className="px-5 py-3.5">{formatarData(v.updatedAt)}</td>
-              <td className="px-5 py-3.5">{ORIGENS[v.origem]}</td>
+              <td className="px-5 py-3.5">{ORIGENS_VINCULO_NOTA[v.origem]}</td>
             </tr>
           ))}
         </tbody>
