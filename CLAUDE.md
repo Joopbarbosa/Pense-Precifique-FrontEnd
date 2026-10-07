@@ -42,7 +42,7 @@ do Vite para a API isolada usa `E2E_API_PROXY_TARGET`; os specs leem os alvos de
 `e2e/helpers/target.ts` — nunca `localhost:8080` fixo num spec novo. **Sem as variáveis, o padrão
 é o container/banco de dev, que o `TRUNCATE` apaga — por isso o `global-setup.ts` para antes do banco, a menos que
 `CONFIRMO_APAGAR_BANCO_DEV=1` esteja definida** (#746). Para o alvo isolado nada muda: com as quatro variáveis juntas
-(e banco/container `test_*` no pocket) não precisa confirmar. As travas vivem em `e2e/helpers/alvo-e2e.ts`.
+não precisa confirmar, mas banco e container **precisam começar com `test_`**, com ou sem `POCKET_TEST_DB` (#752) — a confirmação não libera alvo configurado fora de `test_*`. As travas vivem em `e2e/helpers/alvo-e2e.ts`.
 
 **Unidade de medida em E2E** (V0.14.0/#298): `POST/PUT /insumos` exige `unidadeMedidaId` (FK), não
 mais texto livre. `global-setup.ts` semeia 1 unidade padrão ("unidade") logo após o `TRUNCATE` —
@@ -57,13 +57,14 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 | Categoria | Local |
 |---|---|
 | Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`, `Toggle`, `SegmentedControl`, `Tag`; V0.15.0: `TextArea`, `MoneyInput`, `ModalErro`, `BigNumber`/`BigNumberGroup`, `CampoFiltros`, `OpcaoInativa`, `ModalListagemRegistros`, `PreviewPdfDocumento`) | `components/ui/`, `components/shared/` |
-| Domínio de Compras (`formato.ts` — `formatarData`, `moeda`, `qtd`, `parseDecimal`, `erroDesconto`, `rotuloPagamento`; `DescontoInput`, `useDuplicarCompra`, `DashboardCompras`, `GraficoPrecoInsumos`, modais de impacto/cancelar/pagamento/vínculo) | `components/compra/` (novo, V0.15.0) |
+| Domínio de Compras (`formato.ts` — `formatarData`, `moeda`, `qtd`, `parseDecimal`, `erroDesconto`, `rotuloPagamento`; `DescontoInput`, `useDuplicarCompra`, `DashboardCompras`, `GraficoPrecoInsumos`, modais de impacto/cancelar/pagamento/vínculo; V0.16.0/#748: `ORIGENS_VINCULO_NOTA`, rótulos da origem do vínculo de nota) | `components/compra/` (novo, V0.15.0) |
+| Compra por nota fiscal (V0.16.0): `ModalConciliacaoNota`, `ModalCadastrarInsumoNota`, `ModalCadastrarFornecedorNota`, `DecisaoFornecedorNota`, `ModalDestinoVinculoNota`, `ModalNotaJaRegistrada`, `CameraNota` (QR pela câmera; `jsQR` num chunk à parte), `HistoricoNotaInsumo` (aba do insumo), `prepararArquivoNota.ts`; services `notaCompraService` e `vinculoNotaService`; tipos `types/compraNota.ts` e `types/vinculoNota.ts`; tela `pages/compras/HistoricoVinculosNotaPage.tsx` | `components/compra/nota/`, `services/`, `types/`, `pages/compras/` |
 | Domínio de Cliente/Fornecedor (`ModalRegistro` — registro do histórico aberto em modal) | `components/cliente/` |
 | Utilitários (`apiError.ts` — `extrairErroExplicado`, `normalizarErroBlob`; `fotoPendente.ts` — foto escolhida na criação) | `src/utils/` |
 | Domínio compartilhado de venda (`ItemSearch`, `ItemLinha`, `ModalCustomizacoes`, `ModalCalculadoraItem`, `CustomizacaoSeletor`, `DescontoBlock`, `ClienteSelect`, `SectionCard`, `ModoToggle`) — consumido por Orçamento, Caixa e Catálogo | `components/venda/` (novo, V0.12.0) |
 | Hooks (`usePaginatedList`, `useDebounceSearch`, `useDebouncedValue`, `useAuth`, `useToast`, `useRetryCooldown`, `useIsMobile`, `useModalErro`/`primeiroCampoInvalido`) | `src/hooks/` |
 | Constants (`METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL`) | `src/constants/` |
-| Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`, `compra.ts`, `target.ts`) | `e2e/`, `e2e/helpers/` |
+| Testes E2E — specs por feature + helpers compartilhados (`auth.ts`, `api.ts`, `list.ts`, `compra.ts`, `target.ts`; V0.16.0: `nota-fiscal.ts` — CNPJ válido, chave e nota do leitor falso; `alvo-e2e.ts` — travas do alvo do `global-setup`) e servidores falsos (`e2e/fakes/`: leitor fiscal falso e integrado, armazenamento S3 falso) | `e2e/`, `e2e/helpers/`, `e2e/fakes/` |
 | Testes E2E de segurança (modelo de atacante — IDOR, etc., skill `seguranca-resiliencia`) | `e2e/seguranca/` (novo, V0.8.4) |
 | Documentação funcional (regras, cenários, contrato, decisões) | **não vive aqui** — `../docs-pense-precifique/modulos/[MODULO]/` |
 
@@ -74,7 +75,8 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 - **Service novo?** Conferir `src/services/` primeiro — todo módulo já tem o seu (`authService`,
   `caixaService` (V0.12.0), `catalogoService`, `clienteService`, `dashboardService`,
   `compraService` (V0.15.0 — compras, lista de compras e vínculo fornecedor↔insumo),
-  `empresaService`, `insumoService`, `itemCatalogoService`, `orcamentoService`,
+  `empresaService`, `insumoService`, `itemCatalogoService`, `notaCompraService` (V0.16.0 — leitura da nota
+  e rascunho de compra), `vinculoNotaService` (V0.16.0 — histórico de vínculos da nota), `orcamentoService`,
   `producaoService`, `produtoService`, `unidadeMedidaService` (V0.14.0), `usuarioService`).
   `loteCompraService` não existe mais (V0.15.0/#541 removeu `POST /lotes-compra`).
 - **Upload de imagem novo?** Já existem 3 cópias inline do mesmo bloco (foto de item de catálogo,
@@ -93,6 +95,15 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
   conferir o código-fonte (ou curl na API) antes de escrever prompt/implementação em cima dela. A
   fonte de verdade é sempre o código e o `git log`, não o checkbox.
 - **Novo teste E2E?** Reutilizar sempre `e2e/helpers/` — nunca recriar login/setup inline.
+- **Novo spec com nota fiscal?** Usar `e2e/helpers/nota-fiscal.ts` (`cnpjValido`, `registrarNotaFalsa`) — a
+  V0.16.0 chegou a ter 3 cópias e cada correção precisava ser repetida (#749). O alvo do E2E vem das
+  quatro variáveis juntas, com banco e container `test_*`; sem elas o `global-setup` só roda com
+  `CONFIRMO_APAGAR_BANCO_DEV=1` (#746, #752; travas em `e2e/helpers/alvo-e2e.ts`).
+- **Cor de erro nova?** Tokens `danger-*` do `tailwind.config.ts` (`danger`, `danger-deep`, `danger-bg`,
+  `danger-bg-soft`, `danger-tint`, `danger-line`, `danger-line-soft`, `danger-alt`, `danger-strong`) — nunca
+  hex fixo (#753). Resta o `headerStyle` em linha do Kanban de produção, outra família (débito).
+- **Datas nos specs:** `new Date().toISOString().slice(0, 10)` usa UTC e quebra depois das 21h em
+  Brasília (data "futura" para o backend) — débito aberto na #754; não copiar o padrão em spec novo.
 
 ---
 
