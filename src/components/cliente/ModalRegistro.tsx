@@ -87,7 +87,7 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
     pessoa: c.multiplosFornecedores ? 'Vários fornecedores' : c.fornecedor?.nome,
     linhas: c.itens.map(i => ({
       nome: i.insumo.nome,
-      quantidade: i.quantidade != null ? `${qtd(i.quantidade)} ${i.insumo.unidade}` : '—',
+      quantidade: i.quantidade != null ? `${qtd(i.quantidade)} ${i.insumo.unidade ?? ''}`.trim() : '—',
       unitario: moeda(c.status === 'RASCUNHO' ? i.precoUnitario : i.precoUnitarioPago),
       subtotal: i.precoTotal != null ? BRL(i.precoTotal) : '—',
       detalhe: c.multiplosFornecedores ? (i.fornecedor?.nome ?? 'Sem fornecedor') : undefined,
@@ -124,7 +124,7 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
         )}
       </>}>
       {erro ? (
-        <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>
+        <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>
       ) : !visao ? (
         <div className="flex items-center gap-2.5 py-6 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
       ) : (

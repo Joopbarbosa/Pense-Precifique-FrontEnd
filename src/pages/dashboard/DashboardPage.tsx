@@ -72,10 +72,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-[26px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[30px] font-bold tracking-[-0.025em] text-[#2D2A26]">
+          <h1 className="m-0 text-[30px] font-bold tracking-tight text-[#2D2A26]">
             Dashboard
           </h1>
-          <p className="mt-[7px] mb-0 text-[15px] leading-[1.5] text-dim">
+          <p className="mt-[7px] mb-0 text-[15px] leading-normal text-dim">
             Aqui está o resumo do seu negócio.
           </p>
         </div>
@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
       {/* Erro de carregamento */}
       {erro && (
-        <div className="mb-section rounded-xl border border-[#FECACA] bg-danger-bg-soft px-5 py-4 text-sm text-[#B91C1C]">
+        <div className="mb-section rounded-xl border border-danger-line-soft bg-danger-bg-soft px-5 py-4 text-sm text-danger-strong">
           Falha ao carregar o dashboard. Tente novamente.
         </div>
       )}
@@ -113,7 +113,7 @@ export default function DashboardPage() {
       {!loading && insumosEstoqueBaixo.length > 0 && (
         <div className="mt-section animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] border-l-4 border-l-orange bg-white p-[18px_22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="flex flex-wrap items-start gap-3.5">
-            <span className="mt-px grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-orange/[0.12] text-orange">
+            <span className="mt-px grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-orange/12 text-orange">
               <AlertTriangle size={20} />
             </span>
             <div className="min-w-[220px] flex-1">
@@ -123,7 +123,7 @@ export default function DashboardPage() {
               <div className="mt-[11px] flex flex-wrap gap-2">
                 {insumosEstoqueBaixo.slice(0, 6).map((ins) => (
                   <span key={ins.id} className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#ECEAE5] bg-cream px-3 py-1.5 text-[13px] text-dim">
-                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange" />
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
                     {ins.nome}
                     <strong className="font-semibold text-warning-alt">
                       · {ins.estoqueAtual} {ins.unidadeMedida}
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={() => navigate('/insumos')}
-              className="inline-flex flex-shrink-0 items-center gap-1.5 self-center border-none bg-none p-0 font-[inherit] text-[13.5px] font-semibold text-orange hover:underline"
+              className="inline-flex shrink-0 items-center gap-1.5 self-center border-none bg-none p-0 font-[inherit] text-[13.5px] font-semibold text-orange hover:underline"
             >
               Ver todos os insumos <ArrowRight size={17} />
             </button>
@@ -149,7 +149,7 @@ export default function DashboardPage() {
           {/* Orçamentos Recentes */}
           <Card padding="22px 24px" className="animate-[fadeUp_.55s_ease_both]">
             <div className="mb-4 flex items-center gap-3">
-              <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-teal/[0.12] text-teal">
+              <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-teal/12 text-teal">
                 <Files size={22} />
               </span>
               <div>
@@ -169,17 +169,17 @@ export default function DashboardPage() {
                     className="flex cursor-pointer items-center justify-between rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px] transition-colors duration-150 hover:bg-cream"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex-shrink-0 text-[13px] font-bold text-dim">
+                      <span className="shrink-0 text-[13px] font-bold text-dim">
                         #{orc.numero}
                       </span>
                       <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-[#2D2A26]">
                         {orc.nomeCliente}
                       </span>
-                      <span className="flex-shrink-0 rounded-full bg-line-soft px-2 py-[3px] text-[11.5px] font-medium text-dim">
+                      <span className="shrink-0 rounded-full bg-line-soft px-2 py-[3px] text-[11.5px] font-medium text-dim">
                         {STATUS_LABEL[orc.status] ?? orc.status}
                       </span>
                     </div>
-                    <span className="ml-3 flex-shrink-0 text-[13.5px] font-semibold text-teal">
+                    <span className="ml-3 shrink-0 text-[13.5px] font-semibold text-teal">
                       {fmtBRL(orc.total ?? 0)}
                     </span>
                   </div>
@@ -191,7 +191,7 @@ export default function DashboardPage() {
           {/* Produtos Mais Vendidos */}
           <Card padding="22px 24px" className="animate-[fadeUp_.6s_ease_both]">
             <div className="mb-4 flex items-center gap-3">
-              <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-orange/[0.12] text-orange">
+              <span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-orange/12 text-orange">
                 <Box size={20} />
               </span>
               <div>
@@ -210,8 +210,8 @@ export default function DashboardPage() {
                     className="flex items-center gap-3 rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px]"
                   >
                     <span className={clsx(
-                      'grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full text-xs font-bold',
-                      i === 0 ? 'bg-orange/[0.15] text-orange' : 'bg-line-soft text-dim'
+                      'grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full text-xs font-bold',
+                      i === 0 ? 'bg-orange/15 text-orange' : 'bg-line-soft text-dim'
                     )}>
                       {i + 1}
                     </span>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                         {prod.nomeProduto}
                       </div>
                     </div>
-                    <span className="flex-shrink-0 text-[13px] font-semibold text-dim">
+                    <span className="shrink-0 text-[13px] font-semibold text-dim">
                       {prod.quantidade} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
                     </span>
                   </div>
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                 onClick={() => navigate(acao.rota)}
                 className="flex flex-[1_1_180px] items-center gap-3 rounded-xl border border-[#ECEAE5] bg-cream px-4 py-[13px] text-left font-[inherit] transition-[background-color,border-color,transform] duration-150 hover:-translate-y-px hover:bg-cream"
               >
-                <span className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+                <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                   {acao.icon}
                 </span>
                 <span className="flex-1 text-sm font-semibold text-[#2D2A26]">

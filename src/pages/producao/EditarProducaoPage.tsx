@@ -35,7 +35,7 @@ function QuoteCard({ step, label, hint, children }: {
   return (
     <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="flex items-start gap-3 border-b border-line px-5 py-4">
-        <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg bg-teal/[0.12] text-[13.5px] font-bold text-teal">{step}</span>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-teal/12 text-[13.5px] font-bold text-teal">{step}</span>
         <div>
           <div className="text-[15.5px] font-bold text-dark">{label}</div>
           <div className="mt-0.5 text-[12.5px] text-muted">{hint}</div>
@@ -83,7 +83,7 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
         onChange={e => { setQ(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
         placeholder="Buscar produto..."
-        className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+        className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
       />
       {open && (
         <div className="absolute inset-x-0 top-[54px] z-30 max-h-[280px] min-h-[60px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
@@ -102,7 +102,7 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
               onClick={() => { onSelect(p); setOpen(false); setQ('') }}
               className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
-              <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
                 <Box size={16} />
               </span>
               <div className="min-w-0 flex-1">
@@ -153,7 +153,7 @@ function ProdutoRow({ item, onQuantidade, onRemove }: {
       />
       <button
         onClick={() => onRemove(item.produtoId)}
-        className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
+        className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
       >
         <Trash2 size={16} />
       </button>
@@ -285,13 +285,13 @@ export default function EditarProducaoPage() {
   return (
     <AppLayout active="producao" compact>
       <div className="mb-[22px]">
-        <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal">
+        <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-wider text-teal">
           Produção / {identificador} / Editar
         </div>
-        <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Editar Produção</h1>
+        <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Editar Produção</h1>
       </div>
 
-      <div className="mx-auto flex max-w-[720px] flex-col gap-[18px]">
+      <div className="mx-auto flex max-w-[720px] flex-col gap-section">
         <QuoteCard step="1" label="Datas" hint="Quando a produção começa e quando deve terminar.">
           <div className="flex flex-wrap gap-4 px-5 py-5">
             <label className="block flex-1">
@@ -302,7 +302,7 @@ export default function EditarProducaoPage() {
                 type="date"
                 value={dataInicio}
                 onChange={e => setDataInicio(e.target.value)}
-                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
               />
             </label>
             <label className="block flex-1">
@@ -314,7 +314,7 @@ export default function EditarProducaoPage() {
                 value={dataTerminoPrevista}
                 min={dataInicio || undefined}
                 onChange={e => setDataTerminoPrevista(e.target.value)}
-                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
               />
             </label>
           </div>

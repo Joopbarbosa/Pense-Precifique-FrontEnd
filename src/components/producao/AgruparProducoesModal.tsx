@@ -190,7 +190,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
           <select
             value={estadoDestino}
             onChange={e => setEstadoDestino(e.target.value as EstadoProducao)}
-            className="h-11 w-full cursor-pointer rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+            className="h-11 w-full cursor-pointer rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/12"
           >
             {ESTADOS_DESTINO.map(e => (
               <option key={e.value} value={e.value}>{e.label}</option>
@@ -208,7 +208,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
               value={dataInicio}
               onChange={e => setDataInicio(e.target.value)}
               placeholder="Herda da produção mais recente"
-              className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/12"
             />
             <span className="mt-1 block text-[12px] text-muted">Herda da produção mais recente se vazio</span>
           </label>
@@ -221,7 +221,7 @@ export default function AgruparProducoesModal({ producoes, onClose, onSuccess }:
               value={dataTerminoPrevista}
               onChange={e => setDataTerminoPrevista(e.target.value)}
               placeholder="Herda da produção mais recente"
-              className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+              className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/12"
             />
             <span className="mt-1 block text-[12px] text-muted">Herda da produção mais recente se vazio</span>
           </label>

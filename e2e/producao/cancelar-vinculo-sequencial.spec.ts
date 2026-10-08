@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarInsumoComEstoque } from '../helpers/insumo'
-import { criarCliente, criarOrcamentoViaApi, buscarOrcamento, vincularProducaoViaApi } from '../helpers/orcamento'
+import { criarCliente, criarOrcamentoViaApi, buscarOrcamento, vincularProducaoViaApi, aguardarDesvinculoPelaInterface } from '../helpers/orcamento'
 import { criarProdutoComFicha, inativarProduto, criarProducaoViaApi, buscarProducao, teardownProducoes } from '../helpers/producao'
 
 const INSUMO_URL = `${E2E_API_URL}/insumos`
@@ -69,6 +69,12 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Produção com vínculo 
     expect(producaoAntes.produtos.find((p: { produtoId: string }) => p.produtoId === produto.id).quantidade)
       .toBe(quantidadeBase + qtd1 + qtd2)
 
+    // Exercita a fila com o atraso superior a 5s observado no achado #693.
+    await page.route(`**/orcamentos/*/vincular-producao/${producao.id}`, async route => {
+      const resposta = await route.fetch()
+      await new Promise(resolve => setTimeout(resolve, 5200))
+      await route.fulfill({ response: resposta })
+    })
     await login(page)
     await page.goto(`/producao/${producao.id}`)
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
@@ -80,7 +86,9 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Produção com vínculo 
     const dialog1 = page.getByRole('dialog')
     await expect(dialog1.getByText('Vínculo 1 de 2')).toBeVisible()
     await expect(dialog1.getByText('Desfazer vínculo com o orçamento?')).toBeVisible()
+    const desvinculo = aguardarDesvinculoPelaInterface(page)
     await dialog1.getByRole('button', { name: 'Sim, desfazer vínculo' }).click()
+    await desvinculo
 
     const dialog2 = page.getByRole('dialog')
     await expect(dialog2.getByText('Vínculo 2 de 2')).toBeVisible()
@@ -89,7 +97,14 @@ test.describe('P-F003/#375+308 — RN-NOVA-17: cancelar Produção com vínculo 
     // fila esgotada — agora sim abre a modal real de cancelamento (justificativa)
     await expect(page.getByText('Esta ação não pode ser desfeita.')).toBeVisible()
     await page.getByPlaceholder('Descreva o motivo do cancelamento...').fill('Cancelamento de teste QA-F003 — cenário CEN-NOVO-18, produção sem uso real.')
+    const cancelamento = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname.endsWith(`/producoes/${producao.id}/cancelar`),
+    )
     await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
+    const respostaCancelamento = await cancelamento
+    expect(respostaCancelamento.ok()).toBe(true)
+    await respostaCancelamento.finished()
     await expect(page.getByText('Produção cancelada')).toBeVisible()
 
     const producaoDepois = await buscarProducao(request, token, producao.id)

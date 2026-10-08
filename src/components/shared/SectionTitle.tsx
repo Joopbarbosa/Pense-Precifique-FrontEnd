@@ -17,7 +17,7 @@ export default function SectionTitle({
     <div className="mb-5 flex items-start gap-[13px]">
       {number !== undefined && (
         <span
-          className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg text-[13.5px] font-bold"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[13.5px] font-bold"
           style={{ background: bg, color }}
         >
           {number}

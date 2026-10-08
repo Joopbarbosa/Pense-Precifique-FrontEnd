@@ -50,7 +50,7 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
       className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-semibold', badgeSize[size])}
       style={{ background: meta.bg, color: meta.fg }}
     >
-      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: meta.dot }} />
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.dot }} />
       {status}
     </span>
   )
@@ -85,7 +85,7 @@ interface FracionavelBadgeProps {
 
 const FRACIONAVEL_SIZE: Record<'cadastro' | 'busca', string> = {
   cadastro: 'h-[27px] px-[11px] text-[12.5px]',
-  busca:    'h-[18px] px-[7px] text-[10.5px]',
+  busca:    'h-section px-[7px] text-[10.5px]',
 }
 
 export function FracionavelBadge({
@@ -112,17 +112,17 @@ interface EstoqueNegativoBadgeProps {
 
 const ESTOQUE_NEGATIVO_SIZE: Record<'cadastro' | 'busca', { pill: string; icon: number }> = {
   cadastro: { pill: 'h-[27px] gap-1.5 px-[11px] text-[12.5px]', icon: 13 },
-  busca:    { pill: 'h-[18px] gap-1 px-[7px] text-[10.5px]',    icon: 10 },
+  busca:    { pill: 'h-section gap-1 px-[7px] text-[10.5px]',    icon: 10 },
 }
 
 export function EstoqueNegativoBadge({ permitir, variant = 'cadastro' }: EstoqueNegativoBadgeProps) {
   const s = ESTOQUE_NEGATIVO_SIZE[variant]
   return permitir ? (
-    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-teal/[0.12] font-semibold text-teal', s.pill)}>
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-teal/12 font-semibold text-teal', s.pill)}>
       <Check size={s.icon} /> Permite estoque negativo
     </span>
   ) : (
-    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/[0.12] font-semibold text-[#EF4444]', s.pill)}>
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/12 font-semibold text-[#EF4444]', s.pill)}>
       <X size={s.icon} /> Bloqueia estoque negativo
     </span>
   )
@@ -153,7 +153,7 @@ interface EstoqueInsuficienteBadgeProps {
 export function EstoqueInsuficienteBadge({ variant = 'busca' }: EstoqueInsuficienteBadgeProps) {
   const s = ESTOQUE_NEGATIVO_SIZE[variant]
   return (
-    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/[0.12] font-semibold text-[#EF4444]', s.pill)}>
+    <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full bg-[#EF4444]/12 font-semibold text-[#EF4444]', s.pill)}>
       <AlertCircle size={s.icon} /> Estoque insuficiente em algum item
     </span>
   )

@@ -1,5 +1,6 @@
 import type { CompraResponse, RegraPrecoReferencia, StatusCompra } from '../../types/compra'
 import { BRL } from '../venda/formato'
+import type { VinculoNotaResponse } from '../../types/vinculoNota'
 
 // V0.15.0 — formatação das telas de Compras (só exibição; valores vêm prontos da API).
 
@@ -89,4 +90,9 @@ export const REGRA_PRECO_LABEL: Record<RegraPrecoReferencia, string> = {
   MEDIA: 'Média',
   MENOR_VALOR: 'Menor valor',
   MANUAL: 'Manual',
+}
+
+/** #748 — rótulo da origem do vínculo de nota (Histórico de Nota Fiscal e aba do insumo). Textos são rascunho até a validação do Gestor. */
+export const ORIGENS_VINCULO_NOTA: Record<VinculoNotaResponse['origem'], string> = {
+  CASAMENTO_NOME: 'Casamento por nome', SUGESTAO_IA: 'Sugestão da IA', MANUAL: 'Manual', OUTRO_FORNECEDOR: 'Vínculo de outro fornecedor',
 }

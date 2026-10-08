@@ -168,11 +168,11 @@ function DadosCadastrais({ c }: { c: ClienteResponse }) {
     { k: 'Cadastrado em', v: formatarData(c.createdAt) },
   ]
   return (
-    <dl className="m-0 grid grid-cols-1 gap-x-8 gap-y-[18px] px-5 py-5 md:grid-cols-2">
+    <dl className="m-0 grid grid-cols-1 gap-x-8 gap-y-section px-5 py-5 md:grid-cols-2">
       {linhas.map(l => (
         <div key={l.k} className={clsx('min-w-0', l.longo && 'md:col-span-2')}>
           <dt className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim">{l.k}</dt>
-          <dd className={clsx('m-0 mt-1 whitespace-pre-line break-words text-[14.5px]', l.v ? 'text-dark' : 'italic text-faint')}>
+          <dd className={clsx('m-0 mt-1 whitespace-pre-line wrap-break-word text-[14.5px]', l.v ? 'text-dark' : 'italic text-faint')}>
             {l.v || 'Não informado'}
           </dd>
         </div>
@@ -234,7 +234,7 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
   if (mobile) {
     return (
       <div className="flex items-center gap-2.5 rounded-card border border-line bg-cream px-4 py-3.5 text-[13.5px] text-body">
-        <Monitor size={18} className="flex-shrink-0 text-teal" />
+        <Monitor size={18} className="shrink-0 text-teal" />
         {MENSAGEM_GRAFICO_CELULAR}
       </div>
     )
@@ -244,7 +244,7 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
   const medida = (i: ItemCompradoResponse) => fornecedor ? i.valor : i.quantidade
   const maxMedida = dados ? Math.max(1, ...dados.itensMaisComprados.map(medida)) : 1
   const base: FiltroInicial = fornecedor ? { status: ['CONFIRMADA'] } : { somenteCompras: true }
-  const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-none focus:border-teal'
+  const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-hidden focus:border-teal'
 
   return (
     <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]" data-testid={fornecedor ? 'graficos-fornecedor' : 'graficos-cliente'}>
@@ -316,7 +316,7 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
                       className="block w-full cursor-pointer rounded-[6px] border-none bg-transparent p-0 text-left font-[inherit] hover:opacity-80">
                     <div className="flex items-baseline justify-between gap-3 text-[13px]">
                       <span className="truncate font-medium text-dark">{i.nome}</span>
-                      <span className="flex-shrink-0 text-muted [font-variant-numeric:tabular-nums]">{fornecedor ? `${qtd(i.quantidade)} · ${BRL(i.valor)}` : `${qtd(i.quantidade)} un · ${BRL(i.valor)}`}</span>
+                      <span className="shrink-0 text-muted [font-variant-numeric:tabular-nums]">{fornecedor ? `${qtd(i.quantidade)} · ${BRL(i.valor)}` : `${qtd(i.quantidade)} un · ${BRL(i.valor)}`}</span>
                     </div>
                     <div className="mt-1 h-1.5 rounded-full bg-line-soft">
                       <div className={clsx('h-1.5 rounded-full', fornecedor ? 'bg-orange' : 'bg-teal')} style={{ width: `${(medida(i) / maxMedida) * 100}%` }} />
@@ -382,7 +382,7 @@ function ListaHistorico<T>({ titulo, icone, colunas, h, vazio, renderLinha, lege
       </div>
       {legenda && (
         <div className="flex items-start gap-2 border-b border-line bg-cream px-5 py-2.5 text-[12.5px] text-body">
-          <Info size={14} className="mt-px flex-shrink-0 text-teal" /> {legenda}
+          <Info size={14} className="mt-px shrink-0 text-teal" /> {legenda}
         </div>
       )}
       {h.loading ? (
@@ -479,7 +479,7 @@ export default function DetalheClientePage() {
   if (erroCarga) {
     return (
       <AppLayout active="clientes" compact>
-        <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
+        <div className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
         <div className="mt-4"><Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/clientes')}>Voltar</Button></div>
       </AppLayout>
     )
@@ -513,10 +513,10 @@ export default function DetalheClientePage() {
         <span className="truncate font-semibold text-body">{cadastro.nome}</span>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-section">
         <div className="flex min-w-0 items-center gap-[15px]">
           <span className={clsx(
-            'grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-[15px] text-[22px] font-bold',
+            'grid h-[54px] w-[54px] shrink-0 place-items-center rounded-[15px] text-[22px] font-bold',
             cadastro.ativa ? 'bg-teal/10 text-teal' : 'bg-line-deep text-dim'
           )}>
             {cadastro.nome.trim().charAt(0).toUpperCase()}
@@ -547,7 +547,7 @@ export default function DetalheClientePage() {
 
       {!cadastro.ativa && (
         <div className="mb-4 flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-4 py-3 text-[13.5px] text-danger-deep">
-          <Info size={16} className="mt-px flex-shrink-0" />
+          <Info size={16} className="mt-px shrink-0" />
           Cadastro inativo: não aparece na escolha de cliente nem de fornecedor. Orçamentos, vendas e compras que já o usam continuam iguais.
         </div>
       )}
@@ -587,7 +587,7 @@ export default function DetalheClientePage() {
             >
               <a.icon size={16} className={on ? 'text-teal' : 'text-dim'} />
               {a.label}
-              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+              {on && <span className="absolute bottom-[-1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}

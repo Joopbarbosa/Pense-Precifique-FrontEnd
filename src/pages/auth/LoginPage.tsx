@@ -46,12 +46,12 @@ export default function LoginPage() {
         {/* Painel esquerdo — brand */}
         <div className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(150deg,#2A9D8F_0%,#1F7A6F_78%,#15665C_100%)] p-11 md:flex">
           {/* Blobs decorativos */}
-          <div className="absolute -top-[90px] -right-[70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
-          <div className="absolute -bottom-[60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
+          <div className="absolute top-[-90px] right-[-70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
+          <div className="absolute bottom-[-60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
 
           {/* Logo + wordmark */}
           <div className="relative flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/[0.18] backdrop-blur-[4px]">
+            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/18 backdrop-blur-xs">
               <Logo size={32} />
             </div>
             <Wordmark size={18} darkMode />
@@ -59,10 +59,10 @@ export default function LoginPage() {
 
           {/* Headline */}
           <div className="relative">
-            <h2 className="m-0 text-[28px] font-bold leading-[1.25] tracking-[-0.02em] text-white">
+            <h2 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.02em] text-white">
               Preço certo,<br />negócio saudável.
             </h2>
-            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/[0.82]">
+            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/82">
               Calcule, orce e controle o estoque do seu ateliê em um só lugar.
             </p>
           </div>
@@ -75,13 +75,13 @@ export default function LoginPage() {
               'Controle de insumos e produtos',
             ].map((text, i) => (
               <div key={i} className="flex items-center gap-2.5">
-                <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-white/20">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" width="11" height="11" fill="none"
                     stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m5 12.5 4.2 4.2L19 7"/>
                   </svg>
                 </span>
-                <span className="text-[13.5px] font-medium text-white/[0.88]">
+                <span className="text-[13.5px] font-medium text-white/88">
                   {text}
                 </span>
               </div>
@@ -99,7 +99,7 @@ export default function LoginPage() {
 
           {/* Título */}
           <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em] text-dark">
-            Bem-vinda de volta <span className="inline-block animate-[floaty_3s_ease-in-out_infinite]">👋</span>
+            Bem-vinda de volta <span className="inline-block animate-floaty">👋</span>
           </h1>
           <p className="mt-2 mb-[26px] text-[14.5px] leading-[1.55] text-muted">
             Entre para continuar cuidando dos seus preços e orçamentos.
@@ -107,8 +107,8 @@ export default function LoginPage() {
 
           {/* Alerta de erro */}
           {authError && (
-            <div role="alert" className="mb-[18px] flex animate-shake items-start gap-2.5 rounded-[10px] border-[1.5px] border-[#F6C6B7] bg-[#FEF3F0] p-[12px_14px] text-[13.5px] leading-[1.45] text-danger">
-              <AlertCircle size={18} className="mt-px flex-shrink-0 text-warning-alt" />
+            <div role="alert" className="mb-section flex animate-shake items-start gap-2.5 rounded-[10px] border-[1.5px] border-[#F6C6B7] bg-[#FEF3F0] p-[12px_14px] text-[13.5px] leading-[1.45] text-danger">
+              <AlertCircle size={18} className="mt-px shrink-0 text-warning-alt" />
               <span>{authError}</span>
             </div>
           )}
@@ -157,7 +157,7 @@ export default function LoginPage() {
           </form>
 
           {/* Divisor */}
-          <div className="mt-6 mb-[18px] flex items-center gap-3.5">
+          <div className="mt-6 mb-section flex items-center gap-3.5">
             <span className="h-px flex-1 bg-line" />
             <span className="text-[12.5px] font-medium text-faint">ou</span>
             <span className="h-px flex-1 bg-line" />

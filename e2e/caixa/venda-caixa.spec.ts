@@ -167,9 +167,12 @@ test.describe('#487 — Venda rápida no Caixa', () => {
     await page.getByLabel('Motivo do cancelamento').fill('Cliente desistiu da compra no balcão')
     await page.getByRole('button', { name: 'Sim' }).click() // estoque deve voltar
     await page.getByLabel('Confirme sua senha').fill(TEST_SENHA)
+    // #736: espera a resposta do cancelamento (e a recarga da lista) em vez de contar só com os 5 s da asserção.
+    const cancelamento = page.waitForResponse(r => r.request().method() === 'POST' && /\/caixa\/vendas\/[^/]+\/cancelar$/.test(new URL(r.url()).pathname))
     await page.getByRole('button', { name: 'Confirmar cancelamento' }).click()
+    expect((await cancelamento).ok()).toBe(true)
 
-    await expect(page.getByText('Cancelada', { exact: true })).toBeVisible()
+    await expect(page.getByText('Cancelada', { exact: true })).toBeVisible({ timeout: 15_000 })
 
     const produtoPosCancelamento = await apiBuscarProduto(request, token, produto.id)
     expect(produtoPosCancelamento.estoqueAtual).toBe(10)

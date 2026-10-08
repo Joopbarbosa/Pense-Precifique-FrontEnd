@@ -11,6 +11,7 @@ import {
   teardownProducoes,
 } from '../helpers/producao'
 import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo'
+import { hojeLocal } from '../helpers/data'
 
 /**
  * Homologação P-QA-001 / OpenProject #115 — Criar Produção (Fluxo A), cenários 150-157 (numeração
@@ -32,9 +33,7 @@ import { criarInsumoComEstoque, criarInsumoFracionavel } from '../helpers/insumo
  */
 
 function hojeISO(diasOffset = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + diasOffset)
-  return d.toISOString().slice(0, 10)
+  return hojeLocal(diasOffset)
 }
 
 function linhaProduto(page: Page, nome: string) {
@@ -289,7 +288,7 @@ test.describe('Cenários 150-157 — Criar Produção / Fluxo A (#115)', () => {
 
   test('175 (era 157) — data de início vem preenchida com hoje por padrão e permanece editável', async ({ page }) => {
     // Re-homologação (P-TESTE-001): corrigido por #150 — NovaProducaoPage.tsx:195 agora inicializa
-    // `dataInicio` via `useState(() => new Date().toISOString().slice(0, 10))`. Assertiva antes
+    // `dataInicio` via `useState(() => dataLocalISO())`. Assertiva antes
     // documentava o delta (useState('') vazio); agora reflete o comportamento real e correto.
     await login(page)
     await page.goto('/producao/nova')

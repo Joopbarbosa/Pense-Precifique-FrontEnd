@@ -1,4 +1,5 @@
 import { execFileSync } from 'child_process'
+import { validarAlvoE2E, CONTAINER_PADRAO, BANCO_PADRAO } from './helpers/alvo-e2e'
 
 /**
  * Reset de banco antes da suíte E2E completa (FRENTE 2, V0.6.1 — achado do P-TESTE-001).
@@ -21,18 +22,11 @@ import { execFileSync } from 'child_process'
  * e não depende de esperar o backend voltar a responder.
  */
 
-const CONTAINER = process.env.E2E_DB_CONTAINER ?? 'pense-precifique-db'
-const DB_NAME = process.env.E2E_DB_NAME ?? 'pense_precifique_db'
+const CONTAINER = process.env.DB_CONTAINER ?? CONTAINER_PADRAO
+const DB_NAME = process.env.DB_NAME ?? BANCO_PADRAO
 const DB_USER = 'pense_user'
 
-const targetKeys = ['E2E_BASE_URL', 'E2E_API_URL', 'E2E_DB_CONTAINER', 'E2E_DB_NAME'] as const
-const configuredKeys = targetKeys.filter((key) => process.env[key])
-if (configuredKeys.length > 0 && configuredKeys.length !== targetKeys.length) {
-  throw new Error(`Alvo E2E incompleto: defina ${targetKeys.join(', ')} juntos.`)
-}
-if (configuredKeys.length > 0 && ['pense_precifique_db', 'pense_precifique_test_v015'].includes(DB_NAME)) {
-  throw new Error(`Banco ${DB_NAME} não pode ser usado no E2E isolado.`)
-}
+validarAlvoE2E(process.env)
 
 // Todas as tabelas de domínio (schema V0.15.0 conferido em 2026-09-30;
 // `lotes_compra` foi removida e Compras/Listas foram adicionadas) — deliberadamente SEM usuarios/empresas/

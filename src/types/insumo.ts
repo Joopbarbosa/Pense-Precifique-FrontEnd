@@ -3,6 +3,7 @@ export type TipoExibicaoQuantidade = 'FRACAO' | 'DECIMAL'
 export interface InsumoRequest {
   nome: string
   marca?: string
+  qualquerMarca?: boolean
   /** #298 (V0.14.0) — substitui o texto livre antigo (`unidadeMedida: string`). */
   unidadeMedidaId: string
   fracionavel?: boolean
@@ -20,6 +21,7 @@ export type RegraPrecoReferencia = 'MEDIA' | 'MENOR_VALOR' | 'MANUAL'
 export interface NovoInsumoRequest {
   nome: string
   marca?: string
+  qualquerMarca?: boolean
   unidadeMedidaId: string
   fracionavel?: boolean
   tipoExibicaoQuantidade?: TipoExibicaoQuantidade
@@ -37,6 +39,7 @@ export interface InsumoResponse {
   identificador?: string
   nome: string
   marca?: string
+  qualquerMarca: boolean
   /** Sigla denormalizada, mantida para exibição (telas de histórico/listagem já consomem como texto). */
   unidadeMedida: string
   /** #298 (V0.14.0) — id da UnidadeMedida real, usado para preselecionar o dropdown na edição. */

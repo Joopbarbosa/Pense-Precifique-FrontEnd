@@ -91,7 +91,7 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
         <div className="flex flex-col gap-3 border-b border-line bg-cream px-5 py-4 md:flex-row md:items-start">
           <div className="min-w-0 flex-1">
             {novoAlvo ? (
-              <div className="flex h-11 items-center justify-between gap-2 rounded-input border-[1.5px] border-teal/30 bg-teal/[0.06] px-3 text-sm font-semibold text-dark">
+              <div className="flex h-11 items-center justify-between gap-2 rounded-input border-[1.5px] border-teal/30 bg-teal/6 px-3 text-sm font-semibold text-dark">
                 {novoAlvo.nome}
                 <button type="button" aria-label="Trocar" onClick={() => setNovoAlvo(null)} className="grid h-7 w-7 place-items-center rounded-md border-none bg-transparent text-muted hover:text-danger"><X size={15} /></button>
               </div>

@@ -80,7 +80,7 @@ export default function ItemLinha({ linha, index, simulacao, onQtd, onRemove, on
         </div>
         <button
           onClick={onRemove}
-          className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
+          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[9px] border border-transparent bg-transparent text-faint transition-colors duration-100 hover:bg-[#FCF1ED] hover:text-danger"
         >
           <Trash2 size={16} />
         </button>
@@ -92,7 +92,7 @@ export default function ItemLinha({ linha, index, simulacao, onQtd, onRemove, on
             onClick={onOpenCustom}
             className={clsx(
               'inline-flex h-[34px] items-center gap-[7px] rounded-[9px] border px-3 font-[inherit] text-[13px] font-semibold',
-              linha.customs.length ? 'border-orange/40 bg-orange/[0.08] text-warning-alt' : 'border-line bg-cream text-body'
+              linha.customs.length ? 'border-orange/40 bg-orange/8 text-warning-alt' : 'border-line bg-cream text-body'
             )}
           >
             <SlidersHorizontal size={15} /> Customizações{linha.customs.length ? ` (${linha.customs.length})` : ''}

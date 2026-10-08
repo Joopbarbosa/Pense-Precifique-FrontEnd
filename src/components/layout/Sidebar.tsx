@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
-import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3 } from 'lucide-react'
+import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
@@ -34,8 +34,10 @@ const GRUPO_COMPRAS = {
     // #598 (RN-NOVA-37) — Dashboard vira o primeiro item do grupo.
     { id: 'compras-dashboard', label: 'Dashboard',     icon: BarChart3,     size: 20, href: '/compras/dashboard' },
     { id: 'compras-minhas', label: 'Minhas compras',   icon: ClipboardList, size: 20, href: '/compras',
-      ativoEm: (path: string) => path === '/compras' || (path.startsWith('/compras/') && !path.startsWith('/compras/lista') && !path.startsWith('/compras/dashboard')) },
+      ativoEm: (path: string) => path === '/compras' || (path.startsWith('/compras/') && !path.startsWith('/compras/lista') && !path.startsWith('/compras/dashboard') && !path.startsWith('/compras/nota/vinculos')) },
     { id: 'compras-lista',  label: 'Lista de compras', icon: ShoppingCart,  size: 20, href: '/compras/lista' },
+    // #716 (RN-NOVA-24) — antes "Histórico de vínculos"; fica embaixo da Lista de compras.
+    { id: 'compras-vinculos', label: 'Histórico de Nota Fiscal', icon: History, size: 20, href: '/compras/nota/vinculos' },
   ],
 } as const
 
@@ -86,7 +88,7 @@ function renderNavItem(
         collapsed && 'md:justify-center md:px-0',
         indent && !collapsed && 'ml-5',
         isActive
-          ? 'bg-orange/[0.08] font-semibold text-orange shadow-[inset_3px_0_0_#F97316]'
+          ? 'bg-orange/8 font-semibold text-orange shadow-[inset_3px_0_0_#F97316]'
           : 'font-medium text-body'
       ) }}
     >
@@ -153,7 +155,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
         <Icone size={20} />
       </span>
       <span className="flex-1">{label}</span>
-      <ChevronDown size={15} className={clsx('flex-shrink-0 text-muted transition-transform duration-150', !expandido && '-rotate-90')} />
+      <ChevronDown size={15} className={clsx('shrink-0 text-muted transition-transform duration-150', !expandido && '-rotate-90')} />
     </button>
   )
 
@@ -170,7 +172,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
     <>
       <nav
         className={clsx(
-          'fixed left-0 top-0 z-50 flex h-screen w-[220px] flex-shrink-0 flex-col bg-app shadow-[4px_0_24px_rgba(0,0,0,0.10)] transition-transform duration-[220ms] ease-out',
+          'fixed left-0 top-0 z-50 flex h-screen w-[220px] shrink-0 flex-col bg-app shadow-[4px_0_24px_rgba(0,0,0,0.10)] transition-transform duration-220 ease-out',
           open ? 'translate-x-0' : '-translate-x-full',
           'md:static md:translate-x-0 md:border-r md:border-line md:shadow-none',
           collapsed && 'md:w-[76px]'
@@ -187,7 +189,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
 
         {/* Header */}
         <div className={clsx('flex items-center gap-2.5 px-[14px] pb-3 pt-4', collapsed && 'md:justify-center')}>
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[13px] border border-line bg-white shadow-[0_2px_7px_rgba(0,0,0,0.07)]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] border border-line bg-white shadow-[0_2px_7px_rgba(0,0,0,0.07)]">
             <Logo size={32} />
           </div>
           <div className={clsx('flex flex-col gap-px', collapsed && 'md:hidden')}>
@@ -216,7 +218,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
         </div>
 
         {/* Footer */}
-        <div className="border-t border-line px-[14px] pb-[18px] pt-3">
+        <div className="border-t border-line px-[14px] pb-section pt-3">
           <button
             onClick={() => { closeIfMobile(); handleLogout() }}
             title={collapsed ? 'Sair' : undefined}

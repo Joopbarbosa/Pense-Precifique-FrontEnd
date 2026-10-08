@@ -155,14 +155,14 @@ export default function ItemSearch({
             modo === 'produto' ? 'Buscar produto...' :
             'Buscar produto ou item de catálogo...'
           }
-          className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[1.5px] border-line bg-cream px-3 font-[inherit] text-sm text-dark outline-none"
+          className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[1.5px] border-line bg-cream px-3 font-[inherit] text-sm text-dark outline-hidden"
         />
         {modo === 'catalogo' && onSelectCatalogoFiltro && catalogos.length > 0 && (
-          <div className="relative flex-shrink-0">
+          <div className="relative shrink-0">
             <select
               value={catalogoFiltro}
               onChange={e => onSelectCatalogoFiltro(e.target.value)}
-              className="h-[38px] max-w-[150px] cursor-pointer rounded-[9px] border-[1.5px] border-line bg-cream py-0 pl-8 pr-[30px] font-[inherit] text-[13px] text-dark outline-none"
+              className="h-[38px] max-w-[150px] cursor-pointer rounded-[9px] border-[1.5px] border-line bg-cream py-0 pl-8 pr-[30px] font-[inherit] text-[13px] text-dark outline-hidden"
             >
               <option value="">Todos catálogos</option>
               {catalogos.map(c => (
@@ -196,7 +196,7 @@ export default function ItemSearch({
                 onClick={() => { onSelectCatalogoItem(item); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
-                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
+                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
                   <Layers size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -236,7 +236,7 @@ export default function ItemSearch({
                 onClick={() => { onSelectProdutoAvulso(p); onClose(); setQ('') }}
                 className="flex w-full items-center gap-[11px] rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] text-sm font-medium text-dark transition-colors duration-100 hover:bg-cream"
               >
-                <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-line-soft text-dim">
+                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-line-soft text-dim">
                   <Box size={16} />
                 </span>
                 <div className="min-w-0 flex-1">

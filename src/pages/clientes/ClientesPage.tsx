@@ -40,8 +40,8 @@ const FILTROS: { id: FiltroId; label: string; filtros: ClienteFiltros; contagem:
 function Avatar({ nome, inativa }: { nome: string; inativa: boolean }) {
   return (
     <span className={clsx(
-      'grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-full text-base font-bold',
-      inativa ? 'bg-line-deep text-dim opacity-70' : 'bg-teal/[0.13] text-teal'
+      'grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full text-base font-bold',
+      inativa ? 'bg-line-deep text-dim opacity-70' : 'bg-teal/13 text-teal'
     )}>
       {nome.trim().charAt(0).toUpperCase()}
     </span>
@@ -74,7 +74,7 @@ function CadastroRow({ cliente, index, rowZIndex, onAbrir, onEdit, onInativar, o
       data-testid="cadastro-row"
       className={clsx(
         'relative block cursor-pointer rounded-card border border-[#F0EEE9] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-colors duration-100',
-        `mb-3 md:mb-0 md:grid ${GRADE} md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:p-0 md:px-[18px] md:py-3.5 md:shadow-none`,
+        `mb-3 md:mb-0 md:grid ${GRADE} md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:p-0 md:px-section md:py-3.5 md:shadow-none`,
         inativa ? 'bg-cream' : 'bg-white md:bg-transparent',
         'hover:bg-line'
       )}
@@ -94,7 +94,7 @@ function CadastroRow({ cliente, index, rowZIndex, onAbrir, onEdit, onInativar, o
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             {cliente.identificador && (
-              <span className="flex-shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums] md:hidden">
+              <span className="shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums] md:hidden">
                 {cliente.identificador}
               </span>
             )}
@@ -235,8 +235,8 @@ export default function ClientesPage() {
       {/* HEADER */}
       <div className="mb-2 flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Clientes e Fornecedores</h1>
-          <p className="mt-[7px] mb-0 text-[14.5px] leading-[1.5] text-muted">
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Clientes e Fornecedores</h1>
+          <p className="mt-[7px] mb-0 text-[14.5px] leading-normal text-muted">
             Quem compra de você e de quem você compra, num cadastro só.
           </p>
         </div>
@@ -257,7 +257,7 @@ export default function ClientesPage() {
       ) : (
         <>
           {/* FILTROS + BUSCA */}
-          <div className="my-[22px] mb-[18px] flex flex-col gap-3.5">
+          <div className="my-[22px] mb-section flex flex-col gap-3.5">
             <div className="flex flex-wrap gap-2">
               {FILTROS.map(f => {
                 const on = filtro === f.id
@@ -275,7 +275,7 @@ export default function ClientesPage() {
                     {f.label}
                     {count != null && (
                       <span className={clsx(
-                        'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1.5 text-[11px] font-bold',
+                        'grid h-section min-w-section place-items-center rounded-full px-1.5 text-[11px] font-bold',
                         on ? 'bg-white/[0.28] text-white' : 'bg-line-soft text-body'
                       )}>
                         {count}
@@ -294,7 +294,7 @@ export default function ClientesPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por nome ou CPF/CNPJ"
-                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
+                className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark shadow-[0_1px_2px_rgba(0,0,0,0.03)] outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
               />
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function ClientesPage() {
             </div>
           ) : (
             <div className="rounded-none border-0 bg-transparent shadow-none md:rounded-card md:border md:border-[#F0EEE9] md:bg-white md:shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-              <div className={`hidden border-b border-line px-[18px] py-[13px] md:grid ${GRADE} md:gap-4`}>
+              <div className={`hidden border-b border-line px-section py-[13px] md:grid ${GRADE} md:gap-4`}>
                 <SortableHeader label="Identificador" field="numero" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />
                 <SortableHeader label="Cadastro" field="nome" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />
                 <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Contato</div>

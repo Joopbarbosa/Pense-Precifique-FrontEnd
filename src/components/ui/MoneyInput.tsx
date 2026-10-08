@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 /**
  * Campo de valor em R$ (prefixo fixo, só dígitos/vírgula/ponto). Extraído de `CaixaPage.tsx`

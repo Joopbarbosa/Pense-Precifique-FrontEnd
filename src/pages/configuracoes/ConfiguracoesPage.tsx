@@ -66,7 +66,7 @@ function AffixInput({ value, onChange, prefix, suffix, icon, inputMode, error }:
         value={value}
         onChange={e => onChange(e.target.value)}
         inputMode={inputMode}
-        className="h-[52px] min-w-0 flex-1 border-none bg-transparent px-3.5 font-[inherit] text-[17px] font-semibold text-dark outline-none [font-variant-numeric:tabular-nums]"
+        className="h-[52px] min-w-0 flex-1 border-none bg-transparent px-3.5 font-[inherit] text-[17px] font-semibold text-dark outline-hidden [font-variant-numeric:tabular-nums]"
       />
       {suffix && (
         <span className="flex items-center border-l border-line bg-cream px-4 text-[15px] font-semibold text-dim group-focus-within:text-[#1F7A6F]">
@@ -105,7 +105,7 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
           >
             <span className={clsx('flex', on ? 'text-teal' : 'text-dim')}><a.icon size={a.size} /></span>
             {a.label}
-            {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+            {on && <span className="absolute bottom-[-1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
           </button>
         )
       })}
@@ -161,7 +161,7 @@ function PerfilCard({ nome, email, configurada, logoUrl, onEditarPerfil }: {
             <h3 className="mt-[13px] text-[15px] font-bold leading-[1.35] tracking-[-0.01em] text-dark">
               Você ainda não cadastrou os dados da sua empresa
             </h3>
-            <p className="mt-[5px] text-[12.5px] leading-[1.5] text-muted">
+            <p className="mt-[5px] text-[12.5px] leading-normal text-muted">
               Nome, contato e logo aparecem nos PDFs e recibos enviados às clientes.
             </p>
             <button
@@ -243,14 +243,14 @@ function Precificacao({
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,640px)_320px]">
       <div className="flex flex-col gap-6">
-        <div className="animate-[fadeUp_.35s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="mb-[5px] flex items-center gap-[11px]">
-            <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
               <SlidersHorizontal size={15} />
             </span>
             <h2 className="m-0 text-lg font-bold tracking-[-0.01em] text-dark">Como você quer precificar?</h2>
           </div>
-          <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
+          <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-normal text-muted">
             Estes parâmetros alimentam a calculadora de preço de todos os seus produtos.
           </p>
 
@@ -277,8 +277,8 @@ function Precificacao({
             </div>
           </div>
 
-          <div className="mt-6 flex gap-3 rounded-xl border border-teal/[0.18] border-l-[3px] border-l-teal bg-teal/[0.06] px-4 py-3.5">
-            <Info size={15} className="mt-px flex-shrink-0 text-teal" />
+          <div className="mt-6 flex gap-3 rounded-xl border border-teal/18 border-l-[3px] border-l-teal bg-teal/6 px-4 py-3.5">
+            <Info size={15} className="mt-px shrink-0 text-teal" />
             <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
               Alterar estes valores <strong className="font-bold">não recalcula orçamentos já criados</strong>. Somente novos orçamentos usarão os parâmetros atualizados.
             </p>
@@ -332,10 +332,10 @@ function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', t
         else setInternalV(e.target.value)
       }}
       className={clsx(
-        'h-12 w-full rounded-input border-[1.5px] border-line px-3.5 font-[inherit] text-[14.5px] outline-none transition-[border-color,box-shadow] duration-150',
+        'h-12 w-full rounded-input border-[1.5px] border-line px-3.5 font-[inherit] text-[14.5px] outline-hidden transition-[border-color,box-shadow] duration-150',
         readOnly
           ? 'bg-cream text-subtle'
-          : 'bg-white text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+          : 'bg-white text-dark focus:border-teal focus:ring-4 focus:ring-teal/12'
       )}
     />
   )
@@ -343,8 +343,8 @@ function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', t
 
 function SectionHead({ icon, titulo }: { icon: React.ReactNode; titulo: string }) {
   return (
-    <div className="mb-[18px] flex items-center gap-[11px]">
-      <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">{icon}</span>
+    <div className="mb-section flex items-center gap-[11px]">
+      <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">{icon}</span>
       <h2 className="m-0 whitespace-nowrap text-lg font-bold tracking-[-0.01em] text-dark">{titulo}</h2>
     </div>
   )
@@ -395,7 +395,7 @@ function HorarioSemanaEditor({ horarios, onChange }: {
         const h = horarios[d.valor]
         return (
           <div key={d.valor} className="flex flex-wrap items-center gap-3 rounded-input border-[1.5px] border-line px-3.5 py-3">
-            <span className="w-[118px] flex-shrink-0 text-[13.5px] font-semibold text-dark">{d.label}</span>
+            <span className="w-[118px] shrink-0 text-[13.5px] font-semibold text-dark">{d.label}</span>
             <SegmentedControl
               options={[{ value: true, label: 'Fechado' }, { value: false, label: 'Aberto' }]}
               value={h.fechado}
@@ -403,7 +403,7 @@ function HorarioSemanaEditor({ horarios, onChange }: {
               height="h-9"
               optionWidth="w-[76px]"
               textSize="text-[12.5px]"
-              className="flex-shrink-0"
+              className="shrink-0"
             />
             {!h.fechado && (
               <div className="flex flex-1 items-center gap-2">
@@ -411,14 +411,14 @@ function HorarioSemanaEditor({ horarios, onChange }: {
                   type="time"
                   value={h.abertura}
                   onChange={e => onChange(d.valor, { abertura: e.target.value })}
-                  className="h-9 w-[110px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-none focus:border-teal"
+                  className="h-9 w-[110px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal"
                 />
                 <span className="text-[12.5px] text-muted">até</span>
                 <input
                   type="time"
                   value={h.fechamento}
                   onChange={e => onChange(d.valor, { fechamento: e.target.value })}
-                  className="h-9 w-[110px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-none focus:border-teal"
+                  className="h-9 w-[110px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal"
                 />
               </div>
             )}
@@ -522,12 +522,12 @@ function PerfilEmpresa({
   }
 
   return (
-    <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
+    <div className="max-w-[640px] animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<Building2 size={17} />} titulo="Perfil da empresa" />
 
-        <div className="mb-[22px] flex flex-wrap items-center gap-[18px] border-b border-line pb-[22px]">
-          <span className="grid h-[84px] w-[84px] flex-shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-cream shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+        <div className="mb-[22px] flex flex-wrap items-center gap-section border-b border-line pb-[22px]">
+          <span className="grid h-[84px] w-[84px] shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-cream shadow-card">
             {logoUrl
               ? <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
               : <img src="/logo.png" width={50} height={50} alt="Logo" className="object-contain" />
@@ -553,11 +553,11 @@ function PerfilEmpresa({
                 </Button>
               )}
             </div>
-            <p className="mt-[9px] text-[12.5px] leading-[1.5] text-dim">PNG ou JPG, fundo transparente recomendado.</p>
+            <p className="mt-[9px] text-[12.5px] leading-normal text-dim">PNG ou JPG, fundo transparente recomendado.</p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-[18px]">
+        <div className="flex flex-col gap-section">
           <CfgField label="Nome da empresa">
             <CfgInput value={nome} onChange={setNome} placeholder="Nome do seu ateliê ou negócio" />
           </CfgField>
@@ -572,8 +572,8 @@ function PerfilEmpresa({
           </CfgField>
         </div>
 
-        <div className="mt-[22px] flex gap-3 rounded-xl border border-teal/[0.18] border-l-[3px] border-l-teal bg-teal/[0.06] px-4 py-3.5">
-          <Info size={15} className="mt-px flex-shrink-0 text-teal" />
+        <div className="mt-[22px] flex gap-3 rounded-xl border border-teal/18 border-l-[3px] border-l-teal bg-teal/6 px-4 py-3.5">
+          <Info size={15} className="mt-px shrink-0 text-teal" />
           <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
             Estas informações aparecem em todos os PDFs gerados pelo sistema (orçamentos, recibos e multas).
           </p>
@@ -632,7 +632,7 @@ function ContaSeguranca() {
   }
 
   return (
-    <div className="flex max-w-[640px] animate-[fadeUp_.35s_ease_both] flex-col gap-[22px]">
+    <div className="flex max-w-[640px] animate-fade-up flex-col gap-[22px]">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<ShieldCheck size={17} />} titulo="Dados de acesso" />
 
@@ -662,7 +662,7 @@ function ContaSeguranca() {
 
       <div className="rounded-card border-[1.5px] border-[#F2D8CF] bg-[#FEF8F6] px-7 py-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <h3 className="m-0 text-[15.5px] font-bold text-danger-deep">Excluir conta</h3>
-        <p className="mb-[18px] mt-[7px] max-w-[440px] text-[13.5px] leading-[1.55] text-[#8A5A4C]">
+        <p className="mb-section mt-[7px] max-w-[440px] text-[13.5px] leading-[1.55] text-[#8A5A4C]">
           Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.
         </p>
         <button className="h-[46px] whitespace-nowrap rounded-input border-[1.5px] border-[#E3A799] bg-transparent px-5 font-[inherit] text-sm font-semibold text-danger transition-colors duration-150 hover:bg-[#FBEDE7]">
@@ -775,7 +775,7 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
               <input
                 type="number" min={1} max={24} value={maxParcelas}
                 onChange={e => setMaxParcelas(e.target.value.replace(/[^\d]/g, ''))}
-                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
               />
               <p className="mt-1.5 text-xs text-muted">1x equivale a não oferecer parcelamento — a venda só pergunta o número de parcelas quando a máxima for maior que 1.</p>
             </CfgField>
@@ -797,7 +797,7 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
                   <div className="mt-3 flex flex-col gap-2">
                     {Array.from({ length: max }, (_, i) => i + 1).map(p => (
                       <div key={p} className="flex items-center gap-3">
-                        <span className="w-16 flex-shrink-0 text-[13.5px] text-body">{p}x</span>
+                        <span className="w-16 shrink-0 text-[13.5px] text-body">{p}x</span>
                         <AffixInput
                           value={taxasPorParcela[p] ?? ''}
                           onChange={v => setTaxasPorParcela(prev => ({ ...prev, [p]: v }))}
@@ -885,14 +885,14 @@ function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }
       metodo.ativo ? 'border-line bg-white' : 'border-line bg-cream opacity-70'
     )}>
       <div className="flex min-w-0 items-center gap-3">
-        <span className={clsx('grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px]', metodo.ativo ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim')}>
+        <span className={clsx('grid h-10 w-10 shrink-0 place-items-center rounded-[11px]', metodo.ativo ? 'bg-teal/10 text-teal' : 'bg-line-soft text-dim')}>
           {ICON_TIPO_METODO[metodo.tipo]}
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="truncate text-[14.5px] font-semibold text-dark">{label}</span>
             {metodo.tipo === 'OUTRO' && (
-              <span className="flex-shrink-0 rounded-full bg-line-soft px-2 py-0.5 text-[10.5px] font-semibold text-subtle">Personalizado</span>
+              <span className="shrink-0 rounded-full bg-line-soft px-2 py-0.5 text-[10.5px] font-semibold text-subtle">Personalizado</span>
             )}
           </div>
           {podeConfigurarTaxa && (
@@ -909,7 +909,7 @@ function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }
         height="h-9"
         optionWidth="w-[52px]"
         textSize="text-[12.5px]"
-        className={clsx('flex-shrink-0', atualizando && 'pointer-events-none opacity-60')}
+        className={clsx('shrink-0', atualizando && 'pointer-events-none opacity-60')}
       />
     </div>
   )
@@ -944,18 +944,18 @@ function MetodosPagamento({ metodos, onReload }: {
   const metodosOrdenados = [...metodos].sort((a, b) => (ordem[a.tipo] - ordem[b.tipo]) || (a.nome || '').localeCompare(b.nome || ''))
 
   return (
-    <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
+    <div className="max-w-[640px] animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="mb-[5px] flex items-center justify-between gap-3">
           <div className="flex items-center gap-[11px]">
-            <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
               <Wallet size={16} />
             </span>
             <h2 className="m-0 text-lg font-bold tracking-[-0.01em] text-dark">Métodos de Pagamento</h2>
           </div>
           <Button variant="ghost" icon={<Plus size={14} />} onClick={() => setModalNovoAberto(true)}>Novo método</Button>
         </div>
-        <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
+        <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-normal text-muted">
           Formas de pagamento aceitas no Caixa — uma venda pode ser dividida entre vários.
         </p>
 
@@ -1104,18 +1104,18 @@ function UnidadesMedida() {
   }
 
   return (
-    <div className="max-w-[640px] animate-[fadeUp_.35s_ease_both]">
+    <div className="max-w-[640px] animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="mb-[5px] flex items-center justify-between gap-3">
           <div className="flex items-center gap-[11px]">
-            <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
               <Ruler size={16} />
             </span>
             <h2 className="m-0 text-lg font-bold tracking-[-0.01em] text-dark">Unidades de medida</h2>
           </div>
           <Button variant="ghost" icon={<Plus size={14} />} onClick={abrirNova}>Nova unidade</Button>
         </div>
-        <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-[1.5] text-muted">
+        <p className="mb-[22px] ml-[49px] mt-0 text-[13.5px] leading-normal text-muted">
           Usadas no cadastro de Insumos. As marcadas como Padrão são do sistema e não podem ser editadas nem excluídas.
         </p>
 
@@ -1133,7 +1133,7 @@ function UnidadesMedida() {
             {unidades.map(u => (
               <div key={u.id} className="flex items-center justify-between gap-4 rounded-input border-[1.5px] border-line bg-white px-4 py-3.5">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
                     <Ruler size={16} />
                   </span>
                   <div className="min-w-0">
@@ -1145,7 +1145,7 @@ function UnidadesMedida() {
                   </div>
                 </div>
                 {/* #605 — unidade do sistema não tem Editar nem Excluir. */}
-                {!u.padrao && <div className="flex flex-shrink-0 items-center gap-1.5">
+                {!u.padrao && <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     onClick={() => abrirEdicao(u)}
                     aria-label="Editar"
@@ -1187,7 +1187,7 @@ function UnidadesMedida() {
         description="Esta ação não pode ser desfeita."
       >
         {erroExclusao && (
-          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13px] text-danger-deep">
+          <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13px] text-danger-deep">
             {erroExclusao}
           </p>
         )}
@@ -1248,7 +1248,7 @@ export default function ConfiguracoesPage() {
     <AppLayout active="config" compact>
 
       <div className="mb-[22px] flex items-center gap-[15px]">
-        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
+        <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
           <Settings size={26} />
         </span>
         <div>

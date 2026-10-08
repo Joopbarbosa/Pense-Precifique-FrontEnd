@@ -117,13 +117,13 @@ function AbrirCaixaView({ onAberto }: { onAberto: (t: CaixaTurnoResponse) => voi
           <Wallet size={30} />
         </span>
         <h1 className="m-0 text-[22px] font-bold tracking-[-0.02em] text-dark">Abrir o Caixa</h1>
-        <p className="mt-2 mb-7 text-[14px] leading-[1.5] text-muted">
+        <p className="mt-2 mb-7 text-[14px] leading-normal text-muted">
           Informe o valor em dinheiro que está na gaveta agora para começar a registrar vendas.
         </p>
         {avisoHorario && (
-          <div className="mb-5 flex w-full items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.06] px-3.5 py-3 text-left">
-            <AlertTriangle size={15} className="mt-px flex-shrink-0 text-warning-alt" />
-            <p className="m-0 text-[12.5px] leading-[1.5] text-warning-alt">{avisoHorario}</p>
+          <div className="mb-5 flex w-full items-start gap-2.5 rounded-input border border-orange/30 bg-orange/6 px-3.5 py-3 text-left">
+            <AlertTriangle size={15} className="mt-px shrink-0 text-warning-alt" />
+            <p className="m-0 text-[12.5px] leading-normal text-warning-alt">{avisoHorario}</p>
           </div>
         )}
         <div className="w-full text-left">
@@ -188,7 +188,7 @@ function SangriaSuprimentoModal({ open, onClose, onSaved }: {
         </div>
       }
     >
-      <div className="flex flex-col gap-[18px]">
+      <div className="flex flex-col gap-section">
         <SegmentedControl
           options={[
             { value: 'SANGRIA' as const, label: 'Sangria (retirada)' },
@@ -300,18 +300,18 @@ function FecharCaixaModal({ open, onClose, turno, onFechado }: {
             </span>
           </div>
           {resultado.fechamentoJustificativa && (
-            <div className="mt-1 rounded-xl border border-line bg-cream px-3.5 py-3 text-[13px] leading-[1.5] text-body">
+            <div className="mt-1 rounded-xl border border-line bg-cream px-3.5 py-3 text-[13px] leading-normal text-body">
               <span className="mb-1 block text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">Justificativa</span>
               {resultado.fechamentoJustificativa}
             </div>
           )}
-          <p className="mt-2 text-[12.5px] leading-[1.5] text-muted">
+          <p className="mt-2 text-[12.5px] leading-normal text-muted">
             O caixa foi fechado normalmente — diferença é só informativa, não bloqueia o fechamento.
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-[14px]">
-          <div className="rounded-xl border border-teal/[0.18] bg-teal/[0.06] px-4 py-3.5 text-[13px] leading-[1.5] text-[#3F5B54]">
+          <div className="rounded-xl border border-teal/18 bg-teal/6 px-4 py-3.5 text-[13px] leading-normal text-[#3F5B54]">
             Conte o dinheiro que está na gaveta agora e informe o valor abaixo. O sistema compara
             com o valor esperado (fundo + vendas em dinheiro + suprimentos − sangrias).
           </div>
@@ -418,7 +418,7 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
     >
       {cancelando ? (
         <div className="flex flex-col gap-[14px]">
-          <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] leading-[1.5] text-danger-deep">
+          <div className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] leading-normal text-danger-deep">
             Confira se o estoque deve voltar antes de confirmar. Para corrigir um erro, cancele e registre uma nova venda.
           </div>
           <Field label="Motivo do cancelamento" size="md">
@@ -451,7 +451,7 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
               value={senha}
               onChange={e => setSenha(e.target.value)}
               placeholder="Sua senha de login"
-              className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
+              className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
             />
           </Field>
           {erro && <p className="text-[12.5px] font-medium text-danger-deep">{erro}</p>}
@@ -517,7 +517,7 @@ function AvisoEstoqueNegativoModal({ open, avisos, onCancel, onConfirmar, confir
     >
       <div className="flex flex-col gap-3">
         {avisos.map(a => (
-          <div key={a.componenteId} className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] leading-[1.5] text-danger-deep">
+          <div key={a.componenteId} className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] leading-normal text-danger-deep">
             {a.mensagem}
           </div>
         ))}
@@ -681,7 +681,7 @@ function ModalEscolherFormaPagamento({ open, onClose, metodos, selecionados, tot
               onClick={() => setParcelasEscolhidas(prev => ({ ...prev, [m.id]: p }))}
               className={clsx(
                 'flex h-11 items-center justify-center rounded-input border-[1.5px] font-[inherit] text-[13.5px] font-semibold transition-colors duration-150',
-                escolhida === p ? 'border-teal bg-teal/[0.08] text-teal' : 'border-line bg-white text-body'
+                escolhida === p ? 'border-teal bg-teal/8 text-teal' : 'border-line bg-white text-body'
               )}
             >
               {p}x
@@ -722,16 +722,16 @@ function ModalEscolherFormaPagamento({ open, onClose, metodos, selecionados, tot
               onClick={() => toggle(m.id)}
               className={clsx(
                 'flex items-center gap-3 rounded-input border-[1.5px] px-3.5 py-3 text-left font-[inherit] transition-colors duration-150',
-                on ? 'border-teal/40 bg-teal/[0.06]' : 'border-line bg-white'
+                on ? 'border-teal/40 bg-teal/6' : 'border-line bg-white'
               )}
             >
               <span className={clsx(
-                'grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
+                'grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
                 on ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
               )}>
                 {on && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
               </span>
-              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] bg-cream text-teal">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-cream text-teal">
                 {ICON_TIPO_METODO_PAGAMENTO[m.tipo]}
               </span>
               <span className="text-[14.5px] font-medium text-dark">{rotuloMetodoPagamento(m.tipo, m.nome)}</span>
@@ -774,7 +774,7 @@ function VendaConcluidaModal({ venda, onNovaVenda }: {
               {item.customizacoes.map(c => (
                 <div key={c.id} className="flex items-baseline justify-between gap-2 py-0.5 pl-3 text-[12px] text-muted">
                   <span className="min-w-0 truncate">+ {c.quantidade}x {c.produtoNome}</span>
-                  <span className="flex-shrink-0">{moeda(c.subtotal)}</span>
+                  <span className="shrink-0">{moeda(c.subtotal)}</span>
                 </div>
               ))}
             </div>
@@ -842,7 +842,7 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
             onChange={e => setQ(e.target.value)}
             autoFocus
             placeholder="Buscar por nome ou telefone..."
-            className="h-11 w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
+            className="h-11 w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus"
           />
         </div>
         <div className="flex max-h-[360px] flex-col gap-0.5 overflow-y-auto">
@@ -872,7 +872,7 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
               onClick={() => { onSelect(c); onClose() }}
               className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
-              <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-teal/[0.12] font-bold text-teal">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal/12 font-bold text-teal">
                 {c.nome.charAt(0)}
               </span>
               <div className="min-w-0 flex-1">
@@ -1076,14 +1076,14 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-[#F0EEE9] bg-white px-5 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
               <Receipt size={18} />
             </span>
             <h1 className="m-0 text-[17px] font-bold tracking-[-0.02em] text-dark">Caixa</h1>
           </div>
           {/* Escondido quando o bar quebra linha (mobile) — sobra órfão ao lado do título sem
               nada à direita para separar. */}
-          <div className="hidden h-6 w-px flex-shrink-0 bg-line sm:block" />
+          <div className="hidden h-6 w-px shrink-0 bg-line sm:block" />
           <div className="flex flex-wrap items-center gap-2">
             <Tag tone="green" icon={<Clock size={13} />}>
               Aberto às {new Date(turno.dataAbertura).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -1108,7 +1108,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_380px]">
         {/* Coluna esquerda — cliente + itens (#511, mesmo padrão do Orçamento) */}
-        <div className="flex flex-col gap-[18px]">
+        <div className="flex flex-col gap-section">
           <SectionCard step="1" label="Cliente" hint="Quem está comprando? (opcional)">
             <div className="px-5 pb-5 pt-3.5">
               <Button variant="secondary" fullWidth icon={<Users size={16} />} onClick={() => setModalCliente(true)}>
@@ -1116,7 +1116,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
               </Button>
               {cliente && (
                 <div className="mt-3 flex items-center gap-3 rounded-xl border border-teal/20 bg-teal/[0.07] px-3.5 py-3">
-                  <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-teal/[0.15] text-[15px] font-bold text-teal">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-teal/15 text-[15px] font-bold text-teal">
                     {cliente.nome.charAt(0)}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -1126,7 +1126,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
                   <button
                     type="button"
                     onClick={() => setCliente(null)}
-                    className="flex-shrink-0 cursor-pointer border-none bg-transparent px-1.5 py-1 font-[inherit] text-[12.5px] font-semibold text-teal"
+                    className="shrink-0 cursor-pointer border-none bg-transparent px-1.5 py-1 font-[inherit] text-[12.5px] font-semibold text-teal"
                   >
                     Remover
                   </button>
@@ -1146,7 +1146,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
               <button
                 type="button"
                 onClick={() => setBuscaAberta(o => !o)}
-                className="flex h-12 w-full items-center justify-center gap-[9px] rounded-input border-[1.5px] border-dashed border-teal/50 bg-teal/[0.05] font-[inherit] text-[14.5px] font-semibold text-teal transition-colors duration-150 hover:bg-teal/10"
+                className="flex h-12 w-full items-center justify-center gap-[9px] rounded-input border-[1.5px] border-dashed border-teal/50 bg-teal/5 font-[inherit] text-[14.5px] font-semibold text-teal transition-colors duration-150 hover:bg-teal/10"
               >
                 <Plus size={16} /> Adicionar item
               </button>
@@ -1247,7 +1247,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
                     if (!m) return null
                     return (
                       <div key={id} className="flex items-center gap-3 border-b border-line bg-white px-3 py-2.5 last:border-b-0">
-                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] bg-cream text-teal">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-cream text-teal">
                           {ICON_TIPO_METODO_PAGAMENTO[m.tipo]}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-body">
@@ -1258,7 +1258,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
                             </span>
                           )}
                         </span>
-                        <div className="w-[120px] flex-shrink-0">
+                        <div className="w-[120px] shrink-0">
                           <MoneyInput
                             value={pagamentos[m.id] ?? ''}
                             onChange={v => setPagamentos(prev => ({ ...prev, [m.id]: v }))}
@@ -1357,7 +1357,7 @@ export default function CaixaPage() {
             (tags + ações), então não duplica aqui. */}
         {!turno && (
           <div className="mb-5 flex items-center gap-[15px]">
-            <span className="grid h-[46px] w-[46px] flex-shrink-0 place-items-center rounded-[13px] bg-teal/10 text-teal">
+            <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[13px] bg-teal/10 text-teal">
               <Receipt size={22} />
             </span>
             <h1 className="m-0 text-[22px] font-bold tracking-[-0.02em] text-dark">Caixa</h1>

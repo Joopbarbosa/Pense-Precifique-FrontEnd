@@ -89,14 +89,14 @@ export default function DesagruparProducaoModal({ producao, onClose, onSuccess }
             type="button"
             disabled={enviando}
             onClick={() => responder(op.value)}
-            className="flex items-start gap-3 rounded-[11px] border-[1.5px] border-line bg-white px-3.5 py-3 text-left transition-colors duration-150 hover:border-teal hover:bg-teal/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-start gap-3 rounded-[11px] border-[1.5px] border-line bg-white px-3.5 py-3 text-left transition-colors duration-150 hover:border-teal hover:bg-teal/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span className="mt-0.5 grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+            <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
               {op.icon}
             </span>
             <span>
               <span className="block text-[14px] font-semibold text-dark">{op.label}</span>
-              <span className="mt-0.5 block text-[12.5px] leading-[1.5] text-muted">{op.hint}</span>
+              <span className="mt-0.5 block text-[12.5px] leading-normal text-muted">{op.hint}</span>
             </span>
           </button>
         ))}

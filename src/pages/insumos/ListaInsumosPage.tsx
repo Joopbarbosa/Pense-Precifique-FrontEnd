@@ -126,7 +126,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onInativar, onReativar, onE
   return (
     <div
       className={clsx(
-        'hidden cursor-pointer grid-cols-[0.7fr_2fr_0.55fr_0.85fr_0.8fr_1fr_1fr_40px] items-center gap-3 border-b border-line px-[18px] py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid',
+        'hidden cursor-pointer grid-cols-[0.7fr_2fr_0.55fr_0.85fr_0.8fr_1fr_1fr_40px] items-center gap-3 border-b border-line px-section py-[13px] transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid',
         !insumo.ativo && 'opacity-65'
       )}
       style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.04}s` }}
@@ -147,7 +147,7 @@ function InsumoRow({ insumo, index, onVer, onEditar, onInativar, onReativar, onE
           fracionavel={insumo.fracionavel}
           permitirEstoqueNegativo={insumo.permitirEstoqueNegativo}
           estoqueAtual={insumo.estoqueAtual}
-          unidade={insumo.unidadeMedida}
+          unidade={insumo.unidadeMedida ?? undefined}
           variant="busca"
         />
       </div>
@@ -191,7 +191,7 @@ function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, on
 
   return (
     <div
-      className={clsx('block cursor-pointer border-b border-line px-[18px] py-4 sm:hidden', !insumo.ativo && 'opacity-65')}
+      className={clsx('block cursor-pointer border-b border-line px-section py-4 sm:hidden', !insumo.ativo && 'opacity-65')}
       style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.04}s` }}
       onClick={onVer}
     >
@@ -211,11 +211,11 @@ function InsumoCard({ insumo, index, onVer, onEditar, onInativar, onReativar, on
             fracionavel={insumo.fracionavel}
             permitirEstoqueNegativo={insumo.permitirEstoqueNegativo}
             estoqueAtual={insumo.estoqueAtual}
-            unidade={insumo.unidadeMedida}
+            unidade={insumo.unidadeMedida ?? undefined}
             variant="busca"
           />
         </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <div className="text-right">
             <div className="text-[11px] uppercase tracking-[0.04em] text-muted">Custo</div>
             <div className="text-sm font-semibold text-dark [font-variant-numeric:tabular-nums]">{moeda(insumo.custoUnitario)}/{insumo.unidadeMedida}</div>
@@ -258,7 +258,7 @@ function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect
   return (
     <div className="rounded-xl border border-line bg-cream px-4 py-3.5">
       <div className="mb-2.5 flex items-center gap-2.5">
-        <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
           <Box size={14} />
         </span>
         <div className="min-w-0 flex-1">
@@ -289,7 +289,7 @@ function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
             placeholder="Buscar insumo substituto…"
-            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
           />
           {open && (
             <div className="absolute inset-x-0 top-[44px] z-20 max-h-[220px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
@@ -305,13 +305,13 @@ function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect
                 >
                   <span className="flex w-full items-center justify-between gap-2.5">
                     <span className="text-[13.5px] font-semibold text-dark">{i.nome}</span>
-                    <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                    <span className="shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
                   </span>
                   <EstoqueTags
                     fracionavel={i.fracionavel}
                     permitirEstoqueNegativo={i.permitirEstoqueNegativo}
                     estoqueAtual={i.estoqueAtual}
-                    unidade={i.unidadeMedida}
+                    unidade={i.unidadeMedida ?? undefined}
                     variant="busca"
                   />
                 </button>
@@ -400,7 +400,7 @@ function SeletorInsumoSubstitutoVinculo({ label, insumoAtualId, selecionado, onS
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
             placeholder="Buscar insumo substituto…"
-            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+            className="h-[40px] w-full rounded-[9px] border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
           />
           {open && (
             <div className="absolute inset-x-0 top-[44px] z-20 max-h-[220px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
@@ -416,13 +416,13 @@ function SeletorInsumoSubstitutoVinculo({ label, insumoAtualId, selecionado, onS
                 >
                   <span className="flex w-full items-center justify-between gap-2.5">
                     <span className="text-[13.5px] font-semibold text-dark">{i.nome}</span>
-                    <span className="flex-shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
+                    <span className="shrink-0 text-xs text-muted">{i.unidadeMedida}</span>
                   </span>
                   <EstoqueTags
                     fracionavel={i.fracionavel}
                     permitirEstoqueNegativo={i.permitirEstoqueNegativo}
                     estoqueAtual={i.estoqueAtual}
-                    unidade={i.unidadeMedida}
+                    unidade={i.unidadeMedida ?? undefined}
                     variant="busca"
                   />
                 </button>
@@ -562,18 +562,18 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, catalogoVincu
                 <div className="overflow-hidden rounded-[14px] border border-line">
                   {produtos.map((p, i) => (
                     <div key={p.id} className={clsx('flex items-center gap-3.5 bg-white px-4 py-3.5', i > 0 && 'border-t border-line')}>
-                      <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
                         <Box size={15} />
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           {p.identificador && (
-                            <span className="flex-shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
+                            <span className="shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
                           )}
                           <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
                         </div>
                       </div>
-                      <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
+                      <span className="shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
                         {TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo}
                       </span>
                     </div>
@@ -606,7 +606,7 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, catalogoVincu
                 <div className="overflow-hidden rounded-[14px] border border-line">
                   {catalogoVinculos.map((v, i) => (
                     <div key={v.vinculoId} className={clsx('flex items-center gap-3.5 bg-white px-4 py-3.5', i > 0 && 'border-t border-line')}>
-                      <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal">
                         <Layers size={15} />
                       </span>
                       <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{v.catalogoNome}</span>
@@ -670,7 +670,7 @@ export default function ListaInsumosPage() {
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`),
+    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`, false),
   })
 
   const carregarContadores = () => {
@@ -801,7 +801,7 @@ export default function ListaInsumosPage() {
 
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Meus Insumos</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Meus Insumos</h1>
           <p className="mt-[7px] mb-0 text-[14.5px] text-muted">
             A base de toda precificação justa começa aqui.
           </p>
@@ -831,7 +831,7 @@ export default function ListaInsumosPage() {
         />
       ) : (
         <>
-          <div className="mb-[18px] flex flex-col gap-3.5">
+          <div className="mb-section flex flex-col gap-3.5">
             <div className="flex flex-wrap gap-2">
               {FILTERS.map(f => {
                 const on = filtro === f
@@ -856,7 +856,7 @@ export default function ListaInsumosPage() {
                     {f}
                     {count != null && (
                       <span className={clsx(
-                        'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1.5 text-[11px] font-bold',
+                        'grid h-section min-w-section place-items-center rounded-full px-1.5 text-[11px] font-bold',
                         on
                           ? 'bg-white/[0.28] text-white'
                           : chip ? clsx(chip.badgeBgClass, chip.badgeTextClass) : 'bg-line-soft text-body'
@@ -877,13 +877,13 @@ export default function ListaInsumosPage() {
                 value={query}
                 onChange={e => handleQueryChange(e.target.value)}
                 placeholder="Buscar por nome ou marca…"
-                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                className="h-11 w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
               />
             </div>
           </div>
 
           <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <div className="hidden grid-cols-[0.7fr_2fr_0.55fr_0.85fr_0.8fr_1fr_1fr_40px] gap-3 border-b border-line px-[18px] py-[13px] sm:grid">
+            <div className="hidden grid-cols-[0.7fr_2fr_0.55fr_0.85fr_0.8fr_1fr_1fr_40px] gap-3 border-b border-line px-section py-[13px] sm:grid">
               {COLUNAS.map((col, k) => (
                 <div key={k} className={clsx(!col.campo && 'flex items-center text-[11.5px] font-semibold uppercase tracking-[0.04em] text-dim')}>
                   {col.campo ? (
@@ -933,7 +933,7 @@ export default function ListaInsumosPage() {
                 disabled={loadingMore}
                 className={clsx(
                   'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/[0.06]'
+                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
                 )}
               >
                 {loadingMore

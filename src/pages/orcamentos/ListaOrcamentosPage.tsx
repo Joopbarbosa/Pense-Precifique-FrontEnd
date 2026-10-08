@@ -13,6 +13,7 @@ import { STATUS_LABEL } from '../../constants'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { dispararDownloadBlob } from '../../utils/download'
+import { dataLocalISO } from '../../utils/dataLocal'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -73,7 +74,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
 
   return (
     <div
-      className="hidden cursor-pointer grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-[18px] py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid"
+      className="hidden cursor-pointer grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-section py-3.5 transition-colors duration-100 last:border-b-0 hover:bg-line sm:grid"
       onClick={onVerDetalhes}
     >
       <span className="text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">
@@ -115,7 +116,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
 
   return (
     <div
-      className="block cursor-pointer border-b border-line px-[18px] py-4 sm:hidden"
+      className="block cursor-pointer border-b border-line px-section py-4 sm:hidden"
       style={{ animation: 'fadeUp .4s ease both', animationDelay: `${index * 0.05}s` }}
       onClick={onVerDetalhes}
     >
@@ -133,7 +134,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
             <span className="text-[13px] text-muted">{fmtData(orc.createdAt)}</span>
           </div>
         </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <span className="text-[15px] font-bold text-dark">{fmt(orc.total)}</span>
           <div onClick={e => e.stopPropagation()}>
             <ActionMenu items={menuItems} align="right" />
@@ -251,9 +252,8 @@ export default function ListaOrcamentosPage() {
     const today = new Date()
     const past = new Date(today)
     past.setDate(today.getDate() - days)
-    const iso = (d: Date) => d.toISOString().split('T')[0]
-    setDateFrom(iso(past))
-    setDateTo(iso(today))
+    setDateFrom(dataLocalISO(past))
+    setDateTo(dataLocalISO(today))
   }
 
   const handleAplicarPeriodo = () => {
@@ -291,7 +291,7 @@ export default function ListaOrcamentosPage() {
       {/* HEADER */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Orçamentos</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Orçamentos</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Acompanhe e gerencie todos os seus orçamentos.</p>
         </div>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/orcamentos/novo')}>
@@ -300,7 +300,7 @@ export default function ListaOrcamentosPage() {
       </div>
 
       {error && (
-        <div className="mb-[18px] rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-[18px] py-3.5 text-sm text-danger">
+        <div className="mb-section rounded-input border border-[#F5C4B8] bg-[#FCF0EC] px-section py-3.5 text-sm text-danger">
           {error}
         </div>
       )}
@@ -319,7 +319,7 @@ export default function ListaOrcamentosPage() {
       ) : (
         <>
           {/* FILTROS — chips de status */}
-          <div className="mb-[18px] flex flex-col gap-3.5">
+          <div className="mb-section flex flex-col gap-3.5">
             <div className="flex flex-wrap gap-2">
               {FILTERS.map(f => {
                 const on = filtro === f.value
@@ -349,12 +349,12 @@ export default function ListaOrcamentosPage() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder="Buscar por cliente ou número…"
-                  className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-11 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
               </div>
 
               {/* Dropdown de período */}
-              <div ref={periodRef} className="relative flex-shrink-0">
+              <div ref={periodRef} className="relative shrink-0">
                 <button
                   onClick={() => setPeriodOpen(o => !o)}
                   className={clsx(
@@ -380,7 +380,7 @@ export default function ListaOrcamentosPage() {
                         <button
                           key={d}
                           onClick={() => setPreset(d)}
-                          className="h-[30px] cursor-pointer rounded-full border border-line bg-cream px-3 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-100 hover:bg-teal/[0.08] hover:text-teal"
+                          className="h-[30px] cursor-pointer rounded-full border border-line bg-cream px-3 font-[inherit] text-[12.5px] font-semibold text-body transition-colors duration-100 hover:bg-teal/8 hover:text-teal"
                         >
                           {d === 0 ? lbl : `Últimos ${lbl}`}
                         </button>
@@ -398,7 +398,7 @@ export default function ListaOrcamentosPage() {
                             max={max || undefined}
                             min={min || undefined}
                             onChange={e => setter(e.target.value)}
-                            className="h-[42px] w-full rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-[13.5px] text-dark outline-none"
+                            className="h-[42px] w-full rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-[13.5px] text-dark outline-hidden"
                           />
                         </label>
                       ))}
@@ -442,7 +442,7 @@ export default function ListaOrcamentosPage() {
             <>
               {/* TABELA */}
               <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-                <div className="hidden grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-[18px] py-[13px] sm:grid">
+                <div className="hidden grid-cols-[92px_1.4fr_1fr_1.1fr_1.2fr_44px] items-center gap-3.5 border-b border-line px-section py-[13px] sm:grid">
                   <SortableHeader label="Número" field="numero" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
                   <SortableHeader label="Cliente" field="cliente" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
                   <SortableHeader label="Total" field="total" activeField={sortField} dir={sortDir} onSort={handleSortClick} />
@@ -483,7 +483,7 @@ export default function ListaOrcamentosPage() {
                     onClick={handleCarregarMais}
                     disabled={loadingMore}
                     className={clsx(
-                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-[18px] font-[inherit] text-[13.5px] font-semibold text-body',
+                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-section font-[inherit] text-[13.5px] font-semibold text-body',
                       loadingMore ? 'cursor-default opacity-60' : 'cursor-pointer'
                     )}
                   >

@@ -40,7 +40,7 @@ const novaChave = () => `l${++seq}`
 const GRADE_UNICO = 'lg:grid-cols-[1.7fr_0.9fr_1fr_1.35fr_0.9fr_40px]'
 const GRADE_MULTIPLOS = 'lg:grid-cols-[1.4fr_1.3fr_0.9fr_1fr_1.35fr_0.9fr_40px]'
 
-const inputQtd = 'h-11 w-full rounded-input border-[1.5px] bg-white px-3 font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus [font-variant-numeric:tabular-nums]'
+const inputQtd = 'h-11 w-full rounded-input border-[1.5px] bg-white px-3 font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus [font-variant-numeric:tabular-nums]'
 
 /**
  * Prévia de exibição (RN-NOVA-4: "o custo unitário da linha aparece ao vivo"; #576: o valor da linha
@@ -126,7 +126,7 @@ export default function FormCompraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const adicionarInsumo = (i: { id: string; identificador?: string; nome: string; marca?: string | null; unidadeMedida: string; ativo: boolean }) => {
+  const adicionarInsumo = (i: { id: string; identificador?: string; nome: string; marca?: string | null; unidadeMedida: string | null; ativo: boolean }) => {
     setLinhas(prev => [...prev, {
       key: novaChave(),
       insumo: { id: i.id, identificador: i.identificador ?? '', nome: i.nome, marca: i.marca ?? null, unidade: i.unidadeMedida, ativo: i.ativo },
@@ -233,7 +233,7 @@ export default function FormCompraPage() {
     return (
       <AppLayout active="compras" compact>
         {erroCarga
-          ? <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
+          ? <div className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
           : <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando compra…</div>}
       </AppLayout>
     )
@@ -247,7 +247,7 @@ export default function FormCompraPage() {
           <ChevronRight size={15} className="text-dim" />
           <span className="font-semibold text-body">{titulo}</span>
         </div>
-        <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">{titulo}</h1>
+        <h1 className="m-0 text-[28px] font-bold tracking-tight text-dark">{titulo}</h1>
         <p className="mb-0 mt-1.5 text-[14px] text-muted">Salve como rascunho para terminar depois. O estoque e o custo dos insumos só mudam quando você confirmar.</p>
       </div>
 
@@ -256,10 +256,10 @@ export default function FormCompraPage() {
         {/* 1 — Dados da compra */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="1" title="Dados da compra" subtitle="Quando, de quem e como foi paga." />
-          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-section md:grid-cols-2 xl:grid-cols-4">
             <Field label="Data da compra" required size="md">
               <input type="date" value={dataCompra} max={hojeIso()} onChange={e => setDataCompra(e.target.value)}
-                className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+                className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </Field>
             <Field label="Mais de um fornecedor?" group size="md">
               <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
@@ -305,7 +305,7 @@ export default function FormCompraPage() {
                   <div key={l.key} data-testid="linha-compra" className={clsx('grid grid-cols-1 gap-3 border-t border-line px-4 py-3 first:border-t-0 lg:items-start',
                     multiplos ? GRADE_MULTIPLOS : GRADE_UNICO)}>
                     <div className="flex min-h-11 min-w-0 items-center gap-2.5">
-                      <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal"><Package size={16} /></span>
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-teal/10 text-teal"><Package size={16} /></span>
                       <div className="min-w-0">
                         <div className="truncate text-[14px] font-semibold text-dark">{l.insumo.nome}</div>
                         <div className="text-[12px] text-muted">
@@ -352,7 +352,7 @@ export default function FormCompraPage() {
                         {valor != null ? BRL(valor) : '—'}
                       </span>
                       <span data-testid="custo-unitario-linha" className={clsx('text-[12.5px] [font-variant-numeric:tabular-nums]', unit != null ? 'font-semibold text-teal' : 'text-faint')}>
-                        {unit != null ? `${moeda(Math.round(unit * 10000) / 10000)} / ${l.insumo.unidade}` : ''}
+                        {unit != null ? `${moeda(Math.round(unit * 10000) / 10000)}${l.insumo.unidade ? ` / ${l.insumo.unidade}` : ''}` : ''}
                       </span>
                     </div>
                     <div className="flex min-h-11 items-center justify-end">
@@ -414,7 +414,7 @@ export default function FormCompraPage() {
         </div>
 
         {/* Ações */}
-        <div className="flex flex-col gap-3 px-[26px] py-[18px]">
+        <div className="flex flex-col gap-3 px-[26px] py-section">
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate(editando ? `/compras/${id}` : '/compras')} disabled={!!salvando}>Cancelar</Button>
             <Button variant="secondary" icon={<Save size={16} />} disabled={!!salvando} onClick={salvarRascunho}>

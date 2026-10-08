@@ -31,8 +31,8 @@ const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const inputClass = (hasError?: boolean) => clsx(
-  'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150',
-  hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+  'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150',
+  hasError ? 'border-warning-alt shadow-[0_0_0_4px_rgba(224,92,58,0.10)]' : 'border-line focus:border-teal focus:ring-4 focus:ring-teal/12'
 )
 
 // ---------- Componente (Insumo XOR Produto-base, mesmo par de FichaTecnicaItem em Produto) ----------
@@ -57,7 +57,7 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
     const b = tipoProdutoBadge(tipo === 'produto' ? 'PRODUTO' : 'CUSTOMIZACAO')
     return (
       <span
-        className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
+        className="inline-flex h-section items-center whitespace-nowrap rounded-full px-[7px] text-[10.5px] font-semibold tracking-[0.01em]"
         style={{ background: b.bg, color: b.fg }}
       >
         {b.label}
@@ -65,7 +65,7 @@ function TipoBadge({ tipo }: { tipo: 'insumo' | 'produto' | 'customizacao' }) {
     )
   }
   return (
-    <span className="inline-flex h-[18px] items-center whitespace-nowrap rounded-full bg-line-soft px-[7px] text-[10.5px] font-semibold tracking-[0.01em] text-subtle">
+    <span className="inline-flex h-section items-center whitespace-nowrap rounded-full bg-line-soft px-[7px] text-[10.5px] font-semibold tracking-[0.01em] text-subtle">
       Insumo
     </span>
   )
@@ -178,7 +178,7 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
 
   const grupo = (titulo: string, itens: Omit<ComponenteLinha, 'qtd'>[]) => itens.length === 0 ? null : (
     <div key={titulo}>
-      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-dim">{titulo}</div>
+      <div className="px-[11px] pb-[5px] pt-2 text-[10.5px] font-bold uppercase tracking-wider text-dim">{titulo}</div>
       {/* #641 (RN-NOVA-40) — inativo: riscado, com "Inativo", sem poder escolher (a API manda depois dos ativos). */}
       {itens.map(i => i.ativo === false ? (
         <OpcaoInativa key={i.id} className="px-[11px] py-2.5">
@@ -192,9 +192,9 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
           <span className={clsx(
-            'grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg',
-            i.tipo === 'produto' ? 'bg-teal/[0.12] text-teal'
-              : i.tipo === 'customizacao' ? 'bg-[#2A9D8F]/[0.12] text-[#2A9D8F]'
+            'grid h-8 w-8 shrink-0 place-items-center rounded-lg',
+            i.tipo === 'produto' ? 'bg-teal/12 text-teal'
+              : i.tipo === 'customizacao' ? 'bg-teal/12 text-teal'
               : 'bg-line-soft text-dim'
           )}>
             <Box size={16} />
@@ -206,7 +206,7 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
             </span>
             <span className="block text-xs text-muted">{i.marca}{i.marca ? ' · ' : ''}{moeda(i.custo)} / {i.un}</span>
           </span>
-          <Plus size={16} className="flex-shrink-0 text-teal" />
+          <Plus size={16} className="shrink-0 text-teal" />
         </button>
       ))}
     </div>
@@ -267,7 +267,7 @@ function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: str
           onChange(cleaned)
         }}
         inputMode={fracionavel ? 'decimal' : 'numeric'}
-        className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
+        className="h-10 w-full rounded-lg border-[1.5px] border-line bg-white pl-[11px] pr-[38px] font-[inherit] text-sm text-dark outline-hidden transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/12"
       />
       <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-dim">{un}</span>
     </div>
@@ -563,7 +563,7 @@ export default function NovoItemCatalogoPage() {
 
       {/* HEADER */}
       <div className="mb-[22px] flex items-center gap-[15px]">
-        <span className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
+        <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
           <Files size={26} />
         </span>
         <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em] text-dark">
@@ -574,7 +574,7 @@ export default function NovoItemCatalogoPage() {
       <div className="grid grid-cols-[1fr_360px] items-start gap-6 max-[1040px]:grid-cols-1">
 
         {/* COLUNA ESQUERDA — formulário */}
-        <div className="flex flex-col gap-[18px]">
+        <div className="flex flex-col gap-section">
 
           {/* Catálogo */}
           <div className="rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -737,7 +737,7 @@ export default function NovoItemCatalogoPage() {
 
           {/* AÇÕES */}
           {erro && (
-            <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+            <div className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
               {erro}
             </div>
           )}
@@ -801,7 +801,7 @@ export default function NovoItemCatalogoPage() {
                       value={margem}
                       onChange={e => setMargem(e.target.value.replace(/[^\d]/g, ''))}
                       inputMode="numeric"
-                      className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/[0.12]"
+                      className="h-10 w-full rounded-[9px] border-[1.5px] border-line bg-white pl-3 pr-[30px] text-right font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums] focus:border-teal focus:ring-[3px] focus:ring-teal/12"
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-dim">%</span>
                   </div>

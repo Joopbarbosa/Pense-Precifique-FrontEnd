@@ -93,6 +93,7 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
     await page.getByRole('button', { name: 'Inativar insumo' }).click()
 
     await expect(page.getByText('Não foi possível inativar')).toBeVisible()
+    await page.getByText('Carregando vínculos…', { exact: true }).waitFor({ state: 'hidden' })
     await expect(page.getByText(produtoInativarNome)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Substituir', exact: true })).toBeVisible()
 
@@ -110,9 +111,16 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
 
     const linha = page.getByText(insumoExcluirNome, { exact: true }).first().locator('xpath=../..')
     await abrirAcaoNaLinha(page, linha, 'Excluir')
+    // Reproduz o carregamento acima de5s que a consulta dos vínculos teve na suíte completa.
+    await page.route(`**/insumos/${insumoExcluirId}/produtos-relacionados`, async route => {
+      const resposta = await route.fetch()
+      await new Promise(resolve => setTimeout(resolve, 5200))
+      await route.fulfill({ response: resposta })
+    })
     await page.getByRole('button', { name: 'Excluir insumo' }).click()
 
     await expect(page.getByText('Não foi possível excluir')).toBeVisible()
+    await page.getByText('Carregando vínculos…', { exact: true }).waitFor({ state: 'hidden' })
     await expect(page.getByText(produtoExcluirNome)).toBeVisible()
 
     await page.getByRole('button', { name: 'Substituir', exact: true }).click()

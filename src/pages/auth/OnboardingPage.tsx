@@ -20,7 +20,7 @@ function Stepper() {
         </span>
       </div>
 
-      <span className="h-0.5 min-w-6 flex-1 rounded-sm bg-[linear-gradient(90deg,rgba(42,157,143,0.5),#EFEDE8)]" />
+      <span className="h-0.5 min-w-6 flex-1 rounded-xs bg-[linear-gradient(90deg,rgba(42,157,143,0.5),#EFEDE8)]" />
 
       <div className="flex items-center gap-[9px]">
         <span className="grid h-7 w-7 place-items-center rounded-full bg-teal text-[13px] font-bold text-white shadow-[0_4px_10px_-4px_rgba(42,157,143,0.7)]">
@@ -54,7 +54,7 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
 
   return (
     <div className="flex items-start gap-3.5">
-      <span className="mt-0.5 grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-xl bg-teal/10 text-teal">
+      <span className="mt-0.5 grid h-[38px] w-[38px] shrink-0 place-items-center rounded-xl bg-teal/10 text-teal">
         {icon}
       </span>
 
@@ -68,7 +68,7 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
           'flex h-[54px] items-stretch overflow-hidden rounded-input border-[1.5px] bg-white transition-[border-color,box-shadow] duration-150',
           hasError
             ? 'border-warning-alt ring-4 ring-warning-alt/10'
-            : 'border-line focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/[0.12]'
+            : 'border-line focus-within:border-teal focus-within:ring-4 focus-within:ring-teal/12'
         )}>
           {affixSide === 'left' && (
             <span className="grid place-items-center border-r border-line bg-cream px-4 text-base font-semibold text-dim">
@@ -81,10 +81,10 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
             placeholder={placeholder}
             value={value}
             onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
-            className="min-w-0 flex-1 border-none bg-transparent px-4 font-[inherit] text-lg font-semibold text-dark outline-none"
+            className="min-w-0 flex-1 border-none bg-transparent px-4 font-[inherit] text-lg font-semibold text-dark outline-hidden"
           />
           {affixSide === 'right' && (
-            <span className="grid place-items-center border-l border-line bg-cream px-[18px] text-[17px] font-semibold text-dim">
+            <span className="grid place-items-center border-l border-line bg-cream px-section text-[17px] font-semibold text-dim">
               {affix}
             </span>
           )}
@@ -95,10 +95,10 @@ function PriceField({ icon, question, explain, affix, affixSide, placeholder, di
         )}
 
         <div className={clsx(
-          'flex items-start gap-[9px] rounded-xl border border-[#FCE2CF] bg-orange/[0.08] px-[13px] py-[11px]',
+          'flex items-start gap-[9px] rounded-xl border border-[#FCE2CF] bg-orange/8 px-[13px] py-[11px]',
           hasError ? 'mt-2.5' : 'mt-[11px]'
         )}>
-          <span className="mt-px flex-shrink-0 text-warning-alt">
+          <span className="mt-px shrink-0 text-warning-alt">
             <Lightbulb size={15} />
           </span>
           <p className="m-0 text-[12.7px] leading-[1.55] text-[#8A5A33]">{dica}</p>
@@ -157,21 +157,21 @@ export default function OnboardingPage() {
       <div className="grid w-[min(1000px,100%)] animate-fade-up grid-cols-1 overflow-hidden rounded-[24px] border border-[#F0EEE9] bg-white shadow-[0_20px_60px_-28px_rgba(31,122,111,0.28),0_2px_8px_rgba(0,0,0,0.06)] md:grid-cols-[1fr_1.15fr]">
         {/* Painel esquerdo — brand */}
         <div className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(150deg,#2A9D8F_0%,#1F7A6F_78%,#15665C_100%)] p-11 md:flex">
-          <div className="absolute -top-[90px] -right-[70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
-          <div className="absolute -bottom-[60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
+          <div className="absolute top-[-90px] right-[-70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
+          <div className="absolute bottom-[-60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
 
           <div className="relative flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/[0.18] backdrop-blur-[4px]">
+            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/18 backdrop-blur-xs">
               <Logo size={32} />
             </div>
             <Wordmark size={18} darkMode />
           </div>
 
           <div className="relative">
-            <h2 className="m-0 text-[28px] font-bold leading-[1.25] tracking-[-0.02em] text-white">
+            <h2 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.02em] text-white">
               Preço certo,<br />negócio saudável.
             </h2>
-            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/[0.82]">
+            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/82">
               Calcule, orce e controle o estoque do seu ateliê em um só lugar.
             </p>
           </div>
@@ -183,13 +183,13 @@ export default function OnboardingPage() {
               'Controle de insumos e produtos',
             ].map((text, i) => (
               <div key={i} className="flex items-center gap-2.5">
-                <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-white/20">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" width="11" height="11" fill="none"
                     stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m5 12.5 4.2 4.2L19 7"/>
                   </svg>
                 </span>
-                <span className="text-[13.5px] font-medium text-white/[0.88]">
+                <span className="text-[13.5px] font-medium text-white/88">
                   {text}
                 </span>
               </div>
@@ -208,7 +208,7 @@ export default function OnboardingPage() {
           <Stepper />
 
           <h1 className="mt-0 mb-1.5 text-2xl font-bold tracking-[-0.02em] text-dark">
-            Configure como você quer precificar <span className="inline-block animate-[floaty_3s_ease-in-out_infinite]">💡</span>
+            Configure como você quer precificar <span className="inline-block animate-floaty">💡</span>
           </h1>
           <p className="mt-0 mb-7 text-sm leading-[1.55] text-muted">
             Você pode alterar isso a qualquer momento nas Configurações.
@@ -244,7 +244,7 @@ export default function OnboardingPage() {
             />
 
             {error && (
-              <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
+              <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
                 {error}
               </p>
             )}
@@ -262,7 +262,7 @@ export default function OnboardingPage() {
             </Button>
           </form>
 
-          <p className="mt-[18px] mb-0 flex flex-wrap items-center justify-center gap-1.5 text-center text-[12.7px] text-muted">
+          <p className="mt-section mb-0 flex flex-wrap items-center justify-center gap-1.5 text-center text-[12.7px] text-muted">
             <span className="flex text-teal"><Settings size={20} /></span>
             <span>Dá pra mudar tudo depois em <strong className="font-semibold text-dim">Configurações</strong>.</span>
           </p>

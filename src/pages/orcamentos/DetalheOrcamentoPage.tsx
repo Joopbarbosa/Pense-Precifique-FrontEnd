@@ -40,6 +40,7 @@ import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
+import { dataLocalISO } from "../../utils/dataLocal";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -168,7 +169,7 @@ function Timeline({ current }: { current: ApiStatus }) {
               />
             )}
             <span
-              className="relative z-[1] grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-[13px] font-bold"
+              className="relative z-1 grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-bold"
               style={{
                 background: circleBg,
                 color: circleColor,
@@ -194,7 +195,7 @@ function Timeline({ current }: { current: ApiStatus }) {
                 {STATUS_LABEL[s]}
               </span>
               {active && (
-                <span className="mt-[5px] inline-block rounded-full bg-teal/[0.12] px-2 py-0.5 text-[10.5px] font-semibold text-teal">
+                <span className="mt-[5px] inline-block rounded-full bg-teal/12 px-2 py-0.5 text-[10.5px] font-semibold text-teal">
                   Atual
                 </span>
               )}
@@ -270,7 +271,7 @@ function ModalSinal({
       </div>
 
       {/* Forma de pagamento — chips */}
-      <div className="mb-[18px]">
+      <div className="mb-section">
         <div className="mb-[9px] text-[13px] font-semibold text-body">
           Forma de pagamento recebida
         </div>
@@ -313,8 +314,8 @@ function ModalSinal({
       </div>
 
       {/* Aviso */}
-      <div className="flex gap-2.5 rounded-xl border border-teal/[0.18] bg-teal/[0.06] px-3.5 py-3">
-        <Receipt size={16} className="mt-px flex-shrink-0 text-teal" />
+      <div className="flex gap-2.5 rounded-xl border border-teal/18 bg-teal/6 px-3.5 py-3">
+        <Receipt size={16} className="mt-px shrink-0 text-teal" />
         <p className="m-0 text-[12.5px] leading-[1.55] text-body">
           Após confirmar, o sistema avançará o orçamento e gerará o recibo do
           sinal com a forma de pagamento registrada.
@@ -389,10 +390,10 @@ function ModalConfirmarAtalho({
               className="flex items-center justify-between gap-3 text-[13.5px] text-body"
             >
               <span className="flex items-center gap-2 truncate">
-                <Box size={14} className="flex-shrink-0 text-muted" />
+                <Box size={14} className="shrink-0 text-muted" />
                 <span className="truncate">{item.nomeProduto}</span>
               </span>
-              <span className="flex-shrink-0 text-muted">
+              <span className="shrink-0 text-muted">
                 estoque: {item.estoqueAtual}
               </span>
             </div>
@@ -405,9 +406,9 @@ function ModalConfirmarAtalho({
           {avisosEstoque.map((a) => (
             <div
               key={a.componenteId}
-              className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3 text-[13.5px] text-warning-alt"
+              className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/8 px-3.5 py-3 text-[13.5px] text-warning-alt"
             >
-              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{a.mensagem}</span>
             </div>
           ))}
@@ -541,7 +542,7 @@ function ModalCancelMulta({
       {[1, 2, 3].map((n) => (
         <span
           key={n}
-          className={clsx("h-1 flex-1 rounded-sm", n <= step ? "bg-danger" : "bg-line")}
+          className={clsx("h-1 flex-1 rounded-xs", n <= step ? "bg-danger" : "bg-line")}
         />
       ))}
     </div>
@@ -642,7 +643,7 @@ function ModalCancelMulta({
             optionWidth="w-20"
             textSize="text-sm"
             activeColors={['bg-line-soft text-body', 'bg-orange text-white']}
-            className="mb-[18px] w-fit"
+            className="mb-section w-fit"
           />
 
           {multaAtiva && (
@@ -658,13 +659,13 @@ function ModalCancelMulta({
                   }
                   inputMode="decimal"
                   placeholder="50"
-                  className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
+                  className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/12"
                 />
               </div>
               <div className="mt-2.5 text-xs text-muted">
                 Sugestão padrão: 50% do valor total.
               </div>
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-orange/focus bg-orange/8 px-4 py-3.5">
                 <span className="text-sm font-semibold text-dark">
                   Multa
                 </span>
@@ -692,7 +693,7 @@ function ModalCancelMulta({
       {step === 3 && (
         <div className="flex flex-col gap-4">
           {multaAtiva ? (
-            <div className="flex flex-col gap-1 rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+            <div className="flex flex-col gap-1 rounded-xl border border-orange/focus bg-orange/8 px-4 py-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-dark">
                   Multa <span className="font-medium text-muted">({percNum}%)</span>
@@ -719,8 +720,8 @@ function ModalCancelMulta({
             </div>
           )}
 
-          <div className="flex gap-2.5 rounded-xl border border-orange/30 bg-orange/[0.08] px-3.5 py-3">
-            <AlertCircle size={15} className="mt-px flex-shrink-0 text-orange" />
+          <div className="flex gap-2.5 rounded-xl border border-orange/30 bg-orange/8 px-3.5 py-3">
+            <AlertCircle size={15} className="mt-px shrink-0 text-orange" />
             <p className="m-0 text-[12.8px] leading-[1.55] text-[#8A5A33]">
               {multaAtiva ? (
                 <>
@@ -754,7 +755,7 @@ function ModalCancelEstorno({
   const [step, setStep] = useState(1);
   const [estornar, setEstornar] = useState(true);
   const [dataEstorno, setDataEstorno] = useState(
-    new Date().toISOString().slice(0, 10),
+    dataLocalISO(),
   );
 
   const valorSinal = orcamento.valorSinal || 0;
@@ -768,7 +769,7 @@ function ModalCancelEstorno({
       {[1, 2].map((n) => (
         <span
           key={n}
-          className={clsx("h-1 flex-1 rounded-sm", n <= step ? "bg-danger" : "bg-line")}
+          className={clsx("h-1 flex-1 rounded-xs", n <= step ? "bg-danger" : "bg-line")}
         />
       ))}
     </div>
@@ -832,7 +833,7 @@ function ModalCancelEstorno({
       {step === 1 && (
         <>
           {/* Valor do sinal */}
-          <div className="mb-5 flex items-center justify-between rounded-xl border border-orange/25 bg-orange/[0.08] px-4 py-3.5">
+          <div className="mb-5 flex items-center justify-between rounded-xl border border-orange/focus bg-orange/8 px-4 py-3.5">
             <div>
               <div className="mb-[3px] text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
                 Sinal recebido
@@ -841,7 +842,7 @@ function ModalCancelEstorno({
                 {BRL(valorSinal)}
               </div>
             </div>
-            <span className="grid h-12 w-12 place-items-center rounded-[13px] bg-orange/[0.12] text-orange">
+            <span className="grid h-12 w-12 place-items-center rounded-[13px] bg-orange/12 text-orange">
               <Wallet size={18} />
             </span>
           </div>
@@ -874,12 +875,12 @@ function ModalCancelEstorno({
                   type="date"
                   value={dataEstorno}
                   onChange={(e) => setDataEstorno(e.target.value)}
-                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/[0.12]"
+                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/12"
                 />
               </label>
 
-              <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
-                <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
+              <div className="flex gap-2.5 rounded-xl border border-orange/focus bg-orange/[0.07] px-3.5 py-3">
+                <Receipt size={16} className="mt-px shrink-0 text-orange" />
                 <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
                   Um <strong className="font-bold">recibo de estorno</strong>{" "}
                   será gerado para enviar à cliente como comprovante da devolução.
@@ -891,7 +892,7 @@ function ModalCancelEstorno({
           {/* Aviso sem estorno */}
           {!estornar && (
             <div className="flex animate-[fadeUp_.2s_ease_both] gap-2.5 rounded-xl border border-line bg-cream px-3.5 py-3">
-              <Info size={15} className="mt-px flex-shrink-0 text-muted" />
+              <Info size={15} className="mt-px shrink-0 text-muted" />
               <p className="m-0 text-[12.5px] leading-[1.55] text-dim">
                 O orçamento será cancelado sem devolução do sinal. Nenhum
                 documento será gerado.
@@ -908,12 +909,12 @@ function ModalCancelEstorno({
             className="relative min-h-[110px] rounded-2xl px-[22px] py-5 text-white"
             style={{ background: "linear-gradient(135deg, #F97316 0%, #F4853A 100%)" }}
           >
-            <div className="pointer-events-none absolute -right-[30px] -top-10 h-[120px] w-[120px] rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute right-[-30px] -top-10 h-[120px] w-[120px] rounded-full bg-white/10" />
             <div className="relative">
-              <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-white/80">
+              <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-white/80">
                 Recibo de Estorno
               </div>
-              <div className="break-words text-[28px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
+              <div className="wrap-break-word text-[28px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
                 {BRL(valorSinal)}
               </div>
             </div>
@@ -936,8 +937,8 @@ function ModalCancelEstorno({
             ))}
           </div>
 
-          <div className="flex gap-2.5 rounded-xl border border-orange/25 bg-orange/[0.07] px-3.5 py-3">
-            <Receipt size={16} className="mt-px flex-shrink-0 text-orange" />
+          <div className="flex gap-2.5 rounded-xl border border-orange/focus bg-orange/[0.07] px-3.5 py-3">
+            <Receipt size={16} className="mt-px shrink-0 text-orange" />
             <p className="m-0 text-[12.5px] leading-[1.55] text-[#8A5A33]">
               O recibo de estorno ficará disponível para download na tela de
               detalhe do orçamento cancelado.
@@ -1034,9 +1035,9 @@ function DownloadsCard({
   );
 
   return (
-    <section className="mt-[18px] animate-[fadeUp_.6s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <section className="mt-section animate-[fadeUp_.6s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="mb-4 flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/[0.12] text-teal">
+        <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/12 text-teal">
           <Download size={17} />
         </span>
         <h2 className="m-0 text-[15.5px] font-bold text-dark">
@@ -1621,16 +1622,16 @@ export default function DetalheOrcamentoPage() {
   return (
     <AppLayout active="orcamentos" compact>
       {/* HEADER */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-section">
         <div>
           <button
             onClick={() => navigate("/orcamentos")}
-            className="mb-[5px] inline-flex items-center gap-1.5 border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal"
+            className="mb-[5px] inline-flex items-center gap-1.5 border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold uppercase tracking-wider text-teal"
           >
             <ArrowLeft size={13} /> Orçamentos
           </button>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="m-0 text-[25px] font-bold tracking-[-0.025em] text-dark">
+            <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">
               #{orcamento.numero} — {orcamento.nomeCliente}
             </h1>
             <span
@@ -1692,13 +1693,13 @@ export default function DetalheOrcamentoPage() {
               undefined em status finalizado (sem entrada em ACTION_LABEL), então não precisa de
               proteção própria aqui. */}
           {(cancelavel || actionLabel) && (
-            <div className="mt-[30px] flex flex-wrap items-center justify-between gap-[18px] border-t border-line pt-[22px]">
+            <div className="mt-[30px] flex flex-wrap items-center justify-between gap-section border-t border-line pt-[22px]">
               {cancelavel ? (
                 <div className="flex flex-col items-start gap-1.5">
                   <button
                     onClick={handleCliqueCancelar}
                     disabled={verificandoVinculos}
-                    className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/[0.85] transition-colors duration-150 hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-[7px] border-none bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-danger/85 transition-colors duration-150 hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Ban size={15} /> {verificandoVinculos ? "Verificando vínculos..." : "Cancelar orçamento"}
                   </button>
@@ -1725,12 +1726,12 @@ export default function DetalheOrcamentoPage() {
           )}
 
           {precisaVincularProducao && producoesVinculadas.length === 0 && (
-            <div className="mt-[18px] flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#CFE0F2] bg-[#EAF1FB] px-3.5 py-3">
+            <div className="mt-section flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#CFE0F2] bg-[#EAF1FB] px-3.5 py-3">
               <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex flex-shrink-0 text-[#2A6FB0]">
+                <span className="mt-0.5 flex shrink-0 text-[#2A6FB0]">
                   <Factory size={16} />
                 </span>
-                <p className="m-0 text-[13px] leading-[1.5] text-[#2A6FB0]">
+                <p className="m-0 text-[13px] leading-normal text-[#2A6FB0]">
                   Antes de seguir pra produção, vincule este orçamento a uma produção real — assim
                   dá pra saber o que está sendo feito pra esse pedido.
                 </p>
@@ -1749,14 +1750,14 @@ export default function DetalheOrcamentoPage() {
           )}
 
           {producoesVinculadas.length > 0 && (
-            <div className="mt-[18px] flex flex-col gap-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/[0.06] px-3.5 py-3">
+            <div className="mt-section flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/6 px-3.5 py-3">
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex flex-shrink-0 text-teal">
+                  <span className="mt-0.5 flex shrink-0 text-teal">
                     <Check size={16} />
                   </span>
                   <div className="flex flex-col gap-1">
-                    <p className="m-0 text-[13px] leading-[1.5] text-body">
+                    <p className="m-0 text-[13px] leading-normal text-body">
                       Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:
                     </p>
                     <div className="flex flex-col gap-1">
@@ -1790,10 +1791,10 @@ export default function DetalheOrcamentoPage() {
               {producoesVinculadas.filter((v) => v.estouroPrazo).map((v) => (
                 <div
                   key={v.id}
-                  className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/[0.08] px-3.5 py-3"
+                  className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/8 px-3.5 py-3"
                 >
-                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-orange" />
-                  <p className="m-0 text-[13px] leading-[1.5] text-warning-alt">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0 text-orange" />
+                  <p className="m-0 text-[13px] leading-normal text-warning-alt">
                     <strong>{v.identificadorProducao}</strong> deve terminar depois do prazo
                     prometido ao cliente — vale avisar ou ajustar a data combinada.
                   </p>
@@ -1803,11 +1804,11 @@ export default function DetalheOrcamentoPage() {
           )}
 
           {erroAvanco && (
-            <div className="mt-[18px] flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
-              <span className="mt-px flex flex-shrink-0 text-danger">
+            <div className="mt-section flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
+              <span className="mt-px flex shrink-0 text-danger">
                 <AlertCircle size={16} />
               </span>
-              <p className="m-0 text-[13px] leading-[1.5] text-danger">
+              <p className="m-0 text-[13px] leading-normal text-danger">
                 {erroAvanco}
               </p>
             </div>
@@ -1819,7 +1820,7 @@ export default function DetalheOrcamentoPage() {
       {status === "CANCELADO" && (
         <section className="flex flex-col gap-3.5 animate-fade-up rounded-card border border-danger/30 bg-[#FCF0EC] px-6 py-5">
           <div className="flex items-center gap-3.5">
-            <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-white text-danger">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-danger">
               <Ban size={16} />
             </span>
             <div>
@@ -1834,9 +1835,9 @@ export default function DetalheOrcamentoPage() {
           {/* RN-NOVA-1/ORC-036 (mini-estorno, V0.8.2) — sinal pago excedeu o valor bruto da multa,
               a diferença é devolvida à cliente em vez de simplesmente zerar a multa sem explicação. */}
           {orcamento.valorDevolvidoMulta != null && orcamento.valorDevolvidoMulta > 0 && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-danger/25 bg-white px-4 py-3.5">
-              <Wallet size={16} className="flex-shrink-0 text-danger" />
-              <p className="m-0 text-[13px] leading-[1.5] text-[#8A5A4E]">
+            <div className="flex items-center gap-2.5 rounded-xl border border-danger/focus bg-white px-4 py-3.5">
+              <Wallet size={16} className="shrink-0 text-danger" />
+              <p className="m-0 text-[13px] leading-normal text-[#8A5A4E]">
                 Você recebeu de volta{" "}
                 <strong className="font-bold text-dark">{BRL(orcamento.valorDevolvidoMulta)}</strong>{" "}
                 — o sinal pago era maior que a multa.
@@ -1847,11 +1848,11 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {/* SEÇÃO 2 — RESUMO + PRÓXIMO PASSO */}
-      <div className="mt-[18px] grid grid-cols-[1.05fr_1fr] gap-[18px] max-[980px]:grid-cols-1">
+      <div className="mt-section grid grid-cols-[1.05fr_1fr] gap-section max-[980px]:grid-cols-1">
         {/* Resumo do orçamento */}
         <section className="animate-[fadeUp_.5s_ease_both] rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <div className="mb-[18px] flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/[0.12] text-teal">
+          <div className="mb-section flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/12 text-teal">
               <FileText size={20} />
             </span>
             <h2 className="m-0 text-[15.5px] font-bold text-dark">
@@ -1861,7 +1862,7 @@ export default function DetalheOrcamentoPage() {
 
           {/* Cliente */}
           <div className="flex items-center gap-3 border-b border-line pb-4">
-            <span className="grid h-[42px] w-[42px] flex-shrink-0 place-items-center rounded-full bg-teal/[0.14] text-base font-bold text-teal">
+            <span className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full bg-teal/[0.14] text-base font-bold text-teal">
               {orcamento.nomeCliente.charAt(0)}
             </span>
             <div>
@@ -1882,9 +1883,9 @@ export default function DetalheOrcamentoPage() {
                 (RN-NOVA-13) tornariam um botão único ambíguo, cada item já mostra a produção certa
                 no próprio card. */}
             {itensPendentesSemVinculo.length > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-input border border-orange/30 bg-orange/[0.05] px-3.5 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-input border border-orange/30 bg-orange/5 px-3.5 py-2.5">
                 <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-warning-alt">
-                  <AlertTriangle size={14} className="flex-shrink-0 text-orange" />
+                  <AlertTriangle size={14} className="shrink-0 text-orange" />
                   {itensPendentesSemVinculo.length === 1
                     ? "1 item com estoque insuficiente"
                     : `${itensPendentesSemVinculo.length} itens com estoque insuficiente`}
@@ -1925,7 +1926,7 @@ export default function DetalheOrcamentoPage() {
             {orcamento.itens.map((it, i) => {
               return (
                 <div key={i} className="flex items-start gap-3">
-                  <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
+                  <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-orange/10 text-xs font-bold text-orange">
                     ×{it.quantidade}
                   </span>
                   <div className="flex-1">
@@ -1972,7 +1973,7 @@ export default function DetalheOrcamentoPage() {
                       {it.customizacoes.map((c, k) => (
                         <span
                           key={k}
-                          className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/[0.08] px-2 py-0.5 text-[11.5px] text-warning-alt"
+                          className="mr-[5px] mt-1 inline-flex items-center gap-[5px] rounded-full bg-orange/8 px-2 py-0.5 text-[11.5px] text-warning-alt"
                         >
                           <Tag size={17} /> {c.nomeProduto}
                         </span>
@@ -2047,7 +2048,7 @@ export default function DetalheOrcamentoPage() {
         {/* Card próximo passo */}
         {!finalizado && nextHint && (
           <section
-            className="animate-[fadeUp_.55s_ease_both] rounded-card border border-teal/[0.18] px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+            className="animate-[fadeUp_.55s_ease_both] rounded-card border border-teal/18 px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
             style={{ background: "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)" }}
           >
             <div className="mb-3 flex items-center gap-[11px]">
@@ -2110,9 +2111,9 @@ export default function DetalheOrcamentoPage() {
                 key={doc.kind}
                 type="button"
                 onClick={() => handlePreviewKind(doc.kind)}
-                className="flex items-center gap-3 rounded-[11px] border border-line bg-cream px-3.5 py-3 text-left transition-colors duration-150 hover:border-teal hover:bg-teal/[0.05]"
+                className="flex items-center gap-3 rounded-[11px] border border-line bg-cream px-3.5 py-3 text-left transition-colors duration-150 hover:border-teal hover:bg-teal/5"
               >
-                <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-teal/10 text-teal">
                   {doc.icon}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -2215,7 +2216,7 @@ export default function DetalheOrcamentoPage() {
                   value={formDataInicioProducaoDetalhe}
                   onChange={(e) => setFormDataInicioProducaoDetalhe(e.target.value)}
                   disabled={criandoProducaoDetalhe}
-                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
               </label>
               <label className="block flex-1 basis-[160px]">
@@ -2229,7 +2230,7 @@ export default function DetalheOrcamentoPage() {
                   onChange={(e) => setFormDataTerminoProducaoDetalhe(e.target.value)}
                   disabled={criandoProducaoDetalhe}
                   className={clsx(
-                    "h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]",
+                    "h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12",
                     formErroProducaoDetalhe && !formDataTerminoProducaoDetalhe ? "border-danger" : "border-line"
                   )}
                 />
@@ -2252,7 +2253,7 @@ export default function DetalheOrcamentoPage() {
 
             {formErroProducaoDetalhe && (
               <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
                 <span>{formErroProducaoDetalhe}</span>
               </div>
             )}

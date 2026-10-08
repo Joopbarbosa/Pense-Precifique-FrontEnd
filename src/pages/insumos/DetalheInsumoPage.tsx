@@ -8,8 +8,9 @@ import ModalShell from '../../components/ui/ModalShell'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
 import TextArea from '../../components/ui/TextArea'
-import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers, Truck } from 'lucide-react'
+import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRight, Pencil, Plus, History, Layers, Truck, FileText } from 'lucide-react'
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
+import HistoricoNotaInsumo from '../../components/compra/nota/HistoricoNotaInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
@@ -35,7 +36,7 @@ const TIPO_LABEL: Record<string, string> = {
   CUSTOMIZACAO: 'Customização',
 }
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 const hexA = (hex: string, a: number) => {
   const h = hex.replace('#', '')
@@ -173,7 +174,7 @@ function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
                 className={clsx(
                   inputBase,
                   'flex cursor-pointer items-center justify-between text-left',
-                  selOpen && 'border-teal ring-4 ring-teal/[0.12]'
+                  selOpen && 'border-teal ring-4 ring-teal/12'
                 )}
               >
                 {motivoLabel}<span className="flex text-muted"><ChevronDown size={16} /></span>
@@ -187,7 +188,7 @@ function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
                       onClick={() => { setMotivo(m.api as BaixaManualInsumoRequest['motivo']); setMotivoLabel(m.label); setSelOpen(false) }}
                       className={clsx(
                         'w-full rounded-lg border-none px-[11px] py-2.5 text-left font-[inherit] text-sm',
-                        m.api === motivo ? 'bg-teal/[0.08] font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
+                        m.api === motivo ? 'bg-teal/8 font-semibold text-teal' : 'font-medium text-dark hover:bg-cream'
                       )}
                     >
                       {m.label}
@@ -212,7 +213,7 @@ function EdicaoManualModal({ insumoId, unidade, onClose, onSuccess }: {
           />
         </label>
         {error && (
-          <p className="m-0 rounded-lg border border-[#FECACA] bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
+          <p className="m-0 rounded-lg border border-danger-line-soft bg-danger-bg-soft px-3.5 py-2.5 text-[13.5px] text-danger">
             {error}
           </p>
         )}
@@ -226,7 +227,7 @@ function HistTipo({ tipo, titulo }: { tipo: 'entrada' | 'saida' | 'estorno'; tit
   return (
     <div className="flex min-w-0 items-center gap-[11px]">
       <span className={clsx(
-        'grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-[9px]',
+        'grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px]',
         isEntrada ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'
       )}>
         {tipo === 'estorno'
@@ -279,15 +280,15 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
               </div>
             </div>
             {m.observacao && (
-              <div className="hidden -mt-[15px] px-5 pb-[15px] md:block">
-                <div className="pl-[132px] text-[12.5px] italic leading-[1.5] text-muted">
+              <div className="hidden mt-[-15px] px-5 pb-[15px] md:block">
+                <div className="pl-[132px] text-[12.5px] italic leading-normal text-muted">
                   "{m.observacao}"
                 </div>
               </div>
             )}
             {/* mobile card */}
             <div className={clsx(
-              'block animate-fade-up border-t border-line px-[18px] py-[15px] md:hidden',
+              'block animate-fade-up border-t border-line px-section py-[15px] md:hidden',
               riscado && 'opacity-60',
               isEstorno && 'bg-danger-bg'
             )}>
@@ -307,7 +308,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
                 {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
               </div>
               {m.observacao && (
-                <div className="mt-2 text-[12.5px] italic leading-[1.5] text-muted">
+                <div className="mt-2 text-[12.5px] italic leading-normal text-muted">
                   "{m.observacao}"
                 </div>
               )}
@@ -345,21 +346,21 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
           onClick={() => onSelect(p.id)}
           className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] hover:bg-cream"
         >
-          <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
             <Box size={16} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               {p.identificador && (
-                <span className="flex-shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
+                <span className="shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
               )}
               <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{p.nome}</span>
             </div>
           </div>
-          <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11.5px] font-semibold text-subtle">
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11.5px] font-semibold text-subtle">
             {TIPO_LABEL[p.tipo] ?? p.tipo}
           </span>
-          <span className="flex flex-shrink-0 text-dim">
+          <span className="flex shrink-0 text-dim">
             <ChevronRight size={15} />
           </span>
         </button>
@@ -372,7 +373,7 @@ export default function DetalheInsumoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [modal, setModal] = useState<'baixa' | null>(null)
-  const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores'>('historico')
+  const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores' | 'notas'>('historico')
   const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
   const [histPage, setHistPage] = useState(0)
@@ -386,6 +387,8 @@ export default function DetalheInsumoPage() {
     { id: 'historico' as const, label: 'Histórico de movimentações', icon: History, size: 17 },
     { id: 'fichas' as const,    label: 'Fichas técnicas que usam este insumo', icon: Layers, size: 18 },
     { id: 'fornecedores' as const, label: 'Fornecedores', icon: Truck, size: 17 },
+    // #717 (RN-NOVA-25) — itens de nota ligados a este insumo.
+    { id: 'notas' as const, label: 'Histórico de Nota Fiscal', icon: FileText, size: 17 },
   ]
 
   useEffect(() => {
@@ -463,15 +466,15 @@ export default function DetalheInsumoPage() {
         <span className="whitespace-nowrap font-semibold text-body">{insumo.nome}</span>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-section">
         <div className="flex min-w-0 items-center gap-[15px]">
-          <span className="grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
+          <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
             <Box size={26} />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
               {insumo.identificador && (
-                <span className="flex-shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{insumo.identificador}</span>
+                <span className="shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{insumo.identificador}</span>
               )}
               <h1 className="m-0 text-[25px] font-bold tracking-[-0.02em] text-dark">{insumo.nome}</h1>
               {insumo.ativo ? (
@@ -487,7 +490,7 @@ export default function DetalheInsumoPage() {
               <FracionavelBadge fracionavel={insumo.fracionavel} />
             </div>
             <div className="mt-1 text-sm text-muted">
-              Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong>
+              {insumo.qualquerMarca ? 'Qualquer marca' : <>Marca: <strong className="font-semibold text-body">{insumo.marca || '—'}</strong></>}
             </div>
           </div>
         </div>
@@ -508,12 +511,13 @@ export default function DetalheInsumoPage() {
       <div className="animate-[fadeUp_.4s_ease_both]">
         <BigNumberGroup tela="detalhe-insumo" testid="numeros-insumo" colunas="sm:grid-cols-2 xl:grid-cols-4"
           acoes={<Button variant="ghost" size="sm" icon={<Minus size={15} />} onClick={() => setModal('baixa')}>Edição manual</Button>}>
-          <BigNumber titulo="Unidade de medida" valor={insumo.unidadeMedida} />
+          <BigNumber titulo="Unidade de medida" valor={insumo.unidadeMedida ?? '—'} />
           <BigNumber titulo="Saldo atual" tom={isLow ? 'aviso' : 'destaque'}
-            valor={`${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}`} />
+            valor={`${formatQuantidade(insumo.estoqueAtual, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida ?? ''}`.trim()} />
           <BigNumber titulo="Estoque mínimo"
-            valor={insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida}` : '—'} />
-          <BigNumber titulo="Custo unitário atual" destaque valor={`${moeda(insumo.custoUnitario)} / ${insumo.unidadeMedida}`} />
+            valor={insumo.estoqueMinimo != null ? `${formatQuantidade(insumo.estoqueMinimo, insumo.fracionavel, insumo.tipoExibicaoQuantidade)} ${insumo.unidadeMedida ?? ''}`.trim() : '—'} />
+          <BigNumber titulo="Custo unitário atual" destaque
+            valor={`${moeda(insumo.custoUnitario)}${insumo.unidadeMedida ? ` / ${insumo.unidadeMedida}` : ''}`} />
         </BigNumberGroup>
       </div>
 
@@ -531,7 +535,7 @@ export default function DetalheInsumoPage() {
             >
               <span className={clsx('flex', on ? 'text-teal' : 'text-dim')}><a.icon size={a.size} /></span>
               {a.label}
-              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+              {on && <span className="absolute bottom-[-1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}
@@ -550,11 +554,13 @@ export default function DetalheInsumoPage() {
                 Nenhuma movimentação registrada ainda.
               </div>
             ) : (
-              <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida} fracionavel={insumo.fracionavel} tipoExibicaoQuantidade={insumo.tipoExibicaoQuantidade} />
+              <HistRows movimentacoes={movimentacoes} unidade={insumo.unidadeMedida ?? ''} fracionavel={insumo.fracionavel} tipoExibicaoQuantidade={insumo.tipoExibicaoQuantidade} />
             )}
           </>
         ) : aba === 'fichas' ? (
           <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
+        ) : aba === 'notas' ? (
+          <HistoricoNotaInsumo insumoId={insumo.id} unidade={insumo.unidadeMedida} />
         ) : (
           <VinculosFornecedorInsumo modo="insumo" id={insumo.id} />
         )}
@@ -571,7 +577,7 @@ export default function DetalheInsumoPage() {
               disabled={loadingMoreHist}
               className={clsx(
                 'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                loadingMoreHist ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/[0.06]'
+                loadingMoreHist ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
               )}
             >
               {loadingMoreHist
@@ -586,7 +592,7 @@ export default function DetalheInsumoPage() {
       {modal === 'baixa' && (
         <EdicaoManualModal
           insumoId={id!}
-          unidade={insumo.unidadeMedida}
+          unidade={insumo.unidadeMedida ?? ''}
           onClose={() => setModal(null)}
           onSuccess={recarregarAposBaixa}
         />

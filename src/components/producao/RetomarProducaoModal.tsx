@@ -120,7 +120,7 @@ export default function RetomarProducaoModal({ producaoId, onClose, onSuccess }:
     >
       {aindaTravada ? (
         <div className="flex items-start gap-2.5 rounded-input border border-danger/40 bg-danger-bg px-3.5 py-3 text-[13.5px] text-danger">
-          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
           <span>Insumos ainda bloqueantes — produção permanece travada.</span>
         </div>
       ) : (

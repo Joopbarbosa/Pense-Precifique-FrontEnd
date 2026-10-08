@@ -19,7 +19,7 @@ function Stepper() {
           Sua conta
         </span>
       </div>
-      <span className="h-0.5 min-w-6 flex-1 rounded-sm bg-line" />
+      <span className="h-0.5 min-w-6 flex-1 rounded-xs bg-line" />
       <div className="flex items-center gap-[9px]">
         <span className="grid h-7 w-7 place-items-center rounded-full border-[1.5px] border-line bg-white text-[13px] font-bold text-faint">
           2
@@ -97,7 +97,7 @@ function LogoUpload({ preview, onPick, onRemove }: {
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {preview ? (
-        <div className="relative flex-shrink-0">
+        <div className="relative shrink-0">
           <img
             src={preview}
             alt="Logo"
@@ -107,13 +107,13 @@ function LogoUpload({ preview, onPick, onRemove }: {
             type="button"
             onClick={onRemove}
             aria-label="Remover logo"
-            className="absolute -top-[5px] -right-[5px] grid h-6 w-6 place-items-center rounded-full border border-line bg-white text-danger shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+            className="absolute top-[-5px] right-[-5px] grid h-6 w-6 place-items-center rounded-full border border-line bg-white text-danger shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
           >
             <X size={14} />
           </button>
         </div>
       ) : (
-        <div className="grid h-[52px] w-[52px] flex-shrink-0 place-items-center rounded-[14px] bg-teal/[0.08] text-teal">
+        <div className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[14px] bg-teal/8 text-teal">
           <Image size={28} />
         </div>
       )}
@@ -144,12 +144,12 @@ function LogoUpload({ preview, onPick, onRemove }: {
 function SuccessNote({ nome }: { nome: string }) {
   return (
     <div className="animate-fade-up pt-[30px] pb-2.5 text-center">
-      <div className="mx-auto grid h-16 w-16 animate-pop place-items-center rounded-full bg-teal/[0.12] text-teal">
+      <div className="mx-auto grid h-16 w-16 animate-pop place-items-center rounded-full bg-teal/12 text-teal">
         <svg viewBox="0 0 24 24" width="30" height="30" fill="none">
           <path d="m4 12.5 5 5L20 6.5" stroke="#2A9D8F" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-      <h2 className="mt-[18px] mb-1.5 text-[22px] font-bold text-dark">
+      <h2 className="mt-section mb-1.5 text-[22px] font-bold text-dark">
         Conta criada{nome ? `, ${nome.split(' ')[0]}` : ''}! 🎉
       </h2>
       <p className="m-0 text-[14.5px] leading-[1.55] text-muted">
@@ -227,21 +227,21 @@ export default function CadastroPage() {
       <div className="grid w-[min(1000px,100%)] animate-fade-up grid-cols-1 overflow-hidden rounded-[24px] border border-[#F0EEE9] bg-white shadow-[0_20px_60px_-28px_rgba(31,122,111,0.28),0_2px_8px_rgba(0,0,0,0.06)] md:grid-cols-[1fr_1.15fr]">
         {/* Painel esquerdo — brand */}
         <div className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(150deg,#2A9D8F_0%,#1F7A6F_78%,#15665C_100%)] p-11 md:flex">
-          <div className="absolute -top-[90px] -right-[70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
-          <div className="absolute -bottom-[60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
+          <div className="absolute top-[-90px] right-[-70px] h-[280px] w-[280px] animate-[floaty_9s_ease-in-out_infinite] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] bg-white/10" />
+          <div className="absolute bottom-[-60px] -left-10 h-[200px] w-[200px] animate-[floaty_11s_ease-in-out_infinite_reverse] rounded-[60%_40%_45%_55%/55%_50%_50%_45%] bg-orange/30" />
 
           <div className="relative flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/[0.18] backdrop-blur-[4px]">
+            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-white/18 backdrop-blur-xs">
               <Logo size={32} />
             </div>
             <Wordmark size={18} darkMode />
           </div>
 
           <div className="relative">
-            <h2 className="m-0 text-[28px] font-bold leading-[1.25] tracking-[-0.02em] text-white">
+            <h2 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.02em] text-white">
               Preço certo,<br />negócio saudável.
             </h2>
-            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/[0.82]">
+            <p className="mt-3.5 mb-0 text-[15px] leading-[1.6] text-white/82">
               Calcule, orce e controle o estoque do seu ateliê em um só lugar.
             </p>
           </div>
@@ -253,13 +253,13 @@ export default function CadastroPage() {
               'Controle de insumos e produtos',
             ].map((text, i) => (
               <div key={i} className="flex items-center gap-2.5">
-                <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-white/20">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20">
                   <svg viewBox="0 0 24 24" width="11" height="11" fill="none"
                     stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m5 12.5 4.2 4.2L19 7"/>
                   </svg>
                 </span>
-                <span className="text-[13.5px] font-medium text-white/[0.88]">
+                <span className="text-[13.5px] font-medium text-white/88">
                   {text}
                 </span>
               </div>
@@ -290,7 +290,7 @@ export default function CadastroPage() {
 
               {apiError && (
                 <div role="alert" className="mb-1 flex animate-shake items-start gap-2.5 rounded-[10px] border-[1.5px] border-[#F6C6B7] bg-[#FEF3F0] p-[12px_14px] text-[13.5px] leading-[1.45] text-danger">
-                  <AlertCircle size={18} className="mt-px flex-shrink-0 text-warning-alt" />
+                  <AlertCircle size={18} className="mt-px shrink-0 text-warning-alt" />
                   <span>{apiError}</span>
                 </div>
               )}
@@ -373,7 +373,7 @@ export default function CadastroPage() {
                 </Button>
               </form>
 
-              <p className="mt-[18px] mb-0 text-center text-sm text-muted">
+              <p className="mt-section mb-0 text-center text-sm text-muted">
                 Já tem conta?{' '}
                 <a href="/login" className="font-semibold text-teal no-underline hover:underline">
                   Faça login

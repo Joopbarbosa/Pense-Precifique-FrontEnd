@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users } from 'lucide-react'
+import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users, FileSearch } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -48,7 +48,7 @@ const GRADE = 'md:grid-cols-[0.8fr_0.9fr_2fr_0.6fr_1fr_1.2fr_40px]'
 
 type Acao = { tipo: 'cancelar' | 'pagamento'; compra: CompraResponse } | { tipo: 'excluir'; compra: CompraResumoResponse }
 
-const dateInput = 'h-11 rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const dateInput = 'h-11 rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 export default function ComprasPage() {
   const navigate = useNavigate()
@@ -150,18 +150,19 @@ export default function ComprasPage() {
 
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Minhas compras</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Minhas compras</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">O que você comprou, de quem e quanto pagou.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
           <Button variant="ghost" icon={<BarChart3 size={16} />} onClick={() => navigate('/compras/dashboard')}>Dashboard</Button>
           <Button variant="ghost" icon={<Users size={16} />} onClick={() => navigate('/clientes')}>Clientes e Fornecedores</Button>
           <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista?aba=nova')}>Gerar lista de compras</Button>
+          <Button variant="secondary" icon={<FileSearch size={16} />} onClick={() => navigate('/compras/nota')}>Ler nota fiscal</Button>
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/compras/nova')}>Registrar compra</Button>
         </div>
       </div>
 
-      <div className="mb-[18px] flex flex-col gap-3.5">
+      <div className="mb-section flex flex-col gap-3.5">
         <div className="flex flex-wrap gap-2">
           {FILTROS_STATUS.map(f => {
             const on = status === f.id
@@ -172,7 +173,7 @@ export default function ComprasPage() {
                 {f.label}
                 {contagens && (
                   <span data-testid="contagem-filtro" className={clsx('ml-1.5 rounded-full px-1.5 text-[11.5px] font-bold [font-variant-numeric:tabular-nums]',
-                    on ? 'bg-white/25 text-white' : 'bg-line-soft text-muted')}>{contagens[f.contagem]}</span>
+                    on ? 'bg-white/focus text-white' : 'bg-line-soft text-muted')}>{contagens[f.contagem]}</span>
                 )}
               </button>
             )
@@ -200,7 +201,7 @@ export default function ComprasPage() {
       {loading ? (
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando compras…</div>
       ) : error ? (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           {error}
           <Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button>
         </div>
@@ -212,7 +213,7 @@ export default function ComprasPage() {
               action={{ label: 'Registrar primeira compra', icon: <Plus size={16} />, onClick: () => navigate('/compras/nova') }} />
       ) : (
         <div className="rounded-none md:rounded-card md:border md:border-[#F0EEE9] md:bg-white md:shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <div className={`hidden gap-4 border-b border-line px-[18px] py-[13px] md:grid ${GRADE}`}>
+          <div className={`hidden gap-4 border-b border-line px-section py-[13px] md:grid ${GRADE}`}>
             {COLUNAS.map(c => (
               <SortableHeader key={c.campo} label={c.label} field={c.campo} activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} />
             ))}
@@ -220,7 +221,7 @@ export default function ComprasPage() {
           </div>
           {compras.map(c => (
             <div key={c.id} data-testid="linha-compra" onClick={() => navigate(`/compras/${c.id}`)}
-              className={`relative mb-3 cursor-pointer rounded-card border border-[#F0EEE9] bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-colors hover:bg-cream md:mb-0 md:grid ${GRADE} md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:px-[18px] md:py-3.5 md:shadow-none`}>
+              className={`relative mb-3 cursor-pointer rounded-card border border-[#F0EEE9] bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-colors hover:bg-cream md:mb-0 md:grid ${GRADE} md:items-center md:gap-4 md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-line md:px-section md:py-3.5 md:shadow-none`}>
               <div className="text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">{c.identificador}</div>
               <div className="text-sm text-body [font-variant-numeric:tabular-nums]">{formatarData(c.dataCompra)}</div>
               <div className="mt-1 truncate text-sm text-body md:mt-0">

@@ -62,14 +62,14 @@ export default function Input({
           required={required}
           autoComplete={autoComplete}
           className={clsx(
-            'h-12 w-full rounded-input text-[15px] text-dark outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]',
+            'h-12 w-full rounded-input text-[15px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 font-[inherit]',
             icon ? 'pl-10' : 'pl-4',
             isPassword ? 'pr-11' : 'pr-4',
             disabled
               ? 'cursor-not-allowed bg-[#F5F4F2] border-[1.5px] border-line'
               : error
               ? 'cursor-text bg-[#FFFBFA] border-[1.5px] border-[#F2B8A6]'
-              : 'cursor-text bg-white border-[1.5px] border-line focus:border-teal focus:ring-4 focus:ring-teal/[0.12]'
+              : 'cursor-text bg-white border-[1.5px] border-line focus:border-teal focus:ring-4 focus:ring-teal/12'
           )}
         />
 
@@ -91,7 +91,7 @@ export default function Input({
 
       {error && (
         <div className="mt-1.5 flex items-center gap-[5px] text-[13px] text-danger">
-          <AlertCircle size={15} className="flex-shrink-0 text-danger" />
+          <AlertCircle size={15} className="shrink-0 text-danger" />
           {error}
         </div>
       )}

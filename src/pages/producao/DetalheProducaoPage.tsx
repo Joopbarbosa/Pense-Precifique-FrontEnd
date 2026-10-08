@@ -68,8 +68,8 @@ const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace('.', ',')}`
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <section className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-      <div className="mb-[18px] flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/[0.12] text-teal">
+      <div className="mb-section flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-teal/12 text-teal">
           {icon}
         </span>
         <h2 className="m-0 text-[15.5px] font-bold text-dark">{title}</h2>
@@ -192,16 +192,16 @@ export default function DetalheProducaoPage() {
 
   return (
     <AppLayout active="producao" compact>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-section">
         <div>
           <button
             onClick={() => navigate('/producao')}
-            className="mb-[5px] inline-flex items-center gap-1.5 border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal"
+            className="mb-[5px] inline-flex items-center gap-1.5 border-none bg-none p-0 font-[inherit] text-[12.5px] font-semibold uppercase tracking-wider text-teal"
           >
             <ArrowLeft size={13} /> Produção
           </button>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="m-0 text-[25px] font-bold tracking-[-0.025em] text-dark">
+            <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">
               {producao.identificador}
             </h1>
             <span
@@ -224,13 +224,13 @@ export default function DetalheProducaoPage() {
         )}
       </div>
 
-      <div className="flex flex-col gap-[18px]">
+      <div className="flex flex-col gap-section">
         {producao.estado === 'TRAVADA' && ultimaTrava && (
           <div
             className="flex items-start gap-3 rounded-card border px-6 py-5"
             style={{ background: badge.bg, borderColor: badge.fg + '40' }}
           >
-            <span className="mt-0.5 flex-shrink-0" style={{ color: badge.fg }}>
+            <span className="mt-0.5 shrink-0" style={{ color: badge.fg }}>
               <Lock size={20} />
             </span>
             <div>
@@ -263,7 +263,7 @@ export default function DetalheProducaoPage() {
           </div>
           {producao.observacoes && (
             <div className="mt-4 flex items-start gap-2 border-t border-line pt-4">
-              <StickyNote size={15} className="mt-0.5 flex-shrink-0 text-muted" />
+              <StickyNote size={15} className="mt-0.5 shrink-0 text-muted" />
               <p className="m-0 text-[13.5px] leading-[1.55] text-body">{producao.observacoes}</p>
             </div>
           )}
@@ -273,7 +273,7 @@ export default function DetalheProducaoPage() {
           <div className="flex flex-col gap-2.5">
             {producao.produtos.map((p, i) => (
               <div key={i} className="flex items-center gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3">
-                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
                   <Box size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -290,7 +290,7 @@ export default function DetalheProducaoPage() {
                     <div className="text-[12px] text-danger">Perda: {p.quantidadePerdida}</div>
                   )}
                 </div>
-                <span className="flex-shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                <span className="shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
                   ×{p.quantidade}
                 </span>
               </div>
@@ -308,10 +308,10 @@ export default function DetalheProducaoPage() {
                     key={i}
                     className={clsx(
                       'flex items-start gap-2.5 rounded-input border px-3.5 py-3 text-[13.5px]',
-                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/[0.08] text-warning-alt'
+                      bloqueio ? 'border-danger/40 bg-danger-bg text-danger' : 'border-orange/30 bg-orange/8 text-warning-alt'
                     )}
                   >
-                    <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                     <span>
                       <strong>{a.nomeInsumo}:</strong> necessário {a.quantidadeNecessaria}, disponível {a.estoqueAtual}
                       {bloqueio && ' (bloqueará ao iniciar)'}
@@ -347,7 +347,7 @@ export default function DetalheProducaoPage() {
                 antigo, anterior a este campo) contam como STATUS por compatibilidade. */}
             {producao.historicoStatus.filter(h => h.tipoEvento === 'STATUS' || h.tipoEvento === undefined).map((h, i) => (
               <div key={i} className={clsx('flex items-start gap-3 py-3', i > 0 && 'border-t border-line')}>
-                <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-teal" />
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 text-[13.5px] font-semibold text-dark">
                     {h.statusAnterior && (
@@ -362,7 +362,7 @@ export default function DetalheProducaoPage() {
                     {fmtDataHora(h.dataTransicao)} · <span className="uppercase tracking-[0.03em]">{ORIGEM_LABEL[h.origem] ?? h.origem}</span>
                   </div>
                   {h.justificativa && (
-                    <p className="m-0 mt-1 text-[13px] leading-[1.5] text-body">{h.justificativa}</p>
+                    <p className="m-0 mt-1 text-[13px] leading-normal text-body">{h.justificativa}</p>
                   )}
                 </div>
               </div>
@@ -408,7 +408,7 @@ export default function DetalheProducaoPage() {
                     <div className="text-sm font-semibold text-dark">{orc.identificadorOrcamento}</div>
                     <div className="mt-0.5 truncate text-[12.5px] text-muted">{orc.nomeCliente}</div>
                   </div>
-                  <div className="flex flex-shrink-0 items-center gap-2.5">
+                  <div className="flex shrink-0 items-center gap-2.5">
                     <span className="text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
                       {BRL(orc.valorTotal)}
                     </span>

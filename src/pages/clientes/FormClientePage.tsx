@@ -18,7 +18,7 @@ import type { ClienteRequest, TipoPessoa } from '../../types/cliente'
 // Adendo 2: novo cadastro abre com Cliente marcado e o último papel marcado não desmarca (#581,
 // RN-NOVA-38); erro de bloqueio abre a modal padrão e o CPF/CNPJ é conferido ao sair do campo (#602).
 
-const inputBase = 'h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const inputBase = 'h-12 w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 const TIPOS_PESSOA = [
   { value: 'FISICA' as TipoPessoa,      label: 'Física' },
@@ -70,11 +70,11 @@ function PapelOpcao({ label, descricao, marcado, onClick }: { label: string; des
       onClick={onClick}
       className={clsx(
         'flex flex-1 items-start gap-2.5 rounded-input border-[1.5px] px-3.5 py-3 text-left font-[inherit] transition-colors duration-150',
-        marcado ? 'border-teal bg-teal/[0.06]' : 'border-line bg-white hover:bg-cream'
+        marcado ? 'border-teal bg-teal/6' : 'border-line bg-white hover:bg-cream'
       )}
     >
       <span className={clsx(
-        'mt-px grid h-[18px] w-[18px] flex-shrink-0 place-items-center rounded-[5px] border-[1.5px]',
+        'mt-px grid h-section w-section shrink-0 place-items-center rounded-[5px] border-[1.5px]',
         marcado ? 'border-teal bg-teal text-white' : 'border-line-deep bg-white'
       )}>
         {marcado && <Check size={13} strokeWidth={3} />}
@@ -194,7 +194,7 @@ export default function FormClientePage() {
     return (
       <AppLayout active="clientes" compact>
         {erroCarga ? (
-          <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
+          <div className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
         ) : (
           <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
             <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
@@ -224,7 +224,7 @@ export default function FormClientePage() {
           )}
           <span className="font-semibold text-body">{titulo}</span>
         </div>
-        <h1 className="m-0 text-[28px] font-bold tracking-[-0.025em] text-dark">{titulo}</h1>
+        <h1 className="m-0 text-[28px] font-bold tracking-tight text-dark">{titulo}</h1>
       </div>
 
       <div className="animate-[fadeUp_.4s_ease_both] rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -232,10 +232,10 @@ export default function FormClientePage() {
         {/* SEÇÃO 1 — Identificação */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="1" title="Identificação" subtitle="Quem é e qual papel tem para você." />
-          <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-section lg:grid-cols-2">
             <div className="lg:col-span-2">
             <Field label="Este cadastro é" group size="md" required>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:gap-[18px]">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:gap-section">
                 <PapelOpcao label="Cliente" descricao="Compra de você" marcado={form.ehCliente} onClick={() => alternarPapel('ehCliente')} />
                 <PapelOpcao label="Fornecedor" descricao="Vende para você" marcado={form.ehFornecedor} onClick={() => alternarPapel('ehFornecedor')} />
               </div>
@@ -265,7 +265,7 @@ export default function FormClientePage() {
         {/* SEÇÃO 2 — Contato */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="2" title="Contato" subtitle="Como falar com esta pessoa ou empresa." />
-          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-section md:grid-cols-2 xl:grid-cols-4">
             <Field label="WhatsApp" opt size="md" erro={fieldErrors.whatsapp} hint="Usado para enviar orçamentos diretamente.">
               <input className={inputClass('whatsapp')} type="tel" placeholder="(11) 99999-0000"
                 value={form.whatsapp} onChange={e => set('whatsapp', mascararTelefone(e.target.value))} />
@@ -288,7 +288,7 @@ export default function FormClientePage() {
         {/* SEÇÃO 3 — Endereço e observações */}
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="3" title="Endereço e observações" />
-          <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-section lg:grid-cols-2">
             <Field label="Endereço" opt size="md">
               <TextArea value={form.endereco} onChange={v => set('endereco', v)} erro={fieldErrors.endereco}
                 minHeight="min-h-[64px]" placeholder="Rua, número, bairro, cidade" />
@@ -301,7 +301,7 @@ export default function FormClientePage() {
         </div>
 
         {/* BOTÕES */}
-        <div className="flex flex-col gap-3 px-[26px] py-[18px]">
+        <div className="flex flex-col gap-3 px-[26px] py-section">
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate(editando ? `/clientes/${id}` : '/clientes')}>Cancelar</Button>
             <Button variant="primary" icon={<Save size={16} />} disabled={saving} onClick={handleSave}>

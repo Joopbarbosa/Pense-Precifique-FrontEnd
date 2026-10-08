@@ -95,7 +95,7 @@ export default function DetalheCompraPage() {
       <AppLayout active="compras" compact>
         {erroCarga ? (
           <>
-            <div className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
+            <div className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erroCarga}</div>
             <div className="mt-4"><Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/compras')}>Voltar</Button></div>
           </>
         ) : (
@@ -121,7 +121,7 @@ export default function DetalheCompraPage() {
         <span className="font-semibold text-body">{compra.identificador}</span>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-[18px]">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-section">
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em] text-dark">Compra {compra.identificador}</h1>
@@ -161,7 +161,7 @@ export default function DetalheCompraPage() {
 
       {compra.status === 'CANCELADA' && compra.observacaoCancelamento && (
         <div className="mb-4 flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-4 py-3 text-[13.5px] text-danger-deep">
-          <Ban size={16} className="mt-0.5 flex-shrink-0" />
+          <Ban size={16} className="mt-0.5 shrink-0" />
           <span><strong className="font-semibold">Motivo do cancelamento:</strong> {compra.observacaoCancelamento}</span>
         </div>
       )}

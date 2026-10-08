@@ -4,6 +4,7 @@ import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi, buscarOrcamento } from '../helpers/orcamento'
+import { hojeLocal } from '../helpers/data'
 
 /**
  * CEN-NOVO-18 (P-T002, V0.8.1) — fluxo ponta-a-ponta SINAL_PAGO -> cancelamento com Estorno (wizard
@@ -60,7 +61,7 @@ test.describe('CEN-NOVO-18 — SINAL_PAGO → cancelamento com Estorno → Recib
     await page.getByRole('button', { name: 'Cancelar orçamento', exact: true }).click()
     await expect(page.getByText(`Estornar sinal para ${nomeCliente}?`)).toBeVisible({ timeout: 5000 })
 
-    const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const ontem = hojeLocal(-1)
     await page.locator('input[type="date"]').fill(ontem)
     await page.getByRole('button', { name: 'Próximo →', exact: true }).click()
 

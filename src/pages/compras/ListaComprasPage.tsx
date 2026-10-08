@@ -30,11 +30,11 @@ type LinhaEditavel = LinhaPreviaListaCompra & {
   quantidadeEditada: boolean; fornecedorEditado: boolean
 }
 
-const inputBase = 'h-10 w-full rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus'
+const inputBase = 'h-10 w-full rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus'
 
 function Checkbox({ label, descricao, marcado, onChange }: { label: string; descricao: string; marcado: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className={clsx('flex cursor-pointer items-start gap-2.5 rounded-input border-[1.5px] px-3.5 py-3 transition-colors', marcado ? 'border-teal bg-teal/[0.06]' : 'border-line bg-white hover:bg-cream')}>
+    <label className={clsx('flex cursor-pointer items-start gap-2.5 rounded-input border-[1.5px] px-3.5 py-3 transition-colors', marcado ? 'border-teal bg-teal/6' : 'border-line bg-white hover:bg-cream')}>
       <input type="checkbox" checked={marcado} onChange={e => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal" />
       <span>
         <span className="block text-[14px] font-semibold text-dark">{label}</span>
@@ -253,7 +253,7 @@ function Historico() {
     : { campo, dir: campo === 'status' ? 'asc' : 'desc' })
 
   if (loading) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
-  if (error) return <div role="alert" className="flex items-center justify-between rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">{error}<Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button></div>
+  if (error) return <div role="alert" className="flex items-center justify-between rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{error}<Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button></div>
   if (items.length === 0) return <EmptyState icon={<History size={20} />} title="Nenhuma lista ainda" description="As listas que você gerar ou salvar como rascunho ficam aqui para consultar e baixar em PDF." />
 
   return (
@@ -290,7 +290,7 @@ function NovaListaOuRascunho({ rascunhoId }: { rascunhoId: string | null }) {
     }).catch(err => setErro(extractApiError(err, 'Não foi possível abrir o rascunho.')))
   }, [rascunhoId])
   if (!rascunhoId) return <NovaLista rascunho={null} />
-  if (erro) return <div role="alert" className="rounded-input border border-[#F2D4CF] bg-[#FBF0EE] px-4 py-3 text-[13.5px] text-danger-deep">{erro}</div>
+  if (erro) return <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{erro}</div>
   if (!rascunho) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Abrindo rascunho…</div>
   return (
     <div className="flex flex-col gap-3">
@@ -312,9 +312,9 @@ export default function ListaComprasPage() {
   ]
   return (
     <AppLayout active="compras" compact>
-      <div className="mb-[18px] flex flex-wrap items-start justify-between gap-5">
+      <div className="mb-section flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">Lista de compras</h1>
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Lista de compras</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">O que falta no estoque, quanto comprar e de quem sai mais barato.</p>
         </div>
         <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras')}>Minhas compras</Button>
@@ -326,7 +326,7 @@ export default function ListaComprasPage() {
             <button key={a.id} role="tab" aria-selected={on} onClick={() => setParams(a.id === 'historico' ? {} : { aba: a.id }, { replace: true })}
               className={clsx('relative flex items-center gap-2 border-none bg-transparent px-4 py-3 font-[inherit] text-sm', on ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body')}>
               <a.icon size={16} /> {a.label}
-              {on && <span className="absolute -bottom-[1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
+              {on && <span className="absolute bottom-[-1.5px] left-2 right-2 h-[2.5px] rounded-[3px] bg-teal" />}
             </button>
           )
         })}

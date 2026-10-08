@@ -4,6 +4,8 @@ import { login } from './helpers/auth'
 import { apiLogin, criarInsumo } from './helpers/api'
 
 const API_URL = E2E_API_URL
+// PNG real2×2 para validar armazenamento e decodificação no navegador (#690).
+const FOTO_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==', 'base64')
 
 /**
  * OpenProject #518 (RN-NOVA-6/7) — foto (JPG/PNG, máx. 5MB, opcional) e descrição (máx. 150
@@ -72,9 +74,9 @@ test.describe('RN-NOVA-6/7/8 — foto, descrição e PDF do Catálogo', () => {
     await expect(page.getByText('Adicionar foto')).toBeVisible()
 
     await page.locator('input[type="file"]').setInputFiles({
-      name: 'foto.jpg',
-      mimeType: 'image/jpeg',
-      buffer: Buffer.from('conteudo-de-teste-nao-e-uma-imagem-real'),
+      name: 'foto.png',
+      mimeType: 'image/png',
+      buffer: FOTO_PNG,
     })
 
     // Sem clique em "Salvar" — upload é imediato, endpoint dedicado (DT-NOVA-4).
@@ -84,10 +86,17 @@ test.describe('RN-NOVA-6/7/8 — foto, descrição e PDF do Catálogo', () => {
     const itemAtualizado = await (await request.get(`${API_URL}/catalogos/${catalogo.id}/itens`, {
       headers: { Authorization: `Bearer ${token}` },
     })).json()
-    expect(itemAtualizado[0].fotoUrl).toContain('r2.dev')
+    const fotoUrl = new URL(itemAtualizado[0].fotoUrl)
+    expect(['http:', 'https:']).toContain(fotoUrl.protocol)
+    const fotoServida = await request.get(fotoUrl.toString())
+    expect(fotoServida.ok()).toBe(true)
+    expect(fotoServida.headers()['content-type']).toContain('image/png')
+    expect(await fotoServida.body()).toEqual(FOTO_PNG)
 
     await page.goto(`/catalogos/${catalogo.id}`)
-    await expect(page.getByRole('img', { name: nomeItem })).toBeVisible()
+    const imagem = page.getByRole('img', { name: nomeItem })
+    await expect(imagem).toBeVisible()
+    await expect.poll(() => imagem.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true)
   })
 
   test('remover foto limpa fotoUrl e volta a mostrar "Adicionar foto"', async ({ page, request }) => {
@@ -103,7 +112,7 @@ test.describe('RN-NOVA-6/7/8 — foto, descrição e PDF do Catálogo', () => {
     await page.locator('input[type="file"]').setInputFiles({
       name: 'foto.png',
       mimeType: 'image/png',
-      buffer: Buffer.from('conteudo-de-teste-nao-e-uma-imagem-real'),
+      buffer: FOTO_PNG,
     })
     await expect(page.getByRole('button', { name: 'Remover foto' })).toBeVisible({ timeout: 10_000 })
 

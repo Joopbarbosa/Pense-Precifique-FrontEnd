@@ -105,7 +105,7 @@ function PrazoSection({
           height="h-10"
           optionWidth="w-[60px]"
           textSize="text-sm"
-          className="flex-shrink-0"
+          className="shrink-0"
         />
       </div>
 
@@ -121,7 +121,7 @@ function PrazoSection({
               onChange={e => setPrazoDias(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="10"
               className={clsx(
-                'h-[46px] w-[100px] rounded-input border-[1.5px] px-3.5 text-center font-[inherit] text-lg font-bold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                'h-[46px] w-[100px] rounded-input border-[1.5px] px-3.5 text-center font-[inherit] text-lg font-bold text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12',
                 error ? 'border-danger' : 'border-line'
               )}
             />
@@ -140,11 +140,11 @@ function PrazoSection({
             onClick={() => setInicioImediato(!inicioImediato)}
             className={clsx(
               'flex items-start gap-2.5 rounded-xl border-[1.5px] px-[15px] py-[13px] text-left font-[inherit] transition-all duration-150',
-              inicioImediato ? 'border-teal/30 bg-teal/[0.06]' : 'border-line bg-cream'
+              inicioImediato ? 'border-teal/30 bg-teal/6' : 'border-line bg-cream'
             )}
           >
             <span className={clsx(
-              'mt-px grid h-[22px] w-[22px] flex-shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
+              'mt-px grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md border-2 transition-all duration-150',
               inicioImediato ? 'border-teal bg-teal' : 'border-[#D4D0C8] bg-transparent'
             )}>
               {inicioImediato && <Check width={12} height={12} stroke="#fff" strokeWidth={3} />}
@@ -166,7 +166,7 @@ function PrazoSection({
                   type="date"
                   value={dataInicioEstimada}
                   onChange={e => setDataInicioEstimada(e.target.value)}
-                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-none transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
               </label>
               <p className="mb-0 mt-1.5 text-[12.5px] text-muted">
@@ -283,7 +283,7 @@ function PagamentoSection({
             height="h-10"
             optionWidth="w-[60px]"
             textSize="text-sm"
-            className="flex-shrink-0"
+            className="shrink-0"
           />
         </div>
 
@@ -297,7 +297,7 @@ function PagamentoSection({
                 height="h-[46px]"
                 optionWidth="w-[46px]"
                 textSize="text-sm"
-                className="flex-shrink-0"
+                className="shrink-0"
               />
               <input
                 value={valor}
@@ -306,7 +306,7 @@ function PagamentoSection({
                 min={0}
                 placeholder={tipo === '%' ? '50' : '0,00'}
                 className={clsx(
-                  'h-[46px] min-w-0 flex-1 rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                  'h-[46px] min-w-0 flex-1 rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12',
                   error ? 'border-danger' : 'border-line'
                 )}
               />
@@ -318,7 +318,7 @@ function PagamentoSection({
               </div>
             )}
             <div className="mt-3.5 flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-input border border-dashed border-teal/[0.35] bg-teal/[0.06] px-3.5 py-2.5">
+              <div className="flex items-center justify-between rounded-input border border-dashed border-teal/35 bg-teal/6 px-3.5 py-2.5">
                 <span className="flex items-center gap-[7px] text-[13.5px] font-semibold text-teal">
                   <Wallet size={15} /> Sinal solicitado
                 </span>
@@ -364,12 +364,12 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
   return (
     <div className="overflow-hidden rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="flex items-center gap-2.5 border-b border-line px-5 py-4">
-        <span className="grid h-[30px] w-[30px] place-items-center rounded-[9px] bg-teal/[0.12] text-teal">
+        <span className="grid h-[30px] w-[30px] place-items-center rounded-[9px] bg-teal/12 text-teal">
           <FileText size={20} />
         </span>
         <h2 className="m-0 text-[15.5px] font-bold text-dark">Resumo do orçamento</h2>
       </div>
-      <div className="flex flex-col gap-3.5 px-5 py-[18px]">
+      <div className="flex flex-col gap-3.5 px-5 py-section">
         <div className="flex justify-between text-[14.5px] text-body">
           <span>Subtotal</span>
           <span className="font-semibold text-dark [font-variant-numeric:tabular-nums]">{BRL(subtotal)}</span>
@@ -383,14 +383,14 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
           descontoAplicado={descontoAplicado}
         />
 
-        <div className="flex items-baseline justify-between rounded-xl border border-teal/[0.18] bg-teal/[0.08] px-4 py-3.5">
+        <div className="flex items-baseline justify-between rounded-xl border border-teal/18 bg-teal/8 px-4 py-3.5">
           <span className="text-[15px] font-semibold text-dark">Total</span>
           <span className="text-[26px] font-bold tracking-[-0.01em] text-teal [font-variant-numeric:tabular-nums]">{BRL(total)}</span>
         </div>
 
         {sinalAtivo && (
           <div className="-mt-0.5 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between rounded-input border border-dashed border-teal/[0.35] bg-teal/[0.06] px-3.5 py-2.5">
+            <div className="flex items-center justify-between rounded-input border border-dashed border-teal/35 bg-teal/6 px-3.5 py-2.5">
               <span className="flex items-center gap-[7px] text-[13.5px] font-semibold text-teal">
                 <Wallet size={15} /> Sinal solicitado
               </span>
@@ -410,7 +410,7 @@ function Summary({ subtotal, descTipo, descValor, setDescTipo, setDescValor, des
           <input
             type="date" value={validade}
             onChange={e => setValidade(e.target.value)}
-            className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+            className="h-11 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-sm text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
           />
         </label>
 
@@ -902,10 +902,10 @@ export default function CriarOrcamentoPage() {
       {/* Header */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-[0.05em] text-teal">
+          <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-wider text-teal">
             Orçamentos
           </div>
-          <h1 className="m-0 text-[29px] font-bold tracking-[-0.025em] text-dark">
+          <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">
             {editando ? 'Editar Orçamento' : 'Novo Orçamento'}
           </h1>
         </div>
@@ -915,7 +915,7 @@ export default function CriarOrcamentoPage() {
       <div className="grid grid-cols-[1fr_348px] items-start gap-[22px] max-[860px]:grid-cols-1">
 
         {/* Coluna esquerda */}
-        <div className="flex min-w-0 flex-col gap-[18px]">
+        <div className="flex min-w-0 flex-col gap-section">
 
           {/* Seção 1: Cliente */}
           <SectionCard step="1" label="Cliente" hint="Quem vai receber este orçamento?">
@@ -952,7 +952,7 @@ export default function CriarOrcamentoPage() {
               <div ref={prodRef} className={clsx('relative px-5 pb-5 pt-3.5', items.length && 'border-t border-line')}>
                 <button
                   onClick={() => setProductOpen(o => !o)}
-                  className="flex h-12 w-full items-center justify-center gap-[9px] rounded-input border-[1.5px] border-dashed border-teal/50 bg-teal/[0.05] font-[inherit] text-[14.5px] font-semibold text-teal transition-colors duration-150 hover:bg-teal/10"
+                  className="flex h-12 w-full items-center justify-center gap-[9px] rounded-input border-[1.5px] border-dashed border-teal/50 bg-teal/5 font-[inherit] text-[14.5px] font-semibold text-teal transition-colors duration-150 hover:bg-teal/10"
                 >
                   <Plus size={16} /> Adicionar item
                 </button>
@@ -1213,7 +1213,7 @@ export default function CriarOrcamentoPage() {
                   value={formDataInicioProducaoCheckpoint}
                   onChange={(e) => setFormDataInicioProducaoCheckpoint(e.target.value)}
                   disabled={criandoProducaoCheckpoint}
-                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]"
+                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
                 />
               </label>
               <label className="block flex-1 basis-[160px]">
@@ -1227,7 +1227,7 @@ export default function CriarOrcamentoPage() {
                   onChange={(e) => setFormDataTerminoProducaoCheckpoint(e.target.value)}
                   disabled={criandoProducaoCheckpoint}
                   className={clsx(
-                    'h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-none transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/[0.12]',
+                    'h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12',
                     formErroProducaoCheckpoint && !formDataTerminoProducaoCheckpoint ? 'border-danger' : 'border-line'
                   )}
                 />
@@ -1250,7 +1250,7 @@ export default function CriarOrcamentoPage() {
 
             {formErroProducaoCheckpoint && (
               <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
                 <span>{formErroProducaoCheckpoint}</span>
               </div>
             )}

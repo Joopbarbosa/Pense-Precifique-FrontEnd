@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { API_URL, login } from '../helpers/auth'
 import { apiLogin, criarFornecedor, criarInsumo } from '../helpers/api'
+import { hojeLocal } from '../helpers/data'
 
 test('V0.15.0 — rascunho, confirmação, dashboard, PDF e cancelamento da mesma COM-N', async ({ page, request }) => {
   const token = await apiLogin(request)
@@ -8,7 +9,7 @@ test('V0.15.0 — rascunho, confirmação, dashboard, PDF e cancelamento da mesm
   const sufixo = Date.now()
   const fornecedor = await criarFornecedor(request, token, `QA-Compra-Fornecedor-${sufixo}`)
   const insumo = await criarInsumo(request, token, `QA-Compra-Insumo-${sufixo}`)
-  const dataCompra = new Date().toISOString().slice(0, 10)
+  const dataCompra = hojeLocal()
   const corpo = {
     dataCompra,
     multiplosFornecedores: false,

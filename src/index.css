@@ -1,6 +1,206 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-teal: #2a9d8f;
+  --color-teal-deep: #1e7268;
+
+  --color-orange: #f97316;
+  --color-dark: #3a372f;
+  --color-line: #efede8;
+  --color-app: #fafaf8;
+  --color-azul: #3a6fa0;
+  --color-muted: #a29e96;
+  --color-body: #5c594f;
+  --color-subtle: #7c786f;
+  --color-faint: #b7b4ad;
+  --color-line-soft: #f1f0ec;
+  --color-line-deep: #e9e7e2;
+
+  --color-danger: #c0492b;
+  --color-danger-deep: #b23a1e;
+  --color-danger-bg: #fbede9;
+  --color-danger-bg-soft: #fef2f2;
+  --color-danger-tint: #fbf0ee;
+  --color-danger-line: #f2d4cf;
+  --color-danger-line-soft: #fecaca;
+  --color-danger-alt: #dc2626;
+  --color-danger-strong: #b91c1c;
+
+  --color-success: #1f8a5b;
+  --color-success-bg: #e8f5ee;
+
+  --color-warning: #c8721f;
+  --color-warning-bg: #fff1e8;
+  --color-warning-alt: #c65d31;
+
+  --color-dim: #9a968e;
+  --color-cream: #faf8f5;
+
+  --radius-btn: 10px;
+  --radius-input: 10px;
+  --radius-card: 16px;
+
+  --spacing-section: 18px;
+
+  --opacity-focus: 25%;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-switch: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+  --animate-fade-in: fadeIn 0.2s ease both;
+  --animate-scale-in: scaleIn 0.22s cubic-bezier(0.34, 1.3, 0.5, 1) both;
+  --animate-fade-up: fadeUp 0.35s ease both;
+  --animate-pop: pop 0.14s ease both;
+  --animate-spin: spin 0.8s linear infinite;
+  --animate-shake: shake 0.45s ease;
+  --animate-flash: flash 0.6s ease;
+  --animate-slide-in-right: slideInRight 0.28s cubic-bezier(0.34, 1.3, 0.5, 1)
+    both;
+  --animate-toast-in: toastIn 0.3s cubic-bezier(0.34, 1.3, 0.5, 1) both;
+  --animate-row-in: rowIn 0.25s ease both;
+  --animate-floaty: floaty 3s ease-in-out infinite;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20%,
+    60% {
+      transform: translateX(-4px);
+    }
+    40%,
+    80% {
+      transform: translateX(4px);
+    }
+  }
+  @keyframes flash {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes toastIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes rowIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes floaty {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/*
+  #759 (Tailwind 4) — compatibilidade visual com o Tailwind 3, para a migração não mudar nenhuma tela:
+  - o placeholder do v3 era gray-400; no v4 passou a ser a cor do texto a 50%;
+  - o botão do campo de arquivo mantém a aparência padrão do navegador (o preflight do v4 o zerava).
+*/
+@layer base {
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+}
+
+input[type='file']::file-selector-button {
+  all: revert;
+  font: inherit;
+  /* o Chrome ignora line-height neste botão: a altura do v3 era 1,5 linha mais bordas e espaçamento */
+  height: calc(1.5em + 6px);
+}
 
 * {
   box-sizing: border-box;

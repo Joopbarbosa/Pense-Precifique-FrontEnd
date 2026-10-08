@@ -48,9 +48,9 @@ function estadoPreco(overrideAtivo: boolean, diffOverride?: number | null): Esta
 }
 
 const CORES_ESTADO: Record<EstadoPreco, { rs: string; input: string }> = {
-  igual: { rs: 'border-line bg-cream text-dim', input: 'border-line text-dark focus:border-teal focus:ring-4 focus:ring-teal/[0.12]' },
-  acima: { rs: 'border-azul/30 bg-azul/[0.08] text-azul', input: 'border-azul text-azul focus:ring-4 focus:ring-azul/[0.12]' },
-  abaixo: { rs: 'border-orange/30 bg-orange/[0.08] text-orange', input: 'border-orange text-orange focus:ring-4 focus:ring-orange/[0.12]' },
+  igual: { rs: 'border-line bg-cream text-dim', input: 'border-line text-dark focus:border-teal focus:ring-4 focus:ring-teal/12' },
+  acima: { rs: 'border-azul/30 bg-azul/8 text-azul', input: 'border-azul text-azul focus:ring-4 focus:ring-azul/12' },
+  abaixo: { rs: 'border-orange/30 bg-orange/8 text-orange', input: 'border-orange text-orange focus:ring-4 focus:ring-orange/12' },
 }
 
 /** Calculadora de Custo/Preço — mesmo componente usado em Produto (custo+margem), Catálogo (preço×quantidade) e Orçamento (RN-NOVA-23, V0.8.4/#399). */
@@ -66,8 +66,8 @@ export default function CalculadoraPreco({
   const estado = estadoPreco(overrideAtivo, diffOverride)
   return (
     <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
-      <div className="flex items-center gap-[11px] border-b border-teal/[0.18] bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
-        <span className="grid h-[38px] w-[38px] flex-shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
+      <div className="flex items-center gap-[11px] border-b border-teal/18 bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
+        <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
           <Calculator size={20} />
         </span>
         <div className="min-w-0">
@@ -82,13 +82,13 @@ export default function CalculadoraPreco({
         {children}
 
         {!mostrarSugerido ? (
-          <div className="mt-2 rounded-xl border border-teal/[0.18] bg-teal/[0.06] px-4 py-3.5 text-center">
+          <div className="mt-2 rounded-xl border border-teal/18 bg-teal/6 px-4 py-3.5 text-center">
             <div className="text-xs font-semibold text-[#1F7A6F]">{mensagemSemPreco}</div>
             <div className="mt-[3px] text-[11.5px] text-muted">O custo acima é registrado automaticamente.</div>
           </div>
         ) : (
           <>
-            <div key={sugerido != null ? Math.round(sugerido * 100) : 'x'} className="mt-2 animate-flash rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-[18px] py-4">
+            <div key={sugerido != null ? Math.round(sugerido * 100) : 'x'} className="mt-2 animate-flash rounded-2xl border-[1.5px] border-teal/[0.28] bg-[linear-gradient(135deg,rgba(42,157,143,0.14),rgba(42,157,143,0.05))] px-section py-4">
               <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#1F7A6F]">{sugeridoLabel}</div>
               <div className="mt-0.5 text-[28px] font-bold tracking-[-0.02em] text-teal [font-variant-numeric:tabular-nums]">
                 {sugerido != null ? moeda(sugerido) : '—'}
@@ -108,7 +108,7 @@ export default function CalculadoraPreco({
                   inputMode="decimal"
                   disabled={disabledInput}
                   className={clsx(
-                    'h-[52px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-xl font-bold outline-none transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums]',
+                    'h-[52px] w-full rounded-input border-[1.5px] pl-[58px] pr-3.5 font-[inherit] text-xl font-bold outline-hidden transition-[border-color,box-shadow] duration-150 [font-variant-numeric:tabular-nums]',
                     CORES_ESTADO[estado].input,
                     disabledInput ? 'bg-cream' : 'bg-white'
                   )}
@@ -118,8 +118,8 @@ export default function CalculadoraPreco({
 
             {diffOverride != null && (
               <div className="mt-3 flex gap-2 rounded-[11px] border border-[#F6E4CE] bg-[#FFF8F0] px-[13px] py-[11px]">
-                <Info size={15} className="mt-px flex-shrink-0 text-warning" />
-                <p className="m-0 text-[12.3px] leading-[1.5] text-[#7A5A33]">
+                <Info size={15} className="mt-px shrink-0 text-warning" />
+                <p className="m-0 text-[12.3px] leading-normal text-[#7A5A33]">
                   Você ajustou o preço manualmente (<strong className="font-bold">{diffOverride > 0 ? '+' : '−'}{moeda(Math.abs(diffOverride))}</strong> {diffOverride > 0 ? 'acima' : 'abaixo'} do sugerido).
                 </p>
               </div>
