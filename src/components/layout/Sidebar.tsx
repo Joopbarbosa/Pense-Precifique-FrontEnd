@@ -18,6 +18,8 @@ const GRUPO_VENDAS = {
   id: 'vendas',
   label: 'Vendas',
   itens: [
+    // #719 (RN-NOVA-17, DT-NOVA-11) — Dashboard de Vendas é o primeiro item do grupo, como no de Compras.
+    { id: 'vendas-dashboard', label: 'Dashboard', icon: BarChart3, size: 20, href: '/vendas/dashboard' },
     { id: 'caixa',      label: 'Caixa',      icon: Receipt,  size: 20, href: '/caixa' },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, size: 20, href: '/orcamentos' },
   ],
@@ -51,7 +53,7 @@ const NAV_RESTANTE = [
 ] as const
 
 interface SidebarProps {
-  active: 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config'
+  active: 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
   open: boolean
   onClose: () => void
   collapsed: boolean
