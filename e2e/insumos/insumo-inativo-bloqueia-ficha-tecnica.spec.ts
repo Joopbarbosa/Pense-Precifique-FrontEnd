@@ -16,7 +16,7 @@ const API_URL = E2E_API_URL
 test.describe('OpenProject #228/#347/#641 — Insumo inativo indisponível na ficha técnica', () => {
   let insumoId: string
   let insumoNome: string
-  let produtoId: string | null = null
+  const produtoId: string | null = null
 
   test.beforeEach(async ({ request }) => {
     const token = await apiLogin(request)

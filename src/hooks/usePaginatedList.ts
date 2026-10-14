@@ -17,7 +17,8 @@ export function usePaginatedList<T>({ fetcher, pageSize = 20, errorMessage = 'NÃ
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async (pg: number, reset: boolean) => {
-    reset ? setLoading(true) : setLoadingMore(true)
+    if (reset) setLoading(true)
+    else setLoadingMore(true)
     try {
       const data = await fetcher(pg, pageSize)
       setItems(prev => reset ? data.content : [...prev, ...data.content])

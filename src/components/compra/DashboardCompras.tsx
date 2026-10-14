@@ -147,7 +147,6 @@ export default function DashboardCompras() {
       .catch(err => setErro(extractApiError(err, 'Não foi possível carregar o painel.')))
       .finally(() => setCarregando(false))
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(carregar, [faixa.de, faixa.ate])
 
   const abrir = (titulo: string, filtro: FiltroInicial) => setListagem({ titulo, filtro: { status: ['CONFIRMADA'], ...filtro } })
