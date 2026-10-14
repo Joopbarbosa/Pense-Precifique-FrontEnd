@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { tipoProdutoBadge } from '../../utils/badges'
+import { LinhaPrecoSugeridoProduto } from '../../components/produto/HistoricoPrecoSugerido'
 import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
 import { MOTIVOS_BAIXA_PRODUTO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
@@ -465,6 +466,7 @@ export default function DetalheProdutoPage() {
                 Nenhuma movimentação registrada ainda.
               </div>
             ) : movimentacoes.map((mov) => {
+              if (mov.tipoLinha === 'PRECO_SUGERIDO') return <LinhaPrecoSugeridoProduto key={mov.id} mov={mov} />
               const kind = resolveKind(mov)
               const pos = mov.tipo === 'ENTRADA'
               const deltaClass = kind === 'estorno' ? 'text-danger' : (pos ? 'text-success' : 'text-danger')
