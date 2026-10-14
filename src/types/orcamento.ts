@@ -1,4 +1,5 @@
 import type { AvisoEstoqueNegativo } from './producao';
+import type { ItemCatalogoComponenteResponse } from './itemCatalogo';
 
 export type StatusOrcamento =
   'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'AGUARDANDO_SINAL' |
@@ -35,7 +36,7 @@ export interface ItemCatalogoBuscaResponse {
   precoVenda: number;
   catalogoNome: string;
   catalogoNumero: number;
-  componentes: import('./itemCatalogo').ItemCatalogoComponenteResponse[];
+  componentes: ItemCatalogoComponenteResponse[];
   /** true se qualquer componente Insumo não é fracionável (não recursa na ficha técnica de um
    *  componente Produto-base). */
   algumComponenteNaoFracionavel: boolean;
