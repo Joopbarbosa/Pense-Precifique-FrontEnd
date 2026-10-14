@@ -52,6 +52,8 @@ export interface CompraItemResponse {
   descontoNota: number
   /** #959 (DT-NOVA-2) — quantidade pedida; só nas linhas que passaram pela entrada de uma compra pendente. */
   quantidadePedida: number | null
+  /** #720 (RN-NOVA-14) — id do Insumo que o item abre; nulo = insumo excluído (sem link). */
+  destinoId: string | null
 }
 
 export interface CompraResponse {

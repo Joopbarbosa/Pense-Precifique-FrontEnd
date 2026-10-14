@@ -89,6 +89,8 @@ export interface OrcamentoItemCustomizacaoResponse {
   id: string;
   produtoId: string;
   nomeProduto: string;
+  /** #720 — Produto da customização; nulo = excluído. */
+  destinoId?: string | null;
   quantidade: number;
   precoUnitario: number;
   subtotal: number;
@@ -101,6 +103,9 @@ export interface OrcamentoItemResponse {
   catalogoNome?: string;
   produtoId: string;
   nomeProduto: string;
+  /** #720 (RN-NOVA-14) — PRODUTO ou CATALOGO; `destinoId` nulo = cadastro excluído (sem link). */
+  destinoTipo?: 'PRODUTO' | 'CATALOGO';
+  destinoId?: string | null;
   margemAplicada?: number;
   quantidade: number;
   precoUnitario: number;
