@@ -85,6 +85,11 @@ export interface CompraResponse {
   comprovanteTipo: ComprovanteTipo | null
   comprovanteNome: string | null
   comprovanteUrl: string | null
+  /** #957 (V0.17.0) — nulo nas compras antigas (não se aplica). */
+  entregaImediata: boolean | null
+  previsaoEntrega: string | null
+  /** Data em que a compra passou a contar nos números. */
+  dataEntrada: string | null
 }
 
 export interface CompraResumoResponse {
@@ -127,6 +132,10 @@ export interface CompraRequest {
   descontoNotaValor?: number | null
   /** #597 — só com método CARTAO_CREDITO e pago (1..maxParcelas, sem máximo 12). */
   parcelas?: number | null
+  /** #957 — ausente = Sim. */
+  entregaImediata?: boolean
+  /** #957 — só com entregaImediata = false; obrigatória ao confirmar. */
+  previsaoEntrega?: string | null
 }
 
 export interface CompraFiltros {
