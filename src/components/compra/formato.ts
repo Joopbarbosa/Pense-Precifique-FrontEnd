@@ -44,6 +44,7 @@ export function hojeIso(): string {
 
 export const STATUS_COMPRA_LABEL: Record<StatusCompra, string> = {
   RASCUNHO: 'Rascunho',
+  PENDENTE_RECEBIMENTO: 'Pendente de recebimento',
   CONFIRMADA: 'Confirmada',
   CANCELADA: 'Cancelada',
 }

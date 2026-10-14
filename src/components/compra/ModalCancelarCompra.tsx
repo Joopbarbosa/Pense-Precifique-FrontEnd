@@ -78,8 +78,9 @@ export default function ModalCancelarCompra({ compra, onClose, onCancelada }: {
       ) : (
         <div className="flex flex-col gap-4">
           <p className="m-0 text-[13.5px] leading-[1.55] text-body">
-            O estoque comprado volta a sair dos insumos e o custo volta ao valor de antes desta compra. A compra fica como
-            Cancelada e pode ser duplicada depois.
+            {compra.status === 'PENDENTE_RECEBIMENTO'
+              ? 'Esta compra ainda não deu entrada: o estoque e o custo dos insumos não mudam. A compra fica como Cancelada e pode ser duplicada depois.'
+              : 'O estoque comprado volta a sair dos insumos e o custo volta ao valor de antes desta compra. A compra fica como Cancelada e pode ser duplicada depois.'}
           </p>
           {temAvisos && (
             <div className="rounded-input border border-warning/30 bg-warning-bg px-4 py-3">
