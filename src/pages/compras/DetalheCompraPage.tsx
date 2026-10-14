@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { ArrowLeft, Ban, Check, ChevronRight, Copy, CreditCard, FileText, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Ban, Check, ChevronRight, Copy, CreditCard, FileText, PackageCheck, Pencil, Trash2 } from 'lucide-react'
 import ModalCancelarCompra from '../../components/compra/ModalCancelarCompra'
 import ModalPagamento from '../../components/compra/ModalPagamentoCompra'
 import AppLayout from '../../components/layout/AppLayout'
@@ -138,6 +138,7 @@ export default function DetalheCompraPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/compras')}>Voltar</Button>
           {pendente && <>
+            <Button variant="primary" icon={<PackageCheck size={16} />} onClick={() => navigate(`/compras/entrada?compra=${compra.id}`)}>Dar entrada</Button>
             <Button variant="ghost" icon={<Trash2 size={16} />} onClick={() => setModal('excluir')}>Excluir</Button>
             <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/compras/${compra.id}/editar`)}>Editar</Button>
             <Button variant="primary" icon={<Ban size={16} />} onClick={() => setModal('cancelar')}>Cancelar compra</Button>

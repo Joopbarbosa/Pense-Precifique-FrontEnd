@@ -50,6 +50,8 @@ export interface CompraItemResponse {
   descontoInformado: number | null
   descontoLinha: number
   descontoNota: number
+  /** #959 (DT-NOVA-2) — quantidade pedida; só nas linhas que passaram pela entrada de uma compra pendente. */
+  quantidadePedida: number | null
 }
 
 export interface CompraResponse {
@@ -141,6 +143,12 @@ export interface CompraRequest {
   entregaImediata?: boolean
   /** #957 — só com entregaImediata = false; obrigatória ao confirmar. */
   previsaoEntrega?: string | null
+}
+
+/** #959 (RN-NOVA-7) — entrada da compra pendente: sempre a compra inteira. */
+export interface EntradaCompraRequest {
+  dataRecebimento: string
+  itens: { itemId: string; quantidadeRecebida: number }[]
 }
 
 export interface CompraFiltros {

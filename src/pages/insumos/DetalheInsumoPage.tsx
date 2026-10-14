@@ -17,6 +17,7 @@ import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { formatarData } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 
 const numQtd = (s: string) => {
@@ -30,6 +31,10 @@ const moeda = BRL
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR')
+
+// #959 (DT-NOVA-4): a entrada de compra mostra a data do recebimento; a ordem do histórico segue a criação.
+const dataDaMovimentacao = (m: { createdAt: string; dataReferencia?: string | null }) =>
+  m.dataReferencia ? formatarData(m.dataReferencia) : formatDate(m.createdAt)
 
 const TIPO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
@@ -262,7 +267,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
               riscado && 'opacity-60',
               isEstorno && 'bg-danger-bg'
             )}>
-              <div className="text-[13px] text-body [font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</div>
+              <div className="text-[13px] text-body [font-variant-numeric:tabular-nums]">{dataDaMovimentacao(m)}</div>
               <div className={riscado ? 'line-through' : undefined}>
                 <HistTipo tipo={tipoDisplay} titulo={titulo} />
               </div>
@@ -302,7 +307,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
                 'mt-2.5 flex flex-wrap items-center gap-2 text-[12.5px]',
                 isEstorno ? 'italic text-danger-deep' : 'text-muted'
               )}>
-                <span className="[font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</span>
+                <span className="[font-variant-numeric:tabular-nums]">{dataDaMovimentacao(m)}</span>
                 <span className="text-[#D8D4CC]">·</span>
                 <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario) : '—'}</span>
                 {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
