@@ -116,9 +116,10 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
 
 /* ── PerfilCard ──────────────────────────────────────────────── */
 
-function PerfilCard({ nome, email, configurada, logoUrl, onEditarPerfil }: {
+function PerfilCard({ nome, email, semContato, configurada, logoUrl, onEditarPerfil }: {
   nome?: string
   email?: string
+  semContato?: boolean
   configurada: boolean
   logoUrl?: string
   onEditarPerfil: () => void
@@ -150,6 +151,11 @@ function PerfilCard({ nome, email, configurada, logoUrl, onEditarPerfil }: {
           <>
             <h3 className="mt-[13px] text-[17px] font-bold tracking-[-0.01em] text-dark">{nome}</h3>
             <p className="mt-[3px] text-[13.5px] text-muted">{email || ''}</p>
+            {semContato && (
+              <p className="mx-auto mt-[5px] max-w-[260px] text-[12.5px] leading-normal text-muted">
+                Adicione e-mail, telefone e logo para aparecerem nos PDFs e recibos.
+              </p>
+            )}
             <button
               onClick={onEditarPerfil}
               className="group mt-4 inline-flex items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 font-[inherit] text-[13.5px] font-semibold text-teal transition-[gap] duration-150 hover:gap-2.5"
@@ -188,6 +194,7 @@ function Precificacao({
   empresaNome,
   empresaEmail,
   empresaConfigurada,
+  empresaSemContato,
   empresaLogoUrl,
   onEditarPerfil,
 }: {
@@ -198,6 +205,7 @@ function Precificacao({
   empresaNome?: string
   empresaEmail?: string
   empresaConfigurada: boolean
+  empresaSemContato: boolean
   empresaLogoUrl?: string
   onEditarPerfil: () => void
 }) {
@@ -297,7 +305,7 @@ function Precificacao({
         </div>
       </div>
 
-      <PerfilCard nome={empresaNome} email={empresaEmail} configurada={empresaConfigurada} logoUrl={empresaLogoUrl} onEditarPerfil={onEditarPerfil} />
+      <PerfilCard nome={empresaNome} email={empresaEmail} semContato={empresaSemContato} configurada={empresaConfigurada} logoUrl={empresaLogoUrl} onEditarPerfil={onEditarPerfil} />
       <Toast message={toast} />
     </div>
   )
@@ -1353,6 +1361,7 @@ export default function ConfiguracoesPage() {
               empresaNome={empresa?.nome}
               empresaEmail={empresa?.email}
               empresaConfigurada={!!empresa}
+              empresaSemContato={!!empresa && !empresa.email && !empresa.whatsapp && !empresa.logoUrl}
               empresaLogoUrl={empresa?.logoUrl}
               onEditarPerfil={() => setAba('perfil')}
             />

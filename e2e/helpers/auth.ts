@@ -43,6 +43,12 @@ export async function loginComoEmail(page: Page, email: string, senha: string) {
   await page.waitForTimeout(1500)
 
   if (page.url().includes('/onboarding')) {
+    // #339 — o onboarding tem dois passos; o primeiro (Sua empresa) só aparece enquanto o nome não foi salvo
+    const nomeEmpresa = page.getByPlaceholder('Nome do seu ateliê')
+    if (await nomeEmpresa.isVisible()) {
+      if (!(await nomeEmpresa.inputValue())) await nomeEmpresa.fill('Ateliê E2E')
+      await page.getByRole('button', { name: 'Avançar' }).click()
+    }
     await page.getByPlaceholder('25,00').fill('25')
     await page.getByPlaceholder('40').fill('40')
     await page.getByRole('button', { name: /Começar a usar o sistema/ }).click()
