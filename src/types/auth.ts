@@ -7,6 +7,7 @@ export interface CadastroRequest {
   email: string
   senha: string
   confirmarSenha: string
+  nomeEmpresa?: string
 }
 
 export interface AuthResponse {
