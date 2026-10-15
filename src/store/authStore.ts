@@ -11,6 +11,8 @@ interface AuthState {
   usuario: Usuario | null
   onboardingCompleto: boolean | null
   setAuth: (token: string, usuario: Usuario) => void
+  // #334 — troca de e-mail renova token e e-mail sem reabrir a checagem de onboarding
+  atualizarSessao: (token: string, usuario: Usuario) => void
   clearAuth: () => void
   isAuthenticated: () => boolean
   setOnboardingCompleto: (v: boolean) => void
@@ -23,6 +25,7 @@ export const useAuthStore = create<AuthState>()(
       usuario: null,
       onboardingCompleto: null,
       setAuth: (token, usuario) => set({ token, usuario, onboardingCompleto: null }),
+      atualizarSessao: (token, usuario) => set({ token, usuario }),
       clearAuth: () => set({ token: null, usuario: null, onboardingCompleto: null }),
       isAuthenticated: () => !!get().token,
       setOnboardingCompleto: (v) => set({ onboardingCompleto: v }),
