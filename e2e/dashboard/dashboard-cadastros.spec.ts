@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { login, API_URL } from '../helpers/auth'
+import { login, loginComoEmail, API_URL } from '../helpers/auth'
 import { apiLogin, criarInsumo } from '../helpers/api'
 
 /** V0.17.0 — #607 (RN-NOVA-15 e 16): CEN-NOVO-32 (menu), 33 (preço abaixo do sugerido) e 36/37 (margem e estado vazio) pela tela. */
@@ -44,7 +44,17 @@ test('V0.17.0 — Dashboard de Cadastros: preço abaixo do sugerido, margem e es
   const margem = page.getByTestId('ind-margem')
   await expect(margem).toContainText(`QA607-produto-${sufixo}`)
 
-  // sem vendas nem compras no período: estados vazios, nenhum erro
+  await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
+// conta descartável: a conta principal acumula vendas de outros specs, então o estado vazio só é garantido numa conta nova
+test('V0.17.0 — Dashboard de Cadastros: sem vendas nem compras no período mostra estados vazios sem erro', async ({ page, request }) => {
+  const email = `e2e-cadastros-vazio-${Date.now()}@teste.com`
+  const reg = await request.post(`${API_URL}/auth/register`, { data: { email, senha: 'SenhaValida123', confirmarSenha: 'SenhaValida123' } })
+  expect(reg.ok(), await reg.text()).toBeTruthy()
+  await loginComoEmail(page, email, 'SenhaValida123')
+  await page.goto('/cadastros/dashboard')
+  await expect(page.getByRole('heading', { name: 'Dashboard de cadastros' })).toBeVisible()
   await expect(page.getByTestId('ind-produto-mais-vendido')).toContainText('Sem dados no período')
   await expect(page.getByTestId('ind-curva-abc')).toContainText('Sem lucro no período')
   await expect(page.getByRole('alert')).toHaveCount(0)

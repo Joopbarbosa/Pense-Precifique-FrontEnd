@@ -31,7 +31,7 @@ test('V0.17.0 — item da modal da venda abre o Produto em nova aba; produto exc
     await page.getByRole('tab', { name: 'Vendas' }).click()
 
     // CEN-NOVO-47 — produto cadastrado: o item é link e abre o detalhe do Produto em aba nova; a modal continua aberta
-    await page.getByTestId('linha-venda').filter({ hasText: identificadores[vivo.id] }).click()
+    await page.getByTestId('linha-venda').filter({ has: page.getByRole('cell', { name: identificadores[vivo.id], exact: true }) }).click()
     const link = page.getByTestId('modal-registro').getByTestId('item-link')
     await expect(link).toHaveText(`QA720-vivo-${sufixo}`)
     const [aba] = await Promise.all([context.waitForEvent('page'), link.click()])
@@ -41,7 +41,7 @@ test('V0.17.0 — item da modal da venda abre o Produto em nova aba; produto exc
     await page.getByRole('button', { name: 'Fechar', exact: true }).first().click()
 
     // CEN-NOVO-50 — produto excluído: aparece como texto, sem link
-    await page.getByTestId('linha-venda').filter({ hasText: identificadores[apagado.id] }).click()
+    await page.getByTestId('linha-venda').filter({ has: page.getByRole('cell', { name: identificadores[apagado.id], exact: true }) }).click()
     await expect(page.getByTestId('modal-registro').getByTestId('item-texto')).toHaveText(`QA720-apagado-${sufixo}`)
     await expect(page.getByTestId('modal-registro').getByTestId('item-link')).toHaveCount(0)
   } finally {
