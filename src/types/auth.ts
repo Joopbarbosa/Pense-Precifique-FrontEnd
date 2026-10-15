@@ -30,6 +30,11 @@ export interface AlterarSenhaRequest {
   confirmarNovaSenha: string
 }
 
+export interface AlterarEmailRequest {
+  novoEmail: string
+  senhaAtual: string
+}
+
 export interface ApiErrorResponse {
   message: string
   status: number

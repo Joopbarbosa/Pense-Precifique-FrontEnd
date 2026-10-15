@@ -20,6 +20,7 @@ import type {
 import type { UnidadeMedidaResponse } from '../../types/unidadeMedida'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
+import { useAuthStore } from '../../store/authStore'
 import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 
@@ -599,9 +600,77 @@ function PerfilEmpresa({
   )
 }
 
+/* ── AlterarEmailModal (#334, RN-NOVA-1) ─────────────────────── */
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function AlterarEmailModal({ open, onClose, onAlterado }: {
+  open: boolean; onClose: () => void; onAlterado: () => void
+}) {
+  const [novoEmail, setNovoEmail] = useState('')
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setNovoEmail('')
+    setSenhaAtual('')
+    setErro(null)
+  }, [open])
+
+  const salvar = async () => {
+    const email = novoEmail.trim()
+    if (!EMAIL_VALIDO.test(email)) { setErro('E-mail inválido'); return }
+    if (!senhaAtual) { setErro('Informe a senha atual'); return }
+    setSalvando(true)
+    setErro(null)
+    try {
+      const resp = await usuarioService.alterarEmail({ novoEmail: email, senhaAtual })
+      // o token antigo deixa de valer: grava o novo antes de qualquer outra chamada
+      useAuthStore.getState().atualizarSessao(resp.token, { id: resp.usuarioId, email: resp.email })
+      onAlterado()
+      onClose()
+    } catch (err: any) {
+      const campos = err?.response?.data?.fieldErrors as Record<string, string> | null | undefined
+      setErro(campos?.novoEmail ?? extractApiError(err, 'Não foi possível alterar o e-mail. Tente novamente.'))
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Alterar e-mail de acesso"
+      subtitle="A troca vale na hora. Em outros aparelhos ou abas, você precisará entrar de novo."
+      icon={<ShieldCheck size={17} />}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+          <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Alterar e-mail'}</Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <CfgField label="Novo e-mail">
+          <CfgInput value={novoEmail} onChange={setNovoEmail} type="email" placeholder="novo@email.com" />
+        </CfgField>
+        <CfgField label="Senha atual">
+          <CfgInput value={senhaAtual} onChange={setSenhaAtual} type="password" placeholder="Confirme com sua senha" />
+        </CfgField>
+        {erro && <p role="alert" className="text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+      </div>
+    </ModalShell>
+  )
+}
+
 /* ── ContaSeguranca ──────────────────────────────────────────── */
 
 function ContaSeguranca() {
+  const emailAcesso = useAuthStore(s => s.usuario?.email ?? '')
+  const [modalEmailAberto, setModalEmailAberto] = useState(false)
   const [senhaAtual, setSenhaAtual] = useState('')
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('')
@@ -638,10 +707,13 @@ function ContaSeguranca() {
 
         <CfgField label="E-mail atual">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="min-w-0 flex-[1_1_240px]"><CfgInput defaultValue="ana@atelier.com" readOnly /></div>
-            <Button variant="ghost">Alterar e-mail</Button>
+            <div className="min-w-0 flex-[1_1_240px]"><CfgInput value={emailAcesso} readOnly /></div>
+            <Button variant="ghost" onClick={() => setModalEmailAberto(true)}>Alterar e-mail</Button>
           </div>
         </CfgField>
+        <p className="mt-2 text-[12.5px] text-muted">
+          Este é o e-mail que você usa para entrar. O e-mail de contato da empresa fica no Perfil da empresa.
+        </p>
 
         <div className="mt-[22px] border-t border-line pt-[22px]">
           <h3 className="m-0 mb-4 text-[15px] font-bold text-dark">Alterar senha</h3>
@@ -659,6 +731,12 @@ function ContaSeguranca() {
       </div>
 
       <Toast message={toast} />
+
+      <AlterarEmailModal
+        open={modalEmailAberto}
+        onClose={() => setModalEmailAberto(false)}
+        onAlterado={() => setToast('E-mail de acesso alterado. Use o novo e-mail no próximo login.')}
+      />
 
       <div className="rounded-card border-[1.5px] border-[#F2D8CF] bg-[#FEF8F6] px-7 py-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <h3 className="m-0 text-[15.5px] font-bold text-danger-deep">Excluir conta</h3>
