@@ -107,6 +107,8 @@ export interface VendaCaixaItemCustomizacaoResponse {
   quantidade: number
   precoUnitario: number
   subtotal: number
+  /** #720 — Produto da customização; nulo = excluído. */
+  destinoId?: string | null
 }
 
 export interface VendaCaixaItemResponse {
@@ -119,6 +121,9 @@ export interface VendaCaixaItemResponse {
   precoUnitario: number
   subtotal: number
   customizacoes: VendaCaixaItemCustomizacaoResponse[]
+  /** #720 (RN-NOVA-14) — PRODUTO ou CATALOGO; `destinoId` nulo = cadastro excluído (sem link). */
+  destinoTipo?: 'PRODUTO' | 'CATALOGO'
+  destinoId?: string | null
 }
 
 export interface VendaCaixaPagamentoResponse {
