@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
-import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History } from 'lucide-react'
+import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History, Database } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
@@ -43,11 +43,21 @@ const GRUPO_COMPRAS = {
   ],
 } as const
 
+// V0.17.0 (#607, RN-NOVA-15, DT-NOVA-11) — grupo Cadastros: Dashboard (de cadastros), Insumos, Produtos e Catálogos, no mesmo padrão
+// recolhível. Os endereços das telas existentes não mudam.
+const GRUPO_CADASTROS = {
+  id: 'cadastros',
+  label: 'Cadastros',
+  itens: [
+    { id: 'cadastros-dashboard', label: 'Dashboard', icon: BarChart3, size: 20, href: '/cadastros/dashboard' },
+    { id: 'insumos',   label: 'Insumos',   icon: Package, size: 20, href: '/insumos' },
+    { id: 'produtos',  label: 'Produtos',  icon: Box,     size: 20, href: '/produtos' },
+    { id: 'catalogos', label: 'Catálogos', icon: Files,   size: 20, href: '/catalogos' },
+  ],
+} as const
+
 const NAV_RESTANTE = [
   { id: 'clientes',  label: 'Clientes e Fornecedores', icon: Users, size: 20, href: '/clientes' },
-  { id: 'insumos',   label: 'Insumos',       icon: Package,  size: 20, href: '/insumos' },
-  { id: 'produtos',  label: 'Produtos',      icon: Box,      size: 20, href: '/produtos' },
-  { id: 'catalogos', label: 'Catálogos',     icon: Files,    size: 22, href: '/catalogos' },
   { id: 'producao',  label: 'Produção',      icon: Factory,  size: 20, href: '/producao' },
   { id: 'config',    label: 'Configurações', icon: Settings, size: 20, href: '/configuracoes' },
 ] as const
@@ -112,6 +122,7 @@ function renderNavItem(
 // como `collapsed`), então o estado fica local aqui em vez de subir pro AppLayout.
 const SIDEBAR_VENDAS_EXPANDIDO_KEY = 'sidebarVendasExpandido'
 const SIDEBAR_COMPRAS_EXPANDIDO_KEY = 'sidebarComprasExpandido'
+const SIDEBAR_CADASTROS_EXPANDIDO_KEY = 'sidebarCadastrosExpandido'
 
 function readExpandidoPreference(chave: string): boolean {
   try {
@@ -145,15 +156,18 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
   const { pathname } = useLocation()
   const [vendasExpandido, toggleVendasExpandido] = useGrupoExpandido(SIDEBAR_VENDAS_EXPANDIDO_KEY)
   const [comprasExpandido, toggleComprasExpandido] = useGrupoExpandido(SIDEBAR_COMPRAS_EXPANDIDO_KEY)
+  const [cadastrosExpandido, toggleCadastrosExpandido] = useGrupoExpandido(SIDEBAR_CADASTROS_EXPANDIDO_KEY)
 
-  const cabecalhoGrupo = (label: string, Icone: typeof LayoutGrid, expandido: boolean, alternar: () => void) => !collapsed && (
+  const cabecalhoGrupo = (label: string, Icone: typeof LayoutGrid, expandido: boolean, alternar: () => void, ativo = false) => !collapsed && (
     <button
       type="button"
       onClick={alternar}
       aria-expanded={expandido}
-      className="flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-left font-[inherit] text-[14.5px] font-medium text-body transition-colors hover:bg-cream"
+      data-grupo-ativo={ativo ? 'true' : undefined}
+      className={clsx('flex w-full items-center gap-[13px] rounded-[11px] border-none bg-transparent px-[13px] py-[11px] text-left font-[inherit] text-[14.5px] transition-colors hover:bg-cream',
+        ativo ? 'font-semibold text-orange' : 'font-medium text-body')}
     >
-      <span className="flex text-muted">
+      <span className={clsx('flex', ativo ? 'text-orange' : 'text-muted')}>
         <Icone size={20} />
       </span>
       <span className="flex-1">{label}</span>
@@ -215,6 +229,10 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
 
           {cabecalhoGrupo(GRUPO_COMPRAS.label, ShoppingCart, comprasExpandido, toggleComprasExpandido)}
           {(comprasExpandido || collapsed) && GRUPO_COMPRAS.itens.map(item => renderNavItem(item, collapsed, closeIfMobile, true, pathname))}
+
+          {cabecalhoGrupo(GRUPO_CADASTROS.label, Database, cadastrosExpandido, toggleCadastrosExpandido,
+            ['/cadastros', '/insumos', '/produtos', '/catalogos'].some(base => pathname === base || pathname.startsWith(`${base}/`)))}
+          {(cadastrosExpandido || collapsed) && GRUPO_CADASTROS.itens.map(item => renderNavItem(item, collapsed, closeIfMobile, true))}
 
           {NAV_RESTANTE.map(item => renderNavItem(item, collapsed, closeIfMobile))}
         </div>
