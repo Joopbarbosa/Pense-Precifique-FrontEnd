@@ -88,6 +88,8 @@ export interface MovimentacaoInsumoResponse {
   referencia?: string | null
   estornada: boolean
   createdAt: string
+  /** #959 (DT-NOVA-4) — data do recebimento da compra, só para exibição; nula nas demais movimentações. */
+  dataReferencia?: string | null
 }
 
 export interface ProdutoRelacionadoResponse {
