@@ -1,7 +1,7 @@
 // V0.15.0 — módulo Compras (Epic #414). Espelha modulos/COMPRAS/contrato-compras.md.
 import type { TipoMetodoPagamento } from './empresa'
 
-export type StatusCompra = 'RASCUNHO' | 'CONFIRMADA' | 'CANCELADA'
+export type StatusCompra = 'RASCUNHO' | 'PENDENTE_RECEBIMENTO' | 'CONFIRMADA' | 'CANCELADA'
 
 /** V0.16.0 (#683) — de onde a compra nasceu: à mão ou por nota fiscal. */
 export type OrigemCompra = 'MANUAL' | 'NFCE_QR' | 'NFE_PDF' | 'NFE_FOTO' | 'NFE_XML'
@@ -90,6 +90,8 @@ export interface CompraResponse {
   previsaoEntrega: string | null
   /** Data em que a compra passou a contar nos números. */
   dataEntrada: string | null
+  /** #958 (RN-NOVA-6) — dias inteiros de atraso da pendente; nulo quando não está atrasada. */
+  diasAtraso: number | null
 }
 
 export interface CompraResumoResponse {
@@ -104,6 +106,9 @@ export interface CompraResumoResponse {
   quantidadeItens: number
   /** DT-NOVA-19 — "Fita de cetim ×10 m, Cola ×3 un". */
   resumoItens: string
+  /** #958 (RN-NOVA-6) — só nas pendentes de recebimento. */
+  previsaoEntrega: string | null
+  diasAtraso: number | null
 }
 
 /** #576 (RN-NOVA-28) — desconto como a artesã digitou: em R$ ou em %. */
@@ -142,6 +147,8 @@ export interface CompraFiltros {
   /** #585 — vários status somam como OU. */
   status?: StatusCompra | StatusCompra[]
   pago?: boolean
+  /** #958 (RN-NOVA-6) — só pendentes com previsão anterior a hoje. */
+  atrasadas?: boolean
   comDesconto?: boolean
   /** #585 — vários somam como OU. */
   fornecedorId?: string | string[]
@@ -220,6 +227,9 @@ export interface ContagensCompra {
   rascunhos: number
   confirmadas: number
   canceladas: number
+  /** #958 (RN-NOVA-6) — pendentes de recebimento e, entre elas, as atrasadas. */
+  pendentes: number
+  atrasadas: number
 }
 
 /** #596 (RN-NOVA-41). */

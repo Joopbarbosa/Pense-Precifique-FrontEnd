@@ -17,6 +17,7 @@ import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import { FornecedorSelect } from '../../components/compra/Pickers'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
 import { formatarData, hojeIso } from '../../components/compra/formato'
+import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
@@ -27,9 +28,13 @@ import type { CadastroRef, CompraResponse, CompraResumoResponse, ContagensCompra
 // virou página própria (/compras/dashboard); o endereço antigo ?aba=dashboard redireciona para lá.
 // #591 (RN-NOVA-44): cada filtro de status mostra a quantidade do total da conta.
 
-const FILTROS_STATUS: { id: StatusCompra | 'TODAS'; label: string; contagem: keyof ContagensCompra }[] = [
+type FiltroStatus = StatusCompra | 'TODAS' | 'ATRASADAS'
+const FILTROS_STATUS: { id: FiltroStatus; label: string; contagem: keyof ContagensCompra }[] = [
   { id: 'TODAS', label: 'Todas', contagem: 'todas' },
   { id: 'RASCUNHO', label: 'Rascunhos', contagem: 'rascunhos' },
+  // #958 (RN-NOVA-6) — atrasadas são um subconjunto das pendentes
+  { id: 'PENDENTE_RECEBIMENTO', label: 'Pendentes de recebimento', contagem: 'pendentes' },
+  { id: 'ATRASADAS', label: 'Atrasadas', contagem: 'atrasadas' },
   { id: 'CONFIRMADA', label: 'Confirmadas', contagem: 'confirmadas' },
   { id: 'CANCELADA', label: 'Canceladas', contagem: 'canceladas' },
 ]
@@ -59,7 +64,7 @@ export default function ComprasPage() {
   const { pedir: pedirDuplicar, modal: modalDuplicar } = useDuplicarCompra(mostrarErro)
   const [contagens, setContagens] = useState<ContagensCompra | null>(null)
   const atualizarContagens = useCallback(() => { compraService.contagens().then(setContagens).catch(() => setContagens(null)) }, [])
-  const [status, setStatus] = useState<StatusCompra | 'TODAS'>('TODAS')
+  const [status, setStatus] = useState<FiltroStatus>('TODAS')
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
@@ -75,7 +80,8 @@ export default function ComprasPage() {
   }, [])
 
   const fetcher = useCallback((page: number, size: number) => compraService.listar(page, size, {
-    status: status === 'TODAS' ? undefined : status,
+    status: status === 'TODAS' || status === 'ATRASADAS' ? undefined : status,
+    atrasadas: status === 'ATRASADAS' ? true : undefined,
     fornecedorId: fornecedor?.id,
     de: de || undefined,
     ate: ate || undefined,
@@ -112,7 +118,7 @@ export default function ComprasPage() {
     setProcessando(true)
     try {
       await compraService.excluirRascunho(acao.compra.id)
-      setToast(`Rascunho ${acao.compra.identificador} excluído.`)
+      setToast(`${acao.compra.status === 'RASCUNHO' ? 'Rascunho' : 'Compra'} ${acao.compra.identificador} excluído${acao.compra.status === 'RASCUNHO' ? '' : 'a'}.`)
       setAcao(null)
       recarregar()
     } catch (err) {
@@ -125,6 +131,12 @@ export default function ComprasPage() {
 
   const itensMenu = (c: CompraResumoResponse): ActionMenuItem[] => {
     const pdf: ActionMenuItem = { label: 'PDF', icon: <FileText size={15} />, onClick: () => navigate(`/compras/${c.id}/pdf`) }
+    if (c.status === 'PENDENTE_RECEBIMENTO') return [
+      { label: 'Editar', icon: <Pencil size={15} />, onClick: () => navigate(`/compras/${c.id}/editar`) },
+      pdf,
+      { label: 'Cancelar compra', icon: <Ban size={15} />, danger: true, dividerBefore: true, onClick: () => abrirComCompra('cancelar', c.id) },
+      { label: 'Excluir', icon: <Trash2 size={15} />, danger: true, onClick: () => setAcao({ tipo: 'excluir', compra: c }) },
+    ]
     if (c.status === 'RASCUNHO') return [
       { label: 'Editar', icon: <Pencil size={15} />, onClick: () => navigate(`/compras/${c.id}/editar`) },
       pdf,
@@ -231,6 +243,7 @@ export default function ComprasPage() {
               <div className="text-[14.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">{BRL(c.total)}</div>
               <div className="mt-2 flex flex-wrap gap-1.5 md:mt-0">
                 <StatusCompraBadge status={c.status} size="sm" />
+                {c.status === 'PENDENTE_RECEBIMENTO' && <PrevisaoTag previsao={c.previsaoEntrega} diasAtraso={c.diasAtraso} size="sm" />}
                 {c.status === 'CONFIRMADA' && !c.pago && <NaoPagaBadge size="sm" />}
               </div>
               <div className="absolute right-2 top-2 md:static md:flex md:justify-end" onClick={e => e.stopPropagation()}>
@@ -243,9 +256,9 @@ export default function ComprasPage() {
 
       {acao?.tipo === 'excluir' && (
         <ConfirmacaoModal open onClose={() => setAcao(null)} onConfirm={excluir} variant="danger"
-          title={`Excluir o rascunho ${acao.compra.identificador}?`} icon={<Trash2 size={16} />} width={420}
-          confirmLabel="Excluir rascunho" confirming={processando}
-          description={`O rascunho some da lista. O número ${acao.compra.identificador} não volta a ser usado.`} />
+          title={`Excluir ${acao.compra.status === 'RASCUNHO' ? 'o rascunho' : 'a compra'} ${acao.compra.identificador}?`} icon={<Trash2 size={16} />} width={420}
+          confirmLabel={acao.compra.status === 'RASCUNHO' ? 'Excluir rascunho' : 'Excluir compra'} confirming={processando}
+          description={`${acao.compra.status === 'RASCUNHO' ? 'O rascunho some' : 'A compra pendente some'} da lista. O número ${acao.compra.identificador} não volta a ser usado.`} />
       )}
       {acao?.tipo === 'pagamento' && (
         <ModalPagamento compra={acao.compra} onClose={() => setAcao(null)}

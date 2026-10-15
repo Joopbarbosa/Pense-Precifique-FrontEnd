@@ -4,6 +4,7 @@ import type { StatusCompra, StatusListaCompra } from '../../types/compra'
 
 const COR: Record<StatusCompra, { pill: string; dot: string }> = {
   RASCUNHO: { pill: 'bg-line-soft text-subtle', dot: 'bg-dim' },
+  PENDENTE_RECEBIMENTO: { pill: 'bg-warning-bg text-warning', dot: 'bg-warning' },
   CONFIRMADA: { pill: 'bg-success-bg text-success', dot: 'bg-success' },
   CANCELADA: { pill: 'bg-danger-bg text-danger', dot: 'bg-danger' },
 }
