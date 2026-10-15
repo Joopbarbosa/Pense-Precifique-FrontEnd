@@ -77,6 +77,8 @@ export default function FormCompraPage() {
   const [compra, setCompra] = useState<CompraResponse | null>(null)
 
   const [dataCompra, setDataCompra] = useState(hojeIso())
+  const [entregaImediata, setEntregaImediata] = useState(true)
+  const [previsaoEntrega, setPrevisaoEntrega] = useState('')
   const [multiplos, setMultiplos] = useState(false)
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
   const [pago, setPago] = useState(false)
@@ -100,6 +102,8 @@ export default function FormCompraPage() {
         if (c.status !== 'RASCUNHO') { navigate(`/compras/${c.id}`, { replace: true }); return }
         setCompra(c)
         setDataCompra(c.dataCompra)
+        setEntregaImediata(c.entregaImediata !== false)
+        setPrevisaoEntrega(c.previsaoEntrega ?? '')
         setMultiplos(c.multiplosFornecedores)
         setFornecedor(c.fornecedor)
         setPago(c.pago)
@@ -149,6 +153,8 @@ export default function FormCompraPage() {
 
   const montarRequest = (): CompraRequest => ({
     dataCompra,
+    entregaImediata,
+    previsaoEntrega: entregaImediata ? null : (previsaoEntrega || null),
     multiplosFornecedores: multiplos,
     fornecedorId: fornecedor?.id ?? null,
     pago,
@@ -261,6 +267,17 @@ export default function FormCompraPage() {
               <input type="date" value={dataCompra} max={hojeIso()} onChange={e => setDataCompra(e.target.value)}
                 className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </Field>
+            <Field label="Entrega imediata?" group size="md">
+              <SegmentedControl options={[{ value: true, label: 'Sim' }, { value: false, label: 'Não' }]} value={entregaImediata}
+                onChange={v => { setEntregaImediata(v); if (v) setPrevisaoEntrega('') }} />
+            </Field>
+            {!entregaImediata && (
+              <Field label="Previsão de entrega" required size="md" hint="O estoque só muda quando a entrega for registrada.">
+                <input type="date" value={previsaoEntrega} min={dataCompra > hojeIso() ? dataCompra : hojeIso()}
+                  onChange={e => setPrevisaoEntrega(e.target.value)} aria-label="Previsão de entrega"
+                  className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+              </Field>
+            )}
             <Field label="Mais de um fornecedor?" group size="md">
               <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
             </Field>
