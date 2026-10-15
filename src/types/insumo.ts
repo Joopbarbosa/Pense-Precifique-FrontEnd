@@ -90,6 +90,16 @@ export interface MovimentacaoInsumoResponse {
   createdAt: string
   /** #959 (DT-NOVA-4) — data do recebimento da compra, só para exibição; nula nas demais movimentações. */
   dataReferencia?: string | null
+  /** #672 (DT-NOVA-7) — MOVIMENTACAO (estoque) ou PRECO_SUGERIDO (linha agregada do preço sugerido). */
+  tipoLinha?: 'MOVIMENTACAO' | 'PRECO_SUGERIDO'
+  precosSugeridos?: PrecoSugeridoAgregado | null
+}
+
+export interface PrecoSugeridoAgregado {
+  causa: string
+  referenciaTexto: string | null
+  quantidadeProdutos: number
+  produtos: { id: string; identificador: string; nome: string; anterior: number; novo: number }[]
 }
 
 export interface ProdutoRelacionadoResponse {

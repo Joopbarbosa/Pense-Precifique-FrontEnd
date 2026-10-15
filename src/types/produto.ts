@@ -117,6 +117,12 @@ export interface MovimentacaoProdutoResponse {
   precoVendido?: number
   estornada: boolean
   createdAt: string
+  /** #672 (DT-NOVA-7) — MOVIMENTACAO (estoque) ou PRECO_SUGERIDO (mudança do preço sugerido, sem quantidade). */
+  tipoLinha?: 'MOVIMENTACAO' | 'PRECO_SUGERIDO'
+  precoSugeridoAnterior?: number | null
+  precoSugeridoNovo?: number | null
+  causaPrecoSugerido?: string | null
+  referenciaTexto?: string | null
 }
 
 export interface CatalogoVinculadoResponse {

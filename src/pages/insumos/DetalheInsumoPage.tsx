@@ -18,6 +18,7 @@ import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
 import { formatarData } from '../../components/compra/formato'
+import { LinhaPrecoSugeridoInsumo } from '../../components/produto/HistoricoPrecoSugerido'
 import { BRL } from '../../components/venda/formato'
 
 const numQtd = (s: string) => {
@@ -251,6 +252,9 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
   return (
     <>
       {movimentacoes.map(m => {
+        if (m.tipoLinha === 'PRECO_SUGERIDO' && m.precosSugeridos) {
+          return <LinhaPrecoSugeridoInsumo key={m.id} data={m.createdAt} agregado={m.precosSugeridos} />
+        }
         const { titulo, tipoDisplay } = tituloMovimentacao(m)
         const positivo = m.tipo === 'ENTRADA'
         const isEstorno = tipoDisplay === 'estorno'
