@@ -173,3 +173,28 @@ export type RegistrarVendaResultado = VendaCaixaResponse | ConfirmacaoEstoqueNeg
 export function ehAvisoEstoqueNegativo(r: RegistrarVendaResultado): r is ConfirmacaoEstoqueNegativoResponse {
   return Array.isArray((r as ConfirmacaoEstoqueNegativoResponse).avisos)
 }
+
+// V0.17.0 — #973 (RN-NOVA-26): histórico das vendas do Caixa, de todos os turnos.
+export interface HistoricoVendaResponse {
+  id: string
+  identificador: string
+  numero: number
+  data: string
+  /** "Consumidor final" quando a venda não tem cliente. */
+  cliente: string
+  itens: string
+  formas: string[]
+  total: number
+  status: 'CONCLUIDA' | 'CANCELADA'
+}
+
+export interface FiltroHistoricoVendas {
+  de?: string
+  ate?: string
+  status?: string[]
+  forma?: string
+  busca?: string
+  sort?: string
+  page?: number
+  size?: number
+}
