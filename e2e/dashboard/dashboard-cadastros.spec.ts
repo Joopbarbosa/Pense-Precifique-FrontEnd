@@ -17,8 +17,12 @@ test('V0.17.0 — menu com os grupos Cadastros e Vendas; item e grupo destacados
   const iCadastros = nomes.indexOf('Insumos')
   expect(nomes.slice(iCadastros - 1, iCadastros + 3).map(n => n.trim())).toEqual(['Dashboard', 'Insumos', 'Produtos', 'Catálogos'])
   expect(nomes.map(n => n.trim()).filter(n => n === 'Catálogos')).toHaveLength(1)
-  const iVendas = nomes.map(n => n.trim()).indexOf('Caixa')
-  expect(nomes.slice(iVendas - 1, iVendas + 2).map(n => n.trim())).toEqual(['Dashboard', 'Caixa', 'Orçamentos'])
+  const vendas = page.getByRole('button', { name: 'Vendas', exact: true })
+  await vendas.click()
+  await expect(vendas).toHaveAttribute('aria-expanded', 'true')
+  const nomesComVendas = (await nav.getByRole('link').allInnerTexts()).map(n => n.trim())
+  const iVendas = nomesComVendas.indexOf('Caixa')
+  expect(nomesComVendas.slice(iVendas - 1, iVendas + 2)).toEqual(['Dashboard', 'Caixa', 'Orçamentos'])
 
   await nav.getByRole('link', { name: 'Insumos', exact: true }).click()
   await expect(page).toHaveURL(/\/insumos/)
@@ -38,7 +42,9 @@ test('V0.17.0 — Dashboard de Cadastros: preço abaixo do sugerido, margem e es
 
   await login(page)
   await page.goto('/dashboard')
-  await page.getByRole('navigation').getByRole('link', { name: 'Dashboard' }).last().click()
+  // V0.17.0 #963: grupo Cadastros recolhido ao entrar — abre o grupo e clica no link pelo destino
+  await page.getByRole('button', { name: 'Cadastros', exact: true }).click()
+  await page.locator('a[href="/cadastros/dashboard"]').click()
   await expect(page).toHaveURL(/\/cadastros\/dashboard$/)
   await expect(page.getByRole('heading', { name: 'Dashboard de cadastros' })).toBeVisible()
 

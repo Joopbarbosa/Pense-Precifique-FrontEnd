@@ -26,8 +26,8 @@ test.describe('#501 / #963 — Grupo "Vendas" recolhível na sidebar', () => {
     await expect(page.getByRole('link', { name: 'Orçamentos', exact: true })).toBeVisible()
 
     // Navega para outra tela sem atualizar: o menu remonta, mas o estado da sessão é mantido
-    await page.getByRole('link', { name: 'Produtos', exact: true }).click()
-    await expect(page).toHaveURL(/\/produtos/)
+    await page.getByRole('link', { name: 'Clientes e Fornecedores', exact: true }).click()
+    await expect(page).toHaveURL(/\/clientes/)
     await expect(page.getByRole('button', { name: 'Vendas', exact: true })).toHaveAttribute('aria-expanded', 'true')
     await expect(page.getByRole('link', { name: 'Caixa', exact: true })).toBeVisible()
 
