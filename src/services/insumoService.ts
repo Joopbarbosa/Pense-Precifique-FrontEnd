@@ -65,8 +65,8 @@ export const insumoService = {
     return response.data.content
   },
 
-  listarProdutosRelacionados: async (id: string): Promise<ProdutoRelacionadoResponse[]> => {
-    const response = await api.get(`/insumos/${id}/produtos-relacionados`)
+  listarProdutosRelacionados: async (id: string, somenteAtivos = false): Promise<ProdutoRelacionadoResponse[]> => {
+    const response = await api.get(`/insumos/${id}/produtos-relacionados`, { params: somenteAtivos ? { somenteAtivos: true } : undefined })
     return response.data
   },
 

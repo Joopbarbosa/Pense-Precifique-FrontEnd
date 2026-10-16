@@ -17,7 +17,8 @@ export default function ModalVendasCmv({ filtro, onClose }: { filtro: FiltroVend
   const [dados, setDados] = useState<VendasCmvResponse | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
-  const [registro, setRegistro] = useState<string | null>(null)
+  // V0.17.0 #968 (RN-NOVA-13): a venda abre a modal de dados (orçamento com o botão Abrir orçamento), sem aba nova
+  const [registro, setRegistro] = useState<{ tipo: 'ORCAMENTO' | 'VENDA_CAIXA'; id: string } | null>(null)
   const [tentativa, setTentativa] = useState(0)
   useEffect(() => {
     let ativa = true
@@ -28,10 +29,7 @@ export default function ModalVendasCmv({ filtro, onClose }: { filtro: FiltroVend
       .finally(() => { if (ativa) setCarregando(false) })
     return () => { ativa = false }
   }, [filtro.de, filtro.ate, filtro.mes, pagina, tentativa])
-  const abrir = (venda: VendaCmvResponse) => {
-    if (venda.tipo === 'ORCAMENTO') window.open(`/orcamentos/${venda.id}`, '_blank', 'noopener,noreferrer')
-    else setRegistro(venda.id)
-  }
+  const abrir = (venda: VendaCmvResponse) => setRegistro({ tipo: venda.tipo === 'ORCAMENTO' ? 'ORCAMENTO' : 'VENDA_CAIXA', id: venda.id })
   const fechar = () => { if (registro) setRegistro(null); else onClose() }
   const subtitulo = filtro.mes ? `Mês ${filtro.mes.slice(5, 7)}/${filtro.mes.slice(0, 4)}` : `${formatarData(filtro.de)} a ${formatarData(filtro.ate)}`
   return <>
@@ -57,6 +55,6 @@ export default function ModalVendasCmv({ filtro, onClose }: { filtro: FiltroVend
         </table>}
       </div>
     </ModalShell>
-    {registro && <ModalRegistro tipo="VENDA_CAIXA" id={registro} onClose={() => setRegistro(null)} />}
+    {registro && <ModalRegistro tipo={registro.tipo} id={registro.id} onClose={() => setRegistro(null)} />}
   </>
 }

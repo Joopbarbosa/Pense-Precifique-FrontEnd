@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { ExternalLink, List, Search } from 'lucide-react'
+import { List, Search } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import SortableHeader from './SortableHeader'
 import CampoFiltros, { type FiltroEscolhido, type GrupoFiltro } from './CampoFiltros'
 import ModalRegistro, { type TipoRegistro } from '../cliente/ModalRegistro'
+import { dashboardVendasService } from '../../services/dashboardVendasService'
+import type { OrigemVenda } from '../../types/dashboardVendas'
 import { BRL } from '../venda/formato'
 import { formatarData, hojeIso, STATUS_COMPRA_LABEL } from '../compra/formato'
 import { clienteService } from '../../services/clienteService'
@@ -29,6 +31,8 @@ import type { StatusOrcamento } from '../../types/orcamento'
 export type FonteListagem =
   | { tipo: 'cadastro'; cadastroId: string; papel: PapelCadastro }
   | { tipo: 'compras' }
+  /** V0.17.0 #968/#971 (DT-NOVA-18): vendas do Dashboard de Vendas (Caixa e orçamento), filtradas pelo número clicado. */
+  | { tipo: 'vendas' }
 
 /** Filtro vindo do ponto de entrada; vira etiquetas no campo de filtros, que a pessoa pode tirar. */
 export interface FiltroInicial {
@@ -46,6 +50,8 @@ export interface FiltroInicial {
   rotulos?: string[]
   /** Ordenação inicial, ex. 'data,asc' (padrão: data mais recente primeiro). */
   sort?: string
+  /** Só para a fonte "vendas": o que forma o número clicado no dashboard. */
+  vendas?: { origem?: OrigemVenda; produtoId?: string; forma?: string; somenteQueContam?: boolean }
 }
 
 interface Linha {
@@ -77,6 +83,8 @@ const buscarFornecedores = (termo: string) => clienteService.listar(0, 8, termo 
   .then(p => p.content.map(c => ({ valor: c.id, rotulo: c.nome })))
 
 function gruposDa(fonte: FonteListagem): GrupoFiltro[] {
+  // Vendas do dashboard: o recorte vem do número clicado; a busca e o período ficam na própria modal.
+  if (fonte.tipo === 'vendas') return []
   if (fonte.tipo === 'cadastro' && fonte.papel === 'CLIENTE') return [
     { id: 'tipo', rotulo: 'Tipo', opcoes: [{ valor: 'ORCAMENTO', rotulo: 'Orçamento' }, { valor: 'VENDA_CAIXA', rotulo: 'Venda do Caixa' }] },
     { id: 'conta', rotulo: 'Conta como compra', opcoes: [{ valor: 'sim', rotulo: 'Sim' }] },
@@ -125,6 +133,7 @@ const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 
 
 // A ordenação pública da modal é sempre data/identificador/valor/status; compras usam os nomes do GET /compras.
 const CAMPO_COMPRAS: Record<Campo, string> = { data: 'dataCompra', identificador: 'numero', valor: 'total', status: 'status' }
+const CAMPO_VENDAS: Record<Campo, string> = { data: 'data', identificador: 'identificador', valor: 'total', status: 'status' }
 
 /** #602 (RN-NOVA-32) — mesmo texto do backend (ClienteHistoricoService, "Período inválido"). */
 export const ERRO_PERIODO = {
@@ -156,7 +165,8 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const [temMais, setTemMais] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [vendaAberta, setVendaAberta] = useState<string | null>(null)
+  // V0.17.0 #968/#970 (RN-NOVA-23 item 3): a linha abre a modal de dados do registro, em qualquer fonte
+  const [detalhe, setDetalhe] = useState<{ tipo: TipoRegistro; id: string } | null>(null)
   const { modalErro, mostrarErro } = useModalErro()
   const seq = useRef(0)
 
@@ -165,8 +175,20 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const pago = pagamento.length === 1 ? pagamento[0] as 'true' | 'false' : undefined
 
   const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean }> => {
-    const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : ordem.campo},${ordem.dir}`
+    const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : fonte.tipo === 'vendas' ? CAMPO_VENDAS[ordem.campo] : ordem.campo},${ordem.dir}`
     const status = valores('status')
+    if (fonte.tipo === 'vendas') {
+      const v = filtro.vendas ?? {}
+      const r = await dashboardVendasService.lista({
+        de: de || undefined, ate: ate || undefined, origem: v.origem, busca: q || undefined,
+        somenteQueContam: v.somenteQueContam, produtoId: v.produtoId, forma: v.forma, sort, page: pagina, size: POR_PAGINA,
+      })
+      return {
+        linhas: r.vendas.content.map(l => ({ id: l.id, tipo: l.origem, identificador: l.identificador, data: l.data, status: l.status,
+          valor: l.total, resumoItens: l.itens, pago: null })),
+        total: r.quantidadeFiltrada, last: r.vendas.last,
+      }
+    }
     if (fonte.tipo === 'cadastro') {
       const r = await clienteService.registros(fonte.cadastroId, pagina, POR_PAGINA, {
         papel: fonte.papel, busca: q || undefined, status: status.length ? status : undefined,
@@ -222,10 +244,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
     else setAte(valor)
   }
 
-  const abrir = (l: Linha) => {
-    if (l.tipo === 'VENDA_CAIXA') { setVendaAberta(l.id); return }
-    window.open(l.tipo === 'ORCAMENTO' ? `/orcamentos/${l.id}` : `/compras/${l.id}`, '_blank', 'noopener')
-  }
+  const abrir = (l: Linha) => setDetalhe({ tipo: l.tipo, id: l.id })
 
   const grade = 'md:grid-cols-[1.1fr_0.8fr_2.2fr_1fr_0.9fr_24px]'
 
@@ -238,7 +257,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
             <label className="relative block min-w-[220px] flex-1">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input value={busca} onChange={e => setBusca(e.target.value)} aria-label="Buscar na listagem"
-                placeholder={fonte.tipo === 'compras' || (fonte.tipo === 'cadastro' && fonte.papel === 'FORNECEDOR') ? 'Buscar por número ou insumo' : 'Buscar por número ou item'}
+                placeholder={fonte.tipo === 'vendas' ? 'Buscar por venda ou cliente' : fonte.tipo === 'compras' || (fonte.tipo === 'cadastro' && fonte.papel === 'FORNECEDOR') ? 'Buscar por número ou insumo' : 'Buscar por número ou item'}
                 className="h-9 w-full rounded-input border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
@@ -288,7 +307,6 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
                     )}
                   </span>
                   <span className="text-right font-semibold text-dark [font-variant-numeric:tabular-nums] md:text-left">{BRL(l.valor)}</span>
-                  <span className="hidden text-muted md:block">{l.tipo !== 'VENDA_CAIXA' && <ExternalLink size={14} />}</span>
                 </button>
               ))}
               {carregando && (
@@ -304,7 +322,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
         </div>
       </ModalShell>
       {modalErro}
-      {vendaAberta && <ModalRegistro tipo="VENDA_CAIXA" id={vendaAberta} onClose={() => setVendaAberta(null)} />}
+      {detalhe && <ModalRegistro tipo={detalhe.tipo} id={detalhe.id} onClose={() => setDetalhe(null)} />}
     </>
   )
 }

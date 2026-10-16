@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
-import { BarChart3, Monitor, Receipt, ShoppingBag, Wallet } from 'lucide-react'
+import { BarChart3, Monitor, Receipt, Search, ShoppingBag, Wallet } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import AppLayout from '../../components/layout/AppLayout'
 import { BigNumber, BigNumberGroup, Button } from '../../components/ui'
@@ -9,6 +9,8 @@ import Comparacao from '../../components/dashboard/Comparacao'
 import FiltroPeriodo from '../../components/dashboard/FiltroPeriodo'
 import ListaVendas from '../../components/dashboard/ListaVendas'
 import Painel from '../../components/dashboard/Painel'
+import ModalListaCompleta, { type ItemListaCompleta } from '../../components/dashboard/ModalListaCompleta'
+import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
 import { Dica, Ranking, eixo, reaisCurto, vazio } from '../../components/dashboard/graficos'
 import { intervalo, rotuloMes, rotuloPeriodoAnterior, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
 import { formatarData, hojeIso } from '../../components/compra/formato'
@@ -17,10 +19,11 @@ import { dashboardVendasService } from '../../services/dashboardVendasService'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { extractApiError } from '../../utils/apiError'
 import { GRAFICO_GRID, MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } from '../../constants/graficos'
-import type { DashboardVendasResponse, FiltroListaVendas, NumeroDash, OrigemVenda } from '../../types/dashboardVendas'
+import type { DashboardVendasResponse, NumeroDash, OrigemVenda } from '../../types/dashboardVendas'
 
-// V0.17.0 — #719 (RN-NOVA-17): Dashboard de Vendas, com duas abas. Gráficos: números com lupa e gráficos clicáveis; Vendas: todas as
-// vendas e orçamentos, de qualquer status. O clique num número ou gráfico abre a aba Vendas filtrada pelas vendas que o formam.
+// V0.17.0 — #719 (RN-NOVA-17) e #968 (RN-NOVA-23): Dashboard de Vendas, com duas abas. Gráficos: números com lupa e gráficos
+// clicáveis; Vendas: todas as vendas e orçamentos, de qualquer status. O clique num número ou gráfico abre a modal de listagem das
+// vendas que o formam (sem trocar de aba); o clique numa linha abre a modal de dados do registro.
 
 type Aba = 'graficos' | 'vendas'
 const ROTULO_ORIGEM: Record<OrigemVenda, string> = { VENDA_CAIXA: 'Caixa', ORCAMENTO: 'Orçamento' }
@@ -34,7 +37,8 @@ export default function DashboardVendasPage() {
   const [d, setD] = useState<DashboardVendasResponse | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [lista, setLista] = useState<{ filtro: FiltroListaVendas; descricao?: string } | null>(null)
+  const [lista, setLista] = useState<{ titulo: string; filtro: FiltroInicial } | null>(null)
+  const [todosProdutos, setTodosProdutos] = useState(false)
 
   const faixa = useMemo(() => periodo === 'personalizado' ? { de: deLivre, ate: ateLivre } : intervalo(periodo), [periodo, deLivre, ateLivre])
 
@@ -50,11 +54,11 @@ export default function DashboardVendasPage() {
 
   const anterior = d ? rotuloPeriodoAnterior(d.deAnterior, d.ateAnterior) : ''
   const doPeriodo = d ? { de: d.de, ate: d.ate } : { de: faixa.de, ate: faixa.ate }
-  const abrirLista = (descricao: string, extra: Partial<FiltroListaVendas> = {}, intervaloLista = doPeriodo) => {
-    setLista({ filtro: { ...intervaloLista, somenteQueContam: true, ...extra }, descricao })
-    setAba('vendas')
+  // Clique em número, barra, fatia ou ranking: modal com as vendas que formam o dado (RN-NOVA-12); não troca de aba
+  const abrirLista = (titulo: string, vendas: NonNullable<FiltroInicial['vendas']> = {}, intervaloLista = doPeriodo) => {
+    setLista({ titulo, filtro: { de: intervaloLista.de, ate: intervaloLista.ate, vendas: { somenteQueContam: true, ...vendas } } })
   }
-  const ampliar = () => setLista(l => l ? { ...l, filtro: { ...l.filtro, somenteQueContam: false, produtoId: undefined, forma: undefined }, descricao: undefined } : l)
+  const filtroAba = useMemo(() => ({ de: doPeriodo.de, ate: doPeriodo.ate }), [doPeriodo.de, doPeriodo.ate])
   const numero = (n: NumeroDash, f: (v: number) => string) => n.valor == null ? '—' : f(n.valor)
 
   return (
@@ -68,7 +72,7 @@ export default function DashboardVendasPage() {
 
       <div className="mb-4 flex gap-1 border-b border-line" role="tablist">
         {([['graficos', 'Gráficos', BarChart3], ['vendas', 'Vendas', Receipt]] as const).map(([id, rotulo, Icone]) => (
-          <button key={id} role="tab" aria-selected={aba === id} type="button" onClick={() => { setAba(id); if (id === 'vendas' && !lista) setLista({ filtro: { ...doPeriodo } }) }}
+          <button key={id} role="tab" aria-selected={aba === id} type="button" onClick={() => setAba(id)}
             className={clsx('relative flex items-center gap-2 border-none bg-transparent px-4 py-3 font-[inherit] text-sm transition-colors',
               aba === id ? 'font-semibold text-teal' : 'font-medium text-dim hover:text-body')}>
             <Icone size={16} /> {rotulo}
@@ -78,12 +82,12 @@ export default function DashboardVendasPage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <FiltroPeriodo periodo={periodo} onPeriodo={p => { setPeriodo(p); setLista(null) }} deLivre={deLivre} ateLivre={ateLivre}
-          onDeLivre={v => { setDeLivre(v); setLista(null) }} onAteLivre={v => { setAteLivre(v); setLista(null) }}
+        <FiltroPeriodo periodo={periodo} onPeriodo={setPeriodo} deLivre={deLivre} ateLivre={ateLivre}
+          onDeLivre={setDeLivre} onAteLivre={setAteLivre}
           rotuloDireita={d && <>{formatarData(d.de)} a {formatarData(d.ate)} · comparado a {formatarData(d.deAnterior)} a {formatarData(d.ateAnterior)}</>} />
 
         {aba === 'vendas' ? (
-          <ListaVendas filtroInicial={lista?.filtro ?? { ...doPeriodo }} descricaoFiltro={lista?.descricao} onAmpliar={ampliar} />
+          <ListaVendas filtroInicial={filtroAba} />
         ) : erro ? (
           <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
             {erro} <Button variant="ghost" size="sm" onClick={carregar}>Tentar de novo</Button>
@@ -143,7 +147,11 @@ export default function DashboardVendasPage() {
                     </div>
                   )}
                 </Painel>
-                <Painel titulo="Produtos mais vendidos" subtitulo="Por quantidade · clique para ver as vendas do produto" testid="grafico-produtos">
+                <Painel titulo="Produtos mais vendidos" subtitulo="Por quantidade · clique para ver as vendas do produto" testid="grafico-produtos"
+                  acoes={d.todosProdutosVendidos.length > 0 ? (
+                    <button type="button" aria-label="Ver lista completa de produtos vendidos" title="Lista completa" onClick={() => setTodosProdutos(true)}
+                      className="grid h-8 w-8 place-items-center rounded-input border border-line bg-white text-muted hover:text-teal"><Search size={15} /></button>
+                  ) : undefined}>
                   {d.produtosMaisVendidos.length === 0 ? vazio('Nenhum produto vendido no período.') : (
                     <Ranking testid="ranking-produtos" cor={PALETA_SERIES[1]} formato={v => String(v)}
                       dados={d.produtosMaisVendidos.map(p => ({ id: p.id ?? p.nome, rotulo: p.nome, valor: p.quantidade, extra: `${BRL(p.faturamento)} vendidos` }))}
@@ -162,6 +170,16 @@ export default function DashboardVendasPage() {
           </div>
         )}
       </div>
+
+      {lista && (
+        <ModalListagemRegistros titulo={lista.titulo} subtitulo="Vendas do Caixa e orçamentos que formam este número"
+          fonte={{ tipo: 'vendas' }} filtro={lista.filtro} onClose={() => setLista(null)} />
+      )}
+      {todosProdutos && d && (
+        <ModalListaCompleta titulo="Produtos mais vendidos" onClose={() => setTodosProdutos(false)}
+          itens={d.todosProdutosVendidos.map((p, i): ItemListaCompleta => ({ chave: `${p.id ?? p.nome}-${i}`, rotulo: p.nome,
+            detalhe: `${BRL(p.faturamento)}`, valor: `${p.quantidade} un` }))} />
+      )}
     </AppLayout>
   )
 }
