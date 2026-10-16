@@ -10,7 +10,8 @@ import { clienteService } from '../../services/clienteService'
 import { extractApiError } from '../../utils/apiError'
 import { erroDocumento, mascararDocumento, ROTULO_DOCUMENTO } from '../../utils/documento'
 import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
-import { mascararTelefone } from '../../utils/telefone'
+import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
+import { BotaoNumeroEstrangeiro, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
 import type { ClienteRequest, TipoPessoa } from '../../types/cliente'
 
 // V0.15.0 (#536/#537, Decisão 21) — cadastro/edição em página própria, no formato de
@@ -125,6 +126,9 @@ export default function FormClientePage() {
   }, [id])
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(f => ({ ...f, [k]: v }))
+  // V0.17.0 #964 (RN-NOVA-19): WhatsApp e Telefone com máscara nacional ou número estrangeiro
+  const modoWhatsapp = useModoTelefone(form.whatsapp, v => set('whatsapp', v))
+  const modoTelefone = useModoTelefone(form.telefone, v => set('telefone', v))
 
   const trocarTipo = (tipo: TipoPessoa) => {
     setForm(f => ({ ...f, tipoPessoa: tipo, documento: mascararDocumento(f.documento, tipo) }))
@@ -156,6 +160,13 @@ export default function FormClientePage() {
   }
 
   const handleSave = async () => {
+    const telefoneErros: Record<string, string> = {}
+    if (!telefoneValido(form.whatsapp)) telefoneErros.whatsapp = MENSAGEM_TELEFONE_INVALIDO
+    if (!telefoneValido(form.telefone)) telefoneErros.telefone = MENSAGEM_TELEFONE_INVALIDO
+    if (Object.keys(telefoneErros).length > 0) {
+      setFieldErrors(telefoneErros)
+      return
+    }
     setSaving(true)
     setFieldErrors({})
     try {
@@ -267,12 +278,20 @@ export default function FormClientePage() {
           <SectionTitle number="2" title="Contato" subtitle="Como falar com esta pessoa ou empresa." />
           <div className="grid grid-cols-1 gap-section md:grid-cols-2 xl:grid-cols-4">
             <Field label="WhatsApp" opt size="md" erro={fieldErrors.whatsapp} hint="Usado para enviar orçamentos diretamente.">
-              <input className={inputClass('whatsapp')} type="tel" placeholder="(11) 99999-0000"
-                value={form.whatsapp} onChange={e => set('whatsapp', mascararTelefone(e.target.value))} />
+              <div className="flex items-center gap-2">
+                <input className={clsx(inputClass('whatsapp'), 'min-w-0 flex-1')} type="tel" maxLength={25}
+                  placeholder={modoWhatsapp.estrangeiro ? '+55 11 99999-0000' : '(11) 99999-0000'}
+                  value={form.whatsapp} onChange={e => modoWhatsapp.digitar(e.target.value)} />
+                <BotaoNumeroEstrangeiro estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+              </div>
             </Field>
             <Field label="Telefone" opt size="md" erro={fieldErrors.telefone}>
-              <input className={inputClass('telefone')} type="tel" placeholder="(11) 3333-4444"
-                value={form.telefone} onChange={e => set('telefone', mascararTelefone(e.target.value))} />
+              <div className="flex items-center gap-2">
+                <input className={clsx(inputClass('telefone'), 'min-w-0 flex-1')} type="tel" maxLength={25}
+                  placeholder={modoTelefone.estrangeiro ? '+55 11 3333-4444' : '(11) 3333-4444'}
+                  value={form.telefone} onChange={e => modoTelefone.digitar(e.target.value)} />
+                <BotaoNumeroEstrangeiro estrangeiro={modoTelefone.estrangeiro} onAlternar={modoTelefone.alternar} />
+              </div>
             </Field>
             <Field label="E-mail" opt size="md" erro={fieldErrors.email}>
               <input className={inputClass('email')} type="email" maxLength={255} placeholder="contato@email.com"

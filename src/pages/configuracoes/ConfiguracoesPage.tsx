@@ -23,6 +23,8 @@ import { extractApiError } from '../../utils/apiError'
 import { useAuthStore } from '../../store/authStore'
 import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
+import { BotaoNumeroEstrangeiro, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -462,6 +464,8 @@ function PerfilEmpresa({
   const [nome, setNome] = useState(initialNome)
   const [email, setEmail] = useState(initialEmail)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
+  // V0.17.0 #964 (RN-NOVA-19): telefone nacional com máscara ou estrangeiro
+  const modoWhatsapp = useModoTelefone(whatsapp, setWhatsapp)
   const [endereco, setEndereco] = useState(initialEndereco)
   const [horarios, setHorarios] = useState(() => horariosParaEstado(initialHorarios))
   const [logoEnviando, setLogoEnviando] = useState(false)
@@ -505,6 +509,10 @@ function PerfilEmpresa({
     setHorarios(prev => ({ ...prev, [dia]: { ...prev[dia], ...patch } }))
 
   const salvar = async () => {
+    if (!telefoneValido(whatsapp)) {
+      setToast(`${MENSAGEM_TELEFONE_INVALIDO}: confira o WhatsApp / Telefone da empresa.`)
+      return
+    }
     const diaInvalido = DIAS_SEMANA.find(d => {
       const h = horarios[d.valor]
       return !h.fechado && h.fechamento <= h.abertura
@@ -574,7 +582,13 @@ function PerfilEmpresa({
             <CfgInput value={email} onChange={setEmail} type="email" placeholder="email@contato.com" />
           </CfgField>
           <CfgField label="WhatsApp / Telefone">
-            <CfgInput value={whatsapp} onChange={setWhatsapp} inputMode="tel" placeholder="(00) 00000-0000" />
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <CfgInput value={whatsapp} onChange={modoWhatsapp.digitar} inputMode="tel"
+                  placeholder={modoWhatsapp.estrangeiro ? '+55 11 00000-0000' : '(00) 00000-0000'} />
+              </div>
+              <BotaoNumeroEstrangeiro estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+            </div>
           </CfgField>
           <CfgField label="Endereço" opt>
             <CfgInput value={endereco} onChange={setEndereco} placeholder="Rua, número, bairro, cidade" />
