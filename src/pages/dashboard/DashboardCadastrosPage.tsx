@@ -10,8 +10,13 @@ import Painel from '../../components/dashboard/Painel'
 import ModalListaCompleta, { type ItemListaCompleta } from '../../components/dashboard/ModalListaCompleta'
 import ModalProdutosDoInsumo from '../../components/dashboard/ModalProdutosDoInsumo'
 import { BarrasDivergentes, BarrasVerticais, Mapa, ParetoAbc, type PontoGrafico } from '../../components/dashboard/GraficosVariados'
+import Comparacao from '../../components/dashboard/Comparacao'
+import ModalTabelaEstoque from '../../components/dashboard/ModalTabelaEstoque'
+import ModalVendasCmv from '../../components/compra/ModalVendasCmv'
+import { BigNumber, BigNumberGroup } from '../../components/ui'
+import { Package, Percent, Warehouse, TrendingUp, AlertTriangle } from 'lucide-react'
 import { Dica, Ranking, eixo, reaisCurto } from '../../components/dashboard/graficos'
-import { intervalo, pct, rotuloMes, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
+import { intervalo, pct, rotuloMes, rotuloPeriodoAnterior, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
 import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
 import { formatarData, hojeIso } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
@@ -72,10 +77,13 @@ export default function DashboardCadastrosPage() {
   const [listagem, setListagem] = useState<{ titulo: string; filtro: FiltroInicial } | null>(null)
   const [listagemVendas, setListagemVendas] = useState<{ titulo: string; filtro: FiltroInicial } | null>(null)
   const [produtosDoInsumo, setProdutosDoInsumo] = useState<{ id: string; nome: string } | null>(null)
+  const [estoqueLupa, setEstoqueLupa] = useState<'valor' | 'potencial' | 'minimo' | null>(null)
+  const [cmvLupa, setCmvLupa] = useState(false)
   const [insumoEscolhido, setInsumoEscolhido] = useState<string>('')
   const [evolucao, setEvolucao] = useState<EvolucaoPreco | null>(null)
 
   const faixa = useMemo(() => periodo === 'personalizado' ? { de: deLivre, ate: ateLivre } : intervalo(periodo), [periodo, deLivre, ateLivre])
+  const anterior = d ? rotuloPeriodoAnterior(d.deAnterior, d.ateAnterior) : ''
 
   const carregar = () => {
     if (!faixa.de || !faixa.ate) return
@@ -121,6 +129,32 @@ export default function DashboardCadastrosPage() {
           </div>
         ) : (
           <div className={clsx('grid grid-cols-1 gap-4 transition-opacity xl:grid-cols-2', carregando && 'opacity-60')}>
+            {/* V0.17.0 #974 (RN-NOVA-25): números de estoque (fotos de hoje) e CMV do período; cada um tem lupa (RN-NOVA-23) */}
+            <div className="xl:col-span-2">
+              <BigNumberGroup tela="dashboard-cadastros" testid="numeros-dashboard-cadastros">
+                <BigNumber testid="card-estoque-valor" icone={<Warehouse size={14} />} titulo="Valor do estoque a custo"
+                  valor={BRL(d.estoque.valorTotal)} onLupa={() => setEstoqueLupa('valor')}>
+                  <span data-testid="estoque-valor-material">Material: {BRL(d.estoque.valorMaterial)}</span>
+                  <span data-testid="estoque-valor-prontos">Produtos prontos: {BRL(d.estoque.valorProdutosProntos)}</span>
+                </BigNumber>
+                <BigNumber testid="card-estoque-potencial" icone={<Package size={14} />} titulo="Potencial de venda do estoque"
+                  valor={BRL(d.estoque.potencialVenda)} onLupa={() => setEstoqueLupa('potencial')}>
+                  <span>Produtos prontos ao preço de venda</span>
+                </BigNumber>
+                <BigNumber testid="card-cmv" icone={<Percent size={14} />} titulo="% de CMV" valor={pct(d.estoque.percentualCmv.valor ?? 0)}
+                  onLupa={() => setCmvLupa(true)}>
+                  <Comparacao n={d.estoque.percentualCmv} formato={pct} periodo={anterior} />
+                </BigNumber>
+                <BigNumber testid="card-margem-material" icone={<TrendingUp size={14} />} titulo="Margem após custo de material"
+                  valor={pct(d.estoque.margemMaterial.valor ?? 0)} onLupa={() => setCmvLupa(true)}>
+                  <Comparacao n={d.estoque.margemMaterial} formato={pct} periodo={anterior} />
+                </BigNumber>
+                <BigNumber testid="card-abaixo-minimo" icone={<AlertTriangle size={14} />} titulo="Insumos abaixo do mínimo"
+                  valor={d.estoque.insumosAbaixoMinimo} onLupa={() => setEstoqueLupa('minimo')}>
+                  <span>Estoque menor que o mínimo cadastrado</span>
+                </BigNumber>
+              </BigNumberGroup>
+            </div>
             <Painel titulo="Evolução de preço dos insumos" subtitulo="Preço médio pago por mês · clique no ponto para ver as compras" testid="ind-evolucao-preco"
               acoes={d.insumosEmProdutos.todos.length > 0 ? (
                 <select aria-label="Insumo da evolução de preço" value={insumoEscolhido} onChange={e => escolherInsumo(e.target.value)}
@@ -227,6 +261,24 @@ export default function DashboardCadastrosPage() {
       </div>
 
       {todos && <ModalListaCompleta titulo={todos.titulo} itens={todos.itens} onClose={() => setTodos(null)} />}
+      {estoqueLupa === 'valor' && (
+        <ModalTabelaEstoque titulo="Valor do estoque a custo" colunas={['Item', 'Tipo', 'Estoque', 'Custo unitário', 'Valor']}
+          linhas={d!.estoque.valorItens.map(l => [`${l.identificador} ${l.nome}`, l.tipo === 'INSUMO' ? 'Insumo' : 'Produto', num(l.estoque), l.custoUnitario == null ? '—' : l.custoUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }), BRL(l.valor)])}
+          total={`Total ${BRL(d!.estoque.valorTotal)}`} onClose={() => setEstoqueLupa(null)} />
+      )}
+      {estoqueLupa === 'potencial' && (
+        <ModalTabelaEstoque titulo="Potencial de venda do estoque" colunas={['Produto', 'Estoque', 'Preço de venda', 'Potencial']}
+          linhas={d!.estoque.potencialItens.map(l => [`${l.identificador} ${l.nome}`, num(l.estoque), BRL(l.precoVenda ?? 0), BRL(l.valor)])}
+          total={`Total ${BRL(d!.estoque.potencialVenda)}`} onClose={() => setEstoqueLupa(null)} />
+      )}
+      {estoqueLupa === 'minimo' && (
+        <ModalTabelaEstoque titulo="Insumos abaixo do mínimo" colunas={['Insumo', 'Estoque', 'Mínimo', 'Falta']}
+          linhas={d!.estoque.abaixoMinimoItens.map(l => [`${l.identificador} ${l.nome}`, num(l.estoque), num(l.minimo), num(l.falta)])}
+          onClose={() => setEstoqueLupa(null)} />
+      )}
+      {cmvLupa && d && (
+        <ModalVendasCmv filtro={{ de: d.de, ate: d.ate }} onClose={() => setCmvLupa(false)} />
+      )}
       {produtosDoInsumo && <ModalProdutosDoInsumo insumoId={produtosDoInsumo.id} insumoNome={produtosDoInsumo.nome} onClose={() => setProdutosDoInsumo(null)} />}
       {listagemVendas && (
         <ModalListagemRegistros titulo={listagemVendas.titulo} subtitulo="Vendas do Caixa e orçamentos que formam este número"
