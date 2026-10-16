@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { BarChart3, Monitor, Receipt, Search, ShoppingBag, Wallet } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import AppLayout from '../../components/layout/AppLayout'
 import { BigNumber, BigNumberGroup, Button } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -12,6 +12,7 @@ import Painel from '../../components/dashboard/Painel'
 import ModalListaCompleta, { type ItemListaCompleta } from '../../components/dashboard/ModalListaCompleta'
 import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
 import { Dica, Ranking, eixo, reaisCurto, vazio } from '../../components/dashboard/graficos'
+import { BarrasVerticais, DonutComLegenda } from '../../components/dashboard/GraficosVariados'
 import { intervalo, rotuloMes, rotuloPeriodoAnterior, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
 import { formatarData, hojeIso } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
@@ -131,21 +132,9 @@ export default function DashboardVendasPage() {
                     </ResponsiveContainer>
                   </div>
                 </Painel>
-                <Painel titulo="Vendas por origem" subtitulo="Caixa × Orçamento · clique numa fatia" testid="grafico-origem">
-                  {d.porOrigem.every(o => o.quantidade === 0) ? vazio('Nenhuma venda no período.') : (
-                    <div className="h-[240px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={d.porOrigem.filter(o => o.quantidade > 0).map(o => ({ ...o, rotulo: ROTULO_ORIGEM[o.origem], valor: o.faturamento, extra: `${o.quantidade} ${o.quantidade === 1 ? 'venda' : 'vendas'}` }))}
-                            dataKey="valor" nameKey="rotulo" innerRadius={50} outerRadius={90} cursor="pointer" label={(e: { rotulo?: string }) => e.rotulo}
-                            onClick={(x: { origem?: OrigemVenda }) => x.origem && abrirLista(`Vendas de origem ${ROTULO_ORIGEM[x.origem]}`, { origem: x.origem })}>
-                            {d.porOrigem.filter(o => o.quantidade > 0).map((o, i) => <Cell key={o.origem} fill={PALETA_SERIES[i % PALETA_SERIES.length]} />)}
-                          </Pie>
-                          <Tooltip content={<Dica formato={BRL} />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
+                <Painel titulo="Vendas por origem" subtitulo="Caixa × Orçamento · clique numa fatia ou na legenda" testid="grafico-origem">
+                  <DonutComLegenda testid="donut-origem" formato={BRL} onClique={(id) => abrirLista(`Vendas de origem ${ROTULO_ORIGEM[id as OrigemVenda]}`, { origem: id as OrigemVenda })}
+                    dados={d.porOrigem.filter(o => o.quantidade > 0).map(o => ({ id: o.origem, rotulo: ROTULO_ORIGEM[o.origem], valor: o.faturamento, extra: `${o.quantidade} ${o.quantidade === 1 ? 'venda' : 'vendas'}` }))} />
                 </Painel>
                 <Painel titulo="Produtos mais vendidos" subtitulo="Por quantidade · clique para ver as vendas do produto" testid="grafico-produtos"
                   acoes={d.todosProdutosVendidos.length > 0 ? (
@@ -159,10 +148,12 @@ export default function DashboardVendasPage() {
                   )}
                 </Painel>
                 <Painel titulo="Formas de pagamento" subtitulo="Valor por forma registrada · clique para ver as vendas" testid="grafico-formas-pagamento">
-                  {d.formasPagamento.length === 0 ? vazio('Nenhuma venda no período.') : (
-                    <Ranking testid="ranking-formas" cor={PALETA_SERIES[2]} formato={reaisCurto}
-                      dados={d.formasPagamento.map(f => ({ id: f.forma, rotulo: f.forma, valor: f.valor, extra: `${f.quantidade} ${f.quantidade === 1 ? 'venda' : 'vendas'}` }))}
-                      onClique={(id, nome) => abrirLista(`Vendas pagas em ${nome}`, { forma: id })} />
+                  {d.formasPagamento.length <= 4 ? (
+                    <DonutComLegenda testid="donut-formas" formato={BRL} onClique={(id, nome) => abrirLista(`Vendas pagas em ${nome}`, { forma: id })}
+                      dados={d.formasPagamento.map(f => ({ id: f.forma, rotulo: f.forma, valor: f.valor, extra: `${f.quantidade} ${f.quantidade === 1 ? 'venda' : 'vendas'}` }))} />
+                  ) : (
+                    <BarrasVerticais testid="barras-formas" cor={PALETA_SERIES[2]} formato={BRL} onClique={(id, nome) => abrirLista(`Vendas pagas em ${nome}`, { forma: id })}
+                      dados={d.formasPagamento.map(f => ({ id: f.forma, rotulo: f.forma, valor: f.valor, extra: `${f.quantidade} ${f.quantidade === 1 ? 'venda' : 'vendas'}` }))} />
                   )}
                 </Painel>
               </div>
