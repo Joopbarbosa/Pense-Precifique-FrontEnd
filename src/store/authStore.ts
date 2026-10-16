@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useMenuStore } from './menuStore'
 
 interface Usuario {
   id: string
@@ -24,9 +25,16 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       usuario: null,
       onboardingCompleto: null,
-      setAuth: (token, usuario) => set({ token, usuario, onboardingCompleto: null }),
+      // #963 (DT-NOVA-17): entrar e sair zeram o menu recolhido; a troca de e-mail (atualizarSessao) não mexe
+      setAuth: (token, usuario) => {
+        useMenuStore.getState().zerar()
+        set({ token, usuario, onboardingCompleto: null })
+      },
       atualizarSessao: (token, usuario) => set({ token, usuario }),
-      clearAuth: () => set({ token: null, usuario: null, onboardingCompleto: null }),
+      clearAuth: () => {
+        useMenuStore.getState().zerar()
+        set({ token: null, usuario: null, onboardingCompleto: null })
+      },
       isAuthenticated: () => !!get().token,
       setOnboardingCompleto: (v) => set({ onboardingCompleto: v }),
     }),

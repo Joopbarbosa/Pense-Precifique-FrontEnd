@@ -7,7 +7,10 @@ test('V0.17.0 — menu com os grupos Cadastros e Vendas; item e grupo destacados
   await login(page)
   await page.goto('/dashboard')
 
+  // V0.17.0 #963 (CEN-NOVO-55): recolhido ao entrar; a verificação dos itens vem depois de abrir o grupo
   const cadastros = page.getByRole('button', { name: 'Cadastros', exact: true })
+  await expect(cadastros).toHaveAttribute('aria-expanded', 'false')
+  await cadastros.click()
   await expect(cadastros).toHaveAttribute('aria-expanded', 'true')
   const nav = page.getByRole('navigation')
   const nomes = await nav.getByRole('link').allInnerTexts()

@@ -23,7 +23,9 @@ test('V0.17.0 — Dashboard de Vendas: números batem com a lista aberta pela lu
 
     await login(page)
     await page.goto('/dashboard')
-    await page.getByRole('link', { name: 'Dashboard' }).nth(1).click()
+    // V0.17.0 #963: grupos recolhidos ao entrar — abre Vendas e clica no link pelo destino
+    await page.getByRole('button', { name: 'Vendas', exact: true }).click()
+    await page.locator('a[href="/vendas/dashboard"]').click()
     await expect(page).toHaveURL(/\/vendas\/dashboard$/)
     await expect(page.getByRole('heading', { name: 'Dashboard de vendas' })).toBeVisible()
     await expect(page.getByTestId('grafico-faturamento-mes')).toBeVisible()

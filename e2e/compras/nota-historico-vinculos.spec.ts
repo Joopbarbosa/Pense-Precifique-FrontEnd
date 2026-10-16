@@ -40,6 +40,7 @@ test('CEN22/23/24: filtrar, editar, ignorar, vincular novamente e desfazer só a
   const antigo = await salvar(request, token, await ler(request, token, cnpj, nomes, estrela.nome), [azul.id, azul.id, preta.id])
   await salvar(request, token, await ler(request, token, outro, [nomes[0]], `Distribuidora Aurora ${sfx}`), [azul.id])
   await login(page); await page.goto('/compras')
+  await page.getByRole('button', { name: 'Compras', exact: true }).click() // V0.17.0 #963: grupo recolhido ao entrar
   await page.getByRole('link', { name: 'Histórico de Nota Fiscal', exact: true }).click()
   await page.getByLabel('Buscar vínculo').fill(sfx)
   await expect(tabela(page).getByRole('row')).toHaveCount(5)
@@ -165,6 +166,7 @@ test('CEN-NOVO-66: clique no registro oferece compra, fornecedor e insumo', asyn
   const cadastro = await fornecedor(request, token, `Fornecedor destino ${sfx}`, cnpjValido())
   const compra = await salvar(request, token, await ler(request, token, cadastro.documento, [`ITEM DESTINO ${sfx}`], cadastro.nome), [insumo.id])
   await login(page); await page.goto('/compras')
+  await page.getByRole('button', { name: 'Compras', exact: true }).click() // V0.17.0 #963: grupo recolhido ao entrar
   await page.getByRole('link', { name: 'Histórico de Nota Fiscal', exact: true }).click()
   await page.getByLabel('Buscar vínculo').fill(`ITEM DESTINO ${sfx}`)
   await expect(tabela(page).getByRole('row')).toHaveCount(2)

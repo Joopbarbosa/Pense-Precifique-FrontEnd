@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
 import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History, Database } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useMenuStore } from '../../store/menuStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
 // duplicado aqui só porque este cálculo específico precisa rodar em JS, não CSS.
@@ -116,47 +116,18 @@ function renderNavItem(
   )
 }
 
-// #501 (V0.12.0) — mesmo motivo de `collapsed` em AppLayout.tsx: o AppLayout remonta a cada
-// navegação (sem layout de rota compartilhado), então um `useState` puro resetaria o grupo pra
-// expandido a cada clique num link. Só afeta o layout interno do Sidebar (não a largura da coluna
-// como `collapsed`), então o estado fica local aqui em vez de subir pro AppLayout.
-const SIDEBAR_VENDAS_EXPANDIDO_KEY = 'sidebarVendasExpandido'
-const SIDEBAR_COMPRAS_EXPANDIDO_KEY = 'sidebarComprasExpandido'
-const SIDEBAR_CADASTROS_EXPANDIDO_KEY = 'sidebarCadastrosExpandido'
-
-function readExpandidoPreference(chave: string): boolean {
-  try {
-    const v = localStorage.getItem(chave)
-    return v === null ? true : v === '1'
-  } catch {
-    return true
-  }
-}
-
-/** Mesmo mecanismo para os grupos recolhíveis (Vendas V0.12.0, Compras V0.15.0). */
-function useGrupoExpandido(chave: string): [boolean, () => void] {
-  const [expandido, setExpandido] = useState(() => readExpandidoPreference(chave))
-  const alternar = () => {
-    setExpandido(prev => {
-      const next = !prev
-      try {
-        localStorage.setItem(chave, next ? '1' : '0')
-      } catch {
-        // localStorage indisponível (ex: modo privado) — preferência só não persiste, sem quebrar a UI
-      }
-      return next
-    })
-  }
-  return [expandido, alternar]
-}
-
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }: SidebarProps) {
   const navigate = useNavigate()
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const { pathname } = useLocation()
-  const [vendasExpandido, toggleVendasExpandido] = useGrupoExpandido(SIDEBAR_VENDAS_EXPANDIDO_KEY)
-  const [comprasExpandido, toggleComprasExpandido] = useGrupoExpandido(SIDEBAR_COMPRAS_EXPANDIDO_KEY)
-  const [cadastrosExpandido, toggleCadastrosExpandido] = useGrupoExpandido(SIDEBAR_CADASTROS_EXPANDIDO_KEY)
+  // #963 (RN-NOVA-18, DT-NOVA-17) — estado em memória (store), recolhido ao entrar e ao atualizar
+  const vendasExpandido = useMenuStore((s) => s.expandido.vendas)
+  const comprasExpandido = useMenuStore((s) => s.expandido.compras)
+  const cadastrosExpandido = useMenuStore((s) => s.expandido.cadastros)
+  const alternar = useMenuStore((s) => s.alternar)
+  const toggleVendasExpandido = () => alternar('vendas')
+  const toggleComprasExpandido = () => alternar('compras')
+  const toggleCadastrosExpandido = () => alternar('cadastros')
 
   const cabecalhoGrupo = (label: string, Icone: typeof LayoutGrid, expandido: boolean, alternar: () => void, ativo = false) => !collapsed && (
     <button
