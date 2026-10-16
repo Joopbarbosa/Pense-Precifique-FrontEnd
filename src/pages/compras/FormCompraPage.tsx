@@ -286,27 +286,31 @@ export default function FormCompraPage() {
                   className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
               </Field>
             )}
-            <Field label="Mais de um fornecedor?" group size="md">
-              <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
-            </Field>
+            {/* V0.17.0 #966 (RN-NOVA-21): "Mais de um fornecedor?" e "Pagamento" numa linha só, abaixo da data;
+                em tela estreita os dois empilham. Nenhuma regra muda, só a posição. */}
+            <div className="grid grid-cols-1 gap-section sm:grid-cols-2 md:col-span-2 xl:col-span-4">
+              <Field label="Mais de um fornecedor?" group size="md">
+                <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
+              </Field>
+              <Field label="Pagamento" group size="md">
+                <SegmentedControl options={[{ value: false, label: 'Não pago' }, { value: true, label: 'Pago' }]} value={pago}
+                  onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
+              </Field>
+              {pago && (
+                <div className="sm:col-span-2">
+                  <Field label="Como foi paga?" required group size="md">
+                    <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
+                      parcelas={parcelas} onParcelas={setParcelas} />
+                  </Field>
+                </div>
+              )}
+            </div>
             <div className="md:col-span-2">
               <Field label={multiplos ? 'Fornecedor padrão das linhas' : 'Fornecedor'} opt group size="md"
                 hint={multiplos ? 'Cada linha começa com este fornecedor e pode ser trocada.' : 'Vale para todos os insumos desta compra.'}>
                 <FornecedorSelect value={fornecedor} onChange={setFornecedor} />
               </Field>
             </div>
-            <Field label="Pagamento" group size="md">
-              <SegmentedControl options={[{ value: false, label: 'Não pago' }, { value: true, label: 'Pago' }]} value={pago}
-                onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
-            </Field>
-            {pago && (
-              <div className="md:col-span-1 xl:col-span-3">
-                <Field label="Como foi paga?" required group size="md">
-                  <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
-                    parcelas={parcelas} onParcelas={setParcelas} />
-                </Field>
-              </div>
-            )}
           </div>
         </div>
 
