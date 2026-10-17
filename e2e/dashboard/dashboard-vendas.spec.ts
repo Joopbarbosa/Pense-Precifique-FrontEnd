@@ -31,22 +31,29 @@ test('V0.17.0 — Dashboard de Vendas: números batem com a lista aberta pela lu
     await expect(page.getByTestId('grafico-faturamento-mes')).toBeVisible()
     await expect(page.getByTestId('grafico-formas-pagamento')).toBeVisible()
 
-    // CEN-NOVO-54 — lupa do Faturamento abre a lista só com as vendas que formam o número; total e quantidade conferem
+    // CEN-NOVO-54 / #968 — lupa do Faturamento abre a modal de listagem (sem trocar de aba) com só as vendas que formam o número
     await page.getByRole('button', { name: 'Ver registros de Faturamento' }).click()
-    await expect(page.getByTestId('filtro-aplicado')).toBeVisible()
+    const modal = page.getByRole('dialog')
+    await expect(modal.getByTestId('modal-listagem')).toBeVisible()
+    await expect(page.getByTestId('grafico-faturamento-mes')).toBeVisible()
     const lista = await (await request.get(`${API_URL}/dashboard/vendas/lista?somenteQueContam=true`, { headers })).json()
     expect(lista.totalFiltrado).toBe(painel.faturamento.valor)
     expect(lista.quantidadeFiltrada).toBe(painel.quantidadeVendas.valor)
-    await expect(page.getByTestId('totais-lista')).toContainText(`${lista.quantidadeFiltrada} vendas`)
+    await expect(modal.getByText(`${lista.quantidadeFiltrada} registros`)).toBeVisible()
+    for (const id of vendas) {
+      const venda = (await (await request.get(`${API_URL}/caixa/vendas/${id}`, { headers })).json())
+      await expect(modal.getByTestId('modal-listagem')).toContainText(venda.identificador)
+    }
+
+    // #968 — a aba Vendas mostra todas as vendas, de qualquer status
+    await page.keyboard.press('Escape')
+    await page.getByRole('tab', { name: 'Vendas' }).click()
+    await expect(page.getByTestId('filtro-aplicado')).toHaveCount(0)
+    await expect(page.getByTestId('tabela-vendas')).toBeVisible()
     for (const id of vendas) {
       const venda = (await (await request.get(`${API_URL}/caixa/vendas/${id}`, { headers })).json())
       await expect(page.getByTestId('tabela-vendas')).toContainText(venda.identificador)
     }
-
-    // CEN-NOVO-39/40 — ampliar o filtro volta a mostrar os outros status
-    await page.getByRole('button', { name: 'Mostrar todos os status' }).click()
-    await expect(page.getByTestId('filtro-aplicado')).toHaveCount(0)
-    await expect(page.getByTestId('tabela-vendas')).toBeVisible()
   } finally {
     for (const id of vendas) {
       const r = await request.post(`${API_URL}/caixa/vendas/${id}/cancelar`, { headers, data: { cancelamentoMotivo: 'Limpeza da massa do cenário do Dashboard de Vendas da tarefa 719', senha: TEST_SENHA, retornarEstoque: true } })

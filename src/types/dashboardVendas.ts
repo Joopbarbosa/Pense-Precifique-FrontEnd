@@ -19,6 +19,8 @@ export interface DashboardVendasResponse {
   meses: { mes: string; faturamento: number; quantidade: number }[]
   porOrigem: { origem: OrigemVenda; faturamento: number; quantidade: number }[]
   produtosMaisVendidos: { id: string | null; tipo: 'PRODUTO' | 'CATALOGO'; nome: string; quantidade: number; faturamento: number }[]
+  /** V0.17.0 #971 (DT-NOVA-18): todos os produtos vendidos, para a lupa do ranking (o ranking mostra 10). */
+  todosProdutosVendidos: { id: string | null; tipo: 'PRODUTO' | 'CATALOGO'; nome: string; quantidade: number; faturamento: number }[]
   formasPagamento: { forma: string; valor: number; quantidade: number }[]
 }
 
@@ -53,6 +55,8 @@ export interface FiltroListaVendas {
   somenteQueContam?: boolean
   produtoId?: string
   forma?: string
+  /** Ordenação da tabela: campo e sentido, ex. "total,asc" (identificador, data, cliente, total ou status). */
+  sort?: string
   page?: number
   size?: number
 }

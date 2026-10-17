@@ -107,6 +107,9 @@ export interface ProdutoRelacionadoResponse {
   identificador?: string
   nome: string
   tipo: 'PRODUTO' | 'CUSTOMIZACAO'
+  /** V0.17.0 #971: quantidade do insumo na ficha do produto e a unidade do insumo ("2 m"). */
+  quantidade?: number | null
+  unidade?: string | null
 }
 
 export interface SubstituicaoInsumoRequest {

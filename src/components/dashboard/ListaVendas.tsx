@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { X } from 'lucide-react'
 import { Button, EmptyState } from '../ui'
 import Spinner from '../ui/Spinner'
 import ModalRegistro from '../cliente/ModalRegistro'
@@ -9,9 +8,9 @@ import { dashboardVendasService } from '../../services/dashboardVendasService'
 import { extractApiError } from '../../utils/apiError'
 import type { FiltroListaVendas, LinhaListaVendas, ListaVendasResponse, OrigemVenda } from '../../types/dashboardVendas'
 
-// V0.17.0 — #719 (RN-NOVA-17): aba Vendas. Todas as vendas do Caixa e todos os orçamentos, de qualquer status. Quando aberta pelo
-// clique num número ou gráfico, vem filtrada pelas vendas que formam aquele número (RN-NOVA-12) e o filtro fica visível, com um
-// botão para ampliar. O total e a quantidade do conjunto inteiro vêm do backend (conferência com o número de origem).
+// V0.17.0 — #719 (RN-NOVA-17) e #970: aba Vendas. Todas as vendas do Caixa e todos os orçamentos, de qualquer status. O clique na
+// linha abre a modal de dados do registro (orçamento com os itens e o botão "Abrir orçamento"; venda do Caixa sem página).
+// O total e a quantidade do conjunto inteiro vêm do backend.
 
 const STATUS_ROTULO: Record<string, string> = {
   RASCUNHO: 'Rascunho', ENVIADO: 'Enviado', APROVADO: 'Aprovado', AGUARDANDO_SINAL: 'Aguardando sinal', SINAL_PAGO: 'Sinal pago',
@@ -31,12 +30,7 @@ const ORIGENS: { id: OrigemVenda | ''; rotulo: string }[] = [
 ]
 const campo = 'h-11 rounded-input border-[1.5px] border-line bg-white px-3 font-[inherit] text-sm text-dark outline-hidden focus:border-teal'
 
-export default function ListaVendas({ filtroInicial, descricaoFiltro, onAmpliar }: {
-  filtroInicial: FiltroListaVendas
-  /** Texto do filtro que veio do clique (ex.: "Faturamento de outubro"); some quando a pessoa amplia. */
-  descricaoFiltro?: string
-  onAmpliar: () => void
-}) {
+export default function ListaVendas({ filtroInicial }: { filtroInicial: FiltroListaVendas }) {
   const [origem, setOrigem] = useState<OrigemVenda | ''>(filtroInicial.origem ?? '')
   const [statusId, setStatusId] = useState('TODOS')
   const [busca, setBusca] = useState('')
@@ -45,7 +39,7 @@ export default function ListaVendas({ filtroInicial, descricaoFiltro, onAmpliar 
   const [dados, setDados] = useState<ListaVendasResponse | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
-  const [registro, setRegistro] = useState<string | null>(null)
+  const [registro, setRegistro] = useState<{ tipo: 'ORCAMENTO' | 'VENDA_CAIXA'; id: string } | null>(null)
   const [tentativa, setTentativa] = useState(0)
 
   const filtro = useCallback((): FiltroListaVendas => ({
@@ -67,24 +61,10 @@ export default function ListaVendas({ filtroInicial, descricaoFiltro, onAmpliar 
     return () => { ativa = false }
   }, [filtro, tentativa])
 
-  const abrir = (l: LinhaListaVendas) => {
-    if (l.origem === 'ORCAMENTO') window.open(`/orcamentos/${l.id}`, '_blank', 'noopener,noreferrer')
-    else setRegistro(l.id)
-  }
-  const restritoAoQueConta = !!filtroInicial.somenteQueContam
+  const abrir = (l: LinhaListaVendas) => setRegistro({ tipo: l.origem === 'ORCAMENTO' ? 'ORCAMENTO' : 'VENDA_CAIXA', id: l.id })
 
   return (
     <div className="flex flex-col gap-4" data-testid="aba-vendas">
-      {restritoAoQueConta && (
-        <div data-testid="filtro-aplicado" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/5 px-4 py-2.5 text-[13px] text-body">
-          <span>
-            <strong className="font-semibold text-dark">Mostrando as vendas que formam o número{descricaoFiltro ? `: ${descricaoFiltro}` : ''}.</strong>{' '}
-            Só orçamento entregue e venda do Caixa concluída.
-          </span>
-          <Button variant="ghost" size="sm" icon={<X size={14} />} onClick={onAmpliar}>Mostrar todos os status</Button>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-end gap-3">
         <label className="block">
           <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Origem</span>
@@ -94,7 +74,7 @@ export default function ListaVendas({ filtroInicial, descricaoFiltro, onAmpliar 
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Status</span>
-          <select aria-label="Status" value={statusId} onChange={e => setStatusId(e.target.value)} disabled={restritoAoQueConta} className={campo}>
+          <select aria-label="Status" value={statusId} onChange={e => setStatusId(e.target.value)} className={campo}>
             {FILTROS_STATUS.map(s => <option key={s.id} value={s.id}>{s.rotulo}</option>)}
           </select>
         </label>
@@ -154,7 +134,7 @@ export default function ListaVendas({ filtroInicial, descricaoFiltro, onAmpliar 
           </div>
         </div>
       )}
-      {registro && <ModalRegistro tipo="VENDA_CAIXA" id={registro} onClose={() => setRegistro(null)} />}
+      {registro && <ModalRegistro tipo={registro.tipo} id={registro.id} onClose={() => setRegistro(null)} />}
     </div>
   )
 }

@@ -61,11 +61,14 @@ test('CEN57/58/31: barra, ponto e linha consultam o mês correto, inclusive mês
   await pontos.last().click(); await expect(page.getByText('Nenhuma venda neste período.', { exact: true })).toBeVisible(); expect(consultados.at(-1)).toBe('2026-07'); await expect(page.getByTestId('total-custo-cmv')).toContainText('0,00')
 })
 
-test('CEN32: marcas Estimado/Sem custo e orçamento abre aba nova', async ({ page }) => {
+test('CEN32: marcas Estimado/Sem custo; clique no orçamento abre a modal de dados, com o botão para a aba nova', async ({ page }) => {
   await painelSimulado(page); await page.route('**/api/compras/dashboard/vendas-cmv?*', route => route.fulfill({ json: envelope([cx, orc, sem]) }))
   await login(page); await page.goto('/compras/dashboard'); await page.getByRole('button', { name: 'Ver registros de CMV', exact: true }).click()
   const tabela = page.getByTestId('vendas-cmv'); await expect(tabela.getByText('Estimado', { exact: true })).toBeVisible(); await expect(tabela.getByText('Sem custo', { exact: true })).toBeVisible()
-  const popup = page.waitForEvent('popup'); await tabela.getByRole('button', { name: 'ORC-14', exact: true }).click(); const aba = await popup; await expect(aba).toHaveURL(new RegExp(`/orcamentos/${orc.id}`)); await aba.close(); await expect(tabela).toBeVisible()
+  await page.route(`**/api/orcamentos/${orc.id}`, route => route.fulfill({ json: { id: orc.id, numero: 14, status: 'ENTREGUE', createdAt: '2026-06-15T10:00:00', nomeCliente: 'Cliente', itens: [], subtotal: 75, tipoDesconto: null, descontoValor: null, total: 75, dataPagamento: null } }))
+  await tabela.getByRole('button', { name: 'ORC-14', exact: true }).click(); await expect(page.getByRole('button', { name: 'Abrir orçamento' })).toBeVisible()
+  const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: 'Abrir orçamento' }).click(); const aba = await popup; await expect(aba).toHaveURL(new RegExp(`/orcamentos/${orc.id}`)); await aba.close()
+  await page.getByRole('button', { name: 'Fechar', exact: true }).last().click(); await expect(tabela).toBeVisible()
 })
 
 test('paginação mantém total de todo período; falha pode ser repetida e lista vazia tem mensagem', async ({ page }) => {
