@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -59,7 +59,7 @@ function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; ti
 }
 
 // V0.15.0 (#542, RN-NOVA-7) — a referência é o identificador legível que vem pronto da API
-// (`referencia`), nunca o ID interno; leva ao detalhe da origem. Venda do Caixa (CX-N) não tem
+// (`referencia`), nunca o ID interno; leva ao detalhe da origem, em aba nova. Venda do Caixa (CX-N) não tem
 // página de detalhe, então fica só o texto.
 const ROTA_REFERENCIA: Record<string, (id: string) => string> = {
   PRODUCAO: id => `/producao/${id}`,
@@ -70,8 +70,9 @@ const ROTA_REFERENCIA: Record<string, (id: string) => string> = {
 function Referencia({ m }: { m: MovimentacaoInsumoResponse }) {
   if (!m.referencia) return null
   const rota = m.referenciaTipo && m.referenciaId ? ROTA_REFERENCIA[m.referenciaTipo] : undefined
+  // V0.17.0 #967 (RN-NOVA-22): a referência abre a página da origem em aba nova; o histórico segue aberto
   return rota
-    ? <Link to={rota(m.referenciaId!)} className="font-semibold text-teal no-underline hover:underline">{m.referencia}</Link>
+    ? <a href={rota(m.referenciaId!)} target="_blank" rel="noopener noreferrer" className="font-semibold text-teal no-underline hover:underline">{m.referencia}</a>
     : <span>{m.referencia}</span>
 }
 
