@@ -35,4 +35,35 @@ export interface DashboardCadastrosResponse {
   margemPorProduto: MargemProduto[]
   curvaAbc: CurvaAbc
   insumosQueMaisVariaram: RankingCadastros
+  /** V0.17.0 #974 (RN-NOVA-25): faixa de números de estoque e CMV. */
+  estoque: EstoqueNumeros
+}
+
+/** Número com o do período anterior e a variação (calculada no backend). */
+export interface NumeroComparado { valor: number | null; anterior: number | null; variacaoPercentual: number | null }
+
+export interface LinhaEstoque {
+  id: string | null
+  identificador: string
+  nome: string
+  tipo: 'INSUMO' | 'PRODUTO'
+  estoque: number
+  custoUnitario: number | null
+  valor: number
+  precoVenda: number | null
+}
+
+export interface LinhaMinimo { id: string | null; identificador: string; nome: string; estoque: number; minimo: number; falta: number }
+
+export interface EstoqueNumeros {
+  valorTotal: number
+  valorMaterial: number
+  valorProdutosProntos: number
+  valorItens: LinhaEstoque[]
+  potencialVenda: number
+  potencialItens: LinhaEstoque[]
+  percentualCmv: NumeroComparado
+  margemMaterial: NumeroComparado
+  insumosAbaixoMinimo: number
+  abaixoMinimoItens: LinhaMinimo[]
 }

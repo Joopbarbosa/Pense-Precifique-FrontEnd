@@ -70,3 +70,19 @@ test('V0.17.0 — #968 lupa de Produtos mais vendidos lista todos; clique numa l
     await apiFecharTurnoSeAberto(request, token)
   }
 })
+
+test('V0.17.0 — #974 faixa de estoque e CMV: lupas abrem a listagem, sem trocar de tela', async ({ page }) => {
+  await login(page)
+  await page.goto('/cadastros/dashboard')
+  await expect(page.getByTestId('card-estoque-valor')).toBeVisible()
+  await expect(page.getByTestId('estoque-valor-material')).toContainText('Material: R$')
+  await expect(page.getByTestId('estoque-valor-prontos')).toContainText('Produtos prontos: R$')
+
+  await page.getByRole('button', { name: 'Ver registros de Valor do estoque a custo' }).click()
+  await expect(page.getByTestId('total-estoque')).toContainText('Total R$')
+  await page.getByRole('button', { name: 'Fechar', exact: true }).last().click()
+
+  await page.getByRole('button', { name: 'Ver registros de % de CMV' }).click()
+  await expect(page.getByText('Vendas que compõem o CMV', { exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/cadastros\/dashboard$/)
+})
