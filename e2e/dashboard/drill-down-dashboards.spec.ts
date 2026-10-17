@@ -46,6 +46,11 @@ test('V0.17.0 — #968 lupa de Produtos mais vendidos lista todos; clique numa l
 
     await login(page)
     await page.goto('/vendas/dashboard')
+    // #969 (RN-NOVA-24, CEN-NOVO-67): donut de origem com legenda e sem rótulos de texto nas fatias
+    await expect(page.getByTestId('donut-origem')).toContainText('Caixa:')
+    await expect(page.getByTestId('grafico-origem').locator('.recharts-pie-label-text')).toHaveCount(0)
+    // #972 (CEN-NOVO-71): até 4 formas com venda, donut com legenda
+    await expect(page.getByTestId('donut-formas')).toContainText('Dinheiro:')
     await page.getByRole('button', { name: 'Ver lista completa de produtos vendidos' }).click()
     await expect(page.getByTestId('lista-todos')).toBeVisible()
     await expect(page.getByTestId('lista-todos')).toContainText(`QA968-produto-`)
