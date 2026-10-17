@@ -3,11 +3,22 @@ import type {
   AbrirCaixaTurnoRequest, CaixaTurnoResponse, FecharCaixaTurnoRequest, FechamentoPreviaResponse,
   CaixaMovimentoRequest, CaixaMovimentoResponse,
   VendaCaixaRequest, VendaCaixaResponse, CancelarVendaCaixaRequest, RegistrarVendaResultado,
+  HistoricoVendaResponse, FiltroHistoricoVendas,
 } from '../types/caixa'
 import type { ItemCatalogoBuscaResponse } from '../types/orcamento'
 import type { PageResponse } from '../types/shared'
 
 export const caixaService = {
+  // V0.17.0 #973 (RN-NOVA-26): histórico de vendas, de todos os turnos
+  historicoVendas: async (filtro: FiltroHistoricoVendas): Promise<PageResponse<HistoricoVendaResponse>> => {
+    const sp = new URLSearchParams()
+    const { status, ...resto } = filtro
+    Object.entries(resto).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') sp.append(k, String(v)) })
+    ;(status ?? []).forEach(s => sp.append('status', s))
+    const response = await api.get<PageResponse<HistoricoVendaResponse>>(`/caixa/vendas/historico?${sp.toString()}`)
+    return response.data
+  },
+
   // #488 (V0.12.0)
   buscarTurnoAberto: async (): Promise<CaixaTurnoResponse | null> => {
     try {

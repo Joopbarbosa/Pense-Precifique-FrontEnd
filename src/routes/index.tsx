@@ -44,6 +44,7 @@ import EditarProducaoPage from '../pages/producao/EditarProducaoPage'
 import DetalheProducaoPage from '../pages/producao/DetalheProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 import CaixaPage from '../pages/caixa/CaixaPage'
+import HistoricoVendasPage from '../pages/caixa/HistoricoVendasPage'
 
 export const router = createBrowserRouter([
   // Rotas públicas
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
       { path: '/orcamentos/:id/recibo-estorno',       element: <ReciboEstornoPage /> },
 
       { path: '/caixa',                element: <CaixaPage /> },
+      { path: '/caixa/historico',      element: <HistoricoVendasPage /> },
 
       { path: '/compras',              element: <ComprasPage /> },
       { path: '/vendas/dashboard',     element: <DashboardVendasPage /> },
