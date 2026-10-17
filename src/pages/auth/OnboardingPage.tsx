@@ -6,6 +6,8 @@ import { Check, Lightbulb, Clock, TrendingUp, Settings, Image, X } from 'lucide-
 import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
 import { extractApiError } from '../../utils/apiError'
+import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
+import { BotaoNumeroEstrangeiro, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
 import type { EmpresaResponse } from '../../types/empresa'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
@@ -157,7 +159,9 @@ function PassoEmpresa({ onAvancar }: { onAvancar: () => void }) {
   const [previaLogo, setPreviaLogo] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
-  const [erros, setErros] = useState<{ nome?: string; email?: string }>({})
+  const [erros, setErros] = useState<{ nome?: string; email?: string; whatsapp?: string }>({})
+  // V0.17.0 #964 (RN-NOVA-19): telefone nacional com máscara ou estrangeiro
+  const modoWhatsapp = useModoTelefone(whatsapp, setWhatsapp)
 
   // abre com o que já foi salvo (CEN-NOVO-5 e 9); o e-mail de acesso só é sugerido enquanto o perfil nunca foi editado
   useEffect(() => {
@@ -203,9 +207,10 @@ function PassoEmpresa({ onAvancar }: { onAvancar: () => void }) {
 
   async function avancar(e: React.FormEvent) {
     e.preventDefault()
-    const novos: { nome?: string; email?: string } = {}
+    const novos: { nome?: string; email?: string; whatsapp?: string } = {}
     if (!nome.trim()) novos.nome = 'Informe o nome do seu ateliê'
     if (email.trim() && !EMAIL_VALIDO.test(email.trim())) novos.email = 'E-mail inválido'
+    if (!telefoneValido(whatsapp)) novos.whatsapp = MENSAGEM_TELEFONE_INVALIDO
     setErros(novos)
     if (Object.keys(novos).length > 0) return
 
@@ -251,8 +256,14 @@ function PassoEmpresa({ onAvancar }: { onAvancar: () => void }) {
         <CampoTexto label="E-mail de contato" opcional type="email" inputMode="email" value={email} maxLength={255}
           onChange={v => { setEmail(v); setErros(p => ({ ...p, email: undefined })) }}
           placeholder="contato@seuatelie.com" error={erros.email} />
-        <CampoTexto label="Telefone / WhatsApp" opcional inputMode="tel" value={whatsapp} maxLength={20}
-          onChange={setWhatsapp} placeholder="(00) 00000-0000" />
+        <div className="flex items-end gap-2">
+          <div className="min-w-0 flex-1">
+            <CampoTexto label="Telefone / WhatsApp" opcional inputMode="tel" value={whatsapp} maxLength={25}
+              onChange={v => { modoWhatsapp.digitar(v); setErros(p => ({ ...p, whatsapp: undefined })) }}
+              placeholder={modoWhatsapp.estrangeiro ? '+55 11 00000-0000' : '(00) 00000-0000'} error={erros.whatsapp} />
+          </div>
+          <BotaoNumeroEstrangeiro estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+        </div>
 
         <div className="flex items-center gap-4 rounded-[14px] border-[1.6px] border-dashed border-[#D4D0C8] bg-cream p-3.5">
           <input ref={inputLogo} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
