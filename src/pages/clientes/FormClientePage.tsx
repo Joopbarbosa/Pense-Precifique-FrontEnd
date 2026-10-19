@@ -11,7 +11,7 @@ import { extractApiError } from '../../utils/apiError'
 import { erroDocumento, mascararDocumento, ROTULO_DOCUMENTO } from '../../utils/documento'
 import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
 import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
-import { BotaoNumeroEstrangeiro, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
+import { ControleModoTelefone, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
 import type { ClienteRequest, TipoPessoa } from '../../types/cliente'
 
 // V0.15.0 (#536/#537, Decisão 21) — cadastro/edição em página própria, no formato de
@@ -277,20 +277,20 @@ export default function FormClientePage() {
         <div className="border-b border-line px-[26px] py-6">
           <SectionTitle number="2" title="Contato" subtitle="Como falar com esta pessoa ou empresa." />
           <div className="grid grid-cols-1 gap-section md:grid-cols-2 xl:grid-cols-4">
-            <Field label="WhatsApp" opt size="md" erro={fieldErrors.whatsapp} hint="Usado para enviar orçamentos diretamente.">
+            <Field label="WhatsApp" opt size="md" erro={fieldErrors.whatsapp} hint="Usado para enviar orçamentos diretamente." group>
               <div className="flex items-center gap-2">
                 <input className={clsx(inputClass('whatsapp'), 'min-w-0 flex-1')} type="tel" maxLength={25}
                   placeholder={modoWhatsapp.estrangeiro ? '+55 11 99999-0000' : '(11) 99999-0000'}
                   value={form.whatsapp} onChange={e => modoWhatsapp.digitar(e.target.value)} />
-                <BotaoNumeroEstrangeiro estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+                <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
               </div>
             </Field>
-            <Field label="Telefone" opt size="md" erro={fieldErrors.telefone}>
+            <Field label="Telefone" opt size="md" erro={fieldErrors.telefone} group>
               <div className="flex items-center gap-2">
                 <input className={clsx(inputClass('telefone'), 'min-w-0 flex-1')} type="tel" maxLength={25}
                   placeholder={modoTelefone.estrangeiro ? '+55 11 3333-4444' : '(11) 3333-4444'}
                   value={form.telefone} onChange={e => modoTelefone.digitar(e.target.value)} />
-                <BotaoNumeroEstrangeiro estrangeiro={modoTelefone.estrangeiro} onAlternar={modoTelefone.alternar} />
+                <ControleModoTelefone estrangeiro={modoTelefone.estrangeiro} onAlternar={modoTelefone.alternar} />
               </div>
             </Field>
             <Field label="E-mail" opt size="md" erro={fieldErrors.email}>

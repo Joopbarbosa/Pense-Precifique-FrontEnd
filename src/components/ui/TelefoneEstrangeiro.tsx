@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatarTelefone } from '../../utils/telefone'
+import SegmentedControl from './SegmentedControl'
 
 /**
  * V0.17.0 #964 (RN-NOVA-19, DT-NOVA-15) — modo de telefone: nacional (padrão, com máscara) ou
@@ -21,15 +22,19 @@ export function useModoTelefone(valor: string, onChange: (v: string) => void) {
   return { estrangeiro, digitar, alternar }
 }
 
-/** Botão "Número estrangeiro" / "Número nacional", ao lado do campo de telefone. */
-export function BotaoNumeroEstrangeiro({ estrangeiro, onAlternar }: { estrangeiro: boolean; onAlternar: () => void }) {
+/**
+ * #984 (RN-NOVA-19, alteração): controle de duas opções **Nacional | Estrangeiro** ao lado do campo de
+ * telefone, uma opção ativa por vez (o `SegmentedControl` do sistema). Trocar de opção mantém os dígitos
+ * (ver `useModoTelefone`).
+ */
+export function ControleModoTelefone({ estrangeiro, onAlternar }: { estrangeiro: boolean; onAlternar: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onAlternar}
-      className="shrink-0 whitespace-nowrap rounded-btn px-2 py-1 text-[12.5px] font-semibold text-teal hover:underline"
-    >
-      {estrangeiro ? 'Número nacional' : 'Número estrangeiro'}
-    </button>
+    <SegmentedControl
+      options={[{ value: false, label: 'Nacional' }, { value: true, label: 'Estrangeiro' }]}
+      value={estrangeiro}
+      onChange={(proximo) => { if (proximo !== estrangeiro) onAlternar() }}
+      height="h-8" display="inline-flex" optionWidth="whitespace-nowrap px-3" textSize="text-[12.5px]"
+      className="shrink-0"
+    />
   )
 }
