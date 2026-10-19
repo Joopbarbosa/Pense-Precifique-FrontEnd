@@ -7,7 +7,7 @@ import { empresaService } from '../../services/empresaService'
 import { useAuthStore } from '../../store/authStore'
 import { extractApiError } from '../../utils/apiError'
 import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
-import { BotaoNumeroEstrangeiro, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
+import { ControleModoTelefone, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
 import type { EmpresaResponse } from '../../types/empresa'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
@@ -262,7 +262,7 @@ function PassoEmpresa({ onAvancar }: { onAvancar: () => void }) {
               onChange={v => { modoWhatsapp.digitar(v); setErros(p => ({ ...p, whatsapp: undefined })) }}
               placeholder={modoWhatsapp.estrangeiro ? '+55 11 00000-0000' : '(00) 00000-0000'} error={erros.whatsapp} />
           </div>
-          <BotaoNumeroEstrangeiro estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+          <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
         </div>
 
         <div className="flex items-center gap-4 rounded-[14px] border-[1.6px] border-dashed border-[#D4D0C8] bg-cream p-3.5">

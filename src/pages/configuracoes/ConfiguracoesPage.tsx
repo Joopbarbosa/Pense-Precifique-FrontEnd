@@ -24,7 +24,7 @@ import { useAuthStore } from '../../store/authStore'
 import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
-import { BotaoNumeroEstrangeiro, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
+import { ControleModoTelefone, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
 import {
   EdicaoConfiguracoesProvider, useEdicaoConfiguracoes, useRegistrarEdicao,
   type ItemPendente, type AlteracaoCampo,
@@ -308,15 +308,17 @@ function Precificacao({
 
 /* ── CfgField / CfgInput / SectionHead ───────────────────────── */
 
-function CfgField({ label, opt, children }: { label: string; opt?: boolean; children: React.ReactNode }) {
-  return (
-    <label className="block">
+/** `group`: campo com botões (ex.: controle Nacional | Estrangeiro) não vai dentro de <label>, senão o botão herda o nome do campo (#186). */
+function CfgField({ label, opt, group, children }: { label: string; opt?: boolean; group?: boolean; children: React.ReactNode }) {
+  const conteudo = (
+    <>
       <span className="mb-2 block text-[13.5px] font-semibold text-body">
         {label}{opt && <span className="ml-1.5 text-xs font-medium text-faint">(opcional)</span>}
       </span>
       {children}
-    </label>
+    </>
   )
+  return group ? <div className="block" role="group" aria-label={label}>{conteudo}</div> : <label className="block">{conteudo}</label>
 }
 
 function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', type = 'text', placeholder, readOnly, inputMode }: {
@@ -589,13 +591,13 @@ function PerfilEmpresa({
           <CfgField label="E-mail de contato">
             <CfgInput value={email} onChange={setEmail} type="email" placeholder="email@contato.com" />
           </CfgField>
-          <CfgField label="WhatsApp / Telefone">
+          <CfgField label="WhatsApp / Telefone" group>
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
                 <CfgInput value={whatsapp} onChange={modoWhatsapp.digitar} inputMode="tel"
                   placeholder={modoWhatsapp.estrangeiro ? '+55 11 00000-0000' : '(00) 00000-0000'} />
               </div>
-              <BotaoNumeroEstrangeiro estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+              <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
             </div>
           </CfgField>
           <CfgField label="Endereço" opt>
