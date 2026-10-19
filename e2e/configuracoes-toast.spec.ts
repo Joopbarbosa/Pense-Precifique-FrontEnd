@@ -40,7 +40,7 @@ test.describe('Cenário 162 — Toast dinâmico em Configurações (#97)', () =>
     })
   })
 
-  test('Perfil: erro (mock 500) mostra toast com a mensagem retornada pela API', async ({ page }) => {
+  test('Perfil: erro (mock 500) mostra a modal de erro com a mensagem retornada pela API', async ({ page }) => {
     await page.route('**/empresa', (route) => {
       if (route.request().method() === 'PUT') {
         route.fulfill({
@@ -54,8 +54,11 @@ test.describe('Cenário 162 — Toast dinâmico em Configurações (#97)', () =>
     })
 
     await page.getByRole('button', { name: 'Perfil da empresa' }).click()
+    // V0.17.0 (#983): o botão único só habilita com alteração pendente
+    await page.getByPlaceholder('Nome do seu ateliê ou negócio').fill(`Ateliê ${Date.now()}`)
     await page.getByRole('button', { name: /Salvar alterações/ }).click()
 
-    await expect(page.getByText('Erro simulado ao salvar perfil.')).toBeVisible()
+    // e a falha aparece na modal de erro padrão, citando a aba
+    await expect(page.getByTestId('modal-erro')).toContainText('Perfil da empresa: Erro simulado ao salvar perfil.')
   })
 })
