@@ -256,7 +256,7 @@ function Precificacao({
   useRegistrarEdicao('precificacao', itens)
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,640px)_320px]">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex flex-col gap-6">
         <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="mb-[5px] flex items-center gap-[11px]">
@@ -549,11 +549,14 @@ function PerfilEmpresa({
   useRegistrarEdicao('perfil', itens)
 
   return (
-    <div className="max-w-[640px] animate-fade-up">
-      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <div className="animate-fade-up">
+      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<Building2 size={17} />} titulo="Perfil da empresa" />
 
-        <div className="mb-[22px] flex flex-wrap items-center gap-section border-b border-line pb-[22px]">
+        {/* RN-NOVA-32 (#996): em tela larga, logo e dados à esquerda e o horário à direita; abaixo de 1024 px, uma coluna */}
+        <div className="grid gap-x-10 lg:grid-cols-2" data-testid="perfil-colunas">
+        <div data-testid="perfil-coluna-dados">
+        <div className="mb-4 flex flex-wrap items-center gap-section border-b border-line pb-4">
           <span className="grid h-[84px] w-[84px] shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-cream shadow-card">
             {logoUrl
               ? <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
@@ -605,19 +608,21 @@ function PerfilEmpresa({
           </CfgField>
         </div>
 
-        <div className="mt-[22px] flex gap-3 rounded-xl border border-teal/18 border-l-[3px] border-l-teal bg-teal/6 px-4 py-3.5">
+        <div className="mt-4 flex gap-3 rounded-xl border border-teal/18 border-l-[3px] border-l-teal bg-teal/6 px-4 py-3.5">
           <Info size={15} className="mt-px shrink-0 text-teal" />
           <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
             Estas informações aparecem em todos os PDFs gerados pelo sistema (orçamentos, recibos e multas).
           </p>
         </div>
+        </div>
 
-        <div className="mt-6 border-t border-line pt-[22px]">
+        <div data-testid="perfil-coluna-horario" className="mt-5 border-t border-line pt-4 lg:mt-0 lg:border-t-0 lg:pt-0">
           <h3 className="m-0 mb-1 text-[15px] font-bold text-dark">Horário de funcionamento</h3>
           <p className="m-0 mb-4 text-[12.5px] text-muted">
             Abrir o caixa fora do horário configurado só avisa — nunca bloqueia.
           </p>
           <HorarioSemanaEditor horarios={horarios} onChange={alterarHorario} />
+        </div>
         </div>
       </div>
 
@@ -727,7 +732,7 @@ function ContaSeguranca() {
   }
 
   return (
-    <div className="flex max-w-[640px] animate-fade-up flex-col gap-[22px]">
+    <div className="grid animate-fade-up items-start gap-[18px] lg:grid-cols-2">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<ShieldCheck size={17} />} titulo="Dados de acesso" />
 
@@ -1136,7 +1141,7 @@ function MetodosPagamento({ metodos, onChange }: {
   ]
 
   return (
-    <div className="max-w-[640px] animate-fade-up">
+    <div className="animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="mb-[5px] flex items-center justify-between gap-3">
           <div className="flex items-center gap-[11px]">
@@ -1151,7 +1156,7 @@ function MetodosPagamento({ metodos, onChange }: {
           Formas de pagamento aceitas no Caixa — uma venda pode ser dividida entre vários.
         </p>
 
-        <div className="flex flex-col gap-2.5">
+        <div className="grid items-start gap-2.5 lg:grid-cols-2">
           {visiveis.map(({ metodo, original, novo }) => (
             <MetodoPagamentoCard
               key={metodo.id}
@@ -1300,7 +1305,7 @@ function UnidadesMedida() {
   }
 
   return (
-    <div className="max-w-[640px] animate-fade-up">
+    <div className="animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="mb-[5px] flex items-center justify-between gap-3">
           <div className="flex items-center gap-[11px]">
@@ -1325,7 +1330,7 @@ function UnidadesMedida() {
             Nenhuma unidade cadastrada ainda.
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="grid items-start gap-2.5 lg:grid-cols-2">
             {unidades.map(u => (
               <div key={u.id} className="flex items-center justify-between gap-4 rounded-input border-[1.5px] border-line bg-white px-4 py-3.5">
                 <div className="flex min-w-0 items-center gap-3">
@@ -1477,7 +1482,7 @@ export default function ConfiguracoesPage() {
           {(aba === 'precificacao' || aba === 'perfil' || aba === 'pagamento') && <BarraSalvar />}
           {/* As três abas com salvar único ficam sempre montadas (só escondidas) para as alterações
               pendentes sobreviverem à troca de aba — RN-NOVA-28 item 3. */}
-          <div hidden={aba !== 'precificacao'}>
+          <div hidden={aba !== 'precificacao'} data-testid="aba-precificacao">
             <Precificacao
               initialValorHora={configuracao?.valorHora ?? 0}
               initialMargemPadrao={configuracao?.margemPadrao ?? 0}
@@ -1490,7 +1495,7 @@ export default function ConfiguracoesPage() {
               onEditarPerfil={() => setAba('perfil')}
             />
           </div>
-          <div hidden={aba !== 'perfil'}>
+          <div hidden={aba !== 'perfil'} data-testid="aba-perfil">
             <PerfilEmpresa
               initialNome={empresa?.nome ?? ''}
               initialEmail={empresa?.email ?? ''}
@@ -1502,11 +1507,11 @@ export default function ConfiguracoesPage() {
               onSave={handleSavePerfil}
             />
           </div>
-          <div hidden={aba !== 'pagamento'}>
+          <div hidden={aba !== 'pagamento'} data-testid="aba-pagamento">
             <MetodosPagamento metodos={metodosPagamento} onChange={setMetodosPagamento} />
           </div>
-          {aba === 'unidades' && <UnidadesMedida />}
-          {aba === 'conta' && <ContaSeguranca />}
+          {aba === 'unidades' && <div data-testid="aba-unidades"><UnidadesMedida /></div>}
+          {aba === 'conta' && <div data-testid="aba-conta"><ContaSeguranca /></div>}
         </>
       )}
 
