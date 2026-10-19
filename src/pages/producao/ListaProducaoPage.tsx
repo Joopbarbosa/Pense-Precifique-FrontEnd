@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -12,6 +12,8 @@ import { getBadgeEstado } from '../../utils/badges'
 import { extractApiError } from '../../utils/apiError'
 import { useToast } from '../../hooks/useToast'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import Paginacao from '../../components/shared/Paginacao'
 import { isDivisaoResponse, isConfirmacaoEstoqueNegativoResponse } from '../../types/producao'
 import type { ProducaoResumo, EstadoProducao, DivisaoResponse, AvisoEstoqueNegativo, ProducaoContagensResponse } from '../../types/producao'
 import IniciarProducaoModal from '../../components/producao/IniciarProducaoModal'
@@ -403,12 +405,18 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
 export default function ListaProducaoPage() {
   const navigate = useNavigate()
   const { toast, setToast } = useToast()
-  const [filtro, setFiltro] = useState<EstadoProducao | ''>('')
-  const [query, setQuery] = useState('')
-  const [sortField, setSortField] = useState<SortField | null>(null)
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
-  const [dataInicioDe, setDataInicioDe] = useState('')
-  const [dataInicioAte, setDataInicioAte] = useState('')
+  // #994 — página, busca, estado, período e ordenação da lista ficam na URL: voltar de uma produção reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [filtro, setFiltro] = useState<EstadoProducao | ''>(() => inicial.texto('estado') as EstadoProducao | '')
+  const [query, setQuery] = useState(() => inicial.texto('busca'))
+  const [sortField, setSortField] = useState<SortField | null>(() => {
+    const c = inicial.texto('ordem')
+    return ['dataInicio', 'estado', 'produto', 'quantidade'].includes(c) ? c as SortField : null
+  })
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => inicial.texto('dir', 'asc') === 'desc' ? 'desc' : 'asc')
+  const [dataInicioDe, setDataInicioDe] = useState(() => inicial.texto('de'))
+  const [dataInicioAte, setDataInicioAte] = useState(() => inicial.texto('ate'))
+  const chaveCarregada = useRef<string | null>(null)
 
   const [modal, setModal] = useState<{ tipo: TipoModal; producaoId: string } | null>(null)
   const [detalheResumido, setDetalheResumido] = useState<ProducaoResumo | null>(null)
@@ -441,13 +449,17 @@ export default function ListaProducaoPage() {
   const {
     items: producoes,
     setItems: setProducoes,
-    hasMore,
+    page,
+    totalPages,
+    ultima,
+    totalElements,
     loading,
-    loadingMore,
-    loadMore: handleCarregarMais,
+    irParaPagina,
     error,
     reset: carregar,
+    recarregar,
   } = usePaginatedList<ProducaoResumo>({
+    paginaInicial: inicial.pagina(),
     fetcher: (page, size) => producaoService.listar({
       busca: query.trim() || undefined,
       estado: filtro || undefined,
@@ -461,11 +473,18 @@ export default function ListaProducaoPage() {
   })
 
   useEffect(() => {
-    const delay = query.trim() ? 300 : 0
-    const t = setTimeout(() => { carregar() }, delay)
+    // primeira carga (e a repetição do modo estrito do React): na página que a URL pediu; depois, qualquer filtro, busca ou
+    // ordenação volta à página 1
+    const chave = `${filtro}|${query}|${sortParam}|${dataInicioDe}|${dataInicioAte}`
+    const primeira = chaveCarregada.current === null || chaveCarregada.current === chave
+    chaveCarregada.current = chave
+    const delay = !primeira && query.trim() ? 300 : 0
+    const t = setTimeout(() => { if (primeira) recarregar(); else carregar() }, delay)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtro, query, sortParam, dataInicioDe, dataInicioAte])
+  useEspelharNaUrl({ pagina: page + 1, busca: query, estado: filtro, de: dataInicioDe, ate: dataInicioAte, ordem: sortField, dir: sortDir },
+    { pagina: 1, busca: '', estado: '', de: '', ate: '', dir: 'asc' })
 
   const carregarContadores = () => {
     producaoService.contagens().then(setContadores).catch(() => {})
@@ -538,7 +557,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModal(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar()
+    else recarregar()
     carregarContadores()
   }
 
@@ -625,7 +644,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalCancelarConsumoId(null)
     if (viewMode === 'kanban') carregarKanban()
-    else carregar()
+    else recarregar()
     carregarContadores()
   }
 
@@ -658,7 +677,7 @@ export default function ListaProducaoPage() {
     setToast(mensagem)
     setModalAgrupar(false)
     encerrarSelecao()
-    carregar()
+    recarregar()
     carregarContadores()
   }
 
@@ -678,7 +697,7 @@ export default function ListaProducaoPage() {
   const handleSuccessDesagrupar = (mensagem: string) => {
     setToast(mensagem)
     setDesagruparProducao(null)
-    carregar()
+    recarregar()
     carregarContadores()
   }
 
@@ -884,23 +903,8 @@ export default function ListaProducaoPage() {
                 ))}
               </div>
 
-              <div className="mt-3.5 flex items-center justify-between">
-                <span className="text-[12.5px] text-muted">
-                  {producoes.length} {producoes.length === 1 ? 'produção' : 'produções'}
-                </span>
-                {hasMore && (
-                  <button
-                    onClick={handleCarregarMais}
-                    disabled={loadingMore}
-                    className={clsx(
-                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-section font-[inherit] text-[13.5px] font-semibold text-body',
-                      loadingMore ? 'cursor-default opacity-60' : 'cursor-pointer'
-                    )}
-                  >
-                    {loadingMore ? 'Carregando…' : 'Carregar mais'}
-                  </button>
-                )}
-              </div>
+              <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+                esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'produção' : 'produções'}</span>} />
             </>
           )}
         </>

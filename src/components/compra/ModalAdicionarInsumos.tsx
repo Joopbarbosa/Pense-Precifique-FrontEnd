@@ -4,6 +4,7 @@ import { PackagePlus, Search } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { InativoBadge } from '../cliente/PapelTags'
+import Paginacao from '../shared/Paginacao'
 import { insumoService } from '../../services/insumoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
@@ -13,7 +14,8 @@ import type { InsumoResponse } from '../../types/insumo'
 // V0.15.0 (#570, RN-NOVA-25) — escolha de vários insumos de uma vez para a Lista de compras. Busca no
 // servidor pelo nome (a mesma busca da listagem de Insumos), só ativos; quem já está na lista aparece marcado e bloqueado.
 
-const POR_PAGINA = 20
+// #994 (RN-NOVA-31 item 2): 10 por página nesta busca, que é uma lista suspensa; marcar um insumo não muda de página
+const POR_PAGINA = 10
 
 export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar }: {
   jaNaLista: string[]
@@ -24,7 +26,9 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
   const q = useDebouncedValue(busca)
   const [insumos, setInsumos] = useState<InsumoResponse[]>([])
   const [page, setPage] = useState(0)
-  const [temMais, setTemMais] = useState(false)
+  const [ultima, setUltima] = useState(true)
+  const [totalPaginas, setTotalPaginas] = useState(0)
+  const [total, setTotal] = useState(0)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [marcados, setMarcados] = useState<Set<string>>(new Set())
@@ -37,8 +41,10 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
     insumoService.listar(pagina, POR_PAGINA, termo || undefined, undefined, 'nome,asc', true)
       .then(r => {
         if (minha !== seq.current) return
-        setInsumos(prev => pagina === 0 ? r.content : [...prev, ...r.content])
-        setTemMais(!r.last); setPage(pagina)
+        // página que passou do limite (registros removidos): mostra a última que existe
+        if (r.content.length === 0 && pagina > 0 && r.totalPages > 0) { carregar(r.totalPages - 1, termo); return }
+        setInsumos(r.content)
+        setUltima(r.last); setTotalPaginas(r.totalPages); setTotal(r.totalElements); setPage(pagina)
       })
       .catch(err => { if (minha === seq.current) setErro(extractApiError(err, 'Não foi possível carregar os insumos.')) })
       .finally(() => { if (minha === seq.current) setCarregando(false) })
@@ -116,12 +122,11 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
           {carregando && (
             <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
           )}
-          {temMais && !carregando && (
-            <div className="flex justify-center border-t border-line py-2.5">
-              <Button variant="ghost" size="sm" onClick={() => carregar(page + 1, q)}>Carregar mais</Button>
-            </div>
-          )}
         </div>
+        {!erro && total > 0 && (
+          <Paginacao pagina={page} totalPaginas={totalPaginas} ultima={ultima} carregando={carregando} onMudar={p => carregar(p, q)}
+            esquerda={<span data-testid="total-registros">{total} {total === 1 ? 'insumo' : 'insumos'}</span>} />
+        )}
       </div>
     </ModalShell>
   )

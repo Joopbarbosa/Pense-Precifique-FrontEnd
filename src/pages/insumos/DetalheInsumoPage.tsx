@@ -12,12 +12,14 @@ import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRigh
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import HistoricoNotaInsumo from '../../components/compra/nota/HistoricoNotaInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
+import type { PageResponse } from '../../types/shared'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
 import { formatarData } from '../../components/compra/formato'
+import Paginacao from '../../components/shared/Paginacao'
 import { LinhaPrecoSugeridoInsumo } from '../../components/produto/HistoricoPrecoSugerido'
 import { BRL } from '../../components/venda/formato'
 
@@ -386,10 +388,13 @@ export default function DetalheInsumoPage() {
   const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores' | 'notas'>('historico')
   const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
+  // #994 (RN-NOVA-31) — histórico com paginação numerada: cada página troca a anterior
   const [histPage, setHistPage] = useState(0)
-  const [histHasNext, setHistHasNext] = useState(false)
+  const [histTotalPages, setHistTotalPages] = useState(0)
+  const [histTotal, setHistTotal] = useState(0)
+  const [histLast, setHistLast] = useState(true)
   const [loading, setLoading] = useState(true)
-  const [loadingMoreHist, setLoadingMoreHist] = useState(false)
+  const [loadingHist, setLoadingHist] = useState(false)
   const [produtosRelacionados, setProdutosRelacionados] = useState<ProdutoRelacionadoResponse[]>([])
   const [loadingFichas, setLoadingFichas] = useState(false)
 
@@ -401,6 +406,14 @@ export default function DetalheInsumoPage() {
     { id: 'notas' as const, label: 'Histórico de Nota Fiscal', icon: FileText, size: 17 },
   ]
 
+  const aplicarHistorico = (hist: PageResponse<MovimentacaoInsumoResponse>, pagina: number) => {
+    setMovimentacoes(hist.content)
+    setHistLast(hist.last)
+    setHistTotalPages(hist.totalPages)
+    setHistTotal(hist.totalElements)
+    setHistPage(pagina)
+  }
+
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -409,9 +422,7 @@ export default function DetalheInsumoPage() {
       insumoService.listarMovimentacoes(id, 0),
     ]).then(([ins, hist]) => {
       setInsumo(ins)
-      setMovimentacoes(hist.content)
-      setHistHasNext(!hist.last)
-      setHistPage(0)
+      aplicarHistorico(hist, 0)
     }).catch(console.error)
       .finally(() => setLoading(false))
   }, [id])
@@ -425,18 +436,17 @@ export default function DetalheInsumoPage() {
       .finally(() => setLoadingFichas(false))
   }, [aba, id])
 
-  const carregarMaisHistorico = () => {
+  const irParaHistorico = (pagina: number) => {
     if (!id) return
-    const nextPage = histPage + 1
-    setLoadingMoreHist(true)
-    insumoService.listarMovimentacoes(id, nextPage)
+    setLoadingHist(true)
+    insumoService.listarMovimentacoes(id, pagina)
       .then(hist => {
-        setMovimentacoes(prev => [...prev, ...hist.content])
-        setHistHasNext(!hist.last)
-        setHistPage(nextPage)
+        // página que passou do limite (registros removidos): mostra a última que existe
+        if (hist.content.length === 0 && pagina > 0 && hist.totalPages > 0) return irParaHistorico(hist.totalPages - 1)
+        aplicarHistorico(hist, pagina)
       })
       .catch(console.error)
-      .finally(() => setLoadingMoreHist(false))
+      .finally(() => setLoadingHist(false))
   }
 
   const recarregarAposBaixa = () => {
@@ -446,9 +456,7 @@ export default function DetalheInsumoPage() {
       insumoService.listarMovimentacoes(id, 0),
     ]).then(([ins, hist]) => {
       setInsumo(ins)
-      setMovimentacoes(hist.content)
-      setHistHasNext(!hist.last)
-      setHistPage(0)
+      aplicarHistorico(hist, 0)
     }).catch(console.error)
   }
 
@@ -577,26 +585,8 @@ export default function DetalheInsumoPage() {
       </div>
 
       {aba === 'historico' && (
-        <div className="mt-[13px] flex flex-col items-center gap-3">
-          <div className="w-full text-right text-[12.5px] text-muted">
-            {movimentacoes.length} movimentaç{movimentacoes.length === 1 ? 'ão' : 'ões'}
-          </div>
-          {histHasNext && (
-            <button
-              onClick={carregarMaisHistorico}
-              disabled={loadingMoreHist}
-              className={clsx(
-                'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                loadingMoreHist ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
-              )}
-            >
-              {loadingMoreHist
-                ? <><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
-                : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
-              }
-            </button>
-          )}
-        </div>
+        <Paginacao pagina={histPage} totalPaginas={histTotalPages} ultima={histLast} carregando={loadingHist} onMudar={irParaHistorico}
+          esquerda={<span data-testid="total-registros">{histTotal} movimentaç{histTotal === 1 ? 'ão' : 'ões'}</span>} />
       )}
 
       {modal === 'baixa' && (

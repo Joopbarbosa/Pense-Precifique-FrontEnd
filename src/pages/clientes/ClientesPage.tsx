@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -13,6 +13,9 @@ import Toast from '../../components/shared/Toast'
 import { clienteService } from '../../services/clienteService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import { useAoMudar } from '../../hooks/useAoMudar'
+import Paginacao from '../../components/shared/Paginacao'
 import { mascararDocumento } from '../../utils/documento'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
 import type { ClienteContagensResponse, ClienteFiltros, ClienteResponse } from '../../types/cliente'
@@ -150,27 +153,36 @@ function CadastroRow({ cliente, index, rowZIndex, onAbrir, onEdit, onInativar, o
 
 export default function ClientesPage() {
   const navigate = useNavigate()
-  const [filtro, setFiltro] = useState<FiltroId>('todos')
-  const isFirstFiltro = useRef(true)
+  // #994 — página, busca, filtro e ordenação ficam na URL: voltar de um cadastro reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [filtro, setFiltro] = useState<FiltroId>(() => FILTROS.find(f => f.id === inicial.texto('filtro'))?.id ?? 'todos')
   const [contagens, setContagens] = useState<ClienteContagensResponse | null>(null)
   const filtroAtual = FILTROS.find(f => f.id === filtro)!
-  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>({ campo: 'nome', dir: 'asc' })
-  const isFirstOrdem = useRef(true)
+  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>(() => {
+    const campo = inicial.texto('ordem', 'nome') as CampoOrdem
+    return { campo: ['numero', 'nome', 'documento'].includes(campo) ? campo : 'nome', dir: inicial.texto('dir', 'asc') === 'desc' ? 'desc' : 'asc' }
+  })
   const { modalErro, mostrarErro } = useModalErro()
 
   const {
     items: cadastros,
-    setItems: setCadastros,
-    hasMore: hasNext,
+    page,
+    totalPages,
+    ultima,
+    totalElements,
     loading,
-    loadingMore,
-    loadMore,
+    irParaPagina,
+    recarregar,
     query,
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
     fetcher: (page, size, q) => clienteService.listar(page, size, q, { ...filtroAtual.filtros, sort: `${ordem.campo},${ordem.dir}` }),
+    buscaInicial: inicial.texto('busca'),
+    paginaInicial: inicial.pagina(),
   })
+  useEspelharNaUrl({ pagina: page + 1, busca: query, filtro, ordem: ordem.campo, dir: ordem.dir },
+    { pagina: 1, busca: '', filtro: 'todos', ordem: 'nome', dir: 'asc' })
   const { toast, setToast } = useToast()
   const [confirmInativar, setConfirmInativar] = useState<ClienteResponse | null>(null)
 
@@ -180,17 +192,7 @@ export default function ClientesPage() {
 
   useEffect(() => { carregarContagens() }, [])
 
-  useEffect(() => {
-    if (isFirstFiltro.current) { isFirstFiltro.current = false; return }
-    carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtro])
-
-  useEffect(() => {
-    if (isFirstOrdem.current) { isFirstOrdem.current = false; return }
-    carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ordem])
+  useAoMudar(`${filtro}|${ordem.campo}|${ordem.dir}`, carregar)
 
   const ordenar = (campo: CampoOrdem) => setOrdem(o => o.campo === campo ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { campo, dir: 'asc' })
 
@@ -199,7 +201,7 @@ export default function ClientesPage() {
     const alvo = confirmInativar
     try {
       await clienteService.inativar(alvo.id)
-      setCadastros(prev => prev.filter(c => c.id !== alvo.id))
+      recarregar()
       carregarContagens()
       setToast(`${alvo.nome} inativado.`)
     } catch (err) {
@@ -212,7 +214,7 @@ export default function ClientesPage() {
   const handleReativar = async (alvo: ClienteResponse) => {
     try {
       await clienteService.reativar(alvo.id)
-      setCadastros(prev => prev.filter(c => c.id !== alvo.id))
+      recarregar()
       carregarContagens()
       setToast(`${alvo.nome} reativado.`)
     } catch (err) {
@@ -337,19 +339,9 @@ export default function ClientesPage() {
             </div>
           )}
 
-          {/* CARREGAR MAIS */}
-          {hasNext && !loading && (
-            <div className="mt-5 flex justify-center">
-              <Button variant="ghost" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore
-                  ? <span className="flex items-center gap-2">
-                      <Spinner size={15} color="#2A9D8F" trackColor="#EFEDE8" />
-                      Carregando…
-                    </span>
-                  : 'Carregar mais'
-                }
-              </Button>
-            </div>
+          {!loading && (
+            <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+              esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'cadastro' : 'cadastros'}</span>} />
           )}
         </>
       )}

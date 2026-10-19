@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, PackageCheck, Pencil, Plus, ShoppingCart, Trash2, Users, FileSearch } from 'lucide-react'
@@ -21,6 +21,8 @@ import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import Paginacao from '../../components/shared/Paginacao'
 import { useToast } from '../../hooks/useToast'
 import type { CadastroRef, CompraResponse, CompraResumoResponse, ContagensCompra, ImpactoCompraResponse, StatusCompra } from '../../types/compra'
 
@@ -64,11 +66,20 @@ export default function ComprasPage() {
   const { pedir: pedirDuplicar, modal: modalDuplicar } = useDuplicarCompra(mostrarErro)
   const [contagens, setContagens] = useState<ContagensCompra | null>(null)
   const atualizarContagens = useCallback(() => { compraService.contagens().then(setContagens).catch(() => setContagens(null)) }, [])
-  const [status, setStatus] = useState<FiltroStatus>('TODAS')
-  const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
-  const [de, setDe] = useState('')
-  const [ate, setAte] = useState('')
-  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>({ campo: 'dataCompra', dir: 'desc' })
+  // #994 — página, filtros e ordenação ficam na URL: voltar de uma compra reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [status, setStatus] = useState<FiltroStatus>(() => FILTROS_STATUS.find(f => f.id === inicial.texto('status'))?.id ?? 'TODAS')
+  const [fornecedor, setFornecedor] = useState<CadastroRef | null>(() => {
+    const id = inicial.texto('fornecedor')
+    return id ? { id, identificador: '', nome: inicial.texto('fornecedorNome', 'Fornecedor'), ativa: true } : null
+  })
+  const [de, setDe] = useState(() => inicial.texto('de'))
+  const [ate, setAte] = useState(() => inicial.texto('ate'))
+  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>(() => {
+    const campo = COLUNAS.find(c => c.campo === inicial.texto('ordem'))?.campo ?? 'dataCompra'
+    return { campo, dir: inicial.texto('dir', campo === 'dataCompra' ? 'desc' : 'asc') === 'asc' ? 'asc' : 'desc' }
+  })
+  const chaveCarregada = useRef<string | null>(null)
   const [acao, setAcao] = useState<Acao | null>(null)
   const [processando, setProcessando] = useState(false)
   const [impacto, setImpacto] = useState<{ titulo: string; impacto: ImpactoCompraResponse } | null>(null)
@@ -88,13 +99,23 @@ export default function ComprasPage() {
     sort: `${ordem.campo},${ordem.dir}`,
   }), [status, fornecedor, de, ate, ordem])
 
-  const { items: compras, hasMore, loading, loadingMore, error, loadMore, reset } = usePaginatedList({
-    fetcher, errorMessage: 'Não foi possível carregar as compras.',
+  const { items: compras, page, totalPages, ultima, totalElements, loading, error, irParaPagina, recarregar: recarregarPagina, reset } = usePaginatedList({
+    fetcher, errorMessage: 'Não foi possível carregar as compras.', paginaInicial: inicial.pagina(),
   })
 
-  useEffect(() => { reset() }, [reset])
+  // primeira carga na página que a URL pediu; depois, qualquer filtro ou ordenação volta à página 1
+  useEffect(() => {
+    // (a repetição do efeito no modo estrito do React também cai no caso "mesma chave")
+    const chave = `${status}|${fornecedor?.id}|${de}|${ate}|${ordem.campo}|${ordem.dir}`
+    if (chaveCarregada.current === null || chaveCarregada.current === chave) recarregarPagina()
+    else reset()
+    chaveCarregada.current = chave
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher])
+  useEspelharNaUrl({ pagina: page + 1, status, fornecedor: fornecedor?.id, fornecedorNome: fornecedor?.nome, de, ate, ordem: ordem.campo, dir: ordem.dir },
+    { pagina: 1, status: 'TODAS', ordem: 'dataCompra', dir: ordem.campo === 'dataCompra' ? 'desc' : 'asc' })
   useEffect(() => { atualizarContagens() }, [atualizarContagens])
-  const recarregar = () => { reset(); atualizarContagens() }
+  const recarregar = () => { recarregarPagina(); atualizarContagens() }
 
   const ordenar = (campo: CampoOrdem) => setOrdem(o => o.campo === campo
     ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
@@ -275,10 +296,9 @@ export default function ComprasPage() {
       {modalDuplicar}
       {modalErro}
 
-      {hasMore && !loading && (
-        <div className="mt-5 flex justify-center">
-          <Button variant="ghost" onClick={loadMore} disabled={loadingMore}>{loadingMore ? 'Carregando…' : 'Carregar mais'}</Button>
-        </div>
+      {!loading && !error && compras.length > 0 && (
+        <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+          esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'compra' : 'compras'}</span>} />
       )}
     </AppLayout>
   )

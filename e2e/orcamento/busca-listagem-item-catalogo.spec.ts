@@ -92,10 +92,11 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await expect(page.getByText('Nenhum item de catálogo encontrado. Cadastre um item de catálogo primeiro.')).toBeVisible()
   })
 
-  test('RN-NOVA-18/CEN-NOVO-19 — paginação real: 8 itens na primeira página, "Carregar mais" busca o resto, botão some sem mais páginas', async ({ page, request }) => {
+  test('RN-NOVA-18 e RN-NOVA-31/CEN-NOVO-98 — paginação numerada: 10 por página dentro da lista suspensa, escolher um item não muda de página', async ({ page, request }) => {
+    test.setTimeout(90_000)
     const token = await apiLogin(request)
     const ts = Date.now()
-    const nomes = Array.from({ length: 10 }, (_, i) => `QA-217c-Item-${ts}-${String(i + 1).padStart(2, '0')}`)
+    const nomes = Array.from({ length: 25 }, (_, i) => `QA-217c-Item-${ts}-${String(i + 1).padStart(2, '0')}`)
     const { catalogo, produtoIds: ids } = await criarCatalogoComItens(request, token, `QA-217c-Catalogo-${ts}`, nomes)
     catalogoIds.push(catalogo.id)
     produtoIds.push(...ids)
@@ -117,31 +118,31 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
 
     const dropdown = page.locator('div.animate-pop')
     await dropdown.waitFor({ state: 'visible' })
-    const buttons = dropdown.getByRole('button').filter({ hasText: `QA-217c-Item-${ts}` })
+    const itens = dropdown.locator('[data-search-row]')
 
-    // Primeira página real (RN-NOVA-18/#353 completo): só 8 dos 10 itens chegam ao DOM — os 2
-    // últimos não existem ainda (paginação de verdade, não mais "10 no DOM cortados por CSS").
-    await expect(buttons).toHaveCount(8)
-    await expect(page.getByText(`QA-217c-Item-${ts}-09`)).toHaveCount(0)
-    await expect(page.getByText(`QA-217c-Item-${ts}-10`)).toHaveCount(0)
+    // Página 1: 10 dos 25 itens chegam ao DOM, sem "Carregar mais".
+    await expect(itens).toHaveCount(10)
+    await expect(dropdown.getByText('Página 1 de 3')).toBeVisible()
+    await expect(dropdown.getByTestId('total-registros')).toHaveText('25 resultados')
+    await expect(page.getByRole('button', { name: 'Carregar mais' })).toHaveCount(0)
+    await expect(dropdown.getByRole('button', { name: 'Anterior', exact: true })).toBeDisabled()
+    await expect(page.getByText(`QA-217c-Item-${ts}-11`)).toHaveCount(0)
 
-    const carregarMais = page.getByRole('button', { name: 'Carregar mais', exact: true })
-    await expect(carregarMais).toBeVisible()
+    // Página 3: sobram 5 itens e a Próxima fica desabilitada. A página troca (não acrescenta).
+    await dropdown.getByRole('button', { name: 'Próxima', exact: true }).click()
+    await expect(dropdown.getByText('Página 2 de 3')).toBeVisible()
+    await dropdown.getByRole('button', { name: 'Próxima', exact: true }).click()
+    await expect(dropdown.getByText('Página 3 de 3')).toBeVisible()
+    await expect(itens).toHaveCount(5)
+    await expect(dropdown.getByRole('button', { name: 'Próxima', exact: true })).toBeDisabled()
+    await expect(page.getByText(`QA-217c-Item-${ts}-01`)).toHaveCount(0)
 
-    const segundaPagina = page.waitForResponse(res =>
-      res.url().includes('/orcamentos/itens-catalogo') && res.url().includes(`busca=${termo}`) && res.url().includes('page=1')
-    )
-    await carregarMais.click()
-    await segundaPagina
-
-    // Segunda página: os 2 itens restantes aparecem, os 8 primeiros continuam (append, não replace).
-    await expect(buttons).toHaveCount(10)
-    for (const nome of nomes) {
-      await expect(page.getByText(nome)).toBeAttached()
-    }
-
-    // hasMore=false (10/10 carregados, last=true) — botão desaparece.
-    await expect(carregarMais).toHaveCount(0)
+    // Na página 2 escolhe um item: entra no orçamento e a lista suspensa fecha (CEN-NOVO-98).
+    await dropdown.getByRole('button', { name: 'Anterior', exact: true }).click()
+    await expect(dropdown.getByText('Página 2 de 3')).toBeVisible()
+    await dropdown.getByRole('button', { name: new RegExp(`QA-217c-Item-${ts}-15`) }).click()
+    await expect(dropdown).toHaveCount(0)
+    await expect(page.getByText(`QA-217c-Item-${ts}-15`).first()).toBeVisible()
   })
 
   test('RN-NOVA-7/CEN-NOVO-10 — listagem completa + no máximo 8 customizações visíveis, resto via rolagem', async ({ page, request }) => {

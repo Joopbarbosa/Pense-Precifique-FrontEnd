@@ -63,7 +63,7 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     }
   })
 
-  test('177 — lista pagina 25 produções em 20 + 5, "Carregar mais" some ao final', async ({ page, request }) => {
+  test('177 — lista pagina 25 produções em 20 + 5 (paginação numerada, sem "Carregar mais" — V0.17.0 #994)', async ({ page, request }) => {
     test.setTimeout(60_000)
     const token = await apiLogin(request)
     const nomeInsumo = `QA177-Insumo-${Date.now()}`
@@ -82,11 +82,15 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     await page.waitForTimeout(600)
 
     await expect(linhasDesktop(page)).toHaveCount(20, { timeout: 10_000 })
-    await expect(page.getByRole('button', { name: /Carregar mais/ })).toBeVisible()
-
-    await page.getByRole('button', { name: /Carregar mais/ }).click()
-    await expect(linhasDesktop(page)).toHaveCount(25, { timeout: 10_000 })
+    await expect(page.getByText('Página 1 de 2')).toBeVisible()
+    await expect(page.getByTestId('total-registros')).toHaveText('25 produções')
     await expect(page.getByRole('button', { name: /Carregar mais/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Anterior', exact: true })).toBeDisabled()
+
+    await page.getByRole('button', { name: 'Próxima', exact: true }).click()
+    await expect(linhasDesktop(page)).toHaveCount(5, { timeout: 10_000 })
+    await expect(page.getByText('Página 2 de 2')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Próxima', exact: true })).toBeDisabled()
   })
 
   test('178 — aplicar filtro de status reseta a paginação para os resultados filtrados', async ({ page, request }) => {
@@ -113,14 +117,15 @@ test.describe('Cenários 177-180 — Lista de Produção (Fluxo E) (#122)', () =
     await page.getByPlaceholder('Buscar por produto…').fill(nomeProduto)
     await page.waitForTimeout(600)
     await expect(linhasDesktop(page)).toHaveCount(20, { timeout: 10_000 })
-    await page.getByRole('button', { name: /Carregar mais/ }).click()
-    await expect(linhasDesktop(page)).toHaveCount(40, { timeout: 10_000 })
+    await page.getByRole('button', { name: 'Próxima', exact: true }).click()
+    await expect(page.getByText(/Página 2 de 3/)).toBeVisible()
 
     await page.getByRole('button', { name: /^Em andamento\b/ }).click()
     await page.waitForTimeout(600)
 
+    // filtrar volta à página 1 e mostra só as 5 em andamento
     await expect(linhasDesktop(page)).toHaveCount(5, { timeout: 10_000 })
-    await expect(page.getByRole('button', { name: /Carregar mais/ })).toHaveCount(0)
+    await expect(page.getByText('Página 1 de 1')).toBeVisible()
   })
 
   test('197 (era 179) — RN-NOVA-6 (#158 + item avulso numero): ordenação interativa por cabeçalho de coluna', async ({ page, request }) => {
