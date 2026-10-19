@@ -288,7 +288,8 @@ export default function FormCompraPage() {
             )}
             {/* V0.17.0 #966 (RN-NOVA-21): "Mais de um fornecedor?" e "Pagamento" numa linha só, abaixo da data;
                 em tela estreita os dois empilham. Nenhuma regra muda, só a posição. */}
-            <div className="grid grid-cols-1 gap-section sm:grid-cols-2 md:col-span-2 xl:col-span-4">
+            {/* #985: a linha usa as mesmas colunas da de cima (md: 2, xl: 4), então os dois controles têm a largura de "Entrega imediata?" */}
+            <div className="grid grid-cols-1 gap-section md:col-span-2 md:grid-cols-2 xl:col-span-4 xl:grid-cols-4">
               <Field label="Mais de um fornecedor?" group size="md">
                 <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
               </Field>
@@ -297,7 +298,7 @@ export default function FormCompraPage() {
                   onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
               </Field>
               {pago && (
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <Field label="Como foi paga?" required group size="md">
                     <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
                       parcelas={parcelas} onParcelas={setParcelas} />
