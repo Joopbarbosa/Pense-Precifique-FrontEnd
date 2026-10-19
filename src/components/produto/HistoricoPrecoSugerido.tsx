@@ -27,9 +27,10 @@ export function rotuloCausa(causa: string, referencia?: string | null): string {
 function AntesDepois({ antes, depois }: { antes: number; depois: number }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 [font-variant-numeric:tabular-nums]">
-      <span className="text-muted line-through decoration-line-deep">{BRL(antes)}</span>
+      {/* #987 (RN-NOVA-10 e 11, alteração): preço anterior em laranja e riscado; o novo mantém a cor (laranja se subiu, verde se desceu) */}
+      <span data-testid="preco-anterior" className="text-orange line-through decoration-orange">{BRL(antes)}</span>
       <ArrowRight size={13} className="text-dim" />
-      <span className={clsx('font-semibold', depois > antes ? 'text-warning-alt' : 'text-success')}>{BRL(depois)}</span>
+      <span data-testid="preco-novo" className={clsx('font-semibold', depois > antes ? 'text-warning-alt' : 'text-success')}>{BRL(depois)}</span>
     </span>
   )
 }
