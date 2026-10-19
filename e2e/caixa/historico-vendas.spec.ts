@@ -21,8 +21,15 @@ test('V0.17.0 — #973 histórico de vendas: abre do Caixa, busca, ordena, abre 
 
     await login(page)
     await page.goto('/caixa')
+    // #992: o botão do Caixa abre a modal de hoje; "Ver histórico completo" abre a tela em aba nova e a modal continua aberta
     await page.getByRole('button', { name: 'Histórico de vendas', exact: true }).click()
-    await expect(page).toHaveURL(/\/caixa\/historico$/)
+    await expect(page.getByRole('dialog')).toContainText('Vendas de hoje')
+    const [aba] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: 'Ver histórico completo' }).click()])
+    await expect(aba).toHaveURL(/\/caixa\/historico$/)
+    await expect(page.getByRole('dialog')).toContainText('Vendas de hoje')
+    await aba.close()
+    await page.getByRole('button', { name: 'Fechar', exact: true }).last().click()
+    await page.goto('/caixa/historico')
     await expect(page.getByRole('heading', { name: 'Histórico de vendas do Caixa' })).toBeVisible()
 
     // busca pelo identificador da venda criada

@@ -6,6 +6,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import SortableHeader from '../../components/shared/SortableHeader'
+import Paginacao from '../../components/shared/Paginacao'
 import ModalRegistro from '../../components/cliente/ModalRegistro'
 import { useModalErro } from '../../hooks/useModalErro'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
@@ -161,16 +162,8 @@ export default function HistoricoVendasPage() {
       )}
 
       {dados && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
-          <span data-testid="total-historico" className="font-semibold text-dark">
-            {dados.totalElements} {dados.totalElements === 1 ? 'venda' : 'vendas'} neste filtro
-          </span>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" disabled={carregando || pagina === 0} onClick={() => setPagina(p => p - 1)}>Anterior</Button>
-            <span>Página {pagina + 1} de {Math.max(1, dados.totalPages)}</span>
-            <Button variant="ghost" disabled={carregando || dados.last} onClick={() => setPagina(p => p + 1)}>Próxima</Button>
-          </div>
-        </div>
+        <Paginacao pagina={pagina} totalPaginas={dados.totalPages} ultima={dados.last} carregando={carregando} onMudar={setPagina}
+          esquerda={<span data-testid="total-historico">{dados.totalElements} {dados.totalElements === 1 ? 'venda' : 'vendas'} neste filtro</span>} />
       )}
       {registro && <ModalRegistro tipo="VENDA_CAIXA" id={registro} onClose={() => setRegistro(null)} />}
       {modalErro}
