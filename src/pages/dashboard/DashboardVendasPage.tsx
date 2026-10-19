@@ -136,13 +136,13 @@ export default function DashboardVendasPage() {
                   <DonutComLegenda testid="donut-origem" formato={BRL} onClique={(id) => abrirLista(`Vendas de origem ${ROTULO_ORIGEM[id as OrigemVenda]}`, { origem: id as OrigemVenda })}
                     dados={d.porOrigem.filter(o => o.quantidade > 0).map(o => ({ id: o.origem, rotulo: ROTULO_ORIGEM[o.origem], valor: o.faturamento, extra: `${o.quantidade} ${o.quantidade === 1 ? 'venda' : 'vendas'}` }))} />
                 </Painel>
-                <Painel titulo="Produtos mais vendidos" subtitulo="Por quantidade · clique para ver as vendas do produto" testid="grafico-produtos"
+                <Painel titulo="Produtos mais vendidos" subtitulo="Unidades vendidas · clique para ver as vendas do produto" testid="grafico-produtos"
                   acoes={d.todosProdutosVendidos.length > 0 ? (
                     <button type="button" aria-label="Ver lista completa de produtos vendidos" title="Lista completa" onClick={() => setTodosProdutos(true)}
                       className="grid h-8 w-8 place-items-center rounded-input border border-line bg-white text-muted hover:text-teal"><Search size={15} /></button>
                   ) : undefined}>
                   {d.produtosMaisVendidos.length === 0 ? vazio('Nenhum produto vendido no período.') : (
-                    <Ranking testid="ranking-produtos" cor={PALETA_SERIES[1]} formato={v => String(v)}
+                    <Ranking testid="ranking-produtos" cor={PALETA_SERIES[1]} formato={v => `${v} un`}
                       dados={d.produtosMaisVendidos.map(p => ({ id: p.id ?? p.nome, rotulo: p.nome, valor: p.quantidade, extra: `${BRL(p.faturamento)} vendidos` }))}
                       onClique={(id, nome) => abrirLista(`Vendas de ${nome}`, { produtoId: id })} />
                   )}

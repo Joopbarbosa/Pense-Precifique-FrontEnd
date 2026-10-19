@@ -143,6 +143,15 @@ export const ERRO_PERIODO = {
   comoResolver: 'Troque as datas de lugar (ex.: de 01/09/2026 até 30/09/2026).',
 }
 
+/** #988: "N vendas · M unidades" quando a lista de vendas é de um produto; senão, "N registros". */
+function contagem(total: number, unidades: number | null, vendas: boolean): string {
+  if (vendas && unidades != null) {
+    const un = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(unidades)
+    return `${total} ${total === 1 ? 'venda' : 'vendas'} · ${un} ${unidades === 1 ? 'unidade' : 'unidades'}`
+  }
+  return `${total} ${total === 1 ? 'registro' : 'registros'}`
+}
+
 export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtro, onClose }: {
   titulo: string
   subtitulo?: string
@@ -161,6 +170,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const [ordem, setOrdem] = useState<{ campo: Campo; dir: 'asc' | 'desc' }>({ campo: ordemInicialCampo, dir: ordemInicialDir })
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [total, setTotal] = useState(0)
+  const [unidades, setUnidades] = useState<number | null>(null)
   const [page, setPage] = useState(0)
   const [temMais, setTemMais] = useState(false)
   const [carregando, setCarregando] = useState(true)
@@ -174,7 +184,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const pagamento = valores('pagamento')
   const pago = pagamento.length === 1 ? pagamento[0] as 'true' | 'false' : undefined
 
-  const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean }> => {
+  const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean; unidades?: number | null }> => {
     const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : fonte.tipo === 'vendas' ? CAMPO_VENDAS[ordem.campo] : ordem.campo},${ordem.dir}`
     const status = valores('status')
     if (fonte.tipo === 'vendas') {
@@ -186,7 +196,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
       return {
         linhas: r.vendas.content.map(l => ({ id: l.id, tipo: l.origem, identificador: l.identificador, data: l.data, status: l.status,
           valor: l.total, resumoItens: l.itens, pago: null })),
-        total: r.quantidadeFiltrada, last: r.vendas.last,
+        total: r.quantidadeFiltrada, last: r.vendas.last, unidades: r.unidadesDoProduto,
       }
     }
     if (fonte.tipo === 'cadastro') {
@@ -218,7 +228,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
       .then(r => {
         if (minha !== seq.current) return
         setLinhas(prev => pagina === 0 ? r.linhas : [...prev, ...r.linhas])
-        setTotal(r.total); setTemMais(!r.last); setPage(pagina)
+        setTotal(r.total); setUnidades(r.unidades ?? null); setTemMais(!r.last); setPage(pagina)
       })
       .catch(err => { if (minha === seq.current) setErro(extractApiError(err, 'Não foi possível carregar a listagem.')) })
       .finally(() => { if (minha === seq.current) setCarregando(false) })
@@ -272,7 +282,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
             <div className="min-w-[280px] flex-1">
               <CampoFiltros grupos={grupos} escolhidos={filtros} onChange={setFiltros} />
             </div>
-            <span className="pt-2.5 text-[12.5px] text-muted">{carregando && page === 0 ? '' : `${total} ${total === 1 ? 'registro' : 'registros'}`}</span>
+            <span data-testid="contagem-registros" className="pt-2.5 text-[12.5px] text-muted">{carregando && page === 0 ? '' : contagem(total, unidades, fonte.tipo === 'vendas')}</span>
           </div>
 
           <div className="rounded-input border border-line" data-testid="modal-listagem">
