@@ -473,8 +473,8 @@ export default function CriarOrcamentoPage() {
     [catalogoFiltro]
   )
   const buscarProdutosOrcamento = useCallback(
-    (busca: string | undefined) =>
-      produtoService.listar(0, 20, 'PRODUTO', busca, modoItens === 'produto', undefined, true).then(d => d.content),
+    (busca: string | undefined, page: number, size: number) =>
+      produtoService.listar(page, size, 'PRODUTO', busca, modoItens === 'produto', undefined, true),
     [modoItens]
   )
   // #218 (RN-NOVA-8/9/11) — última simulação de estoque conhecida por produtoId (não por item da

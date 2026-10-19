@@ -942,7 +942,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
     []
   )
   const buscarProdutosCaixa = useCallback(
-    (busca?: string) => produtoService.listar(0, 8, undefined, busca, true, true, true).then(d => d.content),
+    (busca: string | undefined, page: number, size: number) => produtoService.listar(page, size, undefined, busca, true, true, true),
     []
   )
 

@@ -4,6 +4,7 @@ import { List, Search } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import SortableHeader from './SortableHeader'
+import Paginacao from './Paginacao'
 import CampoFiltros, { type FiltroEscolhido, type GrupoFiltro } from './CampoFiltros'
 import ModalRegistro, { type TipoRegistro } from '../cliente/ModalRegistro'
 import { dashboardVendasService } from '../../services/dashboardVendasService'
@@ -172,7 +173,8 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const [total, setTotal] = useState(0)
   const [unidades, setUnidades] = useState<number | null>(null)
   const [page, setPage] = useState(0)
-  const [temMais, setTemMais] = useState(false)
+  const [ultima, setUltima] = useState(true)
+  const [totalPaginas, setTotalPaginas] = useState(0)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   // V0.17.0 #968/#970 (RN-NOVA-23 item 3): a linha abre a modal de dados do registro, em qualquer fonte
@@ -184,7 +186,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const pagamento = valores('pagamento')
   const pago = pagamento.length === 1 ? pagamento[0] as 'true' | 'false' : undefined
 
-  const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean; unidades?: number | null }> => {
+  const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean; totalPages: number; unidades?: number | null }> => {
     const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : fonte.tipo === 'vendas' ? CAMPO_VENDAS[ordem.campo] : ordem.campo},${ordem.dir}`
     const status = valores('status')
     if (fonte.tipo === 'vendas') {
@@ -196,7 +198,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
       return {
         linhas: r.vendas.content.map(l => ({ id: l.id, tipo: l.origem, identificador: l.identificador, data: l.data, status: l.status,
           valor: l.total, resumoItens: l.itens, pago: null })),
-        total: r.quantidadeFiltrada, last: r.vendas.last, unidades: r.unidadesDoProduto,
+        total: r.quantidadeFiltrada, last: r.vendas.last, totalPages: r.vendas.totalPages, unidades: r.unidadesDoProduto,
       }
     }
     if (fonte.tipo === 'cadastro') {
@@ -206,7 +208,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
         comDesconto: valores('desconto').length > 0, itemId: valores('item'),
         de: de || undefined, ate: ate || undefined, sort,
       })
-      return { linhas: r.content.map(x => ({ ...x })), total: r.totalElements, last: r.last }
+      return { linhas: r.content.map(x => ({ ...x })), total: r.totalElements, last: r.last, totalPages: r.totalPages }
     }
     const r = await compraService.listar(pagina, POR_PAGINA, {
       status: status as StatusCompra[], pago: pago === undefined ? undefined : pago === 'true',
@@ -217,7 +219,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
     return {
       linhas: r.content.map(c => ({ id: c.id, tipo: 'COMPRA' as const, identificador: c.identificador, data: c.dataCompra, status: c.status,
         valor: c.total, resumoItens: c.resumoItens, pago: c.pago })),
-      total: r.totalElements, last: r.last,
+      total: r.totalElements, last: r.last, totalPages: r.totalPages,
     }
   }
 
@@ -227,8 +229,10 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
     buscar(pagina)
       .then(r => {
         if (minha !== seq.current) return
-        setLinhas(prev => pagina === 0 ? r.linhas : [...prev, ...r.linhas])
-        setTotal(r.total); setUnidades(r.unidades ?? null); setTemMais(!r.last); setPage(pagina)
+        // #994: página que passou do limite (registros removidos) mostra a última que existe
+        if (r.linhas.length === 0 && pagina > 0 && r.totalPages > 0) { carregar(r.totalPages - 1); return }
+        setLinhas(r.linhas)
+        setTotal(r.total); setUnidades(r.unidades ?? null); setUltima(r.last); setTotalPaginas(r.totalPages); setPage(pagina)
       })
       .catch(err => { if (minha === seq.current) setErro(extractApiError(err, 'Não foi possível carregar a listagem.')) })
       .finally(() => { if (minha === seq.current) setCarregando(false) })
@@ -322,13 +326,12 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
               {carregando && (
                 <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
               )}
-              {temMais && !carregando && (
-                <div className="flex justify-center border-t border-line py-2.5">
-                  <Button variant="ghost" size="sm" onClick={() => carregar(page + 1)}>Carregar mais</Button>
-                </div>
-              )}
             </div>
           </div>
+          {!erro && total > 0 && (
+            <Paginacao pagina={page} totalPaginas={totalPaginas} ultima={ultima} carregando={carregando} onMudar={carregar}
+              esquerda={<span data-testid="total-registros">{contagem(total, unidades, fonte.tipo === 'vendas')}</span>} />
+          )}
         </div>
       </ModalShell>
       {modalErro}

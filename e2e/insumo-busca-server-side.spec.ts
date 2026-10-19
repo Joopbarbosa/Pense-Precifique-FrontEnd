@@ -16,7 +16,7 @@ import { apiLogin, criarInsumo, contarInsumos, inativarInsumo } from './helpers/
  * 164:
  *   Dado que a artesã buscou um termo e vê resultados filtrados
  *   Quando ela limpa o campo de busca
- *   Então a lista volta ao estado normal com "Carregar mais" disponível
+ *   Então a lista volta ao estado normal, paginada ("Página 1 de N" e Próxima habilitado — V0.17.0 #994)
  */
 test.describe('Cenários 163-164 — Busca de insumos server-side (#110)', () => {
   let criadosIds: string[] = []
@@ -90,6 +90,7 @@ test.describe('Cenários 163-164 — Busca de insumos server-side (#110)', () =>
 
     await buscaInput.fill('')
     await page.waitForTimeout(600)
-    await expect(page.getByRole('button', { name: /Carregar mais/ })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('button', { name: 'Próxima', exact: true })).toBeEnabled({ timeout: 5000 })
+    await expect(page.getByRole('button', { name: /Carregar mais/ })).toHaveCount(0)
   })
 })

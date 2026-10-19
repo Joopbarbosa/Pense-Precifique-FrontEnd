@@ -10,6 +10,8 @@ import ModalAdicionarInsumos from '../../components/compra/ModalAdicionarInsumos
 import { formatarData, moeda, paraCampo, parseDecimal, qtd } from '../../components/compra/formato'
 import { listaCompraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import Paginacao from '../../components/shared/Paginacao'
 import { useModalErro } from '../../hooks/useModalErro'
 import SortableHeader from '../../components/shared/SortableHeader'
 import { StatusListaBadge } from '../../components/compra/StatusCompraBadge'
@@ -244,10 +246,27 @@ const GRADE_LISTA = 'grid-cols-[1fr_1.2fr_1fr_1.3fr]'
 
 function Historico() {
   const navigate = useNavigate()
-  const [ordem, setOrdem] = useState<{ campo: CampoLista; dir: 'asc' | 'desc' }>({ campo: 'numero', dir: 'desc' })
+  // #994 — página e ordenação ficam na URL (junto de `aba`): voltar de uma lista reabre o histórico como estava
+  const inicial = useParamsIniciais()
+  const [ordem, setOrdem] = useState<{ campo: CampoLista; dir: 'asc' | 'desc' }>(() => {
+    const campo = COLUNAS_LISTA.find(c => c.campo === inicial.texto('ordem'))?.campo ?? 'numero'
+    return { campo, dir: inicial.texto('dir', campo === 'status' ? 'asc' : 'desc') === 'asc' ? 'asc' : 'desc' }
+  })
+  const chaveCarregada = useRef<string | null>(null)
   const fetcher = useCallback((page: number, size: number) => listaCompraService.historico(page, size, `${ordem.campo},${ordem.dir}`), [ordem])
-  const { items, hasMore, loading, loadingMore, error, loadMore, reset } = usePaginatedList({ fetcher, errorMessage: 'Não foi possível carregar as listas.' })
-  useEffect(() => { reset() }, [reset])
+  const { items, page, totalPages, ultima, totalElements, loading, error, irParaPagina, recarregar, reset } = usePaginatedList({
+    fetcher, errorMessage: 'Não foi possível carregar as listas.', paginaInicial: inicial.pagina(),
+  })
+  useEffect(() => {
+    // (a repetição do efeito no modo estrito do React também cai no caso "mesma chave")
+    const chave = `${ordem.campo}|${ordem.dir}`
+    if (chaveCarregada.current === null || chaveCarregada.current === chave) recarregar()
+    else reset()
+    chaveCarregada.current = chave
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher])
+  useEspelharNaUrl({ pagina: page + 1, ordem: ordem.campo, dir: ordem.dir },
+    { pagina: 1, ordem: 'numero', dir: ordem.campo === 'status' ? 'asc' : 'desc' })
   const ordenar = (campo: CampoLista) => setOrdem(o => o.campo === campo
     ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
     : { campo, dir: campo === 'status' ? 'asc' : 'desc' })
@@ -272,7 +291,8 @@ function Historico() {
           </div>
         ))}
       </div>
-      {hasMore && <div className="mt-4 flex justify-center"><Button variant="ghost" onClick={loadMore} disabled={loadingMore}>{loadingMore ? 'Carregando…' : 'Carregar mais'}</Button></div>}
+      <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+        esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'lista' : 'listas'}</span>} />
     </>
   )
 }

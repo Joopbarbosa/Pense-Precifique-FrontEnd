@@ -52,12 +52,12 @@ export const clienteService = {
     return response.data
   },
 
-  historicoPedidos: async (id: string, page: number, size = 10): Promise<PageResponse<PedidoClienteResponse>> => {
+  historicoPedidos: async (id: string, page: number, size = 20): Promise<PageResponse<PedidoClienteResponse>> => {
     const response = await api.get(`/clientes/${id}/historico/pedidos`, { params: { page, size } })
     return response.data
   },
 
-  historicoCompras: async (id: string, page: number, size = 10): Promise<PageResponse<CompraFornecedorHistoricoResponse>> => {
+  historicoCompras: async (id: string, page: number, size = 20): Promise<PageResponse<CompraFornecedorHistoricoResponse>> => {
     const response = await api.get(`/clientes/${id}/historico/compras`, { params: { page, size } })
     return response.data
   },
