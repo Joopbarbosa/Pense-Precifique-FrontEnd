@@ -13,7 +13,9 @@ export interface ItemRanking {
 export interface RankingCadastros { top: ItemRanking[]; todos: ItemRanking[] }
 
 export interface PontoPreco { mes: string; precoMedio: number; quantidade: number; valorPago: number }
-export interface EvolucaoPreco { insumoId: string; insumo: string; marca: string | null; pontos: PontoPreco[] }
+export interface EvolucaoPreco { insumoId: string; insumo: string; marca: string | null; pontos: PontoPreco[]; unidade?: string | null }
+/** #989 (RN-NOVA-29) — uma série mensal por insumo escolhido, na ordem pedida. */
+export interface EvolucaoPrecoInsumos { series: EvolucaoPreco[] }
 
 export interface PrecoAbaixoSugerido { id: string; identificador: string; nome: string; precoVenda: number; precoSugerido: number; diferenca: number }
 export interface MargemProduto { id: string; identificador: string; nome: string; precoVenda: number; custo: number; margemPercentual: number }
