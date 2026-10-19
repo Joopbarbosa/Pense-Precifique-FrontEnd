@@ -50,7 +50,7 @@ test.describe('#494/#506 — Horário de funcionamento em Configurações', () =
     await expect(page.getByText('Configurações salvas com sucesso!')).toBeVisible()
   })
 
-  test('horário de fechamento antes do de abertura é bloqueado com toast nomeando o dia', async ({ page }) => {
+  test('horário de fechamento antes do de abertura bloqueia o salvar, nomeando o dia', async ({ page }) => {
     const diaLabel = DIAS_SEMANA_LABEL[diaIsoHoje()]
     const linhaDia = page.getByText(diaLabel, { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-input")]')
 
@@ -59,14 +59,14 @@ test.describe('#494/#506 — Horário de funcionamento em Configurações', () =
     await inputs.nth(0).fill('18:00')
     await inputs.nth(1).fill('08:00')
 
-    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    // V0.17.0 (#983): com campo inválido o botão único fica desabilitado e o motivo aparece ao lado
     await expect(page.getByText(`${diaLabel}: o horário de fechamento precisa ser depois do de abertura.`)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeDisabled()
 
-    // restaura pra um intervalo válido antes de sair, pra não deixar o dia real quebrado pra outros specs
+    // voltar ao horário gravado zera a pendência (nada foi salvo com o intervalo inválido)
     await inputs.nth(0).fill('08:00')
     await inputs.nth(1).fill('18:00')
-    await page.getByRole('button', { name: 'Salvar alterações' }).click()
-    await expect(page.getByText('Configurações salvas com sucesso!')).toBeVisible()
+    await expect(page.getByText('Tudo salvo')).toBeVisible()
   })
 
   test('abrir o caixa num dia configurado como fechado avisa, mas não bloqueia (#506)', async ({ page, request }) => {

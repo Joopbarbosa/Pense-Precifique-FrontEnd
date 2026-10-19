@@ -50,6 +50,12 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     await linhaPix.getByRole('button', { name: 'Não' }).click()
     await expect(linhaPix.getByRole('button', { name: 'Não' })).toHaveClass(/bg-orange/)
 
+    // V0.17.0 (#983): a alteração fica pendente até o salvar único
+    const antes = await (await request.get(`${API_URL}/configuracoes/metodos-pagamento`, { headers: { Authorization: `Bearer ${token}` } })).json()
+    expect(antes.find((m: any) => m.tipo === 'PIX').ativo).toBe(true)
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page.getByText('Configurações salvas com sucesso!')).toBeVisible()
+
     const res = await request.get(`${API_URL}/configuracoes/metodos-pagamento`, { headers: { Authorization: `Bearer ${token}` } })
     const metodos = await res.json()
     expect(metodos.find((m: any) => m.tipo === 'PIX').ativo).toBe(false)
@@ -57,6 +63,8 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     // restaura
     await linhaPix.getByRole('button', { name: 'Sim' }).click()
     await expect(linhaPix.getByRole('button', { name: 'Sim' })).toHaveClass(/bg-teal/)
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page.getByText('Tudo salvo')).toBeVisible()
   })
 
   test('configura a taxa da maquininha do Cartão Débito e ela persiste após reload', async ({ page, request }) => {
@@ -73,9 +81,11 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
 
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByLabel('Taxa cobrada pela operadora').fill('3,9')
-    await page.getByRole('button', { name: 'Salvar' }).click()
+    await page.getByRole('button', { name: 'Aplicar' }).click()
 
     await expect(page.getByText('Taxa: 3,9%')).toBeVisible()
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page.getByText('Configurações salvas com sucesso!')).toBeVisible()
 
     await page.reload()
     await page.getByRole('button', { name: 'Métodos de Pagamento' }).click()
@@ -91,16 +101,20 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     const nome = `Vale-presente-${Date.now()}`
     await page.getByRole('button', { name: 'Novo método' }).click()
     await page.getByLabel('Nome do método').fill(nome)
-    await page.getByRole('button', { name: 'Criar método' }).click()
+    await page.getByRole('button', { name: 'Adicionar método' }).click()
 
     const linhaNovo = page.getByText(nome, { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-input")]')
     await expect(linhaNovo).toBeVisible()
+    await expect(linhaNovo.getByText('Novo — não salvo')).toBeVisible()
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page.getByText('Configurações salvas com sucesso!')).toBeVisible()
     await expect(linhaNovo.getByText('Personalizado')).toBeVisible()
+    await expect(linhaNovo.getByText('Novo — não salvo')).toHaveCount(0)
   })
 
   test('tentar criar um método com nome vazio mostra erro e não chama a API', async ({ page }) => {
     await page.getByRole('button', { name: 'Novo método' }).click()
-    await page.getByRole('button', { name: 'Criar método' }).click()
+    await page.getByRole('button', { name: 'Adicionar método' }).click()
     await expect(page.getByText('Informe o nome do método.')).toBeVisible()
   })
 
@@ -122,9 +136,11 @@ test.describe('#491 — Métodos de Pagamento em Configurações', () => {
     // usuarios/empresas) — o modo "Uma taxa por parcela" pode já estar selecionado de uma rodada
     // anterior. Força "Igual para todas" explicitamente, nunca assume o default do primeiro load.
     await page.getByRole('button', { name: 'Igual para todas' }).click()
-    await page.getByRole('button', { name: 'Salvar' }).click()
+    await page.getByRole('button', { name: 'Aplicar' }).click()
 
     await expect(page.getByText('Taxa: 2,5% · até 6x')).toBeVisible()
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page.getByText('Configurações salvas com sucesso!')).toBeVisible()
 
     await page.reload()
     await page.getByRole('button', { name: 'Métodos de Pagamento' }).click()

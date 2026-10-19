@@ -4,6 +4,7 @@ import { Logo, Wordmark } from '../ui'
 import { LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History, Database } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useMenuStore } from '../../store/menuStore'
+import { useSaidaConfiguracoesStore } from '../../store/saidaConfiguracoesStore'
 
 // Mesmo valor do breakpoint `md:` do Tailwind (não customizado em tailwind.config.ts) —
 // duplicado aqui só porque este cálculo específico precisa rodar em JS, não CSS.
@@ -151,8 +152,10 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
   }
 
   function handleLogout() {
-    clearAuth()
-    navigate('/login')
+    const sair = () => { clearAuth(); navigate('/login') }
+    // #983 (RN-NOVA-28): Configurações com alteração pendente assume a saída e pergunta antes
+    if (useSaidaConfiguracoesStore.getState().pedirSaida?.(sair)) return
+    sair()
   }
 
   return (
