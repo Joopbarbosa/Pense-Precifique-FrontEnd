@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { Monitor, Search } from 'lucide-react'
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -9,13 +8,14 @@ import FiltroPeriodo from '../../components/dashboard/FiltroPeriodo'
 import Painel from '../../components/dashboard/Painel'
 import ModalListaCompleta, { type ItemListaCompleta } from '../../components/dashboard/ModalListaCompleta'
 import ModalProdutosDoInsumo from '../../components/dashboard/ModalProdutosDoInsumo'
+import EvolucaoPrecoVariosInsumos from '../../components/dashboard/EvolucaoPrecoVariosInsumos'
 import { BarrasAbc, BarrasDivergentes, BarrasHorizontaisComValor, BarrasVerticais, type PontoGrafico } from '../../components/dashboard/GraficosVariados'
 import Comparacao from '../../components/dashboard/Comparacao'
 import ModalTabelaEstoque from '../../components/dashboard/ModalTabelaEstoque'
 import ModalVendasCmv from '../../components/compra/ModalVendasCmv'
 import { BigNumber, BigNumberGroup } from '../../components/ui'
 import { Package, Percent, Warehouse, TrendingUp, AlertTriangle } from 'lucide-react'
-import { Dica, Ranking, eixo, reaisCurto } from '../../components/dashboard/graficos'
+import { Ranking, reaisCurto } from '../../components/dashboard/graficos'
 import { intervalo, pct, rotuloMes, rotuloPeriodoAnterior, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
 import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
 import { formatarData, hojeIso } from '../../components/compra/formato'
@@ -23,8 +23,8 @@ import { BRL } from '../../components/venda/formato'
 import { dashboardCadastrosService } from '../../services/dashboardCadastrosService'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { extractApiError } from '../../utils/apiError'
-import { GRAFICO_GRID, MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } from '../../constants/graficos'
-import type { DashboardCadastrosResponse, EvolucaoPreco, ItemRanking, RankingCadastros } from '../../types/dashboardCadastros'
+import { MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } from '../../constants/graficos'
+import type { DashboardCadastrosResponse, ItemRanking, RankingCadastros } from '../../types/dashboardCadastros'
 
 // V0.17.0 — #607 (RN-NOVA-16, UC-NOVO-5) e #971 (RN-NOVA-23): Dashboard de Cadastros. Dez indicadores calculados no backend (desempate
 // dos rankings e curva ABC incluídos); aqui só período, exibição, a lupa (lista completa do ranking) e os cliques, que abrem a modal de
@@ -79,8 +79,6 @@ export default function DashboardCadastrosPage() {
   const [produtosDoInsumo, setProdutosDoInsumo] = useState<{ id: string; nome: string } | null>(null)
   const [estoqueLupa, setEstoqueLupa] = useState<'valor' | 'potencial' | 'minimo' | null>(null)
   const [cmvLupa, setCmvLupa] = useState(false)
-  const [insumoEscolhido, setInsumoEscolhido] = useState<string>('')
-  const [evolucao, setEvolucao] = useState<EvolucaoPreco | null>(null)
 
   const faixa = useMemo(() => periodo === 'personalizado' ? { de: deLivre, ate: ateLivre } : intervalo(periodo), [periodo, deLivre, ateLivre])
   const anterior = d ? rotuloPeriodoAnterior(d.deAnterior, d.ateAnterior) : ''
@@ -89,17 +87,12 @@ export default function DashboardCadastrosPage() {
     if (!faixa.de || !faixa.ate) return
     setCarregando(true); setErro(null)
     dashboardCadastrosService.dashboard(faixa.de, faixa.ate)
-      .then(r => { setD(r); setEvolucao(r.evolucaoPrecoInsumo); setInsumoEscolhido(r.evolucaoPrecoInsumo?.insumoId ?? '') })
+      .then(r => setD(r))
       .catch(err => setErro(extractApiError(err, 'Não foi possível carregar o painel de cadastros.')))
       .finally(() => setCarregando(false))
   }
   useEffect(carregar, [faixa.de, faixa.ate])
 
-  const escolherInsumo = (id: string) => {
-    setInsumoEscolhido(id)
-    if (!id || !d) return
-    dashboardCadastrosService.evolucaoPreco(id, d.de, d.ate).then(setEvolucao).catch(() => setEvolucao(null))
-  }
   const comprasDoInsumo = (id: string | null, nome: string) => id && setListagem({ titulo: `Compras de ${nome}`,
     filtro: { status: ['CONFIRMADA'], de: d?.de, ate: d?.ate, itemId: id, rotulos: [nome] } })
   // Produto (mais vendido e que dá mais lucro): as vendas que formam o ranking, na modal de listagem (sem trocar de aba)
@@ -155,31 +148,11 @@ export default function DashboardCadastrosPage() {
                 </BigNumber>
               </BigNumberGroup>
             </div>
-            <Painel titulo="Evolução de preço dos insumos" subtitulo="Preço médio pago por mês · clique no ponto para ver as compras" testid="ind-evolucao-preco"
-              acoes={d.insumosEmProdutos.todos.length > 0 ? (
-                <select aria-label="Insumo da evolução de preço" value={insumoEscolhido} onChange={e => escolherInsumo(e.target.value)}
-                  className="h-8 max-w-[220px] rounded-input border-[1.5px] border-line bg-white px-2 text-[12.5px] outline-hidden focus:border-teal">
-                  {d.insumosEmProdutos.todos.map(i => <option key={`${i.id}`} value={i.id ?? ''}>{nomeItem(i)}</option>)}
-                </select>) : undefined}>
-              {!evolucao || evolucao.pontos.length === 0 ? vazio() : (
-                <div className="h-[240px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={evolucao.pontos.map(p => ({ ...p, rotulo: rotuloMes(p.mes), extra: `${num(p.quantidade)} comprados` }))}
-                      margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
-                      onClick={(x: { activePayload?: { payload?: { mes?: string } }[] }) => {
-                        const mes = x.activePayload?.[0]?.payload?.mes
-                        if (mes) setListagem({ titulo: `Compras de ${evolucao.insumo} em ${rotuloMes(mes)}`,
-                          filtro: { status: ['CONFIRMADA'], de: mes, ate: ultimoDia(mes), itemId: evolucao.insumoId, rotulos: [evolucao.insumo] } })
-                      }}>
-                      <CartesianGrid vertical={false} stroke={GRAFICO_GRID} />
-                      <XAxis dataKey="rotulo" tick={eixo} axisLine={false} tickLine={false} />
-                      <YAxis width={64} tickFormatter={v => reaisCurto(Number(v))} tick={eixo} axisLine={false} tickLine={false} />
-                      <Tooltip content={<Dica formato={BRL} />} />
-                      <Line dataKey="precoMedio" stroke={PALETA_SERIES[0]} strokeWidth={2} connectNulls cursor="pointer" dot={{ r: 4, strokeWidth: 2, fill: '#fff', cursor: 'pointer' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+            <Painel titulo="Evolução de preço dos insumos" subtitulo="Preço médio pago por mês · escolha até 5 insumos · clique no ponto para ver as compras" testid="ind-evolucao-preco">
+              <EvolucaoPrecoVariosInsumos key={`${d.de}|${d.ate}`} insumos={d.insumosEmProdutos.todos.filter(i => i.id).map(i => ({ id: i.id as string, nome: nomeItem(i) }))}
+                de={d.de} ate={d.ate} inicial={d.evolucaoPrecoInsumo}
+                onPonto={(insumo, mes) => setListagem({ titulo: `Compras de ${insumo.nome} em ${rotuloMes(mes)}`,
+                  filtro: { status: ['CONFIRMADA'], de: mes, ate: ultimoDia(mes), itemId: insumo.id, rotulos: [insumo.nome] } })} />
             </Painel>
 
             <PainelRanking titulo="Em quantos produtos cada insumo está" subtitulo="Produtos ativos que usam o insumo na ficha técnica" testid="ind-insumos-em-produtos"
