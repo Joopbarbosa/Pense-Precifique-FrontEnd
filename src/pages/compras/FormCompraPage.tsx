@@ -17,6 +17,7 @@ import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
 import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
 import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef, TipoDesconto } from '../../types/compra'
+import { lerUltimoMetodoPagamentoCompra, gravarUltimoMetodoPagamentoCompra } from '../../utils/ultimoMetodoPagamentoCompra'
 
 // V0.15.0 — "Registrar compra" (#541, RN-NOVA-4) com método de pagamento (#550, RN-NOVA-23).
 // /compras/nova (compra nova) e /compras/:id/editar (só RASCUNHO). Estoque e custo só mudam ao
@@ -81,7 +82,8 @@ export default function FormCompraPage() {
   const [previsaoEntrega, setPrevisaoEntrega] = useState('')
   const [multiplos, setMultiplos] = useState(false)
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
-  const [pago, setPago] = useState(false)
+  // RN-NOVA-33 (#997): compra nova (nada gravado) abre em "Pago"; rascunho já gravado mostra o que está gravado.
+  const [pago, setPago] = useState(!editando)
   const [metodoId, setMetodoId] = useState<string | null>(null)
   const [parcelas, setParcelas] = useState<number | null>(null)
   const [observacoes, setObservacoes] = useState('')
@@ -216,6 +218,7 @@ export default function FormCompraPage() {
     setSalvando('confirmar'); setFieldErrors({})
     try {
       const r = editando ? await compraService.confirmar(id!, montarRequest()) : await compraService.confirmarNova(montarRequest())
+      if (r.compra.pago) gravarUltimoMetodoPagamentoCompra(r.compra.metodoPagamento?.id)
       if (r.compra.status === 'PENDENTE_RECEBIMENTO') {
         // #958 — entrega não imediata: nada entrou no estoque, então não há modal de impacto
         navigate(`/compras/${r.compra.id}`, { replace: true, state: { toast: `Compra ${r.compra.identificador} registrada como pendente de recebimento. O estoque ainda não mudou.` } })
@@ -301,6 +304,7 @@ export default function FormCompraPage() {
                 <div className="md:col-span-2">
                   <Field label="Como foi paga?" required group size="md">
                     <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
+                      padraoId={editando ? null : lerUltimoMetodoPagamentoCompra()}
                       parcelas={parcelas} onParcelas={setParcelas} />
                   </Field>
                 </div>
