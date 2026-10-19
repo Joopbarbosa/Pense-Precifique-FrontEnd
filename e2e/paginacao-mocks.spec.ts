@@ -115,7 +115,7 @@ test.describe('#994 — Paginação numerada (API simulada com 45 registros)', (
     await expect(modal.getByTestId('linha-listagem')).toHaveCount(20)
     const dialogo = page.getByRole('dialog')
     await expect(dialogo.getByText('Página 1 de 3')).toBeVisible()
-    await expect(dialogo.getByTestId('total-registros')).toHaveText('45 registros')
+    await expect(dialogo.getByTestId('contagem-registros')).toHaveText('45 registros')
     await dialogo.getByRole('button', { name: 'Próxima', exact: true }).click()
     await expect(dialogo.getByText('Página 2 de 3')).toBeVisible()
     await dialogo.getByRole('button', { name: 'Próxima', exact: true }).click()

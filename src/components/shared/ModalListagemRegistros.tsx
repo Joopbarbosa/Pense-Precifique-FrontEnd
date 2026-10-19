@@ -329,8 +329,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
             </div>
           </div>
           {!erro && total > 0 && (
-            <Paginacao pagina={page} totalPaginas={totalPaginas} ultima={ultima} carregando={carregando} onMudar={carregar}
-              esquerda={<span data-testid="total-registros">{contagem(total, unidades, fonte.tipo === 'vendas')}</span>} />
+            <Paginacao pagina={page} totalPaginas={totalPaginas} ultima={ultima} carregando={carregando} onMudar={carregar} />
           )}
         </div>
       </ModalShell>
