@@ -330,7 +330,8 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
   )
 }
 
-function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean; onSelect: (produtoId: string) => void }) {
+/** #986 (RN-NOVA-22, alteração): clicar no registro abre o cadastro do produto em aba nova; o detalhe do insumo fica aberto. */
+function FichasList({ produtos, loading }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
@@ -351,10 +352,12 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
   return (
     <div>
       {produtos.map((p) => (
-        <button
+        <a
           key={p.id}
-          onClick={() => onSelect(p.id)}
-          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] hover:bg-cream"
+          href={`/produtos/${p.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] no-underline hover:bg-cream"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
             <Box size={16} />
@@ -373,7 +376,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
           <span className="flex shrink-0 text-dim">
             <ChevronRight size={15} />
           </span>
-        </button>
+        </a>
       ))}
     </div>
   )
@@ -568,7 +571,7 @@ export default function DetalheInsumoPage() {
             )}
           </>
         ) : aba === 'fichas' ? (
-          <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
+          <FichasList produtos={produtosRelacionados} loading={loadingFichas} />
         ) : aba === 'notas' ? (
           <HistoricoNotaInsumo insumoId={insumo.id} unidade={insumo.unidadeMedida} />
         ) : (
