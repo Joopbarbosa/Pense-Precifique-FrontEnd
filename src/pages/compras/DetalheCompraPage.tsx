@@ -22,6 +22,7 @@ import { useModalErro } from '../../hooks/useModalErro'
 import { rotuloPagamento } from '../../components/compra/formato'
 import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import type { CompraResponse, ImpactoCompraResponse } from '../../types/compra'
+import { gravarUltimoMetodoPagamentoCompra } from '../../utils/ultimoMetodoPagamentoCompra'
 
 // V0.15.0 — detalhe da compra (#541, #550). RASCUNHO: editar, excluir, confirmar. CONFIRMADA: só o
 // pagamento muda (Decisão 14). Cancelar e duplicar: #544 (RN-NOVA-9/10). PDF: #545 (RN-NOVA-11).
@@ -82,6 +83,7 @@ export default function DetalheCompraPage() {
     setModal(null); setProcessando(true)
     try {
       const r = await compraService.confirmar(compra.id)
+      if (r.compra.pago) gravarUltimoMetodoPagamentoCompra(r.compra.metodoPagamento?.id)
       setCompra(r.compra)
       setImpacto({ titulo: `Compra ${r.compra.identificador} confirmada`, impacto: r.impacto })
     } catch (err) {
