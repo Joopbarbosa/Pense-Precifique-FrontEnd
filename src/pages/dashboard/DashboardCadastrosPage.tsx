@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { IdAjuda } from '../../constants/ajudaDashboards'
 import clsx from 'clsx'
 import { Monitor, Search } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
@@ -40,8 +41,8 @@ const itensDaLupa = (itens: ItemRanking[], formato: (v: number) => string): Item
 /** Tipo de gráfico de cada ranking (RN-NOVA-24): horizontal (padrão), horizontal com o valor ao fim da barra, vertical ou divergente. */
 type VisualRanking = 'horizontal' | 'horizontalComValor' | 'vertical' | 'divergente'
 
-function PainelRanking({ titulo, subtitulo, ranking, cor, formato, testid, onClique, aoVerTodos, visual = 'horizontal' }: {
-  titulo: string; subtitulo: string; ranking: RankingCadastros; cor: string; formato: (v: number) => string; testid: string
+function PainelRanking({ titulo, subtitulo, ranking, cor, formato, testid, onClique, aoVerTodos, visual = 'horizontal', ajuda }: {
+  ajuda: IdAjuda; titulo: string; subtitulo: string; ranking: RankingCadastros; cor: string; formato: (v: number) => string; testid: string
   onClique?: (item: ItemRanking) => void; aoVerTodos: () => void; visual?: VisualRanking
 }) {
   const pontos: PontoGrafico[] = ranking.top.map(i => ({ id: i.id ?? i.rotulo, rotulo: nomeItem(i), valor: i.valor, extra: i.detalhe ?? undefined }))
@@ -49,7 +50,7 @@ function PainelRanking({ titulo, subtitulo, ranking, cor, formato, testid, onCli
 
   // V0.17.0 #971: a lupa do ranking lista todos os itens (o olhinho sai); o ranking mostra 10
   return (
-    <Painel titulo={titulo} subtitulo={subtitulo} testid={testid}
+    <Painel titulo={titulo} subtitulo={subtitulo} testid={testid} ajuda={ajuda}
       acoes={ranking.todos.length > 0 ? <button type="button" aria-label={`Lupa: lista completa de ${titulo}`} title="Lista completa" onClick={aoVerTodos}
         className="grid h-8 w-8 place-items-center rounded-input border border-line bg-white text-muted hover:text-teal"><Search size={15} /></button> : undefined}>
       {ranking.top.length === 0 ? vazio() : visual === 'vertical' ? (
@@ -125,56 +126,56 @@ export default function DashboardCadastrosPage() {
             {/* V0.17.0 #974 (RN-NOVA-25): números de estoque (fotos de hoje) e CMV do período; cada um tem lupa (RN-NOVA-23) */}
             <div className="xl:col-span-2">
               <BigNumberGroup tela="dashboard-cadastros" testid="numeros-dashboard-cadastros">
-                <BigNumber testid="card-estoque-valor" icone={<Warehouse size={14} />} titulo="Valor do estoque a custo"
+                <BigNumber testid="card-estoque-valor" icone={<Warehouse size={14} />} titulo="Valor do estoque a custo" ajuda="cad-estoque-valor"
                   valor={BRL(d.estoque.valorTotal)} onLupa={() => setEstoqueLupa('valor')}>
                   <span data-testid="estoque-valor-material">Material: {BRL(d.estoque.valorMaterial)}</span>
                   <span data-testid="estoque-valor-prontos">Produtos prontos: {BRL(d.estoque.valorProdutosProntos)}</span>
                 </BigNumber>
-                <BigNumber testid="card-estoque-potencial" icone={<Package size={14} />} titulo="Potencial de venda do estoque"
+                <BigNumber testid="card-estoque-potencial" icone={<Package size={14} />} titulo="Potencial de venda do estoque" ajuda="cad-potencial"
                   valor={BRL(d.estoque.potencialVenda)} onLupa={() => setEstoqueLupa('potencial')}>
                   <span>Produtos prontos ao preço de venda</span>
                 </BigNumber>
-                <BigNumber testid="card-cmv" icone={<Percent size={14} />} titulo="% de CMV" valor={pct(d.estoque.percentualCmv.valor ?? 0)}
+                <BigNumber testid="card-cmv" icone={<Percent size={14} />} titulo="% de CMV" ajuda="cad-cmv" valor={pct(d.estoque.percentualCmv.valor ?? 0)}
                   onLupa={() => setCmvLupa(true)}>
                   <Comparacao n={d.estoque.percentualCmv} formato={pct} periodo={anterior} />
                 </BigNumber>
-                <BigNumber testid="card-margem-material" icone={<TrendingUp size={14} />} titulo="Margem após custo de material"
+                <BigNumber testid="card-margem-material" icone={<TrendingUp size={14} />} titulo="Margem após custo de material" ajuda="cad-margem-material"
                   valor={pct(d.estoque.margemMaterial.valor ?? 0)} onLupa={() => setCmvLupa(true)}>
                   <Comparacao n={d.estoque.margemMaterial} formato={pct} periodo={anterior} />
                 </BigNumber>
-                <BigNumber testid="card-abaixo-minimo" icone={<AlertTriangle size={14} />} titulo="Insumos abaixo do mínimo"
+                <BigNumber testid="card-abaixo-minimo" icone={<AlertTriangle size={14} />} titulo="Insumos abaixo do mínimo" ajuda="cad-abaixo-minimo"
                   valor={d.estoque.insumosAbaixoMinimo} onLupa={() => setEstoqueLupa('minimo')}>
                   <span>Estoque menor que o mínimo cadastrado</span>
                 </BigNumber>
               </BigNumberGroup>
             </div>
-            <Painel titulo="Evolução de preço dos insumos" subtitulo="Preço médio pago por mês · escolha até 5 insumos · clique no ponto para ver as compras" testid="ind-evolucao-preco">
+            <Painel titulo="Evolução de preço dos insumos" ajuda="cad-evolucao" subtitulo="Preço médio pago por mês · escolha até 5 insumos · clique no ponto para ver as compras" testid="ind-evolucao-preco">
               <EvolucaoPrecoVariosInsumos key={`${d.de}|${d.ate}`} insumos={d.insumosEmProdutos.todos.filter(i => i.id).map(i => ({ id: i.id as string, nome: nomeItem(i) }))}
                 de={d.de} ate={d.ate} inicial={d.evolucaoPrecoInsumo}
                 onPonto={(insumo, mes) => setListagem({ titulo: `Compras de ${insumo.nome} em ${rotuloMes(mes)}`,
                   filtro: { status: ['CONFIRMADA'], de: mes, ate: ultimoDia(mes), itemId: insumo.id, rotulos: [insumo.nome] } })} />
             </Painel>
 
-            <PainelRanking titulo="Em quantos produtos cada insumo está" subtitulo="Produtos ativos que usam o insumo na ficha técnica" testid="ind-insumos-em-produtos"
+            <PainelRanking titulo="Em quantos produtos cada insumo está" ajuda="cad-em-quantos" subtitulo="Produtos ativos que usam o insumo na ficha técnica" testid="ind-insumos-em-produtos"
               ranking={d.insumosEmProdutos} cor={PALETA_SERIES[2]} formato={v => String(v)} onClique={i => i.id && setProdutosDoInsumo({ id: i.id, nome: nomeItem(i) })}
               aoVerTodos={() => setTodos({ titulo: 'Em quantos produtos cada insumo está', itens: itensDaLupa(d.insumosEmProdutos.todos, v => `${v} produtos`) })} />
-            <PainelRanking titulo="Insumo mais comprado" subtitulo="Maior número de compras no período · clique para ver as compras" testid="ind-insumo-mais-comprado"
+            <PainelRanking titulo="Insumo mais comprado" ajuda="cad-mais-comprado" subtitulo="Maior número de compras no período · clique para ver as compras" testid="ind-insumo-mais-comprado"
               ranking={d.insumoMaisComprado} visual="vertical" cor={PALETA_SERIES[0]} formato={v => String(v)} onClique={i => comprasDoInsumo(i.id, nomeItem(i))}
               aoVerTodos={() => setTodos({ titulo: 'Insumo mais comprado', itens: itensDaLupa(d.insumoMaisComprado.todos, v => `${v} compras`) })} />
-            <PainelRanking titulo="Insumo em que mais gastamos" subtitulo="Maior valor pago no período · clique para ver as compras" testid="ind-insumo-mais-gasto"
+            <PainelRanking titulo="Insumo em que mais gastamos" ajuda="cad-mais-gasto" subtitulo="Maior valor pago no período · clique para ver as compras" testid="ind-insumo-mais-gasto"
               ranking={d.insumoMaisGasto} visual="horizontalComValor" cor={PALETA_SERIES[1]} formato={BRL} onClique={i => comprasDoInsumo(i.id, nomeItem(i))}
               aoVerTodos={() => setTodos({ titulo: 'Insumo em que mais gastamos', itens: itensDaLupa(d.insumoMaisGasto.todos, BRL) })} />
-            <PainelRanking titulo="Produto mais vendido" subtitulo="Maior quantidade vendida no período · clique para abrir o produto" testid="ind-produto-mais-vendido"
+            <PainelRanking titulo="Produto mais vendido" ajuda="cad-mais-vendido" subtitulo="Maior quantidade vendida no período · clique para abrir o produto" testid="ind-produto-mais-vendido"
               ranking={d.produtoMaisVendido} visual="vertical" cor={PALETA_SERIES[0]} formato={v => num(v)} onClique={vendasDoProduto}
               aoVerTodos={() => setTodos({ titulo: 'Produto mais vendido', itens: itensDaLupa(d.produtoMaisVendido.todos, v => `${num(v)} un`) })} />
-            <PainelRanking titulo="Produto que dá mais lucro" subtitulo="Faturamento menos custo de material no período" testid="ind-produto-mais-lucro"
+            <PainelRanking titulo="Produto que dá mais lucro" ajuda="cad-mais-lucro" subtitulo="Faturamento menos custo de material no período" testid="ind-produto-mais-lucro"
               ranking={d.produtoMaisLucro} visual="vertical" cor={PALETA_SERIES[1]} formato={reaisCurto} onClique={vendasDoProduto}
               aoVerTodos={() => setTodos({ titulo: 'Produto que dá mais lucro', itens: itensDaLupa(d.produtoMaisLucro.todos, BRL) })} />
-            <PainelRanking titulo="Insumos que mais variaram de preço" subtitulo="Primeiro × último preço pago no período · 2+ compras" testid="ind-insumos-variaram"
+            <PainelRanking titulo="Insumos que mais variaram de preço" ajuda="cad-variaram" subtitulo="Primeiro × último preço pago no período · 2+ compras" testid="ind-insumos-variaram"
               ranking={d.insumosQueMaisVariaram} visual="divergente" cor={PALETA_SERIES[2]} formato={v => pct(v)} onClique={i => comprasDoInsumo(i.id, nomeItem(i))}
               aoVerTodos={() => setTodos({ titulo: 'Insumos que mais variaram de preço', itens: itensDaLupa(d.insumosQueMaisVariaram.todos, v => pct(v)) })} />
 
-            <Painel titulo="Produtos com preço de venda menor que o sugerido" subtitulo="Foto de hoje, não depende do período · o preço de venda continua sendo decisão sua" testid="ind-preco-abaixo-sugerido">
+            <Painel titulo="Produtos com preço de venda menor que o sugerido" ajuda="cad-abaixo-sugerido" subtitulo="Foto de hoje, não depende do período · o preço de venda continua sendo decisão sua" testid="ind-preco-abaixo-sugerido">
               {d.produtosComPrecoAbaixoDoSugerido.length === 0 ? vazio('Nenhum produto com preço abaixo do sugerido.') : (
                 <div className="max-h-[300px] overflow-auto">
                   <table className="w-full text-left text-sm">
@@ -189,7 +190,7 @@ export default function DashboardCadastrosPage() {
               )}
             </Painel>
 
-            <Painel titulo="Margem por produto" subtitulo="(preço de venda − custo) ÷ preço de venda · menores primeiro" testid="ind-margem">
+            <Painel titulo="Margem por produto" ajuda="cad-margem" subtitulo="(preço de venda − custo) ÷ preço de venda · menores primeiro" testid="ind-margem">
               {d.margemPorProduto.length === 0 ? vazio('Nenhum produto com preço de venda.') : (
                 <div className="max-h-[300px] overflow-auto">
                   <table className="w-full text-left text-sm">
@@ -205,7 +206,7 @@ export default function DashboardCadastrosPage() {
             </Painel>
 
             <div className="xl:col-span-2">
-              <Painel titulo="Curva ABC de produtos por lucro" subtitulo="Só lucro maior que zero entra na curva · A até 80%, B até 95%, C acima" testid="ind-curva-abc">
+              <Painel titulo="Curva ABC de produtos por lucro" ajuda="cad-abc" subtitulo="Só lucro maior que zero entra na curva · A até 80%, B até 95%, C acima" testid="ind-curva-abc">
                 {d.curvaAbc.itens.length === 0 ? vazio('Sem lucro no período') : (
                   <>
                   <BarrasAbc testid="grafico-curva-abc" itens={d.curvaAbc.itens} formato={BRL}
