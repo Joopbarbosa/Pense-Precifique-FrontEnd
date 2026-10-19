@@ -129,6 +129,8 @@ export interface VendaCaixaItemResponse {
 export interface VendaCaixaPagamentoResponse {
   id: string
   metodoPagamentoId: string
+  /** #993 (RN-NOVA-30) — forma de pagamento pelo nome. */
+  metodoPagamentoNome: string
   valor: number
   parcelas?: number | null
   taxaPercentualAplicada?: number | null
@@ -139,6 +141,8 @@ export interface VendaCaixaResponse {
   numero: number
   identificador: string
   clienteId?: string | null
+  /** #993 (RN-NOVA-30) — nome do cliente; nulo = sem cliente ("Consumidor final"). */
+  clienteNome?: string | null
   dataVenda: string
   caixaTurnoId: string
   status: StatusVendaCaixa
