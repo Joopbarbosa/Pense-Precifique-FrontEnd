@@ -98,15 +98,15 @@ export default function DashboardVendasPage() {
         ) : (
           <div className={clsx('flex flex-col gap-4 transition-opacity', carregando && 'opacity-60')}>
             <BigNumberGroup tela="dashboard-vendas" testid="numeros-dashboard-vendas">
-              <BigNumber testid="card-dashboard" icone={<Wallet size={14} />} titulo="Faturamento" valor={numero(d.faturamento, BRL)}
+              <BigNumber testid="card-dashboard" icone={<Wallet size={14} />} titulo="Faturamento" ajuda="vendas-faturamento" valor={numero(d.faturamento, BRL)}
                 onLupa={() => abrirLista('Faturamento do período')}>
                 <Comparacao n={d.faturamento} formato={BRL} periodo={anterior} />
               </BigNumber>
-              <BigNumber testid="card-dashboard" icone={<ShoppingBag size={14} />} titulo="Nº de vendas" valor={d.quantidadeVendas.valor ?? 0}
+              <BigNumber testid="card-dashboard" icone={<ShoppingBag size={14} />} titulo="Nº de vendas" ajuda="vendas-numero" valor={d.quantidadeVendas.valor ?? 0}
                 onLupa={() => abrirLista('Vendas do período')}>
                 <Comparacao n={d.quantidadeVendas} formato={v => String(v)} periodo={anterior} />
               </BigNumber>
-              <BigNumber testid="card-dashboard" icone={<Receipt size={14} />} titulo="Ticket médio" valor={numero(d.ticketMedio, BRL)}
+              <BigNumber testid="card-dashboard" icone={<Receipt size={14} />} titulo="Ticket médio" ajuda="vendas-ticket" valor={numero(d.ticketMedio, BRL)}
                 onLupa={() => abrirLista('Vendas que formam o ticket médio')}>
                 <Comparacao n={d.ticketMedio} formato={BRL} periodo={anterior} />
               </BigNumber>
@@ -118,7 +118,7 @@ export default function DashboardVendasPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Painel titulo="Faturamento por mês" subtitulo="Clique numa barra para ver as vendas do mês" testid="grafico-faturamento-mes">
+                <Painel titulo="Faturamento por mês" ajuda="vendas-fat-mes" subtitulo="Clique numa barra para ver as vendas do mês" testid="grafico-faturamento-mes">
                   <div className="h-[240px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={d.meses.map(m => ({ ...m, rotulo: rotuloMes(m.mes), extra: `${m.quantidade} ${m.quantidade === 1 ? 'venda' : 'vendas'}` }))} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -132,11 +132,11 @@ export default function DashboardVendasPage() {
                     </ResponsiveContainer>
                   </div>
                 </Painel>
-                <Painel titulo="Vendas por origem" subtitulo="Caixa × Orçamento · clique numa fatia ou na legenda" testid="grafico-origem">
+                <Painel titulo="Vendas por origem" ajuda="vendas-origem" subtitulo="Caixa × Orçamento · clique numa fatia ou na legenda" testid="grafico-origem">
                   <DonutComLegenda testid="donut-origem" formato={BRL} onClique={(id) => abrirLista(`Vendas de origem ${ROTULO_ORIGEM[id as OrigemVenda]}`, { origem: id as OrigemVenda })}
                     dados={d.porOrigem.filter(o => o.quantidade > 0).map(o => ({ id: o.origem, rotulo: ROTULO_ORIGEM[o.origem], valor: o.faturamento, extra: `${o.quantidade} ${o.quantidade === 1 ? 'venda' : 'vendas'}` }))} />
                 </Painel>
-                <Painel titulo="Produtos mais vendidos" subtitulo="Unidades vendidas · clique para ver as vendas do produto" testid="grafico-produtos"
+                <Painel titulo="Produtos mais vendidos" ajuda="vendas-produtos" subtitulo="Unidades vendidas · clique para ver as vendas do produto" testid="grafico-produtos"
                   acoes={d.todosProdutosVendidos.length > 0 ? (
                     <button type="button" aria-label="Ver lista completa de produtos vendidos" title="Lista completa" onClick={() => setTodosProdutos(true)}
                       className="grid h-8 w-8 place-items-center rounded-input border border-line bg-white text-muted hover:text-teal"><Search size={15} /></button>
@@ -147,7 +147,7 @@ export default function DashboardVendasPage() {
                       onClique={(id, nome) => abrirLista(`Vendas de ${nome}`, { produtoId: id })} />
                   )}
                 </Painel>
-                <Painel titulo="Formas de pagamento" subtitulo="Valor por forma registrada · clique para ver as vendas" testid="grafico-formas-pagamento">
+                <Painel titulo="Formas de pagamento" ajuda="vendas-pagamento" subtitulo="Valor por forma registrada · clique para ver as vendas" testid="grafico-formas-pagamento">
                   {d.formasPagamento.length <= 4 ? (
                     <DonutComLegenda testid="donut-formas" formato={BRL} onClique={(id, nome) => abrirLista(`Vendas pagas em ${nome}`, { forma: id })}
                       dados={d.formasPagamento.map(f => ({ id: f.forma, rotulo: f.forma, valor: f.valor, extra: `${f.quantidade} ${f.quantidade === 1 ? 'venda' : 'vendas'}` }))} />

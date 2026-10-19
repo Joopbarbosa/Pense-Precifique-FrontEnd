@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import BotaoAjuda from '../ui/BotaoAjuda'
 import clsx from 'clsx'
 import { ExternalLink, LineChart as IconeLinha, Monitor, X } from 'lucide-react'
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -132,7 +133,7 @@ export default function GraficoPrecoInsumos({ inicial, de, ate }: {
     <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-3.5">
         <div>
-          <div className="flex items-center gap-2 text-[14px] font-bold text-dark"><IconeLinha size={16} className="text-teal" /> Evolução do preço pago</div>
+          <div className="flex items-center gap-2 text-[14px] font-bold text-dark"><IconeLinha size={16} className="text-teal" /> Evolução do preço pago<BotaoAjuda id="comp-evolucao-pago" /></div>
           <div className="text-[12.5px] text-muted">Um ponto por compra confirmada · até {MAX_INSUMOS} insumos</div>
           <div className="text-[12px] text-muted" data-testid="periodo-grafico-preco">{formatarData(de)} a {formatarData(ate)}</div>
         </div>

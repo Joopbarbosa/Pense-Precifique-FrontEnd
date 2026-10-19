@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Eye, EyeOff, Search } from 'lucide-react'
+import BotaoAjuda from './BotaoAjuda'
+import type { IdAjuda } from '../../constants/ajudaDashboards'
 
 // V0.15.0 (#604, RN-NOVA-34, DT-NOVA-23) — cartão de número padrão do sistema (extraído do Dashboard de
 // compras): título, valor em destaque, linha de apoio e, quando houver, a lupa no canto superior direito
@@ -9,7 +11,7 @@ import { Eye, EyeOff, Search } from 'lucide-react'
 
 const TOM = { padrao: 'text-dark', destaque: 'text-teal', perigo: 'text-danger', azul: 'text-azul', aviso: 'text-warning' } as const
 
-export function BigNumber({ icone, titulo, valor, children, destaque, tom, onLupa, testid = 'card-numero' }: {
+export function BigNumber({ icone, titulo, valor, children, destaque, tom, onLupa, testid = 'card-numero', ajuda }: {
   icone?: ReactNode
   titulo: string
   valor: ReactNode
@@ -20,6 +22,8 @@ export function BigNumber({ icone, titulo, valor, children, destaque, tom, onLup
   tom?: keyof typeof TOM
   onLupa?: () => void
   testid?: string
+  /** #998: texto do "?" no catálogo; todo cartão dos dashboards informa (um teste confere). Nas telas de detalhe fica sem. */
+  ajuda?: IdAjuda
 }) {
   return (
     <div data-testid={testid} className="relative min-w-0 rounded-card border border-[#F0EEE9] bg-white px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -29,7 +33,7 @@ export function BigNumber({ icone, titulo, valor, children, destaque, tom, onLup
           <Search size={15} />
         </button>
       )}
-      <div className={clsx('flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-dim', onLupa && 'pr-7')}>{icone}{titulo}</div>
+      <div className={clsx('flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-dim', onLupa && 'pr-7')}>{icone}{titulo}{ajuda && <BotaoAjuda id={ajuda} />}</div>
       <div className={clsx('mt-2 truncate text-[22px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]', TOM[tom ?? (destaque ? 'destaque' : 'padrao')])}>{valor}</div>
       {children && <div className="mt-1 flex flex-col gap-0.5 text-[12.5px] text-muted">{children}</div>}
     </div>
