@@ -43,6 +43,8 @@ export interface ListaVendasResponse {
   vendas: PageResponse<LinhaListaVendas>
   totalFiltrado: number
   quantidadeFiltrada: number
+  /** #988 (DT-NOVA-25) — só quando a lista é filtrada por produto: soma das unidades desse produto nas vendas listadas. */
+  unidadesDoProduto?: number | null
 }
 
 export interface FiltroListaVendas {
