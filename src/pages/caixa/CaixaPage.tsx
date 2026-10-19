@@ -1,5 +1,5 @@
+import ModalVendasDoDia from '../../components/caixa/ModalVendasDoDia'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -894,7 +894,6 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
   turno: CaixaTurnoResponse
   onTurnoAtualizado: () => void
 }) {
-  const navigate = useNavigate()
   const { toast, setToast } = useToast()
   const [cliente, setCliente] = useState<ClienteResponse | null>(null)
   const [modalCliente, setModalCliente] = useState(false)
@@ -917,6 +916,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
   const [erro, setErro] = useState<string | null>(null)
   const [vendaConcluida, setVendaConcluida] = useState<VendaCaixaResponse | null>(null)
   const [modalSangria, setModalSangria] = useState(false)
+  const [modalVendasDoDia, setModalVendasDoDia] = useState(false)
   const [modalFechamento, setModalFechamento] = useState(false)
   const [modalVendas, setModalVendas] = useState(false)
 
@@ -1099,8 +1099,8 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
           <Button variant="ghost" size="sm" icon={<History size={14} />} onClick={() => setModalVendas(true)}>
             Vendas do turno
           </Button>
-          {/* V0.17.0 #973 (RN-NOVA-26): histórico de vendas de todos os turnos, ao lado de "Vendas do turno" */}
-          <Button variant="ghost" size="sm" icon={<History size={14} />} onClick={() => navigate('/caixa/historico')}>
+          {/* V0.17.0 #973/#992 (RN-NOVA-26): vendas de hoje de todos os turnos, ao lado de "Vendas do turno"; a tela completa abre em aba nova */}
+          <Button variant="ghost" size="sm" icon={<History size={14} />} onClick={() => setModalVendasDoDia(true)}>
             Histórico de vendas
           </Button>
           <Button variant="ghost" size="sm" icon={<ArrowDownCircle size={14} />} onClick={() => setModalSangria(true)}>
@@ -1296,6 +1296,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
         </div>
       </div>
 
+      {modalVendasDoDia && <ModalVendasDoDia onClose={() => setModalVendasDoDia(false)} />}
       <SangriaSuprimentoModal open={modalSangria} onClose={() => setModalSangria(false)} onSaved={() => setToast('Movimento registrado com sucesso!')} />
       <FecharCaixaModal open={modalFechamento} onClose={() => setModalFechamento(false)} turno={turno} onFechado={onTurnoAtualizado} />
       <VendasDoTurnoModal
