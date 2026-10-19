@@ -3,7 +3,7 @@ import { ExternalLink, FileText } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { BRL } from '../venda/formato'
-import { formatarData, moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
+import { formatarData, formatarDataHora, moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
 import { orcamentoService } from '../../services/orcamentoService'
 import { caixaService } from '../../services/caixaService'
 import { compraService } from '../../services/compraService'
@@ -69,10 +69,14 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
   }
   if (tipo === 'VENDA_CAIXA') {
     const v = await caixaService.buscarVendaPorId(id)
+    // #993 (RN-NOVA-30): data e hora, cliente (ou "Consumidor final"), desconto em reais (e o percentual), pagamentos pelo nome, troco e motivo
+    const desconto = !v.descontoValor ? null
+      : v.descontoTipo === 'PERCENTUAL' ? `${BRL(v.subtotal - v.total)} (${v.descontoValor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%)` : BRL(v.descontoValor)
     return {
       identificador: v.identificador,
       status: v.status === 'CONCLUIDA' ? 'Concluída' : 'Cancelada',
-      data: formatarData(v.dataVenda),
+      data: formatarDataHora(v.dataVenda),
+      pessoa: v.clienteNome ?? 'Consumidor final',
       linhas: v.itens.map(i => ({
         nome: i.produtoNome,
         href: hrefDestino(i.destinoTipo, i.destinoId),
@@ -82,9 +86,13 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
         customizacoes: i.customizacoes.map(c => ({ texto: `${c.produtoNome} ×${qtd(c.quantidade)}`, href: hrefDestino('PRODUTO', c.destinoId) })),
       })),
       subtotal: v.subtotal,
-      desconto: rotuloDesconto(v.descontoTipo, v.descontoValor),
+      desconto,
       total: v.total,
-      extras: v.cancelamentoMotivo ? [{ rotulo: 'Motivo do cancelamento', valor: v.cancelamentoMotivo }] : [],
+      extras: [
+        ...v.pagamentos.map(p => ({ rotulo: 'Pagamento', valor: `${p.metodoPagamentoNome}: ${BRL(p.valor)}${p.parcelas && p.parcelas > 1 ? ` em ${p.parcelas} parcelas` : ''}` })),
+        ...(v.troco ? [{ rotulo: 'Troco', valor: BRL(v.troco) }] : []),
+        ...(v.cancelamentoMotivo ? [{ rotulo: 'Motivo do cancelamento', valor: v.cancelamentoMotivo }] : []),
+      ],
     }
   }
   const c = await compraService.buscar(id)
@@ -175,8 +183,8 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
               <div className="flex justify-between"><dt className="text-muted">Desconto</dt><dd className="m-0 [font-variant-numeric:tabular-nums]">{visao.desconto}</dd></div>
             )}
             <div className="flex justify-between text-[15px] font-bold text-dark"><dt>Total</dt><dd className="m-0 [font-variant-numeric:tabular-nums]">{BRL(visao.total)}</dd></div>
-            {visao.extras.map(e => (
-              <div key={e.rotulo} className="flex justify-between gap-4"><dt className="text-muted">{e.rotulo}</dt><dd className="m-0 text-right">{e.valor}</dd></div>
+            {visao.extras.map((e, i) => (
+              <div key={`${e.rotulo}-${i}`} className="flex justify-between gap-4"><dt className="text-muted">{e.rotulo}</dt><dd className="m-0 text-right">{e.valor}</dd></div>
             ))}
           </dl>
         </div>
