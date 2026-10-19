@@ -29,9 +29,16 @@ test('V0.17.0 — entrada de compra registra o preço sugerido no Produto e agre
   await expect(linha).toContainText('Preço sugerido')
   await expect(linha).toContainText(`Entrada da compra ${compra.compra.identificador}`)
 
+  // #987 (CEN-NOVO-89): preço anterior em laranja e riscado; o novo sem risco. Subiu (R$ 100,00 por 10 un): o novo é laranja-escuro, não verde
+  const anterior = linha.getByTestId('preco-anterior')
+  await expect(anterior).toHaveCSS('color', 'rgb(249, 115, 22)')
+  await expect(anterior).toHaveCSS('text-decoration-line', 'line-through')
+  await expect(linha.getByTestId('preco-novo')).toHaveCSS('text-decoration-line', 'none')
+
   await page.goto(`/insumos/${insumo.id}`)
   const agregada = page.getByTestId('linha-preco-sugerido').first()
   await expect(agregada).toContainText(`Preço sugerido de 1 produto mudou, ${compra.compra.identificador}`)
   await agregada.getByRole('button').click()
   await expect(agregada.getByTestId('produto-preco-sugerido')).toContainText(`QA-Laco-${sufixo}`)
+  await expect(agregada.getByTestId('produto-preco-sugerido').getByTestId('preco-anterior')).toHaveCSS('color', 'rgb(249, 115, 22)')
 })
