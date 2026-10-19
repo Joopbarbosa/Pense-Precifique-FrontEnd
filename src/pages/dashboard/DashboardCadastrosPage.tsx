@@ -9,7 +9,7 @@ import FiltroPeriodo from '../../components/dashboard/FiltroPeriodo'
 import Painel from '../../components/dashboard/Painel'
 import ModalListaCompleta, { type ItemListaCompleta } from '../../components/dashboard/ModalListaCompleta'
 import ModalProdutosDoInsumo from '../../components/dashboard/ModalProdutosDoInsumo'
-import { BarrasDivergentes, BarrasVerticais, Mapa, ParetoAbc, type PontoGrafico } from '../../components/dashboard/GraficosVariados'
+import { BarrasAbc, BarrasDivergentes, BarrasHorizontaisComValor, BarrasVerticais, type PontoGrafico } from '../../components/dashboard/GraficosVariados'
 import Comparacao from '../../components/dashboard/Comparacao'
 import ModalTabelaEstoque from '../../components/dashboard/ModalTabelaEstoque'
 import ModalVendasCmv from '../../components/compra/ModalVendasCmv'
@@ -37,8 +37,8 @@ const num = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 2 
 const itensDaLupa = (itens: ItemRanking[], formato: (v: number) => string): ItemListaCompleta[] =>
   itens.map((i, n) => ({ chave: `${i.id ?? i.rotulo}-${n}`, identificador: i.identificador, rotulo: nomeItem(i), valor: formato(i.valor) }))
 
-/** Tipo de gráfico de cada ranking (RN-NOVA-24): horizontal (padrão), vertical, treemap ou divergente. */
-type VisualRanking = 'horizontal' | 'vertical' | 'treemap' | 'divergente'
+/** Tipo de gráfico de cada ranking (RN-NOVA-24): horizontal (padrão), horizontal com o valor ao fim da barra, vertical ou divergente. */
+type VisualRanking = 'horizontal' | 'horizontalComValor' | 'vertical' | 'divergente'
 
 function PainelRanking({ titulo, subtitulo, ranking, cor, formato, testid, onClique, aoVerTodos, visual = 'horizontal' }: {
   titulo: string; subtitulo: string; ranking: RankingCadastros; cor: string; formato: (v: number) => string; testid: string
@@ -54,8 +54,8 @@ function PainelRanking({ titulo, subtitulo, ranking, cor, formato, testid, onCli
         className="grid h-8 w-8 place-items-center rounded-input border border-line bg-white text-muted hover:text-teal"><Search size={15} /></button> : undefined}>
       {ranking.top.length === 0 ? vazio() : visual === 'vertical' ? (
         <BarrasVerticais testid={`${testid}-grafico`} cor={cor} formato={formato} dados={pontos} onClique={clicar} />
-      ) : visual === 'treemap' ? (
-        <Mapa testid={`${testid}-grafico`} cor={cor} formato={formato} dados={pontos} onClique={clicar} />
+      ) : visual === 'horizontalComValor' ? (
+        <BarrasHorizontaisComValor testid={`${testid}-grafico`} cor={cor} formato={formato} dados={pontos} onClique={clicar} />
       ) : visual === 'divergente' ? (
         <BarrasDivergentes testid={`${testid}-grafico`} dados={pontos} onClique={clicar} />
       ) : (
@@ -189,7 +189,7 @@ export default function DashboardCadastrosPage() {
               ranking={d.insumoMaisComprado} visual="vertical" cor={PALETA_SERIES[0]} formato={v => String(v)} onClique={i => comprasDoInsumo(i.id, nomeItem(i))}
               aoVerTodos={() => setTodos({ titulo: 'Insumo mais comprado', itens: itensDaLupa(d.insumoMaisComprado.todos, v => `${v} compras`) })} />
             <PainelRanking titulo="Insumo em que mais gastamos" subtitulo="Maior valor pago no período · clique para ver as compras" testid="ind-insumo-mais-gasto"
-              ranking={d.insumoMaisGasto} visual="treemap" cor={PALETA_SERIES[1]} formato={reaisCurto} onClique={i => comprasDoInsumo(i.id, nomeItem(i))}
+              ranking={d.insumoMaisGasto} visual="horizontalComValor" cor={PALETA_SERIES[1]} formato={BRL} onClique={i => comprasDoInsumo(i.id, nomeItem(i))}
               aoVerTodos={() => setTodos({ titulo: 'Insumo em que mais gastamos', itens: itensDaLupa(d.insumoMaisGasto.todos, BRL) })} />
             <PainelRanking titulo="Produto mais vendido" subtitulo="Maior quantidade vendida no período · clique para abrir o produto" testid="ind-produto-mais-vendido"
               ranking={d.produtoMaisVendido} visual="vertical" cor={PALETA_SERIES[0]} formato={v => num(v)} onClique={vendasDoProduto}
@@ -235,7 +235,7 @@ export default function DashboardCadastrosPage() {
               <Painel titulo="Curva ABC de produtos por lucro" subtitulo="Só lucro maior que zero entra na curva · A até 80%, B até 95%, C acima" testid="ind-curva-abc">
                 {d.curvaAbc.itens.length === 0 ? vazio('Sem lucro no período') : (
                   <>
-                  <ParetoAbc testid="grafico-curva-abc" itens={d.curvaAbc.itens} formato={BRL}
+                  <BarrasAbc testid="grafico-curva-abc" itens={d.curvaAbc.itens} formato={BRL}
                     onClique={(id, nome) => vendasDoProdutoId(id, nome)} />
                   <table className="mt-4 w-full text-left text-sm">
                     <thead><tr className="text-muted">{['Classe', 'Produto', 'Lucro', '% do lucro', 'Acumulado'].map(c => <th key={c} className="px-2 py-2 font-semibold">{c}</th>)}</tr></thead>
