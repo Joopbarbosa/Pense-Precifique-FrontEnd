@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { login, API_URL, TEST_SENHA } from '../helpers/auth'
+import { login, loginComoEmail, registrarEmpresaEfemera, API_URL, TEST_SENHA } from '../helpers/auth'
 import { apiLogin, criarInsumo } from '../helpers/api'
 import { apiAbrirTurno, apiFecharTurnoSeAberto, apiCriarProdutoTipo, apiMetodoPagamentoPorTipo } from '../helpers/caixa'
 
@@ -85,4 +85,45 @@ test('V0.17.0 — #974 faixa de estoque e CMV: lupas abrem a listagem, sem troca
   await page.getByRole('button', { name: 'Ver registros de % de CMV' }).click()
   await expect(page.getByText('Vendas que compõem o CMV', { exact: true })).toBeVisible()
   await expect(page).toHaveURL(/\/cadastros\/dashboard$/)
+})
+
+/**
+ * V0.17.0 #988 (RN-NOVA-23, alteração, CEN-NOVO-90 e 100): o gráfico "Produtos mais vendidos" conta unidades e a modal do
+ * produto diz "N vendas · M unidades". Conta efêmera: o ranking só tem os produtos deste teste.
+ */
+test('V0.17.0 — #988 Produtos mais vendidos em unidades; a modal do produto mostra "N vendas · M unidades"', async ({ page, request }) => {
+  const { token, email } = await registrarEmpresaEfemera(request, 'unid988')
+  const headers = { Authorization: `Bearer ${token}` }
+  const sufixo = Date.now()
+  await apiAbrirTurno(request, token)
+  const insumo = await criarInsumo(request, token, `QA988-insumo-${sufixo}`)
+  const metodo = await apiMetodoPagamentoPorTipo(request, token, 'DINHEIRO')
+  const ficha = [{ insumoId: insumo.id, quantidade: 1 }]
+  const caderno = await apiCriarProdutoTipo(request, token, `QA988-Caderno-${sufixo}`, 'PRODUTO', 45, 20, ficha)
+  const laco = await apiCriarProdutoTipo(request, token, `QA988-Laco-${sufixo}`, 'PRODUTO', 15, 20, ficha)
+  const vender = async (itens: { produtoId: string; quantidade: number }[], valor: number) => {
+    const r = await request.post(`${API_URL}/caixa/vendas`, { headers, data: { itens, pagamentos: [{ metodoPagamentoId: metodo.id, valor }] } })
+    expect(r.ok(), await r.text()).toBeTruthy()
+  }
+  await vender([{ produtoId: caderno.id, quantidade: 3 }], 135) // 1 venda, 3 unidades
+  await vender([{ produtoId: caderno.id, quantidade: 2 }], 90) // 1 venda, 2 unidades
+  await vender([{ produtoId: caderno.id, quantidade: 1 }, { produtoId: laco.id, quantidade: 1 }], 60) // venda com dois produtos
+
+  await loginComoEmail(page, email, TEST_SENHA)
+  await page.goto('/vendas/dashboard')
+  const painel = page.getByTestId('grafico-produtos')
+  await expect(painel).toContainText('Unidades vendidas')
+  const ranking = page.getByTestId('ranking-produtos')
+  await expect(ranking).toContainText('6 un') // 3 + 2 + 1 unidades do caderno
+  await expect(ranking).toContainText(`QA988-Caderno-${sufixo}`)
+  await ranking.locator('.recharts-bar-rectangle').first().click() // maior barra: o caderno, 6 unidades
+  await expect(page.getByTestId('modal-listagem')).toBeVisible()
+  await expect(page.getByTestId('contagem-registros')).toHaveText('3 vendas · 6 unidades')
+  await expect(page).toHaveURL(/\/vendas\/dashboard$/)
+  await page.keyboard.press('Escape')
+
+  // a venda com dois produtos aparece por inteira (R$ 60,00) e as unidades somam só as do produto clicado
+  await ranking.locator('.recharts-bar-rectangle').nth(1).click() // segunda barra: o laço, 1 unidade
+  await expect(page.getByTestId('contagem-registros')).toHaveText('1 venda · 1 unidade')
+  await expect(page.getByTestId('modal-listagem')).toContainText('R$ 60,00')
 })
