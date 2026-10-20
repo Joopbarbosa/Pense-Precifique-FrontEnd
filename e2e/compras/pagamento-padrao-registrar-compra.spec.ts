@@ -1,6 +1,7 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
 import { registrarEmpresaEfemera, loginComoEmail, API_URL } from '../helpers/auth'
 import { criarInsumo } from '../helpers/api'
+import { hojeLocal } from '../helpers/data'
 
 /**
  * V0.17.0 #997 — "Registrar compra" abre em "Pago" com o último método usado (RN-NOVA-33,
@@ -24,7 +25,7 @@ async function preparar(page: Page, request: APIRequestContext, prefixo: string)
 
 async function rascunho(request: APIRequestContext, token: string, pago: boolean, metodoId: string | null, nome: string) {
   const insumo = await criarInsumo(request, token, nome)
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = hojeLocal()
   const res = await request.post(`${API_URL}/compras`, {
     headers: { Authorization: `Bearer ${token}` },
     data: { dataCompra: hoje, multiplosFornecedores: false, pago, metodoPagamentoId: metodoId, itens: [{ insumoId: insumo.id, quantidade: 2, precoCheio: 10 }] },

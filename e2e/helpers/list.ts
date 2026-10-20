@@ -9,6 +9,8 @@ export async function carregarAte(page: Page, texto: string, maxCliques = 15) {
   // Banco de teste cheio (centenas de registros "E2E ..."): filtra pela busca da tela, quando existe, em vez de
   // percorrer dezenas de páginas.
   const busca = page.getByPlaceholder(/^Buscar por nome/).first()
+  // Logo depois de trocar de aba a lista ainda recarrega (campo de busca oculto, linhas antigas na tela): espera o campo antes de decidir
+  await busca.waitFor({ state: 'visible', timeout: 3000 }).catch(() => undefined)
   if (await busca.isVisible().catch(() => false)) {
     await busca.fill(texto)
     await page.waitForTimeout(800)
