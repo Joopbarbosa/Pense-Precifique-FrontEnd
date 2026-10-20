@@ -106,6 +106,8 @@ export interface ProdutoRelacionadoResponse {
   id: string
   identificador?: string
   nome: string
+  /** V0.17.0 #1018: marca do produto (nula quando não tem), para mostrar "Nome — Marca". */
+  marca?: string | null
   tipo: 'PRODUTO' | 'CUSTOMIZACAO'
   /** V0.17.0 #971: quantidade do insumo na ficha do produto e a unidade do insumo ("2 m"). */
   quantidade?: number | null

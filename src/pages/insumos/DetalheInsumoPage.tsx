@@ -13,6 +13,7 @@ import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedor
 import HistoricoNotaInsumo from '../../components/compra/nota/HistoricoNotaInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
 import type { PageResponse } from '../../types/shared'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
@@ -369,7 +370,7 @@ function FichasList({ produtos, loading }: { produtos: ProdutoRelacionadoRespons
               {p.identificador && (
                 <span className="shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
               )}
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{p.nome}</span>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{rotuloProduto(p.nome, p.marca)}</span>
             </div>
           </div>
           <span className="shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11.5px] font-semibold text-subtle">
