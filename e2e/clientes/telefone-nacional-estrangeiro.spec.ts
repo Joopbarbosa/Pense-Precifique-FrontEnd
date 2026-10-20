@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { login } from '../helpers/auth'
+import { login, loginComoEmail, registrarEmpresaEfemera, API_URL, TEST_SENHA } from '../helpers/auth'
 
 /**
  * V0.17.0 #964 (RN-NOVA-19, CEN-NOVO-56 a 59): telefone do cliente com máscara nacional,
@@ -55,4 +55,40 @@ test.describe('V0.17.0 — #964 telefone de cliente', () => {
     await expect(page.getByText('Telefone inválido').first()).toBeVisible()
     await expect(page).toHaveURL(/\/clientes\/novo$/)
   })
+})
+
+/**
+ * V0.17.0 #1000 (QA da #964, CEN-NOVO-59): cliente gravado antes da regra com o telefone "123". A API já não aceita gravar esse
+ * valor; o estado antigo vem do servidor como se estivesse no banco (resposta interceptada) e o salvamento passa pelo servidor real.
+ */
+test('CEN-NOVO-59 — telefone antigo "123" é exibido e, ao alterar só o nome, o salvamento é bloqueado no campo', async ({ page, request }) => {
+  const { token, email } = await registrarEmpresaEfemera(request, 'legado1000')
+  const criado = await request.post(`${API_URL}/clientes`, {
+    headers: { Authorization: `Bearer ${token}` }, data: { nome: 'Maria Silva', ehCliente: true, whatsapp: '(11) 91234-5678' },
+  })
+  expect(criado.ok(), await criado.text()).toBeTruthy()
+  const cliente = await criado.json()
+  await page.route(`**/clientes/${cliente.id}`, async rota => {
+    if (rota.request().method() !== 'GET') return rota.continue()
+    const resposta = await rota.fetch()
+    await rota.fulfill({ response: resposta, json: { ...(await resposta.json()), whatsapp: '123' } })
+  })
+
+  await loginComoEmail(page, email, TEST_SENHA)
+  await page.goto(`/clientes/${cliente.id}/editar`)
+  const whatsapp = grupoWhatsapp(page).locator('input')
+  await expect(whatsapp).toHaveValue(/123/)
+
+  await page.getByPlaceholder('Beatriz Santos ou Papelaria Central').fill('Maria Souza')
+  await page.getByRole('button', { name: 'Salvar cadastro' }).click()
+  await expect(page.getByText('Telefone inválido').first()).toBeVisible()
+  await expect(page).toHaveURL(/\/clientes\/[^/]+\/editar$/)
+
+  const gravado = await request.get(`${API_URL}/clientes/${cliente.id}`, { headers: { Authorization: `Bearer ${token}` } })
+  expect((await gravado.json()).nome).toBe('Maria Silva') // nada foi gravado
+
+  await whatsapp.fill('')
+  await page.getByRole('button', { name: 'Salvar cadastro' }).click()
+  await expect(page).toHaveURL(/\/clientes\/[^/]+$/)
+  await page.unrouteAll({ behavior: 'ignoreErrors' })
 })
