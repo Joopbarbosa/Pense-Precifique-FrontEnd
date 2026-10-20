@@ -33,6 +33,7 @@ export interface ItemCatalogoBuscaResponse {
    *  calculadora de preço via GET /catalogos/{catalogoId}/itens. */
   catalogoId: string;
   nome: string;
+  marca?: string | null;
   precoVenda: number;
   catalogoNome: string;
   catalogoNumero: number;

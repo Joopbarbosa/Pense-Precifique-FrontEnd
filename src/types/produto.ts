@@ -29,6 +29,8 @@ export interface FichaTecnicaItemResponse {
 
 export interface ProdutoRequest {
   nome: string
+  /** #1017 (RN-NOVA-36) — marca opcional, até 100 caracteres. */
+  marca?: string
   tipo: TipoProduto
   descricao?: string
   tempoProducao: number
@@ -50,6 +52,7 @@ export interface ProdutoResponse {
   numero?: number
   identificador?: string
   nome: string
+  marca?: string | null
   tipo: TipoProduto
   precoVenda?: number
   precoCusto: number

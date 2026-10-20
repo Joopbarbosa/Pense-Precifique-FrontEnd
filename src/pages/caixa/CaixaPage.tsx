@@ -30,6 +30,7 @@ import type {
   AvisoEstoqueNegativoResponse, VendaCaixaRequest,
 } from '../../types/caixa'
 import { ehAvisoEstoqueNegativo } from '../../types/caixa'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 /**
  * #487/#488 (V0.12.0) — Caixa/PDV, Epic #416. Venda de balcão paralela ao Orçamento: sem
@@ -955,7 +956,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
       // Não há mais estoque/fracionável agregado na busca (item pode ter N componentes) — achado
       // registrado em decisoes-catalogo.md.
       return [...prev, {
-        key: item.id, itemCatalogoId: item.id, nome: item.nome,
+        key: item.id, itemCatalogoId: item.id, nome: rotuloProduto(item.nome, item.marca),
         preco: item.precoVenda, qtd: 1, customs: [], customsFixas: [],
         catalogoNome: item.catalogoNome,
         permitirEstoqueNegativo: true, estoqueAtual: null,
@@ -969,7 +970,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
       const existente = prev.find(i => i.produtoId === produto.id && !i.itemCatalogoId)
       if (existente) return prev.map(i => i.key === existente.key ? { ...i, qtd: i.qtd + 1 } : i)
       return [...prev, {
-        key: produto.id, produtoId: produto.id, nome: produto.nome,
+        key: produto.id, produtoId: produto.id, nome: rotuloProduto(produto.nome, produto.marca),
         preco: produto.precoVenda ?? 0, qtd: 1, customs: [], customsFixas: [],
         produtoIdentificador: produto.identificador,
         permitirEstoqueNegativo: produto.permitirEstoqueNegativo, estoqueAtual: produto.estoqueAtual,

@@ -227,8 +227,8 @@ function FotoProduto({ produtoId, nome, fotoUrl, onFotoUrlChange, pendente, onPe
   )
 }
 
-function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl, fotoPendente, setFotoPendente }: {
-  st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string
+function DadosBasicos({ st, set, onNext, nomeErro, marcaErro, permitirEstoqueNegativo, setPermitirEstoqueNegativo, estoqueNegativoErro, produtoId, fotoUrl, setFotoUrl, fotoPendente, setFotoPendente }: {
+  st: any; set: (k: string, v: any) => void; onNext: () => void; nomeErro?: string; marcaErro?: string
   permitirEstoqueNegativo: boolean; setPermitirEstoqueNegativo: (v: boolean) => void; estoqueNegativoErro?: string
   produtoId?: string; fotoUrl: string | null; setFotoUrl: (url: string | null) => void
   fotoPendente: File | null; setFotoPendente: (f: File | null) => void
@@ -240,6 +240,14 @@ function DadosBasicos({ st, set, onNext, nomeErro, permitirEstoqueNegativo, setP
           <Field label="Nome do produto" required size="md">
             <TextInput value={st.nome} onChange={v => set('nome', v)} placeholder="Ex: Kit Convite Casamento" />
             {nomeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{nomeErro}</span>}
+          </Field>
+        </div>
+        <div className="col-span-2">
+          {/* #1017 (RN-NOVA-36) — marca opcional; o par nome + marca não se repete entre os produtos */}
+          <Field label="Marca" opt size="md">
+            <TextInput value={st.marca} onChange={v => set('marca', v.slice(0, 100))} placeholder="Ex: Pense" />
+            {marcaErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep" data-testid="erro-marca">{marcaErro}</span>}
+            <span className="mt-1.5 block text-xs text-muted">O par nome + marca deve ser único.</span>
           </Field>
         </div>
         <div className="col-span-2">
@@ -338,12 +346,12 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         setProdutos(
           prodsFiltrados
             .filter(p => p.tipo === 'PRODUTO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: p.marca || '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
         setCustomizacoes(
           prodsFiltrados
             .filter(p => p.tipo === 'CUSTOMIZACAO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: p.marca || '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
       } catch {
         setInsumos([])
@@ -719,7 +727,7 @@ export default function CadastrarProdutoPage() {
   const editando = !!id
   const [aba, setAba] = useState<'dados' | 'ficha'>('dados')
   const [dados, setDados] = useState({
-    nome: '', tipo: 'Produto', descricao: '', tempo: '',
+    nome: '', marca: '', tipo: 'Produto', descricao: '', tempo: '',
   })
   const setD = (k: string, v: any) => setDados(d => ({ ...d, [k]: v }))
   const [ficha, setFicha] = useState<FichaItem[]>([])
@@ -802,6 +810,7 @@ export default function CadastrarProdutoPage() {
       .then(produto => {
         setDados({
           nome: produto.nome,
+          marca: produto.marca || '',
           tipo: TIPO_API_TO_LABEL[produto.tipo] || 'Produto',
           descricao: produto.descricao || '',
           tempo: produto.tempoProducao.toString(),
@@ -857,6 +866,7 @@ export default function CadastrarProdutoPage() {
 
     const request: ProdutoRequest = {
       nome: dados.nome.trim(),
+      marca: dados.marca.trim() || undefined,
       tipo: tipoApi,
       descricao: dados.descricao.trim() || undefined,
       tempoProducao: Math.round(num(dados.tempo)) || 1,
@@ -973,7 +983,7 @@ export default function CadastrarProdutoPage() {
       {/* CONTEÚDO */}
       {aba === 'dados' && (
         <DadosBasicos
-          st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome}
+          st={dados} set={setD} onNext={() => setAba('ficha')} nomeErro={fieldErrors.nome} marcaErro={fieldErrors.marca}
           permitirEstoqueNegativo={permitirEstoqueNegativo} setPermitirEstoqueNegativo={setPermitirEstoqueNegativo} estoqueNegativoErro={estoqueNegativoErro}
           produtoId={id} fotoUrl={fotoUrl} setFotoUrl={setFotoUrl} fotoPendente={fotoPendente} setFotoPendente={setFotoPendente}
         />
