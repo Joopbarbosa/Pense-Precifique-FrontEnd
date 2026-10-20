@@ -62,10 +62,10 @@ const CATALOGO = {
   'inicio-mais-vendidos': {
     titulo: 'Mais vendidos',
     partes: [{
-      mostra: 'Os 5 produtos que mais aparecem nos seus orçamentos.',
-      origem: 'Soma das quantidades de cada produto em todos os orçamentos da conta (não só os pagos).',
-      conta: 'Quantidade do produto no orçamento 1 + no orçamento 2 + …; o produto com a maior soma fica no topo.',
-      exemplo: 'O Laço pequeno aparece 4 vezes em um orçamento e 3 em outro: 7 unidades.',
+      mostra: 'Os 5 produtos mais vendidos no mês atual, vindos das suas vendas: orçamentos entregues e vendas do Caixa concluídas.',
+      origem: 'Soma das quantidades de cada produto nas vendas do mês, de 1º ao último dia, no horário de Brasília. Rascunho, orçamento excluído e venda cancelada não entram.',
+      conta: 'Quantidade do produto na venda 1 + na venda 2 + …; o produto com a maior soma fica no topo.',
+      exemplo: 'Em outubro, o Laço pequeno vendeu 3 num orçamento entregue e 2 numa venda do Caixa, e o Caderno vendeu 1: o Laço pequeno soma 3 + 2 = 5 unidades e fica em primeiro; o Caderno soma 1.',
     }],
   },
   'inicio-estoque-baixo': {
