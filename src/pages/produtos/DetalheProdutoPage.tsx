@@ -23,6 +23,7 @@ import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualPr
 import { MOTIVOS_BAIXA_PRODUTO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade } from '../../utils/quantidade'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
@@ -375,7 +376,7 @@ export default function DetalheProdutoPage() {
           Produtos
         </span>
         <ChevronRight size={15} className="text-dim" />
-        <span className="whitespace-nowrap font-semibold text-body">{produto.nome}</span>
+        <span className="whitespace-nowrap font-semibold text-body">{rotuloProduto(produto.nome, produto.marca)}</span>
       </div>
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-section">
@@ -388,7 +389,7 @@ export default function DetalheProdutoPage() {
               {produto.identificador && (
                 <span className="shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
               )}
-              <h1 className="m-0 whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{produto.nome}</h1>
+              <h1 className="m-0 whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{rotuloProduto(produto.nome, produto.marca)}</h1>
               <span
                 className="inline-flex h-[26px] items-center whitespace-nowrap rounded-full px-[11px] text-[12.5px] font-bold tracking-[0.01em]"
                 style={{ background: badge.bg, color: badge.fg }}

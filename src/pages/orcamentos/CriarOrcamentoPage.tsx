@@ -32,6 +32,7 @@ import {
   ClienteSelect, SectionCard, ModoToggle,
   BRL, carregarCalculadoraAvulso, carregarCalculadoraCatalogo,
 } from '../../components/venda'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 
 // Símbolo exibido na UI ('%' | 'R$') é conceito distinto do valor aceito pela API
@@ -1051,7 +1052,7 @@ export default function CriarOrcamentoPage() {
               const produto = calculadoraPendente.produto
               setItems(arr => [...arr, {
                 id: Date.now(),
-                nome: produto.nome,
+                nome: rotuloProduto(produto.nome, produto.marca),
                 qtd: 1,
                 preco: precoFinal,
                 customs: [],
@@ -1066,7 +1067,7 @@ export default function CriarOrcamentoPage() {
               const item = calculadoraPendente.item
               setItems(arr => [...arr, {
                 id: Date.now(),
-                nome: item.nome,
+                nome: rotuloProduto(item.nome, item.marca),
                 qtd: 1,
                 preco: precoFinal,
                 customs: [],

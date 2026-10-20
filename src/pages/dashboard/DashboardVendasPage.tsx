@@ -21,6 +21,7 @@ import { useIsMobile } from '../../hooks/useIsMobile'
 import { extractApiError } from '../../utils/apiError'
 import { GRAFICO_GRID, MENSAGEM_GRAFICO_CELULAR, PALETA_SERIES } from '../../constants/graficos'
 import type { DashboardVendasResponse, NumeroDash, OrigemVenda } from '../../types/dashboardVendas'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 // V0.17.0 — #719 (RN-NOVA-17) e #968 (RN-NOVA-23): Dashboard de Vendas, com duas abas. Gráficos: números com lupa e gráficos
 // clicáveis; Vendas: todas as vendas e orçamentos, de qualquer status. O clique num número ou gráfico abre a modal de listagem das
@@ -143,7 +144,7 @@ export default function DashboardVendasPage() {
                   ) : undefined}>
                   {d.produtosMaisVendidos.length === 0 ? vazio('Nenhum produto vendido no período.') : (
                     <Ranking testid="ranking-produtos" cor={PALETA_SERIES[1]} formato={v => `${v} un`}
-                      dados={d.produtosMaisVendidos.map(p => ({ id: p.id ?? p.nome, rotulo: p.nome, valor: p.quantidade, extra: `${BRL(p.faturamento)} vendidos` }))}
+                      dados={d.produtosMaisVendidos.map(p => ({ id: p.id ?? p.nome, rotulo: rotuloProduto(p.nome, p.marca), valor: p.quantidade, extra: `${BRL(p.faturamento)} vendidos` }))}
                       onClique={(id, nome) => abrirLista(`Vendas de ${nome}`, { produtoId: id })} />
                   )}
                 </Painel>
@@ -168,7 +169,7 @@ export default function DashboardVendasPage() {
       )}
       {todosProdutos && d && (
         <ModalListaCompleta titulo="Produtos mais vendidos" onClose={() => setTodosProdutos(false)}
-          itens={d.todosProdutosVendidos.map((p, i): ItemListaCompleta => ({ chave: `${p.id ?? p.nome}-${i}`, rotulo: p.nome,
+          itens={d.todosProdutosVendidos.map((p, i): ItemListaCompleta => ({ chave: `${p.id ?? p.nome}-${i}`, rotulo: rotuloProduto(p.nome, p.marca),
             detalhe: `${BRL(p.faturamento)}`, valor: `${p.quantidade} un` }))} />
       )}
     </AppLayout>

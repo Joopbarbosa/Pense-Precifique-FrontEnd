@@ -22,6 +22,7 @@ import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 import type { ProdutoResponse, ProdutoContagensResponse, ComponenteVinculadoResponse, AcaoResolucaoVinculo, ResolverVinculosProdutoRequest } from '../../types/produto'
 import type { TipoProduto } from '../../types/index'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 const CATS = ['Todos', 'Produto', 'Customização', 'Inativos']
 
@@ -176,7 +177,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
           </div>
         )}
         <h3 className="m-0 text-[15.5px] font-semibold leading-[1.3] tracking-[-0.01em] text-dark">
-          {p.nome}
+          {rotuloProduto(p.nome, p.marca)}
         </h3>
         {!isCustom && (
           <EstoqueTags
@@ -253,7 +254,7 @@ function SeletorProdutoSubstituto({ label, tipoFiltro, produtoAtualId, seleciona
 
       {selecionado ? (
         <div className="flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] border-teal/40 bg-teal/5 px-3 py-2.5">
-          <span className="text-[13.5px] font-semibold text-dark">{selecionado.nome}</span>
+          <span className="text-[13.5px] font-semibold text-dark">{rotuloProduto(selecionado.nome, selecionado.marca)}</span>
           <button onClick={() => onSelect(null)} className="flex border-none bg-transparent text-faint hover:text-danger">
             <Trash2 size={15} />
           </button>
@@ -283,7 +284,7 @@ function SeletorProdutoSubstituto({ label, tipoFiltro, produtoAtualId, seleciona
                   onMouseDown={() => onSelect(p)}
                   className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
                 >
-                  <span className="text-[13.5px] font-semibold text-dark">{p.nome}</span>
+                  <span className="text-[13.5px] font-semibold text-dark">{rotuloProduto(p.nome, p.marca)}</span>
                   {tipoFiltro === 'PRODUTO' && (
                     <EstoqueTags
                       fracionavel={!p.algumInsumoNaoFracionavel}

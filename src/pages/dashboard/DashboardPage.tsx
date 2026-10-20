@@ -12,6 +12,7 @@ import { insumoService } from '../../services/insumoService'
 import type { DashboardResponse } from '../../types/dashboard'
 import type { InsumoResponse } from '../../types/insumo'
 import type { StatusOrcamento } from '../../types'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 
 function fmtBRL(v: number): string {
@@ -219,7 +220,7 @@ export default function DashboardPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-[#2D2A26]">
-                        {prod.nomeProduto}
+                        {rotuloProduto(prod.nomeProduto, prod.marca)}
                       </div>
                     </div>
                     <span className="shrink-0 text-[13px] font-semibold text-dim">

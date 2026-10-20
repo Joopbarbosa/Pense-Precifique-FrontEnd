@@ -5,6 +5,7 @@ import { produtoService } from '../../services/produtoService'
 import { EstoqueTags } from '../ui/Badge'
 import type { CustomizacaoLinha } from './types'
 import { BRL } from './formato'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 interface CustomizacaoDisponivel {
   id: string
@@ -44,7 +45,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
       .then(data => {
         setCustomizacoes(data.content.map(p => ({
           id: p.id,
-          nome: p.nome,
+          nome: rotuloProduto(p.nome, p.marca),
           valor: p.precoVenda ?? 0,
           permitirEstoqueNegativo: p.permitirEstoqueNegativo,
           estoqueAtual: p.estoqueAtual,

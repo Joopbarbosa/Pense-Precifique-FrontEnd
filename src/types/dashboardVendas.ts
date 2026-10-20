@@ -18,9 +18,9 @@ export interface DashboardVendasResponse {
   ticketMedio: NumeroDash
   meses: { mes: string; faturamento: number; quantidade: number }[]
   porOrigem: { origem: OrigemVenda; faturamento: number; quantidade: number }[]
-  produtosMaisVendidos: { id: string | null; tipo: 'PRODUTO' | 'CATALOGO'; nome: string; quantidade: number; faturamento: number }[]
+  produtosMaisVendidos: { id: string | null; tipo: 'PRODUTO' | 'CATALOGO'; nome: string; marca?: string | null; quantidade: number; faturamento: number }[]
   /** V0.17.0 #971 (DT-NOVA-18): todos os produtos vendidos, para a lupa do ranking (o ranking mostra 10). */
-  todosProdutosVendidos: { id: string | null; tipo: 'PRODUTO' | 'CATALOGO'; nome: string; quantidade: number; faturamento: number }[]
+  todosProdutosVendidos: { id: string | null; tipo: 'PRODUTO' | 'CATALOGO'; nome: string; marca?: string | null; quantidade: number; faturamento: number }[]
   formasPagamento: { forma: string; valor: number; quantidade: number }[]
 }
 

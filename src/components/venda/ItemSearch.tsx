@@ -9,6 +9,7 @@ import type { ItemCatalogoBuscaResponse } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
 import Paginacao from '../shared/Paginacao'
 import { BRL } from './formato'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 /**
  * Painel de busca de item de venda — Produto avulso e/ou item de Catálogo, com paginação real (RN-NOVA-18, V0.8.3;
@@ -178,7 +179,7 @@ export default function ItemSearch({
             {/* #641 (RN-NOVA-40) — item indisponível (catálogo ou componente inativo): riscado, com "Inativo", sem poder escolher. */}
             {itensCatalogo.map(item => item.ativo === false ? (
               <OpcaoInativa key={item.id} className="px-[11px] py-2.5">
-                <div className="truncate text-sm font-medium">{item.nome}</div>
+                <div className="truncate text-sm font-medium">{rotuloProduto(item.nome, item.marca)}</div>
                 <div className="text-xs">{item.catalogoNome}</div>
               </OpcaoInativa>
             ) : (
@@ -192,7 +193,7 @@ export default function ItemSearch({
                   <Layers size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{item.nome}</div>
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{rotuloProduto(item.nome, item.marca)}</div>
                   <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
                   {/* V0.13.0 — item de catálogo passou a ter N componentes, cada um com seu próprio
                       estoque; não há badge de quantidade exata única pra mostrar na busca. Os dois
@@ -219,7 +220,7 @@ export default function ItemSearch({
             {/* #616 (RN-NOVA-40) — produto inativo: riscado, com "Inativo", sem poder escolher. */}
             {produtos.map(p => p.ativo === false ? (
               <OpcaoInativa key={p.id} className="px-[11px] py-2.5">
-                <div className="truncate text-sm font-medium">{p.nome}</div>
+                <div className="truncate text-sm font-medium">{rotuloProduto(p.nome, p.marca)}</div>
               </OpcaoInativa>
             ) : (
               <button
@@ -232,7 +233,7 @@ export default function ItemSearch({
                   <Box size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{p.nome}</div>
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{rotuloProduto(p.nome, p.marca)}</div>
                   <div className="text-xs text-muted">{BRL(p.precoVenda ?? 0)} / unidade</div>
                   <EstoqueTags
                     className="mt-1"

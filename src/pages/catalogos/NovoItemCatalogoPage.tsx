@@ -153,12 +153,12 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
         setProdutos(
           prodsFiltrados
             .filter(p => p.tipo === 'PRODUTO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: p.marca || '', un: 'un', custo: p.precoCusto, tipo: 'produto' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
         setCustomizacoes(
           prodsFiltrados
             .filter(p => p.tipo === 'CUSTOMIZACAO')
-            .map(p => ({ id: p.id, nome: p.nome, marca: '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
+            .map(p => ({ id: p.id, nome: p.nome, marca: p.marca || '', un: 'un', custo: p.precoCusto, tipo: 'customizacao' as const, fracionavel: p.fracionavel ?? true, ativo: p.ativo }))
         )
       } catch {
         setInsumos([])
@@ -290,6 +290,8 @@ export default function NovoItemCatalogoPage() {
   const [loadingContexto, setLoadingContexto] = useState(true)
 
   const [nome, setNome] = useState('')
+  const [marca, setMarca] = useState('') // #1017 (RN-NOVA-36)
+  const [marcaErro, setMarcaErro] = useState<string | null>(null)
   const [componentes, setComponentes] = useState<ComponenteLinha[]>([])
   const [tempoProducao, setTempoProducao] = useState('')
   const [margem, setMargem] = useState('0')
@@ -360,6 +362,7 @@ export default function NovoItemCatalogoPage() {
             if (!item) { setErro('Item não encontrado neste catálogo.'); return }
 
             setNome(item.nome)
+            setMarca(item.marca ?? '')
             setItemId(item.id)
             setDescricao(item.descricao ?? '')
             setFotoUrl(item.fotoUrl)
@@ -409,13 +412,14 @@ export default function NovoItemCatalogoPage() {
     if (!nome.trim() || componentes.length === 0) return null
     return {
       nome: nome.trim(),
+      marca: marca.trim() || undefined,
       componentes: buildComponentesRequest(),
       tempoProducao: Math.round(num(tempoProducao)) || 0,
       margemLucro: num(margem),
       precoVenda: precoEditadoManualmente && precoVenda ? num(precoVenda) : undefined,
       descricao: descricao.trim() || undefined,
     }
-  }, [nome, componentes, tempoProducao, margem, precoVenda, precoEditadoManualmente, descricao, buildComponentesRequest])
+  }, [nome, marca, componentes, tempoProducao, margem, precoVenda, precoEditadoManualmente, descricao, buildComponentesRequest])
 
   // Só simula (POST /itens/preview-preco), nunca cria/edita o ItemCatalogo real — mesmo padrão
   // já usado por esta tela antes da reforma (RN-NOVA-8).
@@ -497,6 +501,7 @@ export default function NovoItemCatalogoPage() {
   const salvar = async () => {
     setErro(null)
     setNomeErro(null)
+    setMarcaErro(null)
     setComponentesErro(null)
     if (!catalogoId) { setErro('Selecione um catálogo.'); return }
     if (!nome.trim()) { setNomeErro('Informe o nome do item.'); return }
@@ -524,6 +529,13 @@ export default function NovoItemCatalogoPage() {
       }
     } catch (err: any) {
       const msg = extractApiError(err, 'Erro ao salvar item do catálogo.')
+      const campos = err.response?.data?.fieldErrors as Record<string, string> | undefined
+      if (campos?.nome || campos?.marca) {
+        // #1017 — nome + marca repetidos, ou marca grande demais: a mensagem fica no campo
+        if (campos.nome) setNomeErro(campos.nome)
+        if (campos.marca) setMarcaErro(campos.marca)
+        return
+      }
       if (/custo calculado/i.test(msg)) {
         setToast(msg)
       }
@@ -621,6 +633,18 @@ export default function NovoItemCatalogoPage() {
               />
               {nomeErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep">{nomeErro}</span>}
             </Field>
+            <div className="mt-4">
+              <Field label="Marca" opt size="md">
+                <input
+                  value={marca}
+                  onChange={e => setMarca(e.target.value.slice(0, 100))}
+                  placeholder="Ex: Pense"
+                  className={inputClass(!!marcaErro)}
+                />
+                {marcaErro && <span className="mt-1.5 block text-[12.5px] text-danger-deep" data-testid="erro-marca">{marcaErro}</span>}
+                <span className="mt-1.5 block text-xs text-muted">O par nome + marca deve ser único neste catálogo.</span>
+              </Field>
+            </div>
           </div>
 
           {/* Tempo de produção */}
