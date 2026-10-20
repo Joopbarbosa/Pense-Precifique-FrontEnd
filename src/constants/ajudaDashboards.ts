@@ -29,10 +29,10 @@ const CATALOGO = {
   'inicio-faturamento': {
     titulo: 'Faturamento do mês',
     partes: [{
-      mostra: 'Quanto você recebeu em orçamentos neste mês.',
-      origem: 'Soma do total dos orçamentos cujo pagamento foi registrado dentro do mês atual.',
-      conta: 'Total do orçamento 1 + total do orçamento 2 + … (só os pagos neste mês).',
-      exemplo: 'Dois orçamentos pagos, de R$ 300,00 e R$ 150,00, dão R$ 450,00.',
+      mostra: 'Quanto você vendeu neste mês.',
+      origem: 'Soma do valor das vendas do mês atual: orçamentos entregues (pela data da entrega) e vendas do Caixa concluídas (pela data da venda). Orçamento só pago, mas ainda não entregue, não entra.',
+      conta: 'Valor da venda 1 + valor da venda 2 + … (só as vendas deste mês).',
+      exemplo: 'Um orçamento entregue de R$ 300,00 e uma venda do Caixa de R$ 150,00 dão R$ 450,00.',
     }],
   },
   'inicio-produtos': {
