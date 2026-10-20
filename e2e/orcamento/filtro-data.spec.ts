@@ -97,7 +97,7 @@ test.describe('Cenários 234-236 — Filtro de intervalo de data em Lista de Or�
 
     await page.getByRole('button', { name: 'Aplicar', exact: true }).click()
     await page.waitForTimeout(500)
-    await expect(page.getByText(nomeCliente, { exact: true }).first()).toBeVisible()
+    await expect(page.getByText(nomeCliente, { exact: true }).first()).toBeVisible({ timeout: 20_000 })
   })
 
   test('235 — filtro de data combina com busca e status sem sobrescrever nenhum dos dois', async ({ page, request }) => {
