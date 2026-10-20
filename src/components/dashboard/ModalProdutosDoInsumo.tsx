@@ -3,6 +3,7 @@ import { ModalShell, Button } from '../ui'
 import Spinner from '../ui/Spinner'
 import { insumoService } from '../../services/insumoService'
 import { extractApiError } from '../../utils/apiError'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 import type { ProdutoRelacionadoResponse } from '../../types/insumo'
 
 // V0.17.0 — #971 (RN-NOVA-23 item 2, DT-NOVA-18 (3)): o ranking "Em quantos produtos cada insumo está" abre os produtos que usam o
@@ -36,7 +37,7 @@ export default function ModalProdutosDoInsumo({ insumoId, insumoNome, onClose }:
               {produtos.map(p => (
                 <tr key={p.id} className="border-t border-line">
                   <td className="px-2 py-2">
-                    <a href={`/produtos/${p.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-teal no-underline hover:underline">{p.nome}</a>
+                    <a href={`/produtos/${p.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-teal no-underline hover:underline">{rotuloProduto(p.nome, p.marca)}</a>
                   </td>
                   <td className="px-2 py-2 [font-variant-numeric:tabular-nums]">
                     {p.quantidade != null ? `${p.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}${p.unidade ? ` ${p.unidade}` : ''}` : '—'}

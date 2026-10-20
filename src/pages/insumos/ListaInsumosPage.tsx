@@ -17,6 +17,7 @@ import {
   Layers, Box, CheckCircle, Repeat,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 import type { InsumoContagensResponse, InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { catalogoService } from '../../services/catalogoService'
@@ -265,7 +266,7 @@ function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect
             {produto.identificador && (
               <span className="text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
             )}
-            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-dark">{produto.nome}</span>
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-dark">{rotuloProduto(produto.nome, produto.marca)}</span>
           </div>
         </div>
       </div>
@@ -569,7 +570,7 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, catalogoVincu
                           {p.identificador && (
                             <span className="shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
                           )}
-                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
+                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{rotuloProduto(p.nome, p.marca)}</span>
                         </div>
                       </div>
                       <span className="shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
