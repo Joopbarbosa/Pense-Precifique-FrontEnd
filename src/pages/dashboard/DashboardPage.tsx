@@ -198,17 +198,17 @@ export default function DashboardPage() {
               </span>
               <div>
                 <div className="flex items-center gap-1.5 text-base font-bold text-[#2D2A26]">Mais Vendidos<BotaoAjuda id="inicio-mais-vendidos" /></div>
-                <div className="mt-px text-[13px] text-dim">Top produtos do período</div>
+                <div className="mt-px text-[13px] text-dim">Top produtos do mês</div>
               </div>
             </div>
 
             {data.produtosMaisVendidos.length === 0 ? (
-              <p className="m-0 text-sm text-faint">Nenhum produto vendido ainda.</p>
+              <p className="m-0 text-sm text-faint">Nenhum produto vendido neste mês.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {data.produtosMaisVendidos.map((prod, i) => (
                   <div
-                    key={prod.nomeProduto}
+                    key={`${prod.tipo}-${prod.id ?? prod.nomeProduto}`}
                     className="flex items-center gap-3 rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px]"
                   >
                     <span className={clsx(
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <span className="shrink-0 text-[13px] font-semibold text-dim">
-                      {prod.quantidade} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
+                      {prod.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
                     </span>
                   </div>
                 ))}
