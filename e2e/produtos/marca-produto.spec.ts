@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginComoEmail, registrarEmpresaEfemera, API_URL } from '../helpers/auth'
+import { criarInsumo } from '../helpers/api'
 
 /**
  * V0.17.0 #1017 (RN-NOVA-36, CEN-NOVO-117 a 121): marca opcional no produto, "Nome — Marca" na lista, nome + marca únicos
@@ -31,8 +32,10 @@ test('V0.17.0 — #1017 produtos com o mesmo nome e marcas diferentes aparecem e
 test('V0.17.0 — #1017 editar a marca para uma combinação que já existe bloqueia no campo Marca; marca de 101 caracteres é recusada', async ({ page, request }) => {
   const conta = await registrarEmpresaEfemera(request, 'marca-dup')
   const headers = { Authorization: `Bearer ${conta.token}` }
-  await request.post(`${API_URL}/produtos`, { headers, data: corpo('Caderno', 'Pense') })
-  const escolar = await (await request.post(`${API_URL}/produtos`, { headers, data: corpo('Caderno', 'Escolar') })).json()
+  const insumo = await criarInsumo(request, conta.token, 'Insumo-marca')
+  const comFicha = (nome: string, marca?: string) => ({ ...corpo(nome, marca), fichaTecnica: [{ insumoId: insumo.id, quantidade: 1 }] })
+  await request.post(`${API_URL}/produtos`, { headers, data: comFicha('Caderno', 'Pense') })
+  const escolar = await (await request.post(`${API_URL}/produtos`, { headers, data: comFicha('Caderno', 'Escolar') })).json()
 
   // CEN-NOVO-119 pela API: mesmo nome e marca, sem diferenciar maiúsculas e espaços
   const igual = await request.post(`${API_URL}/produtos`, { headers, data: corpo(' caderno ', 'PENSE') })
@@ -49,6 +52,8 @@ test('V0.17.0 — #1017 editar a marca para uma combinação que já existe bloq
   const campo = page.getByPlaceholder('Ex: Pense')
   await expect(campo).toHaveValue('Escolar')
   await campo.fill('pense')
+  await page.getByRole('button', { name: '2 Ficha Técnica' }).click()
   await page.getByRole('button', { name: 'Salvar alterações' }).click()
+  await page.getByRole('button', { name: /1 Dados/ }).click()
   await expect(page.getByTestId('erro-marca')).toHaveText('Já existe um produto com este nome e esta marca')
 })
