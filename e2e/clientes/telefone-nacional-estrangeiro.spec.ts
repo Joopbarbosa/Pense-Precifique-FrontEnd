@@ -48,6 +48,17 @@ test.describe('V0.17.0 — #964 telefone de cliente', () => {
     await expect(page.getByPlaceholder('(11) 99999-0000')).toHaveValue('(12) 12555-0123')
   })
 
+  test('CEN-NOVO-86 (#995) — voltar para Nacional com 12 dígitos mantém os dígitos e bloqueia ao salvar', async ({ page }) => {
+    await grupoWhatsapp(page).getByRole('button', { name: 'Estrangeiro' }).click()
+    await page.getByPlaceholder('+55 11 99999-0000').fill('+351 912 345 678')
+    await grupoWhatsapp(page).getByRole('button', { name: 'Nacional' }).click()
+    await expect(page.getByPlaceholder('(11) 99999-0000')).toHaveValue('(35) 19123-45678')
+    await page.getByPlaceholder('Beatriz Santos ou Papelaria Central').fill(`Cliente 995 ${Date.now()}`)
+    await page.getByRole('button', { name: 'Salvar cadastro' }).click()
+    await expect(page.getByText('Telefone inválido').first()).toBeVisible()
+    await expect(page).toHaveURL(/\/clientes\/novo$/)
+  })
+
   test('CEN-NOVO-58 — texto sem dígito bloqueia ao salvar e nada é gravado', async ({ page }) => {
     await page.getByPlaceholder('Beatriz Santos ou Papelaria Central').fill(`Cliente telefone ${Date.now()}`)
     await page.getByPlaceholder('(11) 99999-0000').fill('abc')

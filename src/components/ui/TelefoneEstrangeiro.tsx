@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatarTelefone } from '../../utils/telefone'
+import { formatarTelefone, mascararTelefoneMantendoDigitos } from '../../utils/telefone'
 import SegmentedControl from './SegmentedControl'
 
 /**
@@ -17,7 +17,7 @@ export function useModoTelefone(valor: string, onChange: (v: string) => void) {
     const proximo = !estrangeiro
     const digitos = valor.replace(/\D/g, '')
     setEscolha(proximo)
-    onChange(digitos === '' ? '' : proximo ? `+${digitos}` : formatarTelefone(digitos, false))
+    onChange(digitos === '' ? '' : proximo ? `+${digitos}` : mascararTelefoneMantendoDigitos(digitos))
   }
   return { estrangeiro, digitar, alternar }
 }
