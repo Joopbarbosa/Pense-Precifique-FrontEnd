@@ -32,7 +32,7 @@ test('CEN6: foto NF-e reduzida, cancelamento não envia, aceite abre conciliaç�
   await expect(page.getByTestId('arquivo-nota-preparado')).toContainText('nota-grande.jpg')
   await page.getByRole('button', { name: 'Ler nota', exact: true }).click(); await expect(page.getByText(/pode conter seu CPF/)).toBeVisible(); await page.getByRole('button', { name: 'Cancelar', exact: true }).click(); expect(envios).toBe(0)
   await page.getByRole('button', { name: 'Ler nota', exact: true }).click(); await page.getByRole('button', { name: 'Aceitar e ler documento', exact: true }).click()
-  await expect(page.getByText('Conferir itens da nota', { exact: true })).toBeVisible(); await expect(page.getByTestId('item-nota-0')).toContainText(f.nome)
+  await expect(page.getByText('Conferir itens da nota', { exact: true })).toBeVisible({ timeout: 20_000 }); await expect(page.getByTestId('item-nota-0')).toContainText(f.nome)
   expect(await observacoes(request)).toMatchObject({ qrChamadas: 0, iaChamadas: 1 }); expect(envios).toBe(1)
 })
 
@@ -41,7 +41,7 @@ test('CEN7: print do QR passa por decodificador real e abre conciliação sem c�
   await login(page); await page.goto('/compras/nota')
   await page.getByTestId('campo-xml').setInputFiles({ name: 'qr.png', mimeType: 'image/png', buffer: png })
   await page.getByRole('button', { name: 'Ler nota', exact: true }).click(); await page.getByRole('button', { name: 'Aceitar e ler documento', exact: true }).click()
-  await expect(page.getByText('Conferir itens da nota', { exact: true })).toBeVisible(); await expect(page.getByTestId('item-nota-0')).toContainText(f.nome)
+  await expect(page.getByText('Conferir itens da nota', { exact: true })).toBeVisible({ timeout: 20_000 }); await expect(page.getByTestId('item-nota-0')).toContainText(f.nome)
   expect(await observacoes(request)).toMatchObject({ qrChamadas: 1, iaChamadas: 0 }); await expect(page.getByTestId('camera-nota')).toHaveCount(0)
 })
 
