@@ -18,12 +18,12 @@ async function registrarPendente(request: APIRequestContext, token: string, insu
   return (await r.json()).compra as { id: string; identificador: string; status: string; previsaoEntrega: string }
 }
 
-/** Não há relógio no servidor: o atraso é simulado antecipando a previsão direto no banco de teste isolado. */
+/** Não há relógio no servidor: o atraso é simulado antecipando a previsão direto no banco de teste isolado, com a data local da aplicação (America/Sao_Paulo), nunca `current_date` do banco (UTC). */
 function antecipar(id: string, dias: number) {
   const container = process.env.DB_CONTAINER!
   const banco = process.env.DB_NAME!
   execFileSync('docker', ['exec', container, 'psql', '-U', 'pense_user', '-d', banco, '-c',
-    `UPDATE compras SET previsao_entrega = current_date - ${dias}, data_compra = current_date - ${dias + 5} WHERE id = '${id}'`])
+    `UPDATE compras SET previsao_entrega = '${hojeLocal(-dias)}', data_compra = '${hojeLocal(-dias - 5)}' WHERE id = '${id}'`])
 }
 
 function ddmm(iso: string) { const [, m, d] = iso.split('-'); return `${d}/${m}` }
@@ -90,10 +90,9 @@ test('V0.17.0 — cancelar pendente exige 30 caracteres e não estorna estoque; 
   await expect(dialogo.getByRole('textbox')).toBeVisible()
   await dialogo.getByRole('textbox').fill('Fornecedor não tem mais o produto em estoque, pedido desfeito')
   await dialogo.getByRole('button', { name: 'Cancelar compra' }).click()
-  await expect(page.getByText('cancelada', { exact: false }).first()).toBeVisible()
+  await expect(page.getByText(`Compra ${compra.identificador} cancelada`)).toBeVisible()
 
-  const cancelada = await (await request.get(`${API_URL}/compras/${compra.id}`, { headers })).json()
-  expect(cancelada.status).toBe('CANCELADA')
+  await expect.poll(async () => (await (await request.get(`${API_URL}/compras/${compra.id}`, { headers })).json()).status, { timeout: 10_000 }).toBe('CANCELADA')
   const depois = await (await request.get(`${API_URL}/insumos/${insumo.id}`, { headers })).json()
   expect(depois.estoqueAtual).toBe(antes.estoqueAtual)
 })
