@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { login, loginComoEmail, registrarEmpresaEfemera, API_URL, TEST_SENHA } from '../helpers/auth'
 import { apiLogin, criarInsumo } from '../helpers/api'
+import { registrarCompraConfirmada } from '../helpers/compra'
 import { apiAbrirTurno, apiFecharTurnoSeAberto, apiCriarProdutoTipo, apiMetodoPagamentoPorTipo } from '../helpers/caixa'
 
 /**
@@ -126,4 +127,37 @@ test('V0.17.0 — #988 Produtos mais vendidos em unidades; a modal do produto mo
   await ranking.locator('.recharts-bar-rectangle').nth(1).click() // segunda barra: o laço, 1 unidade
   await expect(page.getByTestId('contagem-registros')).toHaveText('1 venda · 1 unidade')
   await expect(page.getByTestId('modal-listagem')).toContainText('R$ 60,00')
+})
+
+/**
+ * V0.17.0 #1003 (QA da #971, CEN-NOVO-79): 12 insumos com 12, 11, ... 1 compras no período. O ranking "Insumo mais comprado" mostra
+ * os 10 primeiros (sem o ícone antigo "ver todos"); a lupa lista os 12. Conta efêmera: o ranking só tem os insumos deste teste.
+ */
+test('V0.17.0 — #1003 "Insumo mais comprado" mostra 10 e a lupa lista os 12', async ({ page, request }) => {
+  const { token, email } = await registrarEmpresaEfemera(request, 'rank1003')
+  const sufixo = Date.now()
+  const nome = (n: number) => `QA1003-Ins-${String(n).padStart(2, '0')}-${sufixo}`
+  const insumos: { id: string }[] = []
+  for (let n = 1; n <= 12; n++) insumos.push(await criarInsumo(request, token, nome(n)))
+  // a compra j leva os insumos que têm pelo menos j compras: o insumo n é comprado 13 − n vezes (INS-1: 12 ... INS-12: 1)
+  for (let j = 1; j <= 12; j++) {
+    const itens = insumos.slice(0, 13 - j).map(i => ({ insumoId: i.id, quantidade: 1, precoTotal: 1 }))
+    await registrarCompraConfirmada(request, token, itens)
+  }
+
+  await loginComoEmail(page, email, TEST_SENHA)
+  await page.goto('/cadastros/dashboard')
+  const painel = page.getByTestId('ind-insumo-mais-comprado')
+  await expect(painel).toBeVisible()
+  await expect(painel.locator('.recharts-bar-rectangle')).toHaveCount(10)
+  await expect(painel.getByRole('button', { name: /ver todos/i })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Lupa: lista completa de Insumo mais comprado' }).click()
+  const lista = page.getByTestId('lista-todos')
+  await expect(lista).toBeVisible()
+  await expect(lista).toContainText(nome(1))
+  await expect(lista).toContainText(nome(10))
+  await expect(lista).toContainText(nome(11)) // 2 compras: só na lupa
+  await expect(lista).toContainText(nome(12)) // 1 compra: só na lupa
+  await expect(lista).toContainText('12 compras')
+  await expect(page).toHaveURL(/\/cadastros\/dashboard$/)
 })
