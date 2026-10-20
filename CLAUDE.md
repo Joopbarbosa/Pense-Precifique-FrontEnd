@@ -268,6 +268,16 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
   layout de rota compartilhado). No modo ícone (`collapsed` do `AppLayout`), os itens do grupo
   sempre aparecem, ignorando o estado de expandido/recolhido — não há onde mostrar cabeçalho/seta
   nesse modo.
+- **Produto sempre com a marca** (V0.17.0, #1017/#1018): lista, detalhe e modais que citam produto usam
+  `rotuloProduto(nome, marca)`; dois produtos com o mesmo nome só coexistem com marcas diferentes, então
+  specs que criam "Caderno" duas vezes passam marcas distintas.
+- **Faturamento do mês** (V0.17.0, #1022): o "?" `inicio-faturamento` vive em `constants/ajudaDashboards.ts`
+  e explica a conta (vendas do mês); mudar a regra no backend exige mudar o texto junto.
+- **Ambiente do E2E completo** (V0.17.0): exige `--workers=1`, API com `NOTA_ASSINATURA_SEGREDO`,
+  `LEITOR_FISCAL_CHAVE` de 64 letras "a" e `R2_PUBLIC_URL` igual a `<S3 falso>/<bucket>`, PDF com
+  `PUPPETEER_EXECUTABLE_PATH` e conta `penseprecifique@admin.com` com configuração de precificação (o
+  `global-setup` a apaga; recriar antes de cada execução completa). Esperas de toast/rascunho usam timeout
+  de 15–20 s (#1024/#1025).
 
 ---
 
