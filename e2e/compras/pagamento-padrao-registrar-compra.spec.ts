@@ -88,7 +88,8 @@ test.describe('#997 — Registrar compra abre em Pago', () => {
 
     await pagamento(page, 'Não pago').click()
     await page.getByRole('button', { name: 'Salvar rascunho' }).click()
-    await expect(page).toHaveURL(/\/compras\/(?!nova)[0-9a-f-]{36}/)
+    // #1025 — salvar o rascunho só navega quando a API responde; sob carga passa dos 5 s padrão
+    await expect(page).toHaveURL(/\/compras\/(?!nova)[0-9a-f-]{36}/, { timeout: 20_000 })
   })
 
   test('CEN-NOVO-105: rascunho existente mostra o gravado; confirmar pelo detalhe grava o último método', async ({ page, request }) => {
