@@ -56,7 +56,7 @@ test.describe('#339 — cadastro e onboarding da empresa', () => {
     await page.getByPlaceholder('25,00').fill('25')
     await page.getByPlaceholder('40').fill('40')
     await page.getByRole('button', { name: /Começar a usar o sistema/ }).click()
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
+    await expect(page).toHaveURL(/\/agenda/, { timeout: 15_000 })
 
     await page.goto('/configuracoes')
     await page.getByRole('button', { name: 'Perfil da empresa' }).click()
@@ -95,7 +95,7 @@ test.describe('#339 — cadastro e onboarding da empresa', () => {
     await entrar(page, email)
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
     await expect(page.getByPlaceholder('contato@seuatelie.com')).toHaveValue('contato@ateliedaana.com')
-    await page.goto('/dashboard')
+    await page.goto('/agenda')
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
   })
 
