@@ -87,6 +87,12 @@ export const compraService = {
     return response.data
   },
 
+  /** V0.18.0 (#549, RN-NOVA-18) — "Adiar" da Agenda: nova previsão (hoje ou futura) da compra pendente de recebimento. */
+  adiarPrevisao: async (id: string, previsaoEntrega: string): Promise<CompraResponse> => {
+    const response = await api.patch(`/compras/${id}/previsao`, { previsaoEntrega })
+    return response.data
+  },
+
   /** #593 (RN-NOVA-43) — `manterDescontos=false` copia só preço cheio e quantidades. */
   duplicar: async (id: string, manterDescontos = true): Promise<CompraResponse> => {
     const response = await api.post(`/compras/${id}/duplicar`, null, { params: { manterDescontos } })

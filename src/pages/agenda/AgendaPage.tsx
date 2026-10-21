@@ -116,7 +116,7 @@ export default function AgendaPage() {
 
       {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
-      {aberto && <DetalheCompromisso compromisso={aberto} onClose={() => setAberto(null)} />}
+      {aberto && <DetalheCompromisso compromisso={aberto} onClose={() => setAberto(null)} onAlterado={() => { setAberto(null); void carregar() }} />}
     </AppLayout>
   )
 }

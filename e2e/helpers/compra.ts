@@ -19,3 +19,19 @@ export async function registrarCompraConfirmada(
   if (!res.ok()) throw new Error(`Falha ao registrar compra de teste: ${res.status()} ${await res.text()}`)
   return res.json()
 }
+
+/** V0.18.0 — compra pendente de recebimento (entrega imediata Não, com previsão), pelo mesmo endpoint da confirmação. */
+export async function registrarCompraPendente(
+  request: APIRequestContext,
+  token: string,
+  itens: { insumoId: string; quantidade: number; precoTotal: number }[],
+  previsaoEntrega: string,
+  dataCompra: string,
+) {
+  const res = await request.post(`${API_URL}/compras/confirmar`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { dataCompra, multiplosFornecedores: false, pago: false, itens, entregaImediata: false, previsaoEntrega },
+  })
+  if (!res.ok()) throw new Error(`Falha ao registrar compra pendente de teste: ${res.status()} ${await res.text()}`)
+  return (await res.json()).compra as { id: string; numero: number; identificador: string }
+}
