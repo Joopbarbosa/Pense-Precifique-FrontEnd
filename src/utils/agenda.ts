@@ -1,4 +1,23 @@
-import type { VisaoAgenda } from '../types/agenda'
+import type { Compromisso, OrigemCompromisso, VisaoAgenda } from '../types/agenda'
+
+export type MostrarAgenda = 'TODOS' | 'ATRASADOS' | 'PENDENTES' | 'CONCLUIDOS'
+
+export interface FiltrosAgenda {
+  mostrar: MostrarAgenda
+  origens: OrigemCompromisso[]
+}
+
+/** Filtros exclusivamente visuais da Agenda (RN-NOVA-3 v2); origem vazia significa todas. */
+export function filtrarCompromissos(compromissos: Compromisso[], filtros: FiltrosAgenda): Compromisso[] {
+  return compromissos.filter(c => {
+    const situacaoCorresponde = filtros.mostrar === 'TODOS'
+      || (filtros.mostrar === 'ATRASADOS' && c.atrasado)
+      || (filtros.mostrar === 'PENDENTES' && c.situacao === 'PENDENTE')
+      || (filtros.mostrar === 'CONCLUIDOS' && c.situacao === 'CONCLUIDO')
+    const origemCorresponde = filtros.origens.length === 0 || filtros.origens.includes(c.origem)
+    return situacaoCorresponde && origemCorresponde
+  })
+}
 
 /**
  * V0.18.0 (#1034, DT-NOVA-12) — datas da grade da Agenda. Só apresentação: navegar entre dias, semanas e meses e montar a
