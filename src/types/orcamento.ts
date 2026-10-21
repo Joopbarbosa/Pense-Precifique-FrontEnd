@@ -245,6 +245,8 @@ export interface AvancaStatusRequest {
   dataEstornoSinal?: string;
   justificativa?: string;
   confirmarEstoqueNegativoProdutoIds?: string[];
+  // ORC-047 (#398) — true confirma finalizar mesmo com produção vinculada cancelada ou não realizada.
+  confirmarVinculosOrfaos?: boolean;
   // RN-NOVA-2 (revisada, P-B012) — true força o case ENVIADO a ignorar o atalho de aprovação
   // direta mesmo elegível, seguindo o fluxo normal (status vai para APROVADO).
   ignorarAtalhoAprovacaoDireta?: boolean;
