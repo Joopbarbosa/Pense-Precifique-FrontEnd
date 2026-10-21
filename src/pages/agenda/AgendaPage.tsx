@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarPlus, ChevronLeft, ChevronRight } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
@@ -10,6 +10,7 @@ import GradeHoras from '../../components/agenda/GradeHoras'
 import ModalAtrasados from '../../components/agenda/ModalAtrasados'
 import ModalDia from '../../components/agenda/ModalDia'
 import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
+import ModalEvento from '../../components/agenda/ModalEvento'
 import { agendaService } from '../../services/agendaService'
 import { empresaService } from '../../services/empresaService'
 import type { AgendaResumo, Compromisso, VisaoAgenda } from '../../types/agenda'
@@ -51,6 +52,7 @@ export default function AgendaPage() {
   const [atrasadosAberto, setAtrasadosAberto] = useState(false)
   const [diaAberto, setDiaAberto] = useState<string | null>(null)
   const [aberto, setAberto] = useState<Compromisso | null>(null)
+  const [novoEvento, setNovoEvento] = useState(false)
 
   const periodo = useMemo(() => periodoDaVisao(visao, referencia), [visao, referencia])
 
@@ -89,6 +91,7 @@ export default function AgendaPage() {
     <AppLayout active="agenda" compact>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Agenda</h1>
+        <Button icon={<CalendarPlus size={16} />} onClick={() => setNovoEvento(true)}>Novo evento</Button>
       </div>
 
       <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
@@ -116,6 +119,7 @@ export default function AgendaPage() {
 
       {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
+      {novoEvento && <ModalEvento dataInicial={referencia} onClose={() => setNovoEvento(false)} onSalvo={() => { setNovoEvento(false); void carregar() }} />}
       {aberto && <DetalheCompromisso compromisso={aberto} onClose={() => setAberto(null)} onAlterado={() => { setAberto(null); void carregar() }} />}
     </AppLayout>
   )
