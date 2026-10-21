@@ -34,8 +34,9 @@ export default function GradeHoras({ dias, hoje, porDia, faixa, onAbrir }: {
         <div className="grid border-b border-line bg-cream text-center text-xs font-semibold text-subtle" style={colunas}>
           <div />
           {dias.map(d => (
-            <div key={d} className={clsx('py-2', d === hoje && 'text-orange')}>
-              {DIAS_SEMANA_CURTO[diaDaSemana(d)]} {diaDoMes(d)}
+            <div key={d} className={clsx('flex flex-col items-center gap-0.5 py-2', d === hoje && 'text-orange')} data-testid={`cabecalho-dia-${d}`}>
+              <span className="uppercase">{DIAS_SEMANA_CURTO[diaDaSemana(d)]}</span>
+              <span>{diaDoMes(d)}</span>
             </div>
           ))}
         </div>
