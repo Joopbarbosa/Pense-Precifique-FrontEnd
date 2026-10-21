@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, ComentarioOrcamento } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -13,6 +13,17 @@ export const orcamentoService = {
     if (dataCriacaoAte) params.dataCriacaoAte = dataCriacaoAte;
     if (sort) params.sort = sort;
     const response = await api.get('/orcamentos', { params });
+    return response.data;
+  },
+
+  /** V0.18.0 (#1038, RN-NOVA-22) — a página 0 traz os comentários mais recentes; cada página vem em ordem cronológica. */
+  comentarios: async (id: string, page: number, size = 20): Promise<PageResponse<ComentarioOrcamento>> => {
+    const response = await api.get(`/orcamentos/${id}/comentarios`, { params: { page, size } });
+    return response.data;
+  },
+
+  comentar: async (id: string, texto: string): Promise<ComentarioOrcamento> => {
+    const response = await api.post(`/orcamentos/${id}/comentarios`, { texto });
     return response.data;
   },
 

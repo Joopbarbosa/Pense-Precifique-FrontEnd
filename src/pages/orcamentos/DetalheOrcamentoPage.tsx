@@ -23,6 +23,7 @@ import type {
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import ModaisAvancarStatus from "../../components/orcamento/ModaisAvancarStatus";
+import ComentariosOrcamento from "../../components/orcamento/ComentariosOrcamento";
 import { ACAO_AVANCAR_STATUS } from "../../components/orcamento/acaoAvancarStatus";
 import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento";
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
@@ -851,6 +852,8 @@ export default function DetalheOrcamentoPage() {
   const [saving, setSaving] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
   const [modal, setModal] = useState<null | "cancel" | "preview">(null);
+  // RN-NOVA-22 (V0.18.0, #1038) — a conversa de comentários é uma aba do Detalhe; a outra é o próprio andamento do pedido
+  const [aba, setAba] = useState<"detalhes" | "comentarios">("detalhes");
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
   // RN-NOVA-25 (V0.8.3, #319+376, P-F001f) — checkbox unificado do card "Estoque insuficiente":
   // seleção por produtoId (mesmo padrão de CriarOrcamentoPage/RN-NOVA-11) + mini-formulário próprio
@@ -1260,6 +1263,22 @@ export default function DetalheOrcamentoPage() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <SegmentedControl
+          options={[{ value: "detalhes" as const, label: "Pedido" }, { value: "comentarios" as const, label: "Comentários" }]}
+          value={aba} onChange={setAba} height="h-10" display="inline-flex" optionWidth="whitespace-nowrap px-5" textSize="text-sm"
+          activeColors={["bg-teal text-white", "bg-teal text-white"]}
+        />
+      </div>
+
+      {aba === "comentarios" && (
+        <section className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <ComentariosOrcamento orcamentoId={orcamento.id} />
+        </section>
+      )}
+
+      {aba === "detalhes" && (
+        <>
       {/* SEÇÃO 1 — TIMELINE */}
       {status !== "CANCELADO" && (
         <section className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
@@ -1667,6 +1686,8 @@ export default function DetalheOrcamentoPage() {
               : "Baixar PDF do orçamento"
         }
       />
+        </>
+      )}
 
       <RetryCooldownModal
         open={!!pdfRetry.erro}

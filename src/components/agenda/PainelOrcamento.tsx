@@ -3,6 +3,7 @@ import Spinner from '../ui/Spinner'
 import Button from '../ui/Button'
 import Toast from '../shared/Toast'
 import ModaisAvancarStatus from '../orcamento/ModaisAvancarStatus'
+import ComentariosOrcamento from '../orcamento/ComentariosOrcamento'
 import { ACAO_AVANCAR_STATUS } from '../orcamento/acaoAvancarStatus'
 import { useAvancarStatusOrcamento } from '../../hooks/useAvancarStatusOrcamento'
 import { useToast } from '../../hooks/useToast'
@@ -59,6 +60,10 @@ export default function PainelOrcamento({ orcamentoId, onAlterado }: { orcamento
           <Button variant="secondary" size="sm" disabled={fluxo.saving} onClick={fluxo.onPrimaryAction}>{fluxo.saving ? 'Processando...' : acao}</Button>
         </div>
       )}
+      <div>
+        <div className="mb-2 text-[13px] font-semibold text-dark">Comentários</div>
+        <ComentariosOrcamento orcamentoId={orcamentoId} />
+      </div>
       <ModaisAvancarStatus orcamento={o} fluxo={fluxo} />
       <Toast message={toast} />
     </div>
