@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { Search, X, Factory, Check, AlertCircle, AlertTriangle, ArrowLeft, Calendar, StickyNote, Plus } from 'lucide-react'
 import ModalShell from '../ui/ModalShell'
@@ -11,6 +11,7 @@ import { getBadgeEstado } from '../../utils/badges'
 import { extractApiError } from '../../utils/apiError'
 import type { ProducaoResumo, AlertaInsumo } from '../../types/producao'
 import type { CriarProducaoVinculadaRequest } from '../../types/orcamento'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 // P-F004/#320 (RN-ORC-VINC-02/RN-PROD-VINC-02/03) — compartilhado entre CriarOrcamentoPage (ponto
 // 1, orçamento pode ainda não existir — `onSimular`/`onConfirmar` resolvem isso do lado de fora) e
@@ -49,6 +50,9 @@ export default function ModalVincularProducao({
   const [producoes, setProducoes] = useState<ProducaoResumo[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const listaRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = !loading && !erro ? producoes.map(producao => producao.id).join(',') : ''
+  const maxHeight = useAlturaListaBusca(listaRef, versaoLinhas)
 
   const [selecionada, setSelecionada] = useState<ProducaoResumo | null>(null)
   const [simulando, setSimulando] = useState(false)
@@ -367,13 +371,15 @@ export default function ModalVincularProducao({
       )}
 
       {!loading && !erro && producoes.length > 0 && (
-        <div className="-mx-1 flex max-h-[320px] flex-col gap-1.5 overflow-y-auto px-1 py-0.5">
+        <div ref={listaRef} data-testid="producoes-disponiveis" style={maxHeight != null ? { maxHeight } : undefined}
+          className="-mx-1 flex flex-col gap-1.5 overflow-y-auto px-1 py-0.5">
           {producoes.map((p) => {
             const jaVinculada = jaVinculadasIds.includes(p.id)
             const badge = getBadgeEstado(p.estado, p.historicoStatus)
             return (
               <button
                 key={p.id}
+                data-search-row
                 onClick={() => handleSelecionar(p)}
                 disabled={jaVinculada}
                 className={clsx(
