@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { BarChart3, Monitor, Receipt, Search, ShoppingBag, Wallet } from 'lucide-react'
@@ -14,7 +15,7 @@ import ModalListagemRegistros, { type FiltroInicial } from '../../components/sha
 import { Dica, Ranking, eixo, reaisCurto, vazio } from '../../components/dashboard/graficos'
 import { BarrasVerticais, DonutComLegenda } from '../../components/dashboard/GraficosVariados'
 import { intervalo, rotuloMes, rotuloPeriodoAnterior, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
-import { formatarData, hojeIso } from '../../components/compra/formato'
+
 import { BRL } from '../../components/venda/formato'
 import { dashboardVendasService } from '../../services/dashboardVendasService'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -35,7 +36,7 @@ export default function DashboardVendasPage() {
   const [aba, setAba] = useState<Aba>('graficos')
   const [periodo, setPeriodo] = useState<Periodo>('mes')
   const [deLivre, setDeLivre] = useState('')
-  const [ateLivre, setAteLivre] = useState(hojeIso())
+  const [ateLivre, setAteLivre] = useState(dataLocalIso())
   const [d, setD] = useState<DashboardVendasResponse | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)

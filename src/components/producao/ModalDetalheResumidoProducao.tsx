@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Factory, Box, Calendar, AlertTriangle } from 'lucide-react'
@@ -9,12 +10,6 @@ import type { ProducaoResumo } from '../../types/producao'
 interface Props {
   producao: ProducaoResumo
   onClose: () => void
-}
-
-function fmtData(iso: string | null): string {
-  if (!iso) return '—'
-  const [y, m, d] = iso.split('T')[0].split('-')
-  return `${d}/${m}/${y}`
 }
 
 export default function ModalDetalheResumidoProducao({ producao, onClose }: Props) {
@@ -71,13 +66,13 @@ export default function ModalDetalheResumidoProducao({ producao, onClose }: Prop
             <div className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">
               <Calendar size={13} /> Início
             </div>
-            <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataInicio)}</div>
+            <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataInicio)}</div>
           </div>
           <div>
             <div className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">
               <Calendar size={13} /> Término previsto
             </div>
-            <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataTerminoPrevista)}</div>
+            <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataTerminoPrevista)}</div>
           </div>
         </div>
 

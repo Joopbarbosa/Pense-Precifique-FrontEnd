@@ -1,10 +1,11 @@
+import { formatarData } from '../../utils/data'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ExternalLink, Package } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { insumoService } from '../../services/insumoService'
 import { extractApiError } from '../../utils/apiError'
-import { formatarData, moeda, qtd } from './formato'
+import { moeda, qtd } from './formato'
 import type { InsumoResponse } from '../../types/insumo'
 
 // V0.15.0 (#568) — dados do insumo sem sair da compra. #592 (RN-NOVA-45): "Detalhes do insumo" abre o
