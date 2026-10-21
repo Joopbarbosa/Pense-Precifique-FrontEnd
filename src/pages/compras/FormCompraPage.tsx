@@ -278,7 +278,7 @@ export default function FormCompraPage() {
             </Field>
             {!pendente && (
               <Field label="Entrega imediata?" group size="md">
-                <SegmentedControl options={[{ value: true, label: 'Sim' }, { value: false, label: 'Não' }]} value={entregaImediata}
+                <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={entregaImediata}
                   onChange={v => { setEntregaImediata(v); if (v) setPrevisaoEntrega('') }} />
               </Field>
             )}
