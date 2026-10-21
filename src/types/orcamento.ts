@@ -81,6 +81,8 @@ export interface OrcamentoRequest {
   sinalAtivo: boolean;
   percentualSinal?: number;
   valorSinal?: number;
+  /** RN-NOVA-12 (V0.18.0) — "Sinal até": data limite combinada para o sinal; só com o sinal ativo. */
+  sinalAte?: string;
   tipoDesconto?: string;
   descontoValor?: number;
   observacoes?: string;
@@ -201,6 +203,13 @@ export interface OrcamentoDetalheResponse {
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   dataAprovacao?: string;
+  /** RN-NOVA-12 (V0.18.0) — "Sinal até". */
+  sinalAte?: string | null;
+  /** RN-NOVA-14 (V0.18.0) — passos do histórico; nulos nos orçamentos anteriores à V0.18.0. */
+  dataEnvio?: string | null;
+  dataFinalizacao?: string | null;
+  dataEntrega?: string | null;
+  dataCancelamento?: string | null;
   // RN-ORC-VINC-04 (P-F005) — dataAprovacao + prazoProducaoDias, dias corridos. Nula quando falta um
   // dos dois. Exposta isolada mesmo sem produção vinculada; usada para comparar com
   // OrcamentoProducaoResponse.dataTerminoPrevista no aviso de estouro de prazo.

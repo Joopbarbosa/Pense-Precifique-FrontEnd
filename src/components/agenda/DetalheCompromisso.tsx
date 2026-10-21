@@ -6,6 +6,7 @@ import type { Compromisso } from '../../types/agenda'
 import { formatarData } from '../../utils/data'
 import { ORIGEM } from './origem'
 import { textoAtraso } from './ChipCompromisso'
+import PainelDaOrigem from './PainelDaOrigem'
 
 const SITUACAO = { PENDENTE: 'Pendente', CONCLUIDO: 'Concluído', CANCELADO: 'Cancelado' } as const
 
@@ -42,6 +43,7 @@ export default function DetalheCompromisso({ compromisso: c, onClose, children, 
           {c.marcacoes.length > 0 && (<><dt className="font-semibold text-dark">Marcação</dt><dd>{c.marcacoes.join(', ')}</dd></>)}
           {c.avisos.map((a, i) => (<><dt key={`t${i}`} className="font-semibold text-dark">Aviso</dt><dd key={`d${i}`} className="text-warning">{a}</dd></>))}
         </dl>
+        <PainelDaOrigem compromisso={c} />
         {children}
         {rota && (
           <div>

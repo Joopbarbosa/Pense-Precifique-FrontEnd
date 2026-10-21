@@ -15,3 +15,9 @@ export const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 's
 export function rotuloMes(iso: string): string {
   return `${MESES[Number(iso.slice(5, 7)) - 1]}/${iso.slice(2, 4)}`
 }
+
+/** "2026-10-02T14:10:00" → "02/10/2026 14:10"; vazio quando não há data. */
+export function formatarDataHora(iso?: string | null): string {
+  if (!iso) return ''
+  return `${formatarData(iso)} ${iso.slice(11, 16)}`
+}

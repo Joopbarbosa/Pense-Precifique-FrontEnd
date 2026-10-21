@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { dataLocalIso } from '../../utils/data'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -199,6 +200,7 @@ function PagamentoSection({
   valor, setValor,
   sinalAplicado, restante,
   error,
+  sinalAte, setSinalAte, sinalAteError,
 }: {
   metodoPagamento: string
   setMetodoPagamento: (v: string) => void
@@ -213,6 +215,9 @@ function PagamentoSection({
   sinalAplicado: number
   restante: number
   error?: string
+  sinalAte: string
+  setSinalAte: (v: string) => void
+  sinalAteError?: string
 }) {
   const obsCharCount = metodoPagamentoObs.length
   const obsInvalido = obsCharCount > 0 && obsCharCount < 50
@@ -325,6 +330,19 @@ function PagamentoSection({
                 {error}
               </div>
             )}
+            <label className="mt-3.5 block">
+              <span className="mb-[7px] block text-[13px] font-semibold text-body">Sinal até <span className="font-normal text-muted">(opcional)</span></span>
+              <input
+                type="date" value={sinalAte} onChange={e => setSinalAte(e.target.value)} aria-label="Sinal até"
+                className={clsx(
+                  'h-[46px] w-full max-w-[220px] rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[15px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12',
+                  sinalAteError ? 'border-danger' : 'border-line'
+                )}
+              />
+              {sinalAteError && (
+                <span className="mt-2 flex items-center gap-[5px] text-[13px] text-danger"><AlertCircle size={13} />{sinalAteError}</span>
+              )}
+            </label>
             <div className="mt-3.5 flex flex-col gap-2">
               <div className="flex items-center justify-between rounded-input border border-dashed border-teal/35 bg-teal/6 px-3.5 py-2.5">
                 <span className="flex items-center gap-[7px] text-[13.5px] font-semibold text-teal">
@@ -466,6 +484,10 @@ export default function CriarOrcamentoPage() {
   const [sinalTipo, setSinalTipo] = useState<'%' | 'R$'>('%')
   const [sinalValor, setSinalValor] = useState('')
   const [sinalError, setSinalError] = useState('')
+  // RN-NOVA-12 (V0.18.0, #1035) — "Sinal até": o valor já gravado (edição) pode ficar no passado sem bloquear
+  const [sinalAte, setSinalAte] = useState('')
+  const [sinalAteGravado, setSinalAteGravado] = useState('')
+  const [sinalAteError, setSinalAteError] = useState('')
   const [validade, setValidade] = useState('')
   const [obs, setObs] = useState('')
   const [productOpen, setProductOpen] = useState(false)
@@ -567,6 +589,8 @@ export default function CriarOrcamentoPage() {
         setSinalAtivo(orc.sinalAtivo)
         setSinalTipo(orc.percentualSinal != null ? '%' : 'R$')
         setSinalValor(orc.percentualSinal != null ? String(orc.percentualSinal) : orc.valorSinal != null ? String(orc.valorSinal) : '')
+        setSinalAte(orc.sinalAte ?? '')
+        setSinalAteGravado(orc.sinalAte ?? '')
         setDescTipo(orc.tipoDesconto === 'VALOR' ? 'R$' : '%')
         setDescValor(orc.descontoValor ? String(orc.descontoValor) : '')
         setValidade(orc.dataValidade ? orc.dataValidade.slice(0, 10) : '')
@@ -657,6 +681,7 @@ export default function CriarOrcamentoPage() {
   const handleSubmit = () => {
     setPrazoDiasError('')
     setSinalError('')
+    setSinalAteError('')
 
     if (!cliente) {
       alert('Selecione um cliente')
@@ -683,6 +708,10 @@ export default function CriarOrcamentoPage() {
 
     if (sinalAtivo && sinalNum <= 0) {
       setSinalError('Informe um valor de sinal maior que zero')
+      return
+    }
+    if (sinalAtivo && sinalAte && sinalAte < dataLocalIso() && sinalAte !== sinalAteGravado) {
+      setSinalAteError('A data do sinal não pode ser anterior a hoje')
       return
     }
 
@@ -728,6 +757,7 @@ export default function CriarOrcamentoPage() {
       sinalAtivo,
       percentualSinal: sinalAtivo && sinalTipo === '%' ? sinalNum : undefined,
       valorSinal: sinalAtivo && sinalTipo === 'R$' ? sinalNum : undefined,
+      sinalAte: sinalAtivo && sinalAte ? sinalAte : undefined,
       tipoDesconto: descNum > 0 ? TIPO_DESCONTO_API[descTipo] : undefined,
       descontoValor: descNum > 0 ? descNum : undefined,
       observacoes: obs || undefined,
@@ -1003,6 +1033,7 @@ export default function CriarOrcamentoPage() {
               valor={sinalValor} setValor={setSinalValor}
               sinalAplicado={sinalAplicado} restante={restante}
               error={sinalError}
+              sinalAte={sinalAte} setSinalAte={setSinalAte} sinalAteError={sinalAteError}
             />
           </SectionCard>
 
