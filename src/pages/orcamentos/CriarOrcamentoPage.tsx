@@ -126,7 +126,7 @@ function PrazoSection({
                 error ? 'border-danger' : 'border-line'
               )}
             />
-            <span className="text-[15px] font-medium text-body">dias úteis</span>
+            <span className="text-[15px] font-medium text-body">dias</span>
           </div>
           {error && (
             <div className="flex items-center gap-[5px] text-[13px] text-danger">
@@ -974,7 +974,7 @@ export default function CriarOrcamentoPage() {
           </SectionCard>
 
           {/* Seção 3: Prazo de produção */}
-          <SectionCard step="3" label="Prazo de produção" hint="Quantos dias úteis para finalizar este pedido.">
+          <SectionCard step="3" label="Prazo de produção" hint="Quantos dias para finalizar este pedido.">
             <PrazoSection
               temPrazoProducao={temPrazoProducao} setTemPrazoProducao={setTemPrazoProducao}
               prazoDias={prazoDias} setPrazoDias={setPrazoDias}
