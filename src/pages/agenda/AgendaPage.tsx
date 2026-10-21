@@ -61,6 +61,7 @@ export default function AgendaPage() {
   const [novoEvento, setNovoEvento] = useState(false)
 
   const periodo = useMemo(() => periodoDaVisao(visao, referencia), [visao, referencia])
+  const periodoContemHoje = periodo.de <= hoje && hoje <= periodo.ate
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -106,7 +107,7 @@ export default function AgendaPage() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" icon={<ChevronLeft size={16} />} onClick={() => setReferencia(navegar(visao, referencia, -1))}>Anterior</Button>
-          <Button variant="ghost" size="sm" onClick={() => setReferencia(hoje)}>Hoje</Button>
+          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => setReferencia(hoje)}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
           <span className="ml-2 text-[15px] font-semibold capitalize text-dark" data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
         </div>

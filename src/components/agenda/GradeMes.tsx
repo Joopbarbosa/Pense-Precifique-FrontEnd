@@ -28,7 +28,7 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
             const foraDoMes = dia.slice(0, 7) !== mesDeReferencia.slice(0, 7)
             return (
               <div key={dia} data-testid={`dia-${dia}`}
-                className={clsx('min-h-[112px] border-b border-r border-line p-1.5', foraDoMes && 'bg-cream/60')}>
+                className={clsx('min-h-[112px] border-b border-r border-line p-1.5', foraDoMes && 'bg-cream/60', dia === hoje && 'bg-orange/5')}>
                 <div className="mb-1 flex justify-end">
                   <button type="button" onClick={() => onVerDia(dia)} aria-label={`Ver o dia ${dia}`}
                     className={clsx('grid h-6 min-w-6 place-items-center rounded-full px-1 text-xs font-semibold',

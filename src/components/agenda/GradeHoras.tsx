@@ -36,14 +36,14 @@ export default function GradeHoras({ dias, hoje, porDia, faixa, onAbrir }: {
           {dias.map(d => (
             <div key={d} className={clsx('flex flex-col items-center gap-0.5 py-2', d === hoje && 'text-orange')} data-testid={`cabecalho-dia-${d}`}>
               <span className="uppercase">{DIAS_SEMANA_CURTO[diaDaSemana(d)]}</span>
-              <span>{diaDoMes(d)}</span>
+              <span className={clsx(d === hoje && 'grid h-6 min-w-6 place-items-center rounded-full bg-orange px-1 text-white')}>{diaDoMes(d)}</span>
             </div>
           ))}
         </div>
         <div className="grid border-b border-line" style={colunas} data-testid="linha-dia-inteiro">
           <div className="p-1.5 text-right text-[11px] font-semibold text-subtle">dia inteiro</div>
           {dias.map(d => (
-            <div key={d} data-testid={`dia-${d}`} className="flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5">
+            <div key={d} data-testid={`dia-${d}`} className={clsx('flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5', d === hoje && 'bg-orange/5')}>
               {(porDia.get(d) ?? []).filter(c => !c.horario).map(c => <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} />)}
             </div>
           ))}
@@ -52,7 +52,7 @@ export default function GradeHoras({ dias, hoje, porDia, faixa, onAbrir }: {
           <div key={h} className="grid border-b border-line last:border-b-0" style={colunas}>
             <div className="p-1.5 text-right text-[11px] font-semibold text-subtle">{String(h).padStart(2, '0')}:00</div>
             {dias.map(d => (
-              <div key={d} className="flex min-h-[40px] flex-col gap-1 border-l border-line p-1">
+              <div key={d} className={clsx('flex min-h-[40px] flex-col gap-1 border-l border-line p-1', d === hoje && 'bg-orange/5')}>
                 {(porDia.get(d) ?? []).filter(c => c.horario && horaDe(c) === h).map(c => (
                   <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} />
                 ))}
