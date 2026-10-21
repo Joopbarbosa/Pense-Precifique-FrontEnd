@@ -1,4 +1,4 @@
-import type { VisaoAgenda } from '../types/agenda'
+import type { Compromisso, VisaoAgenda } from '../types/agenda'
 
 /**
  * V0.18.0 (#1034, DT-NOVA-12) — datas da grade da Agenda. Só apresentação: navegar entre dias, semanas e meses e montar a
@@ -100,4 +100,45 @@ export function tituloDoPeriodo(visao: VisaoAgenda, referencia: string): string 
   return mesmoMes
     ? `${diaDoMes(p.de)} a ${diaDoMes(p.ate)} de ${mes(p.de)} de ${p.ate.slice(0, 4)}`
     : `${diaDoMes(p.de)} de ${mes(p.de)} a ${diaDoMes(p.ate)} de ${mes(p.ate)} de ${p.ate.slice(0, 4)}`
+}
+
+/** RN-NOVA-4 v2 — o atrasado aparece no dia original e em cada dia até hoje; do segundo dia em diante é a continuação do trecho. */
+export function ehContinuacao(c: Compromisso, dia: string): boolean {
+  return c.atrasado && dia > c.dataExibicao
+}
+
+/** Último dia do trecho (hoje, no atrasado): a barra termina aqui. */
+export function ehUltimoDia(c: Compromisso, dia: string): boolean {
+  return dia >= c.dataFim
+}
+
+/** Distribui cada compromisso por todos os dias do período que o trecho (da origem até o fim) alcança, na ordem recebida. */
+export function distribuirPorDia(compromissos: Compromisso[], dias: string[]): Map<string, Compromisso[]> {
+  const mapa = new Map<string, Compromisso[]>()
+  for (const c of compromissos) {
+    for (const dia of dias) {
+      if (dia < c.dataExibicao || dia > c.dataFim) continue
+      const lista = mapa.get(dia)
+      if (lista) lista.push(c)
+      else mapa.set(dia, [c])
+    }
+  }
+  return mapa
+}
+
+/** "7 h", "7 h 30 min" ou "40 min" — o atraso por horário (RN-NOVA-4 v2). */
+export function duracaoEmMinutos(minutos: number): string {
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  if (h === 0) return `${m} min`
+  return m === 0 ? `${h} h` : `${h} h ${m} min`
+}
+
+/** Hora e minuto de Brasília (o servidor decide o atraso nesse fuso), em minutos desde a meia-noite. */
+export function minutosAgoraBrasilia(agora: Date = new Date()): number {
+  const partes = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(agora)
+  const h = Number(partes.find(p => p.type === 'hour')?.value ?? 0)
+  const m = Number(partes.find(p => p.type === 'minute')?.value ?? 0)
+  return h * 60 + m
 }

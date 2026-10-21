@@ -62,7 +62,7 @@ test.describe('#1034 — Agenda', () => {
   test('CT-1034-03 — faixa de atrasados e de hoje, lista de atrasados e atalho para hoje', async ({ page, request }) => {
     const token = await apiLogin(request)
     await criarCompromissoUsuaria(request, token, { titulo: 'Levar encomenda à transportadora', data: hojeLocal(-3) })
-    await criarCompromissoUsuaria(request, token, { titulo: 'Conferir fita', data: hojeLocal(0), horario: '10:00' })
+    await criarCompromissoUsuaria(request, token, { titulo: 'Conferir fita', data: hojeLocal(0), horario: '23:59' })
 
     await login(page)
     await page.goto('/agenda')
