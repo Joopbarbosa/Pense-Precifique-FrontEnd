@@ -102,7 +102,14 @@ function PrazoSection({
         <SegmentedControl
           options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
           value={temPrazoProducao}
-          onChange={setTemPrazoProducao}
+          onChange={v => {
+            setTemPrazoProducao(v)
+            if (!v) {
+              setPrazoDias('')
+              return
+            }
+            if (!prazoDias) setPrazoDias('1')
+          }}
           height="h-10"
           optionWidth="w-[60px]"
           textSize="text-sm"
@@ -126,7 +133,7 @@ function PrazoSection({
                 error ? 'border-danger' : 'border-line'
               )}
             />
-            <span className="text-[15px] font-medium text-body">dias úteis</span>
+            <span className="text-[15px] font-medium text-body">dias</span>
           </div>
           {error && (
             <div className="flex items-center gap-[5px] text-[13px] text-danger">
@@ -451,7 +458,7 @@ export default function CriarOrcamentoPage() {
   const [metodoPagamento, setMetodoPagamento] = useState('PIX')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
   const [temPrazoProducao, setTemPrazoProducao] = useState(true)
-  const [prazoDias, setPrazoDias] = useState('')
+  const [prazoDias, setPrazoDias] = useState('1')
   const [prazoDiasError, setPrazoDiasError] = useState('')
   const [inicioImediato, setInicioImediato] = useState(true)
   const [dataInicioEstimada, setDataInicioEstimada] = useState('')
@@ -974,7 +981,7 @@ export default function CriarOrcamentoPage() {
           </SectionCard>
 
           {/* Seção 3: Prazo de produção */}
-          <SectionCard step="3" label="Prazo de produção" hint="Quantos dias úteis para finalizar este pedido.">
+          <SectionCard step="3" label="Prazo de produção" hint="Quantos dias para finalizar este pedido.">
             <PrazoSection
               temPrazoProducao={temPrazoProducao} setTemPrazoProducao={setTemPrazoProducao}
               prazoDias={prazoDias} setPrazoDias={setPrazoDias}
