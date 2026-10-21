@@ -23,6 +23,7 @@ import type {
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import ModaisAvancarStatus from "../../components/orcamento/ModaisAvancarStatus";
+import { ACAO_AVANCAR_STATUS } from "../../components/orcamento/acaoAvancarStatus";
 import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento";
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
 import { VinculoAtivoBadge, Toast } from "../../components/shared";
@@ -58,16 +59,7 @@ type ApiStatus =
 // ser "Confirmar pagamento", já que o próximo passo agora é PAGO) e não existia entrada pra PAGO
 // (deveria ser "Marcar como entregue"), então o botão de avançar sumia por completo nesse status.
 // Consequência direta de #466, corrigida inline (não é tarefa nova).
-const ACTION_LABEL: Partial<Record<ApiStatus, string>> = {
-  RASCUNHO: "Enviar orçamento",
-  ENVIADO: "Marcar como aprovado",
-  APROVADO: "Confirmar início",
-  AGUARDANDO_SINAL: "Confirmar recebimento do sinal",
-  SINAL_PAGO: "Iniciar produção",
-  EM_PRODUCAO: "Marcar como finalizado",
-  FINALIZADO: "Confirmar pagamento",
-  PAGO: "Marcar como entregue",
-};
+const ACTION_LABEL = ACAO_AVANCAR_STATUS;
 
 // Descrição do próximo passo
 const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
