@@ -16,7 +16,7 @@ import { useAoMudar } from '../../hooks/useAoMudar'
 import Paginacao from '../../components/shared/Paginacao'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { dispararDownloadBlob } from '../../utils/download'
-import { dataLocalISO } from '../../utils/dataLocal'
+import { dataLocalIso, formatarData } from '../../utils/data'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -39,18 +39,6 @@ const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
 ]
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
-
-function isVencido(orc: OrcamentoResponse): boolean {
-  if (!orc.dataValidade) return false
-  const inactive: StatusOrcamento[] = ['CANCELADO', 'PAGO', 'FINALIZADO', 'ENTREGUE']
-  if (inactive.includes(orc.status)) return false
-  return new Date(orc.dataValidade) < new Date()
-}
-
-function fmtData(iso: string): string {
-  const [y, m, d] = iso.split('T')[0].split('-')
-  return `${d}/${m}/${y}`
-}
 
 // #255 — campo aninhado (cliente.nome) e simples (numero/total/createdAt) vão via ?sort= do
 // backend (confirmado por curl no Passo 0); status ordena pelo ciclo de vida do pedido
@@ -93,11 +81,11 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
         {fmt(orc.total)}
       </span>
 
-      <span className="text-[13.5px] text-muted">{fmtData(orc.createdAt)}</span>
+      <span className="text-[13.5px] text-muted">{formatarData(orc.createdAt)}</span>
 
       <div className="flex items-center gap-2">
         <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} />
-        {isVencido(orc) && <VencidoBadge />}
+        {orc.vencido && <VencidoBadge />}
       </div>
 
       <div onClick={e => e.stopPropagation()}>
@@ -130,12 +118,12 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
             <span className="text-sm font-bold text-dark">
               {orc.identificador}
             </span>
-            {isVencido(orc) && <VencidoBadge />}
+            {orc.vencido && <VencidoBadge />}
           </div>
           <div className="mb-2 text-sm text-body">{orc.nomeCliente}</div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} size="sm" />
-            <span className="text-[13px] text-muted">{fmtData(orc.createdAt)}</span>
+            <span className="text-[13px] text-muted">{formatarData(orc.createdAt)}</span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -168,7 +156,7 @@ export default function ListaOrcamentosPage() {
     const c = inicial.texto('ordem', 'numero') as SortField
     return c in SORT_BACKEND_FIELD ? c : 'numero'
   })
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => inicial.texto('dir', 'asc') === 'desc' ? 'desc' : 'asc')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => inicial.texto('dir', 'desc') === 'asc' ? 'asc' : 'desc')
 
   const sortParam = sortField ? `${SORT_BACKEND_FIELD[sortField]},${sortDir}` : undefined
 
@@ -191,7 +179,7 @@ export default function ListaOrcamentosPage() {
     paginaInicial: inicial.pagina(),
   })
   useEspelharNaUrl({ pagina: page + 1, busca: query, status: filtro, de: appliedDateFrom, ate: appliedDateTo, ordem: sortField, dir: sortDir },
-    { pagina: 1, busca: '', status: '', de: '', ate: '', ordem: 'numero', dir: 'asc' })
+    { pagina: 1, busca: '', status: '', de: '', ate: '', ordem: 'numero', dir: 'desc' })
 
   useAoMudar(`${filtro}|${appliedDateFrom}|${appliedDateTo}|${sortParam}`, reset)
 
@@ -238,8 +226,8 @@ export default function ListaOrcamentosPage() {
     const today = new Date()
     const past = new Date(today)
     past.setDate(today.getDate() - days)
-    setDateFrom(dataLocalISO(past))
-    setDateTo(dataLocalISO(today))
+    setDateFrom(dataLocalIso(past))
+    setDateTo(dataLocalIso(today))
   }
 
   const handleAplicarPeriodo = () => {

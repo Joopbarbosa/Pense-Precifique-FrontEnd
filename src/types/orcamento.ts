@@ -132,6 +132,8 @@ export interface OrcamentoResponse {
   status: StatusOrcamento;
   total: number;
   dataValidade?: string;
+  /** RN-NOVA-11 — RASCUNHO ou ENVIADO com a validade já passada; calculado no servidor. */
+  vencido: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -217,6 +219,8 @@ export interface OrcamentoDetalheResponse {
   total: number;
   observacoes?: string;
   dataValidade?: string;
+  /** RN-NOVA-11 — RASCUNHO ou ENVIADO com a validade já passada; calculado no servidor. */
+  vencido: boolean;
   percentualMulta?: number;
   valorMulta?: number;
   // RN-NOVA-1/ORC-036 (V0.8.2, P-B002) — populado só quando o sinal pago excedeu o valor bruto da

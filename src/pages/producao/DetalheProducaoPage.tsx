@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -48,11 +49,6 @@ const ESTADO_LABEL_SIMPLES: Record<string, string> = {
 const ORIGEM_LABEL: Record<string, string> = {
   USUARIO: 'Artesã',
   SISTEMA: 'Sistema',
-}
-
-function fmtData(iso: string | null): string {
-  if (!iso) return '—'
-  return iso.split('T')[0].split('-').reverse().join('/')
 }
 
 function fmtDataHora(iso: string): string {
@@ -248,16 +244,16 @@ export default function DetalheProducaoPage() {
           <div className="flex flex-wrap gap-x-8 gap-y-3">
             <div>
               <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Início</div>
-              <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataInicio)}</div>
+              <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataInicio)}</div>
             </div>
             <div>
               <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Término previsto</div>
-              <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataTerminoPrevista)}</div>
+              <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataTerminoPrevista)}</div>
             </div>
             {producao.dataTerminoReal && (
               <div>
                 <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Término real</div>
-                <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataTerminoReal)}</div>
+                <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataTerminoReal)}</div>
               </div>
             )}
           </div>

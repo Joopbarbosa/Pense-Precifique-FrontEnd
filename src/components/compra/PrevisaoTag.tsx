@@ -1,5 +1,6 @@
+import { formatarData } from '../../utils/data'
 import clsx from 'clsx'
-import { formatarData } from './formato'
+
 
 /**
  * #958 (RN-NOVA-6) — tag da previsão de entrega da compra pendente: "Previsão 20/10" ou, quando a previsão

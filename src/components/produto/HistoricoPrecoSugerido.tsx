@@ -1,8 +1,9 @@
+import { formatarData } from '../../utils/data'
 import { useState } from 'react'
 import clsx from 'clsx'
 import { ArrowRight, ChevronDown, Tag } from 'lucide-react'
 import { BRL } from '../venda/formato'
-import { formatarData } from '../compra/formato'
+
 import type { MovimentacaoProdutoResponse } from '../../types/produto'
 import type { PrecoSugeridoAgregado } from '../../types/insumo'
 

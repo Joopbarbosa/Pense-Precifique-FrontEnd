@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Check, ChevronRight, PackageCheck } from 'lucide-react'
@@ -6,7 +7,7 @@ import { Button, EmptyState, Field } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
-import { formatarData, hojeIso, moeda, parseDecimal, qtd } from '../../components/compra/formato'
+import { moeda, parseDecimal, qtd } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { useModalErro } from '../../hooks/useModalErro'
@@ -28,7 +29,7 @@ export default function EntradaComprasPage() {
   const [erroLista, setErroLista] = useState<string | null>(null)
   const [escolhida, setEscolhida] = useState<CompraResponse | null>(null)
   const [recebidas, setRecebidas] = useState<Record<string, string>>({})
-  const [dataRecebimento, setDataRecebimento] = useState(hojeIso())
+  const [dataRecebimento, setDataRecebimento] = useState(dataLocalIso())
   const [enviando, setEnviando] = useState(false)
   const [resultado, setResultado] = useState<CompraConfirmacaoResponse | null>(null)
 
@@ -38,7 +39,7 @@ export default function EntradaComprasPage() {
       if (c.status !== 'PENDENTE_RECEBIMENTO') { navigate(`/compras/${c.id}`, { replace: true }); return }
       setEscolhida(c)
       setRecebidas(Object.fromEntries(c.itens.map(i => [i.id, qtdCampo(i.quantidade)])))
-      setDataRecebimento(hojeIso())
+      setDataRecebimento(dataLocalIso())
     } catch (err) {
       mostrarErro(err, 'Não foi possível abrir a compra.')
     }
@@ -122,7 +123,7 @@ export default function EntradaComprasPage() {
             <div className="grid grid-cols-1 gap-section md:grid-cols-2 xl:grid-cols-4">
               <Field label="Data do recebimento" required size="md" hint="Pode ser uma data anterior (chegou ontem). A entrada vale no momento em que você confirma.">
                 <input type="date" aria-label="Data do recebimento" value={dataRecebimento}
-                  min={escolhida.dataCompra} max={hojeIso()} onChange={e => setDataRecebimento(e.target.value)} className={dateInput} />
+                  min={escolhida.dataCompra} max={dataLocalIso()} onChange={e => setDataRecebimento(e.target.value)} className={dateInput} />
               </Field>
               <div className="text-[13.5px] text-muted md:col-span-1 xl:col-span-3">
                 <div><strong className="font-semibold text-dark">Compra</strong> {escolhida.identificador} de {formatarData(escolhida.dataCompra)}</div>

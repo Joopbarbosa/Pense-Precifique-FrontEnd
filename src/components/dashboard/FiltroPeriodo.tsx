@@ -1,6 +1,7 @@
+import { dataLocalIso } from '../../utils/data'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
-import { hojeIso } from '../compra/formato'
+
 import { PERIODOS, type Periodo } from './periodo'
 
 /**
@@ -31,10 +32,10 @@ export default function FiltroPeriodo({ periodo, onPeriodo, deLivre, ateLivre, o
       })}
       {periodo === 'personalizado' && (
         <div className="flex flex-wrap items-center gap-2 text-[12.5px] font-semibold text-body">
-          <input type="date" aria-label={`Data inicial ${rotuloDatas}`} value={deLivre} max={ateLivre || hojeIso()} onChange={e => onDeLivre(e.target.value)}
+          <input type="date" aria-label={`Data inicial ${rotuloDatas}`} value={deLivre} max={ateLivre || dataLocalIso()} onChange={e => onDeLivre(e.target.value)}
             className="h-[34px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-hidden focus:border-teal" />
           até
-          <input type="date" aria-label={`Data final ${rotuloDatas}`} value={ateLivre} min={deLivre || undefined} max={hojeIso()} onChange={e => onAteLivre(e.target.value)}
+          <input type="date" aria-label={`Data final ${rotuloDatas}`} value={ateLivre} min={deLivre || undefined} max={dataLocalIso()} onChange={e => onAteLivre(e.target.value)}
             className="h-[34px] rounded-input border-[1.5px] border-line bg-white px-2.5 font-[inherit] text-[13px] outline-hidden focus:border-teal" />
         </div>
       )}
