@@ -40,13 +40,6 @@ const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
-function isVencido(orc: OrcamentoResponse): boolean {
-  if (!orc.dataValidade) return false
-  const inactive: StatusOrcamento[] = ['CANCELADO', 'PAGO', 'FINALIZADO', 'ENTREGUE']
-  if (inactive.includes(orc.status)) return false
-  return new Date(orc.dataValidade) < new Date()
-}
-
 // #255 — campo aninhado (cliente.nome) e simples (numero/total/createdAt) vão via ?sort= do
 // backend (confirmado por curl no Passo 0); status ordena pelo ciclo de vida do pedido
 // (RASCUNHO→ENVIADO→...→PAGO/CANCELADO), que não é a ordem alfabética do banco. Desde a #994
@@ -92,7 +85,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
 
       <div className="flex items-center gap-2">
         <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} />
-        {isVencido(orc) && <VencidoBadge />}
+        {orc.vencido && <VencidoBadge />}
       </div>
 
       <div onClick={e => e.stopPropagation()}>
@@ -125,7 +118,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
             <span className="text-sm font-bold text-dark">
               {orc.identificador}
             </span>
-            {isVencido(orc) && <VencidoBadge />}
+            {orc.vencido && <VencidoBadge />}
           </div>
           <div className="mb-2 text-sm text-body">{orc.nomeCliente}</div>
           <div className="flex flex-wrap items-center gap-2">
