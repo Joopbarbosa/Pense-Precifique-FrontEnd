@@ -4,7 +4,7 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
 interface AppLayoutProps {
-  active: 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
+  active: 'agenda' | 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
   children: React.ReactNode
   noPad?: boolean
   fullHeight?: boolean

@@ -49,6 +49,12 @@ const TABELAS_DOMINIO = [
   'caixa_turnos',
   'catalogos',
   'clientes',
+  // V0.18.0 — Agenda (V80 a V83): comentários do orçamento e compromissos da usuária (já alcançadas por CASCADE a partir de
+  // orcamentos/insumos, listadas por clareza) e o histórico de preço sugerido, que aceita o item de Catálogo
+  'orcamento_comentarios',
+  'compromissos_usuaria_excecoes',
+  'compromissos_usuaria',
+  'mudancas_preco_sugerido',
   'compras',
   'compra_itens',
   'ficha_tecnica_itens',
