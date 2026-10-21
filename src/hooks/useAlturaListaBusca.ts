@@ -11,7 +11,13 @@ export function useAlturaListaBusca<T extends HTMLElement>(ref: RefObject<T>, ve
     painel.scrollTop = 0
     let frame = 0
     const medir = () => {
-      if (painel.getAnimations().some(animacao => animacao.playState === 'running')) {
+      // Espera também as animações dos elementos pais (ex.: a entrada em escala do ModalShell): medir durante o `scale`
+      // devolve alturas encolhidas e a lista final mostraria 7 linhas em vez de 8.
+      const animando = document.getAnimations().some(animacao => {
+        const alvo = (animacao.effect as KeyframeEffect | null)?.target
+        return animacao.playState === 'running' && alvo instanceof Node && alvo.contains(painel)
+      })
+      if (animando) {
         frame = requestAnimationFrame(medir)
         return
       }
