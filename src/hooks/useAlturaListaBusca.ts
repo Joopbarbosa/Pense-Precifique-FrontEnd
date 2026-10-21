@@ -9,14 +9,25 @@ export function useAlturaListaBusca<T extends HTMLElement>(ref: RefObject<T>, ve
     if (!painel) return
 
     painel.scrollTop = 0
-    const linhas = painel.querySelectorAll<HTMLElement>('[data-search-row]')
-    if (linhas.length <= LINHAS_BUSCA_VISIVEIS) {
-      setMaxHeight(undefined)
-      return
-    }
+    let frame = 0
+    const medir = () => {
+      if (painel.getAnimations().some(animacao => animacao.playState === 'running')) {
+        frame = requestAnimationFrame(medir)
+        return
+      }
+      const linhas = painel.querySelectorAll<HTMLElement>('[data-search-row]')
+      if (linhas.length <= LINHAS_BUSCA_VISIVEIS) {
+        setMaxHeight(undefined)
+        return
+      }
 
-    const oitava = linhas[LINHAS_BUSCA_VISIVEIS - 1]
-    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
+      // Mede em relação ao próprio painel: offsetTop depende do offsetParent, que varia entre listas.
+      const painelBox = painel.getBoundingClientRect()
+      const oitavaBox = linhas[LINHAS_BUSCA_VISIVEIS - 1].getBoundingClientRect()
+      setMaxHeight(Math.ceil(oitavaBox.bottom - painelBox.top + 1))
+    }
+    frame = requestAnimationFrame(medir)
+    return () => cancelAnimationFrame(frame)
   }, [ref, versao])
 
   return maxHeight
