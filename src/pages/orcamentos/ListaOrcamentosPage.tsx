@@ -156,7 +156,7 @@ export default function ListaOrcamentosPage() {
     const c = inicial.texto('ordem', 'numero') as SortField
     return c in SORT_BACKEND_FIELD ? c : 'numero'
   })
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => inicial.texto('dir', 'asc') === 'desc' ? 'desc' : 'asc')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => inicial.texto('dir', 'desc') === 'asc' ? 'asc' : 'desc')
 
   const sortParam = sortField ? `${SORT_BACKEND_FIELD[sortField]},${sortDir}` : undefined
 
@@ -179,7 +179,7 @@ export default function ListaOrcamentosPage() {
     paginaInicial: inicial.pagina(),
   })
   useEspelharNaUrl({ pagina: page + 1, busca: query, status: filtro, de: appliedDateFrom, ate: appliedDateTo, ordem: sortField, dir: sortDir },
-    { pagina: 1, busca: '', status: '', de: '', ate: '', ordem: 'numero', dir: 'asc' })
+    { pagina: 1, busca: '', status: '', de: '', ate: '', ordem: 'numero', dir: 'desc' })
 
   useAoMudar(`${filtro}|${appliedDateFrom}|${appliedDateTo}|${sortParam}`, reset)
 
