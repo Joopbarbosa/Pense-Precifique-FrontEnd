@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
@@ -13,7 +14,7 @@ import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusC
 import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
 import ModalInsumoResumo from '../../components/compra/ModalInsumoResumo'
-import { formatarData, moeda, qtd } from '../../components/compra/formato'
+import { moeda, qtd } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { useToast } from '../../hooks/useToast'

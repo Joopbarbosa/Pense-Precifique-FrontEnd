@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso, rotuloMes } from '../../utils/data'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
@@ -43,20 +44,8 @@ type AbaNumeros = 'CLIENTE' | 'FORNECEDOR' | 'AMBOS'
 
 const TIPO_PESSOA_LABEL: Record<TipoPessoa, string> = { FISICA: 'Pessoa física', JURIDICA: 'Pessoa jurídica', ESTRANGEIRO: 'Estrangeiro' }
 
-/** "2026-05-20T16:45:00" ou "2026-05-20" → "20/05/2026", sem passar por Date (evita deslocamento de fuso). */
-const formatarData = (iso?: string | null) => {
-  if (!iso) return '—'
-  const [a, m, d] = iso.slice(0, 10).split('-')
-  return `${d}/${m}/${a}`
-}
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-const rotuloMes = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]}/${iso.slice(2, 4)}`
 
 const qtd = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
-
-const isoLocal = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 const PERIODOS = [
   { value: 3, label: '3 meses' },
@@ -201,7 +190,7 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
   const fornecedor = papel === 'FORNECEDOR'
   const [meses, setMeses] = useState<number>(12)
   const [deLivre, setDeLivre] = useState('')
-  const [ateLivre, setAteLivre] = useState(isoLocal(new Date()))
+  const [ateLivre, setAteLivre] = useState(dataLocalIso(new Date()))
   const [dados, setDados] = useState<GraficosClienteResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -210,7 +199,7 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
   const faixa = (() => {
     if (meses === 0) return { de: deLivre, ate: ateLivre }
     const hoje = new Date()
-    return { de: isoLocal(new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)), ate: isoLocal(hoje) }
+    return { de: dataLocalIso(new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)), ate: dataLocalIso(hoje) }
   })()
 
   useEffect(() => {
@@ -258,10 +247,10 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
             optionWidth="whitespace-nowrap px-3.5" textSize="text-[12.5px]" />
           {meses === 0 && (
             <div className="flex items-center gap-2 text-[12.5px] font-semibold text-body">
-              <input type="date" aria-label="Data inicial dos gráficos" value={deLivre} max={isoLocal(new Date())}
+              <input type="date" aria-label="Data inicial dos gráficos" value={deLivre} max={dataLocalIso(new Date())}
                 onChange={e => mudarData('de', e.target.value, e.currentTarget)} className={dateInput} />
               até
-              <input type="date" aria-label="Data final dos gráficos" value={ateLivre} max={isoLocal(new Date())}
+              <input type="date" aria-label="Data final dos gráficos" value={ateLivre} max={dataLocalIso(new Date())}
                 onChange={e => mudarData('ate', e.target.value, e.currentTarget)} className={dateInput} />
             </div>
           )}

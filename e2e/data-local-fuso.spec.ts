@@ -15,10 +15,17 @@ test.describe('Datas locais (America/Sao_Paulo)', () => {
     expect(hojeLocal(0, new Date('2026-10-07T03:30:00Z'))).toBe('2026-10-07')
   })
 
-  test('nova produção: a data de início padrão é o dia local, mesmo depois das 21h em Brasília', async ({ page }) => {
+  test('nova produção usa o dia local ao atravessar a meia-noite UTC', async ({ page }) => {
     await login(page)
     await page.clock.setFixedTime(NOITE)
     await page.goto('/producao/nova')
     await expect(page.getByLabel(/Data de início/)).toHaveValue('2026-10-06')
+  })
+
+  test('nova produção mantém o último dia local do ano antes da meia-noite UTC', async ({ page }) => {
+    await login(page)
+    await page.clock.setFixedTime(new Date('2027-01-01T02:30:00Z'))
+    await page.goto('/producao/nova')
+    await expect(page.getByLabel(/Data de início/)).toHaveValue('2026-12-31')
   })
 })

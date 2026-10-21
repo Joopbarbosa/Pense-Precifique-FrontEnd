@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { BadgePercent, Calculator, Monitor, Receipt, TrendingUp, Wallet, AlertCircle } from 'lucide-react'
@@ -7,7 +8,7 @@ import ModalVendasCmv, { type FiltroVendasCmv } from './ModalVendasCmv'
 import { BigNumber, BigNumberGroup, Button, SegmentedControl } from '../ui'
 import GraficoPrecoInsumos from './GraficoPrecoInsumos'
 import ModalListagemRegistros, { type FiltroInicial } from '../shared/ModalListagemRegistros'
-import { formatarData, hojeIso, moeda } from './formato'
+import { moeda } from './formato'
 import { BRL } from '../venda/formato'
 import { compraService } from '../../services/compraService'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -31,7 +32,7 @@ export default function DashboardCompras() {
   const [vendasCmv, setVendasCmv] = useState<FiltroVendasCmv | null>(null)
   const [periodo, setPeriodo] = useState<Periodo>('mes')
   const [deLivre, setDeLivre] = useState('')
-  const [ateLivre, setAteLivre] = useState(hojeIso())
+  const [ateLivre, setAteLivre] = useState(dataLocalIso())
   const [d, setD] = useState<DashboardComprasResponse | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
