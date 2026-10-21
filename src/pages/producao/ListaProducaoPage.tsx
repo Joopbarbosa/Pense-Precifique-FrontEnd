@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -119,7 +120,7 @@ function ProducaoKanbanCard({ producao, isDragging, onClick }: { producao: Produ
           <VinculoAtivoBadge label="Orçamento vinculado" />
         </div>
       )}
-      <div className="mt-1.5 text-[11.5px] text-muted">{fmtData(producao.dataTerminoPrevista)}</div>
+      <div className="mt-1.5 text-[11.5px] text-muted">{formatarData(producao.dataTerminoPrevista)}</div>
     </div>
   )
 }
@@ -203,12 +204,6 @@ function FiltroChips({ filtro, onChange, contadores }: {
       })}
     </div>
   )
-}
-
-function fmtData(iso: string | null): string {
-  if (!iso) return '—'
-  const [y, m, d] = iso.split('T')[0].split('-')
-  return `${d}/${m}/${y}`
 }
 
 type SortField = 'dataInicio' | 'estado' | 'produto' | 'quantidade'
@@ -310,7 +305,7 @@ function ProducaoRow({ producao, onVerDetalhes, onCancelar, abrirModal, onDesagr
       </span>
 
       <span className="text-[13px] text-muted">
-        {fmtData(producao.dataInicio)} – {fmtData(producao.dataTerminoPrevista)}
+        {formatarData(producao.dataInicio)} – {formatarData(producao.dataTerminoPrevista)}
       </span>
 
       <div className="flex flex-col items-start gap-1.5">
@@ -381,7 +376,7 @@ function ProducaoCard({ producao, index, onVerDetalhes, onCancelar, abrirModal, 
               {badge.label}
             </span>
             <span className="text-[12.5px] text-muted">
-              {fmtData(producao.dataInicio)} – {fmtData(producao.dataTerminoPrevista)}
+              {formatarData(producao.dataInicio)} – {formatarData(producao.dataTerminoPrevista)}
             </span>
             {producao.orcamentosVinculados.length > 0 && (
               <VinculoAtivoBadge label="Tem orçamento vinculado" />

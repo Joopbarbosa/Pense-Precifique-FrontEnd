@@ -1,15 +1,9 @@
+import { formatarData } from '../../utils/data'
 import type { CompraResponse, RegraPrecoReferencia, StatusCompra } from '../../types/compra'
 import { BRL } from '../venda/formato'
 import type { VinculoNotaResponse } from '../../types/vinculoNota'
 
 // V0.15.0 — formatação das telas de Compras (só exibição; valores vêm prontos da API).
-
-/** "2026-09-20" ou "2026-09-20T15:02:11" → "20/09/2026", sem Date (evita deslocamento de fuso). */
-export function formatarData(iso?: string | null): string {
-  if (!iso) return '—'
-  const [a, m, d] = iso.slice(0, 10).split('-')
-  return `${d}/${m}/${a}`
-}
 
 /** #993: dd/mm/aaaa hh:mm de um LocalDateTime do servidor (já no horário de Brasília), sem passar por Date para não mudar de fuso. */
 export function formatarDataHora(iso?: string | null): string {
@@ -42,11 +36,6 @@ export function parseDecimal(texto: string): number | null {
 export function paraCampo(n: number | null | undefined, casas = 4): string {
   if (n == null) return ''
   return n.toLocaleString('pt-BR', { maximumFractionDigits: casas, useGrouping: false })
-}
-
-export function hojeIso(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export const STATUS_COMPRA_LABEL: Record<StatusCompra, string> = {

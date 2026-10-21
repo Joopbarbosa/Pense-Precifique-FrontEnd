@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import { Calculator } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
@@ -6,7 +7,7 @@ import ModalRegistro from '../cliente/ModalRegistro'
 import { compraService } from '../../services/compraService'
 import type { VendaCmvResponse, VendasCmvResponse } from '../../types/compra'
 import { extractApiError } from '../../utils/apiError'
-import { formatarData } from './formato'
+
 import { BRL } from '../venda/formato'
 
 export interface FiltroVendasCmv { de: string; ate: string; mes?: string }

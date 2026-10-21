@@ -1,8 +1,9 @@
+import { formatarData } from '../../utils/data'
 import { useCallback, useEffect, useState } from 'react'
 import { Button, EmptyState } from '../ui'
 import Spinner from '../ui/Spinner'
 import ModalRegistro from '../cliente/ModalRegistro'
-import { formatarData } from '../compra/formato'
+
 import { BRL } from '../venda/formato'
 import { dashboardVendasService } from '../../services/dashboardVendasService'
 import { extractApiError } from '../../utils/apiError'
