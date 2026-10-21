@@ -28,8 +28,9 @@ test.describe('CEN-NOVO-22 — Busca de cliente (server-side) em Novo Orçamento
   test('CEN-NOVO-22 — foco lista tudo, busca filtra server-side, seleção troca input por card', async ({ page, request }) => {
     const token = await apiLogin(request)
     const sufixo = Date.now()
-    const nomeAlvo = `QACEN22-Maria-${sufixo}`
-    const nomeOutro = `QACEN22-Joana-${sufixo}`
+    // prefixo "0-": a lista de foco vem em ordem de nome e a conta de teste acumula clientes de outros specs; assim os dois ficam na primeira página
+    const nomeAlvo = `0-QACEN22-Maria-${sufixo}`
+    const nomeOutro = `0-QACEN22-Joana-${sufixo}`
 
     criadosClienteIds.push((await criarCliente(request, token, nomeAlvo)).id)
     criadosClienteIds.push((await criarCliente(request, token, nomeOutro)).id)
@@ -43,7 +44,7 @@ test.describe('CEN-NOVO-22 — Busca de cliente (server-side) em Novo Orçamento
     await expect(page.getByText(nomeAlvo, { exact: true }).first()).toBeVisible({ timeout: 3000 })
 
     // Busca server-side filtra para só o cliente alvo.
-    await campoCliente.fill(`QACEN22-Maria-${sufixo}`)
+    await campoCliente.fill(nomeAlvo)
     await expect(page.getByText(nomeAlvo, { exact: true }).first()).toBeVisible({ timeout: 3000 })
     await expect(page.getByText(nomeOutro, { exact: true })).toHaveCount(0)
 
