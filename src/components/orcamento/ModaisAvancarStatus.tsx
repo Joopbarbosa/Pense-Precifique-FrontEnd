@@ -47,11 +47,12 @@ export default function ModaisAvancarStatus({
         />
       )}
 
-      {fluxo.avisoEstoqueNegativo && (
+      {fluxo.confirmacaoPendente && (
         <ConfirmarEstoqueNegativoModal
-          avisos={fluxo.avisoEstoqueNegativo}
+          avisos={fluxo.confirmacaoPendente.avisos}
+          vinculosOrfaos={fluxo.confirmacaoPendente.vinculosOrfaos ?? []}
           confirming={fluxo.confirmandoAviso}
-          onClose={fluxo.fecharAvisoEstoque}
+          onClose={fluxo.fecharConfirmacaoPendente}
           onConfirm={fluxo.handleConfirmarAvisoEstoque}
         />
       )}

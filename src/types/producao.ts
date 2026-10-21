@@ -149,8 +149,17 @@ export interface AvisoEstoqueNegativo {
   mensagem: string
 }
 
+/** Produção vinculada que já não vai acontecer (CANCELADA ou NAO_REALIZADA) — aviso ORC-047 (#398). */
+export interface VinculoOrfaoResumo {
+  id: string
+  identificador: string
+  estado: 'CANCELADA' | 'NAO_REALIZADA'
+}
+
 export interface ConfirmacaoEstoqueNegativoResponse {
   avisos: AvisoEstoqueNegativo[]
+  /** Só preenchido ao finalizar um orçamento com produção vinculada cancelada ou não realizada. */
+  vinculosOrfaos?: VinculoOrfaoResumo[] | null
 }
 
 export interface ConsumoRealItem {

@@ -2,7 +2,7 @@ import { useState, type Dispatch, type SetStateAction } from "react";
 import { orcamentoService } from "../services/orcamentoService";
 import { extractApiError } from "../utils/apiError";
 import { isConfirmacaoEstoqueNegativoResponse } from "../types/producao";
-import type { AvisoEstoqueNegativo } from "../types/producao";
+import type { ConfirmacaoEstoqueNegativoResponse } from "../types/producao";
 import type {
   OrcamentoDetalheResponse,
   OrcamentoProducaoResponse,
@@ -32,7 +32,8 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
   const [saving, setSaving] = useState(false);
   const [modalAvanco, setModalAvanco] = useState<ModalAvanco>(null);
   const [erroAvanco, setErroAvanco] = useState<string | null>(null);
-  const [avisoEstoqueNegativo, setAvisoEstoqueNegativo] = useState<AvisoEstoqueNegativo[] | null>(null);
+  // Confirmação pendente do backend: estoque negativo (RN-052) e/ou produção vinculada cancelada (ORC-047).
+  const [confirmacaoPendente, setConfirmacaoPendente] = useState<ConfirmacaoEstoqueNegativoResponse | null>(null);
   const [ultimoAvancoData, setUltimoAvancoData] = useState<AvancaStatusRequest | undefined>(undefined);
   const [confirmandoAviso, setConfirmandoAviso] = useState(false);
   const [simulacaoAtalho, setSimulacaoAtalho] = useState<SimulacaoAvancoStatusResponse | null>(null);
@@ -56,7 +57,7 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     try {
       const result = await orcamentoService.avancarStatus(id, data);
       if (isConfirmacaoEstoqueNegativoResponse(result)) {
-        setAvisoEstoqueNegativo(result.avisos);
+        setConfirmacaoPendente(result);
         setUltimoAvancoData(data);
       } else {
         setOrcamento(() => result);
@@ -71,18 +72,21 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
   };
 
   const handleConfirmarAvisoEstoque = async () => {
-    if (!id || !avisoEstoqueNegativo) return;
+    if (!id || !confirmacaoPendente) return;
     setConfirmandoAviso(true);
     setErroAvanco(null);
     try {
+      // Confirma tudo o que a modal mostrou: os ids de estoque negativo e, se houver, a ciência do vínculo
+      // órfão (sem ela o backend devolveria a mesma confirmação e a usuária ficaria presa — #398).
       const result = await orcamentoService.avancarStatus(id, {
         ...ultimoAvancoData,
-        confirmarEstoqueNegativoProdutoIds: avisoEstoqueNegativo.map((a) => a.componenteId),
+        confirmarEstoqueNegativoProdutoIds: confirmacaoPendente.avisos.map((a) => a.componenteId),
+        confirmarVinculosOrfaos: (confirmacaoPendente.vinculosOrfaos?.length ?? 0) > 0 ? true : undefined,
       });
       if (isConfirmacaoEstoqueNegativoResponse(result)) {
-        setAvisoEstoqueNegativo(result.avisos);
+        setConfirmacaoPendente(result);
       } else {
-        setAvisoEstoqueNegativo(null);
+        setConfirmacaoPendente(null);
         setOrcamento(() => result);
         setModalAvanco(null);
       }
@@ -253,8 +257,8 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     abrirVincularProducao,
     fecharModalAvanco: () => setModalAvanco(null),
     // dados e ações das modais (consumidos por ModaisAvancarStatus)
-    avisoEstoqueNegativo,
-    fecharAvisoEstoque: () => setAvisoEstoqueNegativo(null),
+    confirmacaoPendente,
+    fecharConfirmacaoPendente: () => setConfirmacaoPendente(null),
     confirmandoAviso,
     handleConfirmarAvisoEstoque,
     simulacaoAtalho,
