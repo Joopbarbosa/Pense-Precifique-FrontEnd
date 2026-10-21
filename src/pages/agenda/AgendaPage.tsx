@@ -18,7 +18,7 @@ import type { AgendaResumo, Compromisso, OrigemCompromisso, VisaoAgenda } from '
 import type { HorarioFuncionamento } from '../../types/empresa'
 import { dataLocalIso } from '../../utils/data'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
-import { filtrarCompromissos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
+import { distribuirPorDia, filtrarCompromissos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
 
 const OPCOES_VISAO = [
   { value: 'DIA' as VisaoAgenda, label: 'Dia' },
@@ -43,7 +43,8 @@ function faixaDeFuncionamento(horarios: HorarioFuncionamento[] | undefined): { i
  * "+N" no mês e detalhe do compromisso. Os compromissos são calculados no servidor a cada consulta; a tela só os exibe.
  */
 export default function AgendaPage() {
-  const [hoje] = useState(() => dataLocalIso())
+  const [hoje, setHoje] = useState(() => dataLocalIso())
+  const [sinalHoje, setSinalHoje] = useState(0)
   // RN-NOVA-2/RN-NOVA-23: a última visão escolhida é lembrada por pessoa; a Semana é a que abre quando não há escolha
   const [visao, setVisaoEstado] = useState<VisaoAgenda>(() => {
     const salva = lerPreferencia('agenda:visao')
@@ -80,21 +81,22 @@ export default function AgendaPage() {
   }, [periodo.de, periodo.ate])
 
   useEffect(() => { void carregar() }, [carregar])
+  // o atraso por horário muda com o relógio: reconsulta a cada minuto e ao voltar para a aba (RN-NOVA-2 v2)
+  useEffect(() => {
+    const atualizar = () => { setHoje(dataLocalIso()); void carregar() }
+    const id = window.setInterval(atualizar, 60_000)
+    const aoVoltar = () => { if (document.visibilityState === 'visible') atualizar() }
+    document.addEventListener('visibilitychange', aoVoltar)
+    return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', aoVoltar) }
+  }, [carregar])
   useEffect(() => { empresaService.getEmpresa().then(e => setHorarios(e?.horarios)).catch(() => setHorarios(undefined)) }, [])
 
   const compromissosVisiveis = useMemo(() => filtrarCompromissos(compromissos, filtros), [compromissos, filtros])
-  const porDia = useMemo(() => {
-    const mapa = new Map<string, Compromisso[]>()
-    for (const c of compromissosVisiveis) {
-      const lista = mapa.get(c.dataExibicao)
-      if (lista) lista.push(c)
-      else mapa.set(c.dataExibicao, [c])
-    }
-    return mapa
-  }, [compromissosVisiveis])
+  // RN-NOVA-4 v2: o atrasado entra em todos os dias do período entre a origem e hoje
+  const porDia = useMemo(() => distribuirPorDia(compromissosVisiveis, periodo.dias), [compromissosVisiveis, periodo.dias])
 
   // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
-  const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje) }
+  const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje); setSinalHoje(n => n + 1) }
   const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setAberto(c) }
   const filtrosAtivos = filtros.mostrar !== 'TODOS' || filtros.origens.length > 0
   const vazio = !carregando && !erro && compromissosVisiveis.length === 0
@@ -111,7 +113,7 @@ export default function AgendaPage() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" icon={<ChevronLeft size={16} />} onClick={() => setReferencia(navegar(visao, referencia, -1))}>Anterior</Button>
-          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => setReferencia(hoje)}>Hoje</Button>
+          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
           <span className="ml-2 text-[15px] font-semibold capitalize text-dark" data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
         </div>
@@ -130,7 +132,7 @@ export default function AgendaPage() {
       ) : visao === 'MES' ? (
         <GradeMes dias={periodo.dias} mesDeReferencia={referencia} hoje={hoje} porDia={porDia} onAbrir={abrir} onVerDia={setDiaAberto} />
       ) : (
-        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} faixa={faixaDeFuncionamento(horarios)} onAbrir={abrir} />
+        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} faixa={faixaDeFuncionamento(horarios)} onAbrir={abrir} sinalHoje={sinalHoje} />
       )}
       {vazio && (filtrosAtivos
         ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>

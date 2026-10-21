@@ -21,11 +21,16 @@ export interface Compromisso {
   dataOrigem: string
   /** Só nas ocorrências do compromisso da usuária. */
   dataOriginalOcorrencia?: string | null
+  /** Primeiro dia do compromisso (a data da origem). */
   dataExibicao: string
+  /** Último dia: hoje no atrasado (a barra de continuidade vai de um ao outro, RN-NOVA-4 v2); a própria data nos demais. */
+  dataFim: string
   horario?: string | null
   diaInteiro: boolean
   atrasado: boolean
   diasAtraso: number
+  /** Atraso por horário (hoje, hora já passada): minutos desde o horário; zero no atraso por data. */
+  minutosAtraso: number
   marcacoes: string[]
   avisos: string[]
   referenciaId: string
