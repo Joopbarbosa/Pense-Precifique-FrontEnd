@@ -18,6 +18,8 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
 
     await login(page)
     await page.goto('/agenda')
+    await expect(page.getByTestId('resumo-atrasados')).toHaveText('2 atrasados')
+    await expect(page.getByTestId('resumo-hoje')).toHaveText('5 para hoje')
     const resumoAtrasados = await page.getByTestId('resumo-atrasados').innerText()
     const resumoHoje = await page.getByTestId('resumo-hoje').innerText()
     await page.getByLabel('Mostrar').selectOption('ATRASADOS')
