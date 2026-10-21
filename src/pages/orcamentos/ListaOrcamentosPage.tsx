@@ -40,13 +40,6 @@ const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
 
-function isVencido(orc: OrcamentoResponse): boolean {
-  if (!orc.dataValidade) return false
-  const inactive: StatusOrcamento[] = ['CANCELADO', 'PAGO', 'FINALIZADO', 'ENTREGUE']
-  if (inactive.includes(orc.status)) return false
-  return new Date(orc.dataValidade) < new Date()
-}
-
 function fmtData(iso: string): string {
   const [y, m, d] = iso.split('T')[0].split('-')
   return `${d}/${m}/${y}`
@@ -97,7 +90,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
 
       <div className="flex items-center gap-2">
         <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} />
-        {isVencido(orc) && <VencidoBadge />}
+        {orc.vencido && <VencidoBadge />}
       </div>
 
       <div onClick={e => e.stopPropagation()}>
@@ -130,7 +123,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
             <span className="text-sm font-bold text-dark">
               {orc.identificador}
             </span>
-            {isVencido(orc) && <VencidoBadge />}
+            {orc.vencido && <VencidoBadge />}
           </div>
           <div className="mb-2 text-sm text-body">{orc.nomeCliente}</div>
           <div className="flex flex-wrap items-center gap-2">
