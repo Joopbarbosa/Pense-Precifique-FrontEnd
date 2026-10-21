@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
@@ -314,6 +315,11 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [loadingBusca, setLoadingBusca] = useState(false)
   const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const painelRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = open
+    ? [...insumos, ...produtos, ...customizacoes].map(item => `${item.tipo}:${item.id}`).join('|')
+    : ''
+  const maxHeight = useAlturaListaBusca(painelRef, versaoLinhas)
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
@@ -378,6 +384,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       ) : (
         <button
           key={i.id}
+          data-search-row
           onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
@@ -415,7 +422,8 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
       />
       {open && (
-        <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
+        <div ref={painelRef} style={maxHeight != null ? { maxHeight } : undefined}
+          className="absolute inset-x-0 top-[50px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
           ) : erroBusca ? (

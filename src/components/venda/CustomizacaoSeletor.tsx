@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { Search, Check } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
@@ -6,6 +6,7 @@ import { EstoqueTags } from '../ui/Badge'
 import type { CustomizacaoLinha } from './types'
 import { BRL } from './formato'
 import { rotuloProduto } from '../../utils/rotuloProduto'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 interface CustomizacaoDisponivel {
   id: string
@@ -35,6 +36,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
   const [customizacoes, setCustomizacoes] = useState<CustomizacaoDisponivel[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState(false)
+  const listaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -60,6 +62,8 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
   const filtradas = customizacoes.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase())
   )
+  const versaoLinhas = filtradas.map(c => `${c.id}:${selecionadas.find(x => x.id === c.id)?.qtd ?? 0}`).join('|')
+  const maxHeight = useAlturaListaBusca(listaRef, versaoLinhas)
   const extraTotal = selecionadas.reduce((s, c) => s + c.valor * c.qtd, 0)
 
   return (
@@ -77,11 +81,11 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
         />
       </div>
 
-      {/* Lista de customizações — RN-NOVA-7: até 8 itens visíveis por vez, resto via rolagem.
-          Altura calibrada para a linha de 72px + gap-2 (8px), medida via Playwright: 8*72 + 7*8 = 632px.
+      {/* Lista de customizações — RN-NOVA-26: até 8 itens visíveis por vez, resto via rolagem.
           `shrink-0` em cada linha é obrigatório: sem ele, um flex-col com max-height/overflow-y-auto
           encolhe os itens para caber em vez de habilitar rolagem (gotcha clássico de flexbox). */}
-      <div className="flex max-h-[632px] flex-col gap-2 overflow-y-auto">
+      <div ref={listaRef} style={maxHeight != null ? { maxHeight } : undefined}
+        className="flex flex-col gap-2 overflow-y-auto">
         {loading ? (
           <div className="p-8 text-center text-sm text-muted">
             Carregando customizações...
@@ -99,7 +103,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
           const on = !!sel
 
           return (
-            <div key={c.id} className={clsx(
+            <div key={c.id} data-search-row className={clsx(
               'shrink-0 overflow-hidden rounded-[11px] border-[1.5px] transition-all duration-150',
               on ? 'border-orange/40 bg-orange/[0.07]' : 'border-line bg-cream'
             )}>

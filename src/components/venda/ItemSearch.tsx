@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import OpcaoInativa from '../shared/OpcaoInativa'
 import { Layers, Box, Filter } from 'lucide-react'
 import { EstoqueTags, FracionavelBadge, EstoqueInsuficienteBadge } from '../ui/Badge'
@@ -10,6 +10,7 @@ import type { CatalogoResponse } from '../../types/catalogo'
 import Paginacao from '../shared/Paginacao'
 import { BRL } from './formato'
 import { rotuloProduto } from '../../utils/rotuloProduto'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 /**
  * Painel de busca de item de venda — Produto avulso e/ou item de Catálogo, com paginação real (RN-NOVA-18, V0.8.3;
@@ -46,7 +47,6 @@ export default function ItemSearch({
   const [catalogo, setCatalogo] = useState<PageResponse<ItemCatalogoBuscaResponse> | null>(null)
   const [produtosPg, setProdutosPg] = useState<PageResponse<ProdutoResponse> | null>(null)
   const [loading, setLoading] = useState(false)
-  const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
 
   // #994 (RN-NOVA-31) — uma página só (10 por fonte) vale para as duas fontes; mudar a busca, o modo ou o catálogo volta à
@@ -71,28 +71,8 @@ export default function ItemSearch({
     return () => document.removeEventListener('mousedown', h)
   }, [onClose])
 
-  // ORC-030 — até 8 itens visíveis por vez, resto acessível via rolagem. Altura calculada a partir
-  // da posição real da 8ª linha (medida via ref, não um px fixo assumido): cobre de uma vez tanto
-  // o caso de 2 rótulos de categoria coexistindo (modo "Tudo" com catálogo + avulso) quanto o caso
-  // de badges de estoque quebrando para 2 linhas (nomes longos) — os dois fazem a linha crescer de
-  // forma que um valor fixo em px não acompanha. Sem isso: bug original de #242, o painel só
-  // orçava espaço para 1 rótulo de categoria, cortando o 8º item quando os dois apareciam juntos.
-  useLayoutEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    el.scrollTop = 0
-    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
-    if (linhas.length <= 8) {
-      setMaxHeight(undefined)
-      return
-    }
-    // offsetTop/offsetHeight (não getBoundingClientRect) — o painel entra com animate-pop
-    // (scale(0.92)→1); medir via clientRect durante o useLayoutEffect (síncrono, antes do
-    // primeiro paint) captura o box ainda na escala inicial da animação, subestimando a altura
-    // necessária. offsetTop/offsetHeight refletem o layout box "real", imune a transform.
-    const oitava = linhas[7]
-    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
-  }, [itensCatalogo, produtos])
+  const versaoLinhas = `${open}|${modo}|${itensCatalogo.map(item => item.id).join(',')}|${produtos.map(produto => produto.id).join(',')}`
+  const maxHeight = useAlturaListaBusca(wrapRef, versaoLinhas)
 
   useEffect(() => {
     if (!open) {
