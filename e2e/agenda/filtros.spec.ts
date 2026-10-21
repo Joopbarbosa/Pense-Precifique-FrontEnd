@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { apiLogin } from '../helpers/api'
 import { login } from '../helpers/auth'
-import { criarCompromissoUsuaria } from '../helpers/agenda'
+import { criarCompromissoUsuaria, resumoAgenda } from '../helpers/agenda'
 import { hojeLocal } from '../helpers/data'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi } from '../helpers/orcamento'
 import { criarInsumoComEstoque } from '../helpers/insumo'
@@ -13,23 +13,26 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
     const token = await apiLogin(request)
     const atrasados = [`Filtro atrasado A ${Date.now()}`, `Filtro atrasado B ${Date.now()}`]
     const pendentes = Array.from({ length: 5 }, (_, i) => `Filtro pendente ${i + 1} ${Date.now()}`)
+    // a conta de teste é compartilhada: os outros specs deixam atrasados e compromissos de hoje, então a conta parte do que já existe
+    const antes = await resumoAgenda(request, token)
     for (const titulo of atrasados) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(-2) })
     for (const titulo of pendentes) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(0) })
 
     await login(page)
     await page.goto('/agenda')
-    await expect(page.getByTestId('resumo-atrasados')).toHaveText('2 atrasados')
-    await expect(page.getByTestId('resumo-hoje')).toHaveText('5 para hoje')
+    await expect(page.getByTestId('resumo-atrasados')).toHaveText(`${antes.atrasados + 2} atrasados`)
+    await expect(page.getByTestId('resumo-hoje')).toHaveText(`${antes.hoje + 5} para hoje`)
     const resumoAtrasados = await page.getByTestId('resumo-atrasados').innerText()
     const resumoHoje = await page.getByTestId('resumo-hoje').innerText()
     await page.getByLabel('Mostrar').selectOption('ATRASADOS')
-    for (const titulo of atrasados) await expect(page.getByTestId('compromisso').filter({ hasText: titulo })).toBeVisible()
+    // o atrasado aparece em cada dia entre a origem e hoje (RN-NOVA-4 v2): pode haver mais de um chip
+    for (const titulo of atrasados) await expect(page.getByTestId('compromisso').filter({ hasText: titulo }).first()).toBeVisible()
     for (const titulo of pendentes) await expect(page.getByTestId('compromisso').filter({ hasText: titulo })).toHaveCount(0)
     await expect(page.getByTestId('resumo-atrasados')).toHaveText(resumoAtrasados)
     await expect(page.getByTestId('resumo-hoje')).toHaveText(resumoHoje)
 
     await page.getByRole('button', { name: 'Limpar filtros' }).click()
-    for (const titulo of [...atrasados, ...pendentes]) await expect(page.getByTestId('compromisso').filter({ hasText: titulo })).toBeVisible()
+    for (const titulo of [...atrasados, ...pendentes]) await expect(page.getByTestId('compromisso').filter({ hasText: titulo }).first()).toBeVisible()
   })
 
   test('CEN-NOVO-86 — origem e situação combinam; desmarcar origens mostra todas', async ({ page, request }) => {
