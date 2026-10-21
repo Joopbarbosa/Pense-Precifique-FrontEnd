@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Eye, EyeOff, Search } from 'lucide-react'
 import BotaoAjuda from './BotaoAjuda'
+import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
 import type { IdAjuda } from '../../constants/ajudaDashboards'
 
 // V0.15.0 (#604, RN-NOVA-34, DT-NOVA-23) — cartão de número padrão do sistema (extraído do Dashboard de
@@ -40,17 +41,15 @@ export function BigNumber({ icone, titulo, valor, children, destaque, tom, onLup
   )
 }
 
-const CHAVE = (tela: string) => `numerosEscondidos:${tela}`
+// V0.18.0 (#671, RN-NOVA-23): a escolha de esconder é de cada pessoa (chave com o id da conta)
+const nomePreferencia = (tela: string) => `numerosEscondidos:${tela}`
 
 function lerEscondido(tela: string): boolean {
-  try { return localStorage.getItem(CHAVE(tela)) === '1' } catch { return false }
+  return lerPreferencia(nomePreferencia(tela)) === '1'
 }
 
 function gravarEscondido(tela: string, escondido: boolean) {
-  try {
-    if (escondido) localStorage.setItem(CHAVE(tela), '1')
-    else localStorage.removeItem(CHAVE(tela))
-  } catch { /* sem storage: a escolha vale só nesta visita */ }
+  gravarPreferencia(nomePreferencia(tela), escondido ? '1' : null)
 }
 
 export function BigNumberGroup({ tela, titulo, acoes, children, colunas = 'sm:grid-cols-2 xl:grid-cols-3', testid }: {

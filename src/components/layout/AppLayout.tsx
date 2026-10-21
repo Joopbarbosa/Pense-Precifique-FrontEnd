@@ -2,6 +2,7 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
+import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
 
 interface AppLayoutProps {
   active: 'agenda' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
@@ -12,14 +13,11 @@ interface AppLayoutProps {
   compact?: boolean
 }
 
-const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed'
+// V0.18.0 (#671, RN-NOVA-23): o menu recolhido é preferência de cada pessoa (chave com o id da conta)
+const SIDEBAR_COLLAPSED_PREF = 'menuRecolhido'
 
 function readCollapsedPreference(): boolean {
-  try {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
-  } catch {
-    return false
-  }
+  return lerPreferencia(SIDEBAR_COLLAPSED_PREF) === '1'
 }
 
 export default function AppLayout({ active, children, noPad, fullHeight, compact }: AppLayoutProps) {
@@ -32,11 +30,7 @@ export default function AppLayout({ active, children, noPad, fullHeight, compact
   const toggleCollapsed = () => {
     setCollapsed(prev => {
       const next = !prev
-      try {
-        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
-      } catch {
-        // localStorage indisponível (ex: modo privado) — preferência só não persiste, sem quebrar a UI
-      }
+      gravarPreferencia(SIDEBAR_COLLAPSED_PREF, next ? '1' : null)
       return next
     })
   }
