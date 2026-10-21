@@ -9,6 +9,9 @@ import { hojeLocal } from '../helpers/data'
 
 const API_URL = E2E_API_URL
 
+// #1048: este arquivo cria dados por API e abre telas; 90 s dão folga sob a suíte completa
+test.describe.configure({ timeout: 90_000 })
+
 /**
  * Bloco 2/P-TESTE-001 (V0.6.1) — RN-NOVA-5 (#194): backend implementa o endpoint somente leitura
  * `GET /orcamentos/{id}/itens-sem-estoque` (CONTRATO_API.md), que alimenta a condição de exibir o
