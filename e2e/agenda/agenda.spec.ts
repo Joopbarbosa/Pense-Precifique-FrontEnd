@@ -89,6 +89,8 @@ test.describe('#1034 — Agenda', () => {
     const lista = page.getByTestId('lista-atrasados')
     await expect(lista).toContainText('Levar encomenda à transportadora')
     await expect(lista).toContainText('Atrasado há 3 dias')
+    await expect(lista.getByTestId('compromisso').filter({ hasText: 'Levar encomenda à transportadora' })).toHaveClass(/bg-danger-strong/)
+    await expect(lista.getByTestId('compromisso').filter({ hasText: 'Levar encomenda à transportadora' }).locator('span').first()).toHaveClass(/text-white/)
     await page.getByRole('button', { name: 'Fechar' }).first().click()
     await page.getByTestId('resumo-hoje').click()
     await expect(page.getByTestId('grade-horas')).toBeVisible()
