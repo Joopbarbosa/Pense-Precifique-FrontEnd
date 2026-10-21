@@ -18,7 +18,7 @@ import { insumoService } from '../../services/insumoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useModalErro } from '../../hooks/useModalErro'
 import { extractApiError } from '../../utils/apiError'
-import { STATUS_LABEL } from '../../constants/statusOrcamento'
+import { ORDEM_CICLO_VIDA_ORCAMENTO, STATUS_LABEL } from '../../constants/statusOrcamento'
 import type { PapelCadastro } from '../../types/cliente'
 import type { StatusCompra } from '../../types/compra'
 import type { StatusOrcamento } from '../../types/orcamento'
@@ -72,7 +72,8 @@ type Campo = 'identificador' | 'data' | 'valor' | 'status'
 const TIPO_CURTO: Record<TipoRegistro, string> = { ORCAMENTO: 'Orçamento', VENDA_CAIXA: 'Caixa', COMPRA: 'Compra' }
 
 const STATUS_CLIENTE = [
-  ...Object.entries(STATUS_LABEL).map(([valor, rotulo]) => ({ valor, rotulo })),
+  ...ORDEM_CICLO_VIDA_ORCAMENTO.map(valor => ({ valor, rotulo: STATUS_LABEL[valor] })),
+  { valor: 'CANCELADO', rotulo: STATUS_LABEL.CANCELADO },
   { valor: 'CONCLUIDA', rotulo: 'Concluída (Caixa)' },
   { valor: 'CANCELADA', rotulo: 'Cancelada (Caixa)' },
 ]

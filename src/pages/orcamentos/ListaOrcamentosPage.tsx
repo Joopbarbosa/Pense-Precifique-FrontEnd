@@ -9,7 +9,7 @@ import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
 import SortableHeader from '../../components/shared/SortableHeader'
 import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
-import { STATUS_LABEL } from '../../constants'
+import { ORDEM_CICLO_VIDA_ORCAMENTO, STATUS_LABEL } from '../../constants'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
 import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
 import { useAoMudar } from '../../hooks/useAoMudar'
@@ -26,15 +26,7 @@ type StatusBadgeLabel =
 
 const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
   { label: 'Todos', value: '' },
-  { label: 'Rascunho', value: 'RASCUNHO' },
-  { label: 'Enviado', value: 'ENVIADO' },
-  { label: 'Aprovado', value: 'APROVADO' },
-  { label: 'Aguardando Sinal', value: 'AGUARDANDO_SINAL' },
-  { label: 'Sinal Pago', value: 'SINAL_PAGO' },
-  { label: 'Em Produção', value: 'EM_PRODUCAO' },
-  { label: 'Finalizado', value: 'FINALIZADO' },
-  { label: 'Entregue', value: 'ENTREGUE' },
-  { label: 'Pago', value: 'PAGO' },
+  ...ORDEM_CICLO_VIDA_ORCAMENTO.map(value => ({ label: STATUS_LABEL[value], value })),
   { label: 'Cancelado', value: 'CANCELADO' },
 ]
 

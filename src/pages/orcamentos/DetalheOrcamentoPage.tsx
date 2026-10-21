@@ -28,7 +28,7 @@ import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEs
 import { VinculoAtivoBadge, Toast } from "../../components/shared";
 import ModalConfirmacaoVinculoSequencial from "../../components/shared/ModalConfirmacaoVinculoSequencial";
 import { construirFilaVinculosOrcamento, type VinculoPendente } from "../../utils/vinculoCancelamento";
-import { STATUS_LABEL } from "../../constants";
+import { ORDEM_CICLO_VIDA_ORCAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
 import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
@@ -84,17 +84,7 @@ const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
 // Ordem da timeline (exclui Cancelado)
 // RN-NOVA-10 (V0.10.0, #466, altera ORC-005) — troca FINALIZADO->ENTREGUE->PAGO por
 // FINALIZADO->PAGO->ENTREGUE; única mudança na sequência.
-const STEPS: ApiStatus[] = [
-  "RASCUNHO",
-  "ENVIADO",
-  "APROVADO",
-  "AGUARDANDO_SINAL",
-  "SINAL_PAGO",
-  "EM_PRODUCAO",
-  "FINALIZADO",
-  "PAGO",
-  "ENTREGUE",
-];
+const STEPS: readonly ApiStatus[] = ORDEM_CICLO_VIDA_ORCAMENTO;
 
 const STATUS_META: Record<string, { bg: string; fg: string; dot: string }> = {
   RASCUNHO: { bg: "#F1F0EC", fg: "#7C786F", dot: "#A8A49C" },
