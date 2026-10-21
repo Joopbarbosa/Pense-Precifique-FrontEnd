@@ -6,7 +6,8 @@ import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
-import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus, Layers, FileDown } from 'lucide-react'
+import { Pencil, Trash2, Box, Info, ChevronRight, Files, Plus, Layers, FileDown, History } from 'lucide-react'
+import ModalHistoricoPrecoItem from '../../components/catalogo/ModalHistoricoPrecoItem'
 import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { catalogoService } from '../../services/catalogoService'
@@ -20,14 +21,16 @@ import { rotuloProduto } from '../../utils/rotuloProduto'
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-function ItemRow({ item, onClick, onEditar, onRemover }: {
+function ItemRow({ item, onClick, onEditar, onRemover, onHistorico }: {
   item: ItemCatalogoResponse
   onClick: () => void
   onEditar: () => void
   onRemover: () => void
+  onHistorico: () => void
 }) {
   const menuItems: ActionMenuItem[] = [
     { label: 'Editar',  icon: <Pencil size={16} />, onClick: onEditar },
+    { label: 'Histórico de preço', icon: <History size={16} />, onClick: onHistorico },
     { label: 'Remover', icon: <Trash2 size={16} />, onClick: onRemover, danger: true, dividerBefore: true },
   ]
 
@@ -102,6 +105,7 @@ export default function DetalheCatalogoPage() {
   const [erroCarregar, setErroCarregar] = useState<string | null>(null)
 
   const [itemParaRemover, setItemParaRemover] = useState<ItemCatalogoResponse | null>(null)
+  const [itemHistorico, setItemHistorico] = useState<ItemCatalogoResponse | null>(null)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [processando, setProcessando] = useState(false)
   const pdfRetry = useRetryCooldown()
@@ -253,10 +257,16 @@ export default function DetalheCatalogoPage() {
               onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}&itemId=${item.id}`)}
               onEditar={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}&itemId=${item.id}`)}
               onRemover={() => setItemParaRemover(item)}
+              onHistorico={() => setItemHistorico(item)}
             />
           ))
         )}
       </div>
+
+      {itemHistorico && (
+        <ModalHistoricoPrecoItem catalogoId={catalogo.id} itemId={itemHistorico.id} nomeItem={rotuloProduto(itemHistorico.nome, itemHistorico.marca)}
+          onClose={() => setItemHistorico(null)} />
+      )}
 
       <ConfirmacaoModal
         open={!!itemParaRemover}

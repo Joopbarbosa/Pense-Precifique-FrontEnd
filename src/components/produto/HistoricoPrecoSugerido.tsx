@@ -17,6 +17,9 @@ const CAUSA: Record<string, string> = {
   PRODUTO_MARGEM: 'Mudança de margem',
   INSUMO_SUBSTITUICAO: 'Substituição de insumo',
   VALOR_HORA: 'Mudança do valor da hora',
+  // V0.18.0 (#961): causas próprias do item de Catálogo
+  ITEM_EDICAO: 'Edição do item',
+  ITEM_MARGEM: 'Mudança de margem do item',
 }
 
 export function rotuloCausa(causa: string, referencia?: string | null): string {
@@ -25,7 +28,7 @@ export function rotuloCausa(causa: string, referencia?: string | null): string {
     ? `${base} ${referencia}` : base
 }
 
-function AntesDepois({ antes, depois }: { antes: number; depois: number }) {
+export function AntesDepois({ antes, depois }: { antes: number; depois: number }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 [font-variant-numeric:tabular-nums]">
       {/* #987 (RN-NOVA-10 e 11, alteração): preço anterior em laranja e riscado; o novo mantém a cor (laranja se subiu, verde se desceu) */}
