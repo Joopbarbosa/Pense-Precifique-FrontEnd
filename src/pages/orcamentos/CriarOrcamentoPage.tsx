@@ -102,7 +102,14 @@ function PrazoSection({
         <SegmentedControl
           options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
           value={temPrazoProducao}
-          onChange={setTemPrazoProducao}
+          onChange={v => {
+            setTemPrazoProducao(v)
+            if (!v) {
+              setPrazoDias('')
+              return
+            }
+            if (!prazoDias) setPrazoDias('1')
+          }}
           height="h-10"
           optionWidth="w-[60px]"
           textSize="text-sm"
@@ -451,7 +458,7 @@ export default function CriarOrcamentoPage() {
   const [metodoPagamento, setMetodoPagamento] = useState('PIX')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
   const [temPrazoProducao, setTemPrazoProducao] = useState(true)
-  const [prazoDias, setPrazoDias] = useState('')
+  const [prazoDias, setPrazoDias] = useState('1')
   const [prazoDiasError, setPrazoDiasError] = useState('')
   const [inicioImediato, setInicioImediato] = useState(true)
   const [dataInicioEstimada, setDataInicioEstimada] = useState('')
