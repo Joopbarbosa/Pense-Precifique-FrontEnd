@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { CalendarPlus } from 'lucide-react'
 import Spinner from '../ui/Spinner'
+import ModalEvento from './ModalEvento'
 import Button from '../ui/Button'
 import Toast from '../shared/Toast'
 import ModaisAvancarStatus from '../orcamento/ModaisAvancarStatus'
@@ -22,6 +24,7 @@ import type { OrcamentoDetalheResponse } from '../../types/orcamento'
 export default function PainelOrcamento({ orcamentoId, onAlterado }: { orcamentoId: string; onAlterado: () => void }) {
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [novoEvento, setNovoEvento] = useState(false)
   const { toast, setToast } = useToast()
   const statusInicial = useRef<string | null>(null)
   const fluxo = useAvancarStatusOrcamento({ id: orcamentoId, orcamento, setOrcamento, setToast })
@@ -64,6 +67,13 @@ export default function PainelOrcamento({ orcamentoId, onAlterado }: { orcamento
         <div className="mb-2 text-[13px] font-semibold text-dark">Comentários</div>
         <ComentariosOrcamento orcamentoId={orcamentoId} />
       </div>
+      <div>
+        <Button variant="ghost" size="sm" icon={<CalendarPlus size={14} />} onClick={() => setNovoEvento(true)}>Novo evento deste orçamento</Button>
+      </div>
+      {novoEvento && (
+        <ModalEvento vinculoInicial={{ orcamento: { id: o.id, identificador: `ORC-${o.numero}` } }} onClose={() => setNovoEvento(false)}
+          onSalvo={() => { setNovoEvento(false); onAlterado() }} />
+      )}
       <ModaisAvancarStatus orcamento={o} fluxo={fluxo} />
       <Toast message={toast} />
     </div>

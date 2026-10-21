@@ -39,3 +39,47 @@ export interface AgendaResumo {
 }
 
 export type PaginaCompromissos = PageResponse<Compromisso>
+
+// ---- compromisso da usuária (#1039) ---------------------------------------------------------------
+
+export type RecorrenciaCompromisso = 'NENHUMA' | 'SEMANAL' | 'MENSAL'
+export type DiaSemanaApi = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+export type EscopoEdicao = 'OCORRENCIA' | 'SERIE'
+
+export interface CompromissoUsuariaRequest {
+  titulo: string
+  data: string
+  horario?: string | null
+  orcamentoId?: string | null
+  insumoId?: string | null
+  recorrencia?: RecorrenciaCompromisso
+  diasSemana?: DiaSemanaApi[]
+  quantidadeOcorrencias?: number | null
+}
+
+export interface EditarCompromissoRequest {
+  escopo?: EscopoEdicao
+  titulo: string
+  data?: string | null
+  horario?: string | null
+  orcamentoId?: string | null
+  insumoId?: string | null
+}
+
+/** Uma ocorrência do compromisso da usuária, com os vínculos resolvidos (RN-NOVA-6 e RN-NOVA-7). */
+export interface CompromissoUsuariaDetalhe {
+  id: string
+  titulo: string
+  dataOriginal: string
+  data: string
+  horario?: string | null
+  situacao: SituacaoCompromisso
+  observacaoCancelamento?: string | null
+  serie: boolean
+  recorrencia: RecorrenciaCompromisso
+  diasSemana: DiaSemanaApi[]
+  quantidadeOcorrencias?: number | null
+  orcamento?: { id: string; identificador: string; cliente: string } | null
+  /** `removido`: o insumo foi inativado ou excluído depois do vínculo ("Insumo removido" no lugar do link). */
+  insumo?: { id: string; nome: string; removido: boolean } | null
+}
