@@ -22,9 +22,11 @@ export function rotaDaOrigem(c: Compromisso): string | null {
  * V0.18.0 (#1034, RN-NOVA-7) — detalhe do compromisso: título, data, horário, origem, situação e o link para a tela completa da
  * origem. Os dados e as ações de cada origem (orçamento, produção, compra, compromisso da usuária) entram por `children`.
  */
-export default function DetalheCompromisso({ compromisso: c, onClose, children, rodape }: {
+export default function DetalheCompromisso({ compromisso: c, onClose, onAlterado, children, rodape }: {
   compromisso: Compromisso
   onClose: () => void
+  /** Chamado depois de uma ação que muda a origem (adiar, cancelar...): a Agenda recarrega. */
+  onAlterado: () => void
   children?: React.ReactNode
   rodape?: React.ReactNode
 }) {
@@ -43,7 +45,7 @@ export default function DetalheCompromisso({ compromisso: c, onClose, children, 
           {c.marcacoes.length > 0 && (<><dt className="font-semibold text-dark">Marcação</dt><dd>{c.marcacoes.join(', ')}</dd></>)}
           {c.avisos.map((a, i) => (<><dt key={`t${i}`} className="font-semibold text-dark">Aviso</dt><dd key={`d${i}`} className="text-warning">{a}</dd></>))}
         </dl>
-        <PainelDaOrigem compromisso={c} />
+        <PainelDaOrigem compromisso={c} onAlterado={onAlterado} />
         {children}
         {rota && (
           <div>
