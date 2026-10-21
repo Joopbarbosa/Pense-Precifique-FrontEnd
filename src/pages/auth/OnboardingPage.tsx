@@ -345,7 +345,7 @@ export default function OnboardingPage() {
       const margemPadrao = parseMargem(margem)
       await empresaService.upsertConfiguracao({ valorHora, margemPadrao })
       setOnboardingCompleto(true)
-      navigate('/dashboard', { replace: true })
+      navigate('/agenda', { replace: true })
     } catch (err: any) {
       setError(extractApiError(err, 'Erro ao salvar configurações. Tente novamente.'))
       setLoading(false)

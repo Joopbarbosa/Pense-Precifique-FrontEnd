@@ -31,7 +31,7 @@ export default function LoginPage() {
     try {
       const response = await authService.login({ email: email.trim(), senha })
       setAuth(response.token, { id: response.usuarioId, email: response.email })
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/agenda'
       navigate(from, { replace: true })
     } catch (error: any) {
       setAuthError(extractApiError(error, 'Erro ao entrar. Tente novamente.'))

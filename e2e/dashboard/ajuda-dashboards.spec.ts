@@ -8,7 +8,6 @@ import { criarInsumo } from '../helpers/api'
  */
 
 const IDS = {
-  inicio: ['inicio-faturamento', 'inicio-produtos', 'inicio-orcamentos-pendentes', 'inicio-orcamentos-recentes', 'inicio-mais-vendidos', 'inicio-estoque-baixo'],
   vendas: ['vendas-faturamento', 'vendas-numero', 'vendas-ticket', 'vendas-fat-mes', 'vendas-origem', 'vendas-produtos', 'vendas-pagamento'],
   cadastros: ['cad-estoque-valor', 'cad-potencial', 'cad-cmv', 'cad-margem-material', 'cad-abaixo-minimo', 'cad-evolucao', 'cad-em-quantos', 'cad-mais-comprado',
     'cad-mais-gasto', 'cad-mais-vendido', 'cad-mais-lucro', 'cad-variaram', 'cad-abaixo-sugerido', 'cad-margem', 'cad-abc'],
@@ -31,7 +30,7 @@ test.describe('#998 — botão "?" nos dashboards', () => {
   test('CEN-NOVO-108: os quatro dashboards têm o "?" em todo cartão de número, gráfico e lista, e só um balão fica aberto', async ({ page, request }) => {
     await entrar(page, request)
     const telas: [string, readonly string[]][] = [
-      ['/dashboard', IDS.inicio], ['/vendas/dashboard', IDS.vendas], ['/cadastros/dashboard', IDS.cadastros], ['/compras/dashboard', IDS.compras],
+      ['/vendas/dashboard', IDS.vendas], ['/cadastros/dashboard', IDS.cadastros], ['/compras/dashboard', IDS.compras],
     ]
     for (const [rota, esperados] of telas) {
       await page.goto(rota)

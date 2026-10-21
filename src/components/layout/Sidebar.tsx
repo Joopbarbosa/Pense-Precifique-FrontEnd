@@ -11,7 +11,6 @@ import { useSaidaConfiguracoesStore } from '../../store/saidaConfiguracoesStore'
 const MOBILE_BREAKPOINT_PX = 768
 
 const ITEM_AGENDA = { id: 'agenda', label: 'Agenda', icon: CalendarDays, size: 20, href: '/agenda' } as const
-const ITEM_DASHBOARD = { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, size: 20, href: '/dashboard' } as const
 
 // Achado do teste manual (#487/#488, V0.12.0) — Caixa e Orçamentos são os dois caminhos de venda
 // do sistema (rápida x planejada, Epic #416); agrupados sob "Vendas" para deixar essa relação
@@ -65,7 +64,7 @@ const NAV_RESTANTE = [
 ] as const
 
 interface SidebarProps {
-  active: 'agenda' | 'dashboard' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
+  active: 'agenda' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
   open: boolean
   onClose: () => void
   collapsed: boolean
@@ -193,7 +192,6 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapsed }:
         {/* #567 — rolagem própria quando os itens passam da altura da tela (grupos expandidos). */}
         <div className="flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto p-[14px]">
           {renderNavItem(ITEM_AGENDA, collapsed, closeIfMobile)}
-          {renderNavItem(ITEM_DASHBOARD, collapsed, closeIfMobile)}
 
           {/* #501/#513 — grupo recolhível só faz sentido com o sidebar expandido: no modo ícone
               (`collapsed`) não há onde mostrar o cabeçalho/chevron, então os itens do grupo

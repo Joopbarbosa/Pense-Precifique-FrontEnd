@@ -15,7 +15,7 @@ test.describe('Cenário 161 — Overlay da sidebar com opacidade correta (#96)',
 
   test.beforeEach(async ({ page }) => {
     await login(page)
-    await page.goto('/dashboard')
+    await page.goto('/agenda')
   })
 
   test('apenas 1 overlay a 35% de opacidade; clicar nele fecha a sidebar', async ({ page }) => {

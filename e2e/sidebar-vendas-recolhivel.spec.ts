@@ -10,7 +10,7 @@ import { login } from './helpers/auth'
 test.describe('#501 / #963 — Grupo "Vendas" recolhível na sidebar', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
-    await page.goto('/dashboard')
+    await page.goto('/agenda')
   })
 
   test('recolhido ao entrar, abre ao clicar, mantém na navegação e volta recolhido ao atualizar', async ({ page }) => {

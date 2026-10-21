@@ -26,7 +26,7 @@ async function loginUI(page) {
   await page.getByPlaceholder('seuemail@email.com').fill(TEST_EMAIL);
   await page.getByPlaceholder('Sua senha').fill(TEST_SENHA);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+  await page.waitForURL(/\/agenda/, { timeout: 15000 });
 }
 
 // CEN-NOVO-20 — card "Documentos" (DownloadsCard, P-F013): botões aparecem só quando aplicável
