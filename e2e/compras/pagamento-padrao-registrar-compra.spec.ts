@@ -9,18 +9,19 @@ import { hojeLocal } from '../helpers/data'
  * começa com o armazenamento limpo.
  */
 
-const CHAVE = 'pp:compra:ultimo-metodo-pagamento'
+// V0.18.0 (#671, RN-NOVA-23): o último método é preferência de cada pessoa — a chave leva o id da conta
+const chaveDe = (usuarioId: string) => `pp:pref:${usuarioId}:compra:ultimo-metodo-pagamento`
 const pagamento = (page: Page, nome: 'Pago' | 'Não pago') =>
   page.getByRole('group', { name: /^Pagamento/ }).getByRole('button', { name: nome, exact: true })
 const metodoBotao = (page: Page, nome: string) => page.getByRole('button', { name: new RegExp(nome) })
 
 async function preparar(page: Page, request: APIRequestContext, prefixo: string) {
-  const { email, token } = await registrarEmpresaEfemera(request, prefixo)
+  const { email, token, usuarioId } = await registrarEmpresaEfemera(request, prefixo)
   const h = { Authorization: `Bearer ${token}` }
   const metodos = await (await request.get(`${API_URL}/configuracoes/metodos-pagamento`, { headers: h })).json() as { id: string; tipo: string; ativo: boolean }[]
   const pix = metodos.find(m => m.tipo === 'PIX')!
   await loginComoEmail(page, email, 'senha12345')
-  return { token, h, pix }
+  return { token, h, pix, CHAVE: chaveDe(usuarioId) }
 }
 
 async function rascunho(request: APIRequestContext, token: string, pago: boolean, metodoId: string | null, nome: string) {
@@ -36,7 +37,7 @@ async function rascunho(request: APIRequestContext, token: string, pago: boolean
 
 test.describe('#997 — Registrar compra abre em Pago', () => {
   test('CEN-NOVO-103: abre em Pago sem método; com último método ativo vem selecionado; desativado, nenhum; Não pago esconde o método', async ({ page, request }) => {
-    const { h, pix } = await preparar(page, request, 'compra-pago')
+    const { h, pix, CHAVE } = await preparar(page, request, 'compra-pago')
     await page.goto('/compras/nova')
     await expect(pagamento(page, 'Pago')).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByText('Como foi paga?')).toBeVisible()
@@ -58,7 +59,7 @@ test.describe('#997 — Registrar compra abre em Pago', () => {
   })
 
   test('armazenamento do navegador indisponível: abre sem método e conclui depois de escolher um', async ({ page, request }) => {
-    await preparar(page, request, 'compra-sem-storage')
+    const { CHAVE } = await preparar(page, request, 'compra-sem-storage')
     // só a chave do último método falha (o resto do app usa o armazenamento normalmente)
     await page.addInitScript((chave) => {
       const get = Storage.prototype.getItem, set = Storage.prototype.setItem
@@ -93,7 +94,7 @@ test.describe('#997 — Registrar compra abre em Pago', () => {
   })
 
   test('CEN-NOVO-105: rascunho existente mostra o gravado; confirmar pelo detalhe grava o último método', async ({ page, request }) => {
-    const { token, pix } = await preparar(page, request, 'compra-gravado')
+    const { token, pix, CHAVE } = await preparar(page, request, 'compra-gravado')
     const naoPago = await rascunho(request, token, false, null, `Insumo A ${Date.now()}`)
     await page.goto(`/compras/${naoPago.id}/editar`)
     await expect(pagamento(page, 'Não pago')).toHaveAttribute('aria-pressed', 'true')

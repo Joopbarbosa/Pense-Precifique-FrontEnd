@@ -16,6 +16,7 @@ import { empresaService } from '../../services/empresaService'
 import type { AgendaResumo, Compromisso, VisaoAgenda } from '../../types/agenda'
 import type { HorarioFuncionamento } from '../../types/empresa'
 import { dataLocalIso } from '../../utils/data'
+import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
 import { navegar, periodoDaVisao, tituloDoPeriodo } from '../../utils/agenda'
 
 const OPCOES_VISAO = [
@@ -42,7 +43,12 @@ function faixaDeFuncionamento(horarios: HorarioFuncionamento[] | undefined): { i
  */
 export default function AgendaPage() {
   const [hoje] = useState(() => dataLocalIso())
-  const [visao, setVisao] = useState<VisaoAgenda>('SEMANA')
+  // RN-NOVA-2/RN-NOVA-23: a última visão escolhida é lembrada por pessoa; a Semana é a que abre quando não há escolha
+  const [visao, setVisaoEstado] = useState<VisaoAgenda>(() => {
+    const salva = lerPreferencia('agenda:visao')
+    return salva === 'DIA' || salva === 'MES' || salva === 'SEMANA' ? salva : 'SEMANA'
+  })
+  const setVisao = (v: VisaoAgenda) => { setVisaoEstado(v); gravarPreferencia('agenda:visao', v) }
   const [referencia, setReferencia] = useState(hoje)
   const [compromissos, setCompromissos] = useState<Compromisso[]>([])
   const [resumo, setResumo] = useState<AgendaResumo | null>(null)
@@ -83,7 +89,8 @@ export default function AgendaPage() {
     return mapa
   }, [compromissos])
 
-  const irParaHoje = () => { setVisao('DIA'); setReferencia(hoje) }
+  // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
+  const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje) }
   const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setAberto(c) }
   const vazio = !carregando && !erro && compromissos.length === 0
 
