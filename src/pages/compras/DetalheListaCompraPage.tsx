@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, FileText, ListChecks, PackagePlus, Pencil, RefreshCw } from 'lucide-react'
@@ -7,7 +8,7 @@ import { STATUS_LISTA_LABEL, StatusListaBadge } from '../../components/compra/St
 import { useModalErro } from '../../hooks/useModalErro'
 import Spinner from '../../components/ui/Spinner'
 import Toast from '../../components/shared/Toast'
-import { formatarData, moeda, qtd } from '../../components/compra/formato'
+import { moeda, qtd } from '../../components/compra/formato'
 import { listaCompraService } from '../../services/compraService'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'

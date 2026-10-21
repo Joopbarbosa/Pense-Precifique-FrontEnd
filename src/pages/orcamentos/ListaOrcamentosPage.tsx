@@ -16,7 +16,7 @@ import { useAoMudar } from '../../hooks/useAoMudar'
 import Paginacao from '../../components/shared/Paginacao'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { dispararDownloadBlob } from '../../utils/download'
-import { dataLocalISO } from '../../utils/dataLocal'
+import { dataLocalIso, formatarData } from '../../utils/data'
 
 type StatusBadgeLabel =
   | 'Rascunho' | 'Enviado' | 'Aprovado'
@@ -45,11 +45,6 @@ function isVencido(orc: OrcamentoResponse): boolean {
   const inactive: StatusOrcamento[] = ['CANCELADO', 'PAGO', 'FINALIZADO', 'ENTREGUE']
   if (inactive.includes(orc.status)) return false
   return new Date(orc.dataValidade) < new Date()
-}
-
-function fmtData(iso: string): string {
-  const [y, m, d] = iso.split('T')[0].split('-')
-  return `${d}/${m}/${y}`
 }
 
 // #255 — campo aninhado (cliente.nome) e simples (numero/total/createdAt) vão via ?sort= do
@@ -93,7 +88,7 @@ function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
         {fmt(orc.total)}
       </span>
 
-      <span className="text-[13.5px] text-muted">{fmtData(orc.createdAt)}</span>
+      <span className="text-[13.5px] text-muted">{formatarData(orc.createdAt)}</span>
 
       <div className="flex items-center gap-2">
         <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} />
@@ -135,7 +130,7 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
           <div className="mb-2 text-sm text-body">{orc.nomeCliente}</div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={STATUS_LABEL[orc.status] as StatusBadgeLabel} size="sm" />
-            <span className="text-[13px] text-muted">{fmtData(orc.createdAt)}</span>
+            <span className="text-[13px] text-muted">{formatarData(orc.createdAt)}</span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -238,8 +233,8 @@ export default function ListaOrcamentosPage() {
     const today = new Date()
     const past = new Date(today)
     past.setDate(today.getDate() - days)
-    setDateFrom(dataLocalISO(past))
-    setDateTo(dataLocalISO(today))
+    setDateFrom(dataLocalIso(past))
+    setDateTo(dataLocalIso(today))
   }
 
   const handleAplicarPeriodo = () => {

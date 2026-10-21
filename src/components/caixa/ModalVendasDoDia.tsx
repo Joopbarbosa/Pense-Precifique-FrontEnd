@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import { ExternalLink, History } from 'lucide-react'
 import { Button, EmptyState, ModalShell } from '../ui'
@@ -5,7 +6,7 @@ import Spinner from '../ui/Spinner'
 import Paginacao from '../shared/Paginacao'
 import ModalRegistro from '../cliente/ModalRegistro'
 import { caixaService } from '../../services/caixaService'
-import { formatarData, hojeIso } from '../compra/formato'
+
 import { BRL } from '../venda/formato'
 import { extractApiError } from '../../utils/apiError'
 import type { HistoricoVendaResponse } from '../../types/caixa'
@@ -29,7 +30,7 @@ export default function ModalVendasDoDia({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     let ativa = true
-    const hoje = hojeIso()
+    const hoje = dataLocalIso()
     setCarregando(true); setErro(null)
     caixaService.historicoVendas({ de: hoje, ate: hoje, sort: 'data,desc', page: pagina, size: POR_PAGINA })
       .then(r => { if (ativa) setDados(r) })

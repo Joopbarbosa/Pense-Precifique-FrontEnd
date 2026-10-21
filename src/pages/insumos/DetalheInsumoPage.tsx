@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
@@ -19,7 +20,7 @@ import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
-import { formatarData } from '../../components/compra/formato'
+
 import Paginacao from '../../components/shared/Paginacao'
 import { LinhaPrecoSugeridoInsumo } from '../../components/produto/HistoricoPrecoSugerido'
 import { BRL } from '../../components/venda/formato'

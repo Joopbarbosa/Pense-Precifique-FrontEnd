@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
@@ -5,7 +6,7 @@ import { AlertTriangle, ExternalLink, Link2 } from 'lucide-react'
 import { Button, ModalShell, MoneyInput } from '../ui'
 import Spinner from '../ui/Spinner'
 import ConfirmacaoModal from '../shared/ConfirmacaoModal'
-import { formatarData, hojeIso, moeda, paraCampo, parseDecimal, qtd, REGRA_PRECO_LABEL } from './formato'
+import { moeda, paraCampo, parseDecimal, qtd, REGRA_PRECO_LABEL } from './formato'
 import { compraService, fornecedorInsumoService } from '../../services/compraService'
 import { useModalErro } from '../../hooks/useModalErro'
 import { extractApiError } from '../../utils/apiError'
@@ -33,7 +34,7 @@ export default function ModalVinculoFornecedorInsumo({ vinculo, onClose, onSalvo
 
   useEffect(() => {
     // Todas as compras confirmadas do insumo (desde o início) e só as deste fornecedor.
-    compraService.evolucaoPreco([vinculo.insumo.id], '2000-01-01', hojeIso())
+    compraService.evolucaoPreco([vinculo.insumo.id], '2000-01-01', dataLocalIso())
       .then(r => setCompras((r.series[0]?.pontos ?? []).filter(p => p.fornecedorId === vinculo.fornecedor.id).reverse()))
       .catch(err => setErroCompras(extractApiError(err, 'Não foi possível carregar as compras.')))
   }, [vinculo.insumo.id, vinculo.fornecedor.id])

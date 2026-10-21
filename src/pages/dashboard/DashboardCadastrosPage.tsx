@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useMemo, useState } from 'react'
 import type { IdAjuda } from '../../constants/ajudaDashboards'
 import clsx from 'clsx'
@@ -19,7 +20,7 @@ import { Package, Percent, Warehouse, TrendingUp, AlertTriangle } from 'lucide-r
 import { Ranking, reaisCurto } from '../../components/dashboard/graficos'
 import { intervalo, pct, rotuloMes, rotuloPeriodoAnterior, ultimoDia, type Periodo } from '../../components/dashboard/periodo'
 import ModalListagemRegistros, { type FiltroInicial } from '../../components/shared/ModalListagemRegistros'
-import { formatarData, hojeIso } from '../../components/compra/formato'
+
 import { BRL } from '../../components/venda/formato'
 import { dashboardCadastrosService } from '../../services/dashboardCadastrosService'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -70,7 +71,7 @@ export default function DashboardCadastrosPage() {
   const mobile = useIsMobile()
   const [periodo, setPeriodo] = useState<Periodo>('mes')
   const [deLivre, setDeLivre] = useState('')
-  const [ateLivre, setAteLivre] = useState(hojeIso())
+  const [ateLivre, setAteLivre] = useState(dataLocalIso())
   const [d, setD] = useState<DashboardCadastrosResponse | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)

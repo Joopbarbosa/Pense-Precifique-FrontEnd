@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -11,7 +12,7 @@ import ModalRegistro from '../../components/cliente/ModalRegistro'
 import { useModalErro } from '../../hooks/useModalErro'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { caixaService } from '../../services/caixaService'
-import { formatarData, hojeIso } from '../../components/compra/formato'
+
 import { BRL } from '../../components/venda/formato'
 import { extractApiError } from '../../utils/apiError'
 import type { HistoricoVendaResponse } from '../../types/caixa'
@@ -89,11 +90,11 @@ export default function HistoricoVendasPage() {
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <label className="block">
           <span className="mb-1.5 block text-[12.5px] font-semibold text-body">De</span>
-          <input type="date" aria-label="Data inicial" value={de} max={hojeIso()} className={campo} onChange={e => mudarPeriodo('de', e.target.value, e.currentTarget)} />
+          <input type="date" aria-label="Data inicial" value={de} max={dataLocalIso()} className={campo} onChange={e => mudarPeriodo('de', e.target.value, e.currentTarget)} />
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Até</span>
-          <input type="date" aria-label="Data final" value={ate} max={hojeIso()} className={campo} onChange={e => mudarPeriodo('ate', e.target.value, e.currentTarget)} />
+          <input type="date" aria-label="Data final" value={ate} max={dataLocalIso()} className={campo} onChange={e => mudarPeriodo('ate', e.target.value, e.currentTarget)} />
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Status</span>

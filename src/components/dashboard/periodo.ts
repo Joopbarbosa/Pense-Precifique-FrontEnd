@@ -1,4 +1,6 @@
-import { formatarData } from '../compra/formato'
+import { dataLocalIso, formatarData, MESES } from '../../utils/data'
+export { rotuloMes } from '../../utils/data'
+
 
 // V0.17.0 — #615 (DT-NOVA-10): período do dashboard, extraído de `components/compra/DashboardCompras.tsx` para ser usado
 // também pelo Dashboard de Vendas (#719) e pelo de Cadastros (#607) sem duplicar.
@@ -12,17 +14,13 @@ export const PERIODOS: { id: Periodo; label: string }[] = [
   { id: 'personalizado', label: 'Personalizado' },
 ]
 
-export const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
 /** Mês atual e "N meses" começam no dia 1 — o backend compara com os mesmos N meses anteriores. */
 export function intervalo(p: Periodo): { de: string; ate: string } {
   const hoje = new Date()
   const meses = p === 'mes' ? 1 : Number(p)
-  return { de: isoLocal(new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)), ate: isoLocal(hoje) }
+  return { de: dataLocalIso(new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)), ate: dataLocalIso(hoje) }
 }
 
-export const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-export const rotuloMes = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]}/${iso.slice(2, 4)}`
 export const pct = (n: number | null | undefined) => n == null ? '—' : `${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 export const ultimoDia = (mesIso: string) => {
   const [a, m] = mesIso.split('-').map(Number)

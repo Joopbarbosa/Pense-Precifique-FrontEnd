@@ -1,8 +1,9 @@
+import { formatarData } from '../../../utils/data'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { History } from 'lucide-react'
 import Spinner from '../../ui/Spinner'
-import { formatarData, ORIGENS_VINCULO_NOTA, qtd } from '../formato'
+import { ORIGENS_VINCULO_NOTA, qtd } from '../formato'
 import { vinculoNotaService } from '../../../services/vinculoNotaService'
 import type { VinculoNotaResponse } from '../../../types/vinculoNota'
 

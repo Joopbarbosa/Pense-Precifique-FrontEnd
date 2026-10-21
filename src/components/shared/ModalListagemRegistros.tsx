@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { List, Search } from 'lucide-react'
@@ -10,7 +11,7 @@ import ModalRegistro, { type TipoRegistro } from '../cliente/ModalRegistro'
 import { dashboardVendasService } from '../../services/dashboardVendasService'
 import type { OrigemVenda } from '../../types/dashboardVendas'
 import { BRL } from '../venda/formato'
-import { formatarData, hojeIso, STATUS_COMPRA_LABEL } from '../compra/formato'
+import { STATUS_COMPRA_LABEL } from '../compra/formato'
 import { clienteService } from '../../services/clienteService'
 import { compraService } from '../../services/compraService'
 import { insumoService } from '../../services/insumoService'
@@ -275,10 +276,10 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
                 className="h-9 w-full rounded-input border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
-              De <input type="date" aria-label="Data inicial" value={de} max={hojeIso()} onChange={e => mudarPeriodo('de', e.target.value, e.currentTarget)} className={dateInput} />
+              De <input type="date" aria-label="Data inicial" value={de} max={dataLocalIso()} onChange={e => mudarPeriodo('de', e.target.value, e.currentTarget)} className={dateInput} />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
-              Até <input type="date" aria-label="Data final" value={ate} max={hojeIso()} onChange={e => mudarPeriodo('ate', e.target.value, e.currentTarget)} className={dateInput} />
+              Até <input type="date" aria-label="Data final" value={ate} max={dataLocalIso()} onChange={e => mudarPeriodo('ate', e.target.value, e.currentTarget)} className={dateInput} />
             </label>
           </div>
 
