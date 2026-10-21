@@ -4,7 +4,7 @@ import type {
   CompraConfirmacaoResponse, CompraFiltros, ContagensCompra, StatusListaCompra, CompraRequest, CompraResponse, CompraResumoResponse,
   DashboardComprasResponse, EvolucaoPrecoResponse, FiltrosPreviaLista, FornecedorInsumoResponse,
   GerarListaCompraRequest, ListaCompraResponse, ListaCompraResumoResponse, PreviaListaCompraResponse,
-  SimulacaoCancelamentoResponse,
+  SimulacaoCancelamentoResponse, EntradaCompraRequest, VendasCmvResponse,
 } from '../types/compra'
 
 // V0.15.0 — módulo Compras (#541 e seguintes). Contrato: modulos/COMPRAS/contrato-compras.md.
@@ -20,6 +20,10 @@ const paramsSerializer = (params: Record<string, unknown>) => {
 }
 
 export const compraService = {
+  vendasCmv: async (filtro: { de: string; ate: string; mes?: string }, page = 0, size = 20): Promise<VendasCmvResponse> => {
+    const response = await api.get('/compras/dashboard/vendas-cmv', { params: { ...filtro, page, size } })
+    return response.data
+  },
   listar: async (page: number, size = 20, filtros: CompraFiltros = {}): Promise<PageResponse<CompraResumoResponse>> => {
     const response = await api.get('/compras', { params: { page, size, ...filtros }, paramsSerializer })
     return response.data
@@ -64,6 +68,12 @@ export const compraService = {
 
   atualizarPagamento: async (id: string, pago: boolean, metodoPagamentoId: string | null, parcelas: number | null = null): Promise<CompraResponse> => {
     const response = await api.patch(`/compras/${id}/pagamento`, { pago, metodoPagamentoId, parcelas })
+    return response.data
+  },
+
+  /** #959 (RN-NOVA-7) — entrada da compra pendente (compra inteira, tudo ou nada). */
+  darEntrada: async (id: string, data: EntradaCompraRequest): Promise<CompraConfirmacaoResponse> => {
+    const response = await api.post(`/compras/${id}/entrada`, data)
     return response.data
   },
 

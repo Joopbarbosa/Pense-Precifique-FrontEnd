@@ -1,4 +1,5 @@
 import type { AvisoEstoqueNegativo } from './producao';
+import type { ItemCatalogoComponenteResponse } from './itemCatalogo';
 
 export type StatusOrcamento =
   'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'AGUARDANDO_SINAL' |
@@ -32,10 +33,11 @@ export interface ItemCatalogoBuscaResponse {
    *  calculadora de preço via GET /catalogos/{catalogoId}/itens. */
   catalogoId: string;
   nome: string;
+  marca?: string | null;
   precoVenda: number;
   catalogoNome: string;
   catalogoNumero: number;
-  componentes: import('./itemCatalogo').ItemCatalogoComponenteResponse[];
+  componentes: ItemCatalogoComponenteResponse[];
   /** true se qualquer componente Insumo não é fracionável (não recursa na ficha técnica de um
    *  componente Produto-base). */
   algumComponenteNaoFracionavel: boolean;
@@ -89,6 +91,8 @@ export interface OrcamentoItemCustomizacaoResponse {
   id: string;
   produtoId: string;
   nomeProduto: string;
+  /** #720 — Produto da customização; nulo = excluído. */
+  destinoId?: string | null;
   quantidade: number;
   precoUnitario: number;
   subtotal: number;
@@ -101,6 +105,9 @@ export interface OrcamentoItemResponse {
   catalogoNome?: string;
   produtoId: string;
   nomeProduto: string;
+  /** #720 (RN-NOVA-14) — PRODUTO ou CATALOGO; `destinoId` nulo = cadastro excluído (sem link). */
+  destinoTipo?: 'PRODUTO' | 'CATALOGO';
+  destinoId?: string | null;
   margemAplicada?: number;
   quantidade: number;
   precoUnitario: number;

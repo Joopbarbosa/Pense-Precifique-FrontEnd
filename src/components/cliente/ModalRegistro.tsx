@@ -3,7 +3,7 @@ import { ExternalLink, FileText } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { BRL } from '../venda/formato'
-import { formatarData, moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
+import { formatarData, formatarDataHora, moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
 import { orcamentoService } from '../../services/orcamentoService'
 import { caixaService } from '../../services/caixaService'
 import { compraService } from '../../services/compraService'
@@ -21,7 +21,13 @@ const rotuloDesconto = (tipo: string | null | undefined, valor: number | null | 
 
 const TIPO_LABEL: Record<TipoRegistro, string> = { ORCAMENTO: 'Orçamento', VENDA_CAIXA: 'Venda no Caixa', COMPRA: 'Compra' }
 
-interface Linha { nome: string; quantidade: string; unitario: string; subtotal: string; detalhe?: string }
+/** #720 (RN-NOVA-14) — `href` é o cadastro de destino (Produto, Insumo ou Catálogo), aberto em aba nova; sem `href`, o item é só texto. */
+interface Customizacao { texto: string; href?: string }
+interface Linha { nome: string; href?: string; quantidade: string; unitario: string; subtotal: string; detalhe?: string; customizacoes?: Customizacao[] }
+
+/** O backend diz o cadastro de destino e se ele ainda existe (destinoId nulo = excluído); o front só monta o endereço. */
+const hrefDestino = (tipo: string | null | undefined, id: string | null | undefined) =>
+  !id ? undefined : tipo === 'CATALOGO' ? `/catalogos/${id}` : `/produtos/${id}`
 
 interface Visao {
   identificador: string
@@ -47,10 +53,11 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
       pessoa: o.nomeCliente,
       linhas: o.itens.map(i => ({
         nome: i.catalogoNome ?? i.nomeProduto,
+        href: hrefDestino(i.destinoTipo, i.destinoId),
         quantidade: qtd(i.quantidade),
         unitario: BRL(i.precoUnitario),
         subtotal: BRL(i.subtotal),
-        detalhe: i.customizacoes.length ? `+ ${i.customizacoes.map(c => `${c.nomeProduto} ×${qtd(c.quantidade)}`).join(', ')}` : undefined,
+        customizacoes: i.customizacoes.map(c => ({ texto: `${c.nomeProduto} ×${qtd(c.quantidade)}`, href: hrefDestino('PRODUTO', c.destinoId) })),
       })),
       subtotal: o.subtotal,
       desconto: rotuloDesconto(o.tipoDesconto, o.descontoValor),
@@ -62,21 +69,30 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
   }
   if (tipo === 'VENDA_CAIXA') {
     const v = await caixaService.buscarVendaPorId(id)
+    // #993 (RN-NOVA-30): data e hora, cliente (ou "Consumidor final"), desconto em reais (e o percentual), pagamentos pelo nome, troco e motivo
+    const desconto = !v.descontoValor ? null
+      : v.descontoTipo === 'PERCENTUAL' ? `${BRL(v.subtotal - v.total)} (${v.descontoValor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%)` : BRL(v.descontoValor)
     return {
       identificador: v.identificador,
       status: v.status === 'CONCLUIDA' ? 'Concluída' : 'Cancelada',
-      data: formatarData(v.dataVenda),
+      data: formatarDataHora(v.dataVenda),
+      pessoa: v.clienteNome ?? 'Consumidor final',
       linhas: v.itens.map(i => ({
         nome: i.produtoNome,
+        href: hrefDestino(i.destinoTipo, i.destinoId),
         quantidade: qtd(i.quantidade),
         unitario: BRL(i.precoUnitario),
         subtotal: BRL(i.subtotal),
-        detalhe: i.customizacoes.length ? `+ ${i.customizacoes.map(c => `${c.produtoNome} ×${qtd(c.quantidade)}`).join(', ')}` : undefined,
+        customizacoes: i.customizacoes.map(c => ({ texto: `${c.produtoNome} ×${qtd(c.quantidade)}`, href: hrefDestino('PRODUTO', c.destinoId) })),
       })),
       subtotal: v.subtotal,
-      desconto: rotuloDesconto(v.descontoTipo, v.descontoValor),
+      desconto,
       total: v.total,
-      extras: v.cancelamentoMotivo ? [{ rotulo: 'Motivo do cancelamento', valor: v.cancelamentoMotivo }] : [],
+      extras: [
+        ...v.pagamentos.map(p => ({ rotulo: 'Pagamento', valor: `${p.metodoPagamentoNome}: ${BRL(p.valor)}${p.parcelas && p.parcelas > 1 ? ` em ${p.parcelas} parcelas` : ''}` })),
+        ...(v.troco ? [{ rotulo: 'Troco', valor: BRL(v.troco) }] : []),
+        ...(v.cancelamentoMotivo ? [{ rotulo: 'Motivo do cancelamento', valor: v.cancelamentoMotivo }] : []),
+      ],
     }
   }
   const c = await compraService.buscar(id)
@@ -87,6 +103,7 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
     pessoa: c.multiplosFornecedores ? 'Vários fornecedores' : c.fornecedor?.nome,
     linhas: c.itens.map(i => ({
       nome: i.insumo.nome,
+      href: i.destinoId ? `/insumos/${i.destinoId}` : undefined,
       quantidade: i.quantidade != null ? `${qtd(i.quantidade)} ${i.insumo.unidade ?? ''}`.trim() : '—',
       unitario: moeda(c.status === 'RASCUNHO' ? i.precoUnitario : i.precoUnitarioPago),
       subtotal: i.precoTotal != null ? BRL(i.precoTotal) : '—',
@@ -137,8 +154,20 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
             {visao.linhas.map((l, i) => (
               <div key={i} className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-line px-4 py-2.5 text-[13.5px] first:border-t-0 sm:grid-cols-[2fr_0.7fr_0.9fr_0.9fr] sm:items-center">
                 <div className="col-span-2 min-w-0 sm:col-span-1">
-                  <div className="font-semibold text-dark">{l.nome}</div>
+                  {l.href
+                    ? <a href={l.href} target="_blank" rel="noopener noreferrer" data-testid="item-link"
+                        className="font-semibold text-teal no-underline hover:underline">{l.nome}</a>
+                    : <div data-testid="item-texto" className="font-semibold text-dark">{l.nome}</div>}
                   {l.detalhe && <div className="text-[12px] text-muted">{l.detalhe}</div>}
+                  {!!l.customizacoes?.length && (
+                    <div className="text-[12px] text-muted">
+                      + {l.customizacoes.map((c, k) => (
+                        <span key={k}>{k > 0 && ', '}{c.href
+                          ? <a href={c.href} target="_blank" rel="noopener noreferrer" data-testid="customizacao-link" className="text-teal no-underline hover:underline">{c.texto}</a>
+                          : c.texto}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-body [font-variant-numeric:tabular-nums]">{l.quantidade}</div>
                 <div className="text-body [font-variant-numeric:tabular-nums]">{l.unitario}</div>
@@ -154,8 +183,8 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
               <div className="flex justify-between"><dt className="text-muted">Desconto</dt><dd className="m-0 [font-variant-numeric:tabular-nums]">{visao.desconto}</dd></div>
             )}
             <div className="flex justify-between text-[15px] font-bold text-dark"><dt>Total</dt><dd className="m-0 [font-variant-numeric:tabular-nums]">{BRL(visao.total)}</dd></div>
-            {visao.extras.map(e => (
-              <div key={e.rotulo} className="flex justify-between gap-4"><dt className="text-muted">{e.rotulo}</dt><dd className="m-0 text-right">{e.valor}</dd></div>
+            {visao.extras.map((e, i) => (
+              <div key={`${e.rotulo}-${i}`} className="flex justify-between gap-4"><dt className="text-muted">{e.rotulo}</dt><dd className="m-0 text-right">{e.valor}</dd></div>
             ))}
           </dl>
         </div>

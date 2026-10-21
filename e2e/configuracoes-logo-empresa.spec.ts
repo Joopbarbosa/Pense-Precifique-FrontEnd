@@ -62,13 +62,13 @@ test.describe('#532 — Logo da empresa (CEN-NOVO-6/7)', () => {
     await page.goto('/configuracoes')
 
     // aba inicial é "Precificação" — card-resumo (PerfilCard) mostra ali, ainda sem logo (placeholder
-    // /logo.png). Tabs são mutuamente exclusivas — só existe 1 <img alt="Logo"> na tela por vez.
+    // /logo.png). As abas de salvar único ficam montadas (escondidas) — só 1 <img alt="Logo"> visível por vez (V0.17.0 #983).
     await expect(page.getByRole('button', { name: /Editar perfil|Cadastrar dados da empresa/ })).toBeVisible()
-    await expect(page.locator('img[alt="Logo"]')).toHaveAttribute('src', '/logo.png')
+    await expect(page.locator('img[alt="Logo"]:visible')).toHaveAttribute('src', '/logo.png')
 
     await page.getByRole('button', { name: 'Perfil da empresa', exact: true }).click()
     await expect(page.getByText('Alterar logo', { exact: true })).toBeVisible()
-    await expect(page.locator('img[alt="Logo"]')).toHaveAttribute('src', '/logo.png')
+    await expect(page.locator('img[alt="Logo"]:visible')).toHaveAttribute('src', '/logo.png')
 
     await page.locator('input[type="file"]').setInputFiles({
       name: 'logo.png',
@@ -77,7 +77,7 @@ test.describe('#532 — Logo da empresa (CEN-NOVO-6/7)', () => {
     })
 
     await expect(page.getByRole('button', { name: 'Remover', exact: true })).toBeVisible({ timeout: 10_000 })
-    const logoImgPerfil = page.locator('img[alt="Logo"]')
+    const logoImgPerfil = page.locator('img[alt="Logo"]:visible')
     await expect(logoImgPerfil).not.toHaveAttribute('src', '/logo.png', { timeout: 10_000 })
 
     const empresaDepois = await (await request.get(`${API_URL}/empresa`, { headers: { Authorization: `Bearer ${token}` } })).json()
@@ -85,7 +85,7 @@ test.describe('#532 — Logo da empresa (CEN-NOVO-6/7)', () => {
 
     await page.getByRole('button', { name: 'Precificação', exact: true }).click()
     await expect(page.getByRole('button', { name: /Editar perfil|Cadastrar dados da empresa/ })).toBeVisible()
-    await expect(page.locator('img[alt="Logo"]')).not.toHaveAttribute('src', '/logo.png')
-    await expect(page.locator('img[alt="Logo"]')).toHaveAttribute('src', empresaDepois.logoUrl)
+    await expect(page.locator('img[alt="Logo"]:visible')).not.toHaveAttribute('src', '/logo.png')
+    await expect(page.locator('img[alt="Logo"]:visible')).toHaveAttribute('src', empresaDepois.logoUrl)
   })
 })

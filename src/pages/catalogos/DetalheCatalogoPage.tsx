@@ -15,6 +15,7 @@ import type { CatalogoResponse } from '../../types/catalogo'
 import type { ItemCatalogoResponse } from '../../types/itemCatalogo'
 import { extractApiError } from '../../utils/apiError'
 import { dispararDownloadBlob } from '../../utils/download'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 const moeda = (n: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -44,7 +45,7 @@ function ItemRow({ item, onClick, onEditar, onRemover }: {
       )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[14.5px] font-semibold text-dark">{item.nome}</span>
+          <span className="text-[14.5px] font-semibold text-dark">{rotuloProduto(item.nome, item.marca)}</span>
           {item.override && (() => {
             const diff = item.precoVenda - item.precoSugerido
             return (

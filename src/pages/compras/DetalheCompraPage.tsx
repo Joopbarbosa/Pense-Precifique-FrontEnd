@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { ArrowLeft, Ban, Check, ChevronRight, Copy, CreditCard, FileText, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Ban, Check, ChevronRight, Copy, CreditCard, FileText, PackageCheck, Pencil, Trash2 } from 'lucide-react'
 import ModalCancelarCompra from '../../components/compra/ModalCancelarCompra'
 import ModalPagamento from '../../components/compra/ModalPagamentoCompra'
 import AppLayout from '../../components/layout/AppLayout'
@@ -10,6 +10,7 @@ import Spinner from '../../components/ui/Spinner'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
+import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
 import ModalInsumoResumo from '../../components/compra/ModalInsumoResumo'
 import { formatarData, moeda, qtd } from '../../components/compra/formato'
@@ -21,6 +22,7 @@ import { useModalErro } from '../../hooks/useModalErro'
 import { rotuloPagamento } from '../../components/compra/formato'
 import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import type { CompraResponse, ImpactoCompraResponse } from '../../types/compra'
+import { gravarUltimoMetodoPagamentoCompra } from '../../utils/ultimoMetodoPagamentoCompra'
 
 // V0.15.0 — detalhe da compra (#541, #550). RASCUNHO: editar, excluir, confirmar. CONFIRMADA: só o
 // pagamento muda (Decisão 14). Cancelar e duplicar: #544 (RN-NOVA-9/10). PDF: #545 (RN-NOVA-11).
@@ -67,7 +69,7 @@ export default function DetalheCompraPage() {
     setProcessando(true)
     try {
       await compraService.excluirRascunho(compra.id)
-      navigate('/compras', { state: { toast: `Rascunho ${compra.identificador} excluído.` } })
+      navigate('/compras', { state: { toast: compra.status === 'RASCUNHO' ? `Rascunho ${compra.identificador} excluído.` : `Compra ${compra.identificador} excluída.` } })
     } catch (err) {
       setModal(null)
       mostrarErro(err, 'Não foi possível excluir o rascunho.')
@@ -81,6 +83,7 @@ export default function DetalheCompraPage() {
     setModal(null); setProcessando(true)
     try {
       const r = await compraService.confirmar(compra.id)
+      if (r.compra.pago) gravarUltimoMetodoPagamentoCompra(r.compra.metodoPagamento?.id)
       setCompra(r.compra)
       setImpacto({ titulo: `Compra ${r.compra.identificador} confirmada`, impacto: r.impacto })
     } catch (err) {
@@ -106,8 +109,9 @@ export default function DetalheCompraPage() {
   }
 
   const rascunho = compra.status === 'RASCUNHO'
+  const pendente = compra.status === 'PENDENTE_RECEBIMENTO'
   const confirmada = compra.status === 'CONFIRMADA'
-  const posConfirmacao = compra.status !== 'RASCUNHO'
+  const posConfirmacao = compra.status !== 'RASCUNHO' && !pendente
   const temDesconto = compra.totalDescontos > 0
   const fornecedoresLinhas = Array.from(new Map(compra.itens.filter(i => i.fornecedor).map(i => [i.fornecedor!.id, i.fornecedor!])).values())
 
@@ -126,14 +130,21 @@ export default function DetalheCompraPage() {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em] text-dark">Compra {compra.identificador}</h1>
             <StatusCompraBadge status={compra.status} />
+            {pendente && <PrevisaoTag previsao={compra.previsaoEntrega} diasAtraso={compra.diasAtraso} />}
             {confirmada && !compra.pago && <NaoPagaBadge />}
           </div>
           <div className="mt-1 text-sm text-muted">
-            {rascunho ? 'Rascunho: estoque e custo ainda não foram alterados.' : confirmada ? `Confirmada em ${formatarData(compra.confirmadaEm)}` : `Cancelada em ${formatarData(compra.canceladaEm)}`}
+            {rascunho ? 'Rascunho: estoque e custo ainda não foram alterados.' : pendente ? 'Pendente de recebimento: estoque e custo só mudam quando a entrada for registrada.' : confirmada ? `Confirmada em ${formatarData(compra.confirmadaEm)}` : `Cancelada em ${formatarData(compra.canceladaEm)}`}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/compras')}>Voltar</Button>
+          {pendente && <>
+            <Button variant="primary" icon={<PackageCheck size={16} />} onClick={() => navigate(`/compras/entrada?compra=${compra.id}`)}>Dar entrada</Button>
+            <Button variant="ghost" icon={<Trash2 size={16} />} onClick={() => setModal('excluir')}>Excluir</Button>
+            <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/compras/${compra.id}/editar`)}>Editar</Button>
+            <Button variant="primary" icon={<Ban size={16} />} onClick={() => setModal('cancelar')}>Cancelar compra</Button>
+          </>}
           {rascunho && <>
             <Button variant="ghost" icon={<Trash2 size={16} />} onClick={() => setModal('excluir')}>Excluir</Button>
             <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/compras/${compra.id}/editar`)}>Editar</Button>
@@ -242,12 +253,12 @@ export default function DetalheCompraPage() {
         onClose={() => setModal(null)}
         onConfirm={excluir}
         variant="danger"
-        title={`Excluir o rascunho ${compra.identificador}?`}
+        title={`Excluir ${compra.status === 'RASCUNHO' ? 'o rascunho' : 'a compra'} ${compra.identificador}?`}
         icon={<Trash2 size={16} />}
         width={420}
-        confirmLabel="Excluir rascunho"
+        confirmLabel={compra.status === 'RASCUNHO' ? 'Excluir rascunho' : 'Excluir compra'}
         confirming={processando}
-        description={`O rascunho some da lista. O número ${compra.identificador} não volta a ser usado.`}
+        description={`${compra.status === 'RASCUNHO' ? 'O rascunho some' : 'A compra pendente some'} da lista. O número ${compra.identificador} não volta a ser usado.`}
       />
       <ConfirmacaoModal
         open={modal === 'confirmar'}

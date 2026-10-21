@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -14,15 +14,19 @@ import Toast from '../../components/shared/Toast'
 import { EstoqueTags } from '../../components/ui/Badge'
 import {
   AlertCircle, Eye, Pencil, Power, ShoppingCart, Plus, Search, Trash2,
-  Layers, Box, CheckCircle, ChevronRight, Repeat,
+  Layers, Box, CheckCircle, Repeat,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 import type { InsumoContagensResponse, InsumoResponse, ProdutoRelacionadoResponse } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { catalogoService } from '../../services/catalogoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { useToast } from '../../hooks/useToast'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import { useAoMudar } from '../../hooks/useAoMudar'
+import Paginacao from '../../components/shared/Paginacao'
 import { formatQuantidade } from '../../utils/quantidade'
 import { extractApiError } from '../../utils/apiError'
 import { BRL } from '../../components/venda/formato'
@@ -52,10 +56,6 @@ const COLUNAS: { label: string; campo: CampoOrdenacaoInsumo | null }[] = [
 
 const isLow = (o: InsumoResponse) =>
   o.ativo && o.estoqueMinimo != null && o.estoqueAtual < o.estoqueMinimo
-
-const isNegative = (o: InsumoResponse) => o.estoqueAtual < 0
-
-const isPositive = (o: InsumoResponse) => o.estoqueAtual > 0
 
 
 // #603 (RN-NOVA-33): sempre 2 casas na tela; o custo unitário continua com 4 por dentro.
@@ -266,7 +266,7 @@ function SeletorInsumoSubstituto({ produto, insumoAtualId, selecionado, onSelect
             {produto.identificador && (
               <span className="text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
             )}
-            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-dark">{produto.nome}</span>
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-dark">{rotuloProduto(produto.nome, produto.marca)}</span>
           </div>
         </div>
       </div>
@@ -570,7 +570,7 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, catalogoVincu
                           {p.identificador && (
                             <span className="shrink-0 text-[12px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
                           )}
-                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{p.nome}</span>
+                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold text-dark">{rotuloProduto(p.nome, p.marca)}</span>
                         </div>
                       </div>
                       <span className="shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11px] font-semibold text-subtle">
@@ -643,14 +643,29 @@ const FILTRO_TO_ATIVO: Record<string, boolean | undefined> = {
   Inativos: false,
 }
 
+// #994 (RN-NOVA-31 item 3) — as abas de estoque também filtram no servidor, para valer em todas as páginas.
+const FILTRO_TO_ESTOQUE: Record<string, 'BAIXO' | 'NEGATIVO' | 'POSITIVO' | undefined> = {
+  'Estoque baixo': 'BAIXO',
+  'Estoque negativo': 'NEGATIVO',
+  'Estoque positivo': 'POSITIVO',
+}
+
+const CAMPOS_ORDENACAO: CampoOrdenacaoInsumo[] = ['numero', 'nome', 'custoUnitario', 'estoqueAtual']
+
 export default function ListaInsumosPage() {
   const navigate = useNavigate()
-  const [filtro, setFiltro] = useState('Todos')
-  const isFirstFiltro = useRef(true)
+  // #994 — página, busca, filtro e ordenação ficam na URL: voltar de um insumo reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [filtro, setFiltro] = useState(() => {
+    const f = inicial.texto('filtro', 'Todos')
+    return f in FILTRO_TO_ATIVO || f in FILTRO_TO_ESTOQUE ? f : 'Todos'
+  })
   // #295 (V0.14.0, RN-NOVA-2) — default identificador decrescente, sem interação do usuário.
-  const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacaoInsumo>('numero')
-  const [direcao, setDirecao] = useState<'ASC' | 'DESC'>('DESC')
-  const isFirstSort = useRef(true)
+  const [ordenarPor, setOrdenarPor] = useState<CampoOrdenacaoInsumo>(() => {
+    const o = inicial.texto('ordem', 'numero') as CampoOrdenacaoInsumo
+    return CAMPOS_ORDENACAO.includes(o) ? o : 'numero'
+  })
+  const [direcao, setDirecao] = useState<'ASC' | 'DESC'>(() => inicial.texto('dir', 'DESC') === 'ASC' ? 'ASC' : 'DESC')
   const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'inativar' | 'excluir'; insumo: InsumoResponse } | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [bloqueio, setBloqueio] = useState<{ insumo: InsumoResponse; operacao: 'INATIVAR' | 'EXCLUIR'; produtos: ProdutoRelacionadoResponse[]; catalogoVinculos: VinculoCatalogoInsumoUI[]; loading: boolean } | null>(null)
@@ -662,16 +677,23 @@ export default function ListaInsumosPage() {
   const {
     items: insumos,
     setItems: setInsumos,
-    hasMore: hasNext,
+    page,
+    totalPages,
+    ultima,
+    totalElements,
     loading,
-    loadingMore,
-    loadMore: carregarMais,
+    irParaPagina,
+    recarregar,
     query,
     setQuery,
     reset: carregar,
   } = useDebounceSearch({
-    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`, false),
+    fetcher: (page, size, q) => insumoService.listar(page, size, q, FILTRO_TO_ATIVO[filtro], `${ordenarPor},${direcao.toLowerCase()}`, false, FILTRO_TO_ESTOQUE[filtro]),
+    buscaInicial: inicial.texto('busca'),
+    paginaInicial: inicial.pagina(),
   })
+  useEspelharNaUrl({ pagina: page + 1, busca: query, filtro, ordem: ordenarPor, dir: direcao },
+    { pagina: 1, busca: '', filtro: 'Todos', ordem: 'numero', dir: 'DESC' })
 
   const carregarContadores = () => {
     insumoService.contagens().then(setContadores).catch(() => {})
@@ -681,17 +703,7 @@ export default function ListaInsumosPage() {
     carregarContadores()
   }, [])
 
-  useEffect(() => {
-    if (isFirstFiltro.current) { isFirstFiltro.current = false; return }
-    carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtro])
-
-  useEffect(() => {
-    if (isFirstSort.current) { isFirstSort.current = false; return }
-    carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ordenarPor, direcao])
+  useAoMudar(`${filtro}|${ordenarPor}|${direcao}`, carregar)
 
   const handleSort = (campo: CampoOrdenacaoInsumo) => {
     if (ordenarPor === campo) {
@@ -717,8 +729,8 @@ export default function ListaInsumosPage() {
         setToast('Insumo inativado.')
       } else {
         await insumoService.excluir(insumo.id)
-        setInsumos(prev => prev.filter(x => x.id !== insumo.id))
         setToast('Insumo excluído.')
+        recarregar()
       }
       setConfirmAcao(null)
       carregarContadores()
@@ -761,14 +773,11 @@ export default function ListaInsumosPage() {
     }
   }
 
-  // "Ativos"/"Inativos" já vêm filtrados do servidor (FILTRO_TO_ATIVO no fetcher) — só as 3 abas
-  // de estoque continuam filtrando sobre a janela carregada (escopo consciente, ver #336 acima).
-  let lista = insumos
-  if (filtro === 'Estoque baixo')     lista = lista.filter(isLow)
-  if (filtro === 'Estoque negativo')  lista = lista.filter(isNegative)
-  if (filtro === 'Estoque positivo')  lista = lista.filter(isPositive)
+  // Todos os filtros (status e estoque) vêm filtrados do servidor — valem em todas as páginas (#994).
+  const lista = insumos
 
-  const empty = !loading && insumos.length === 0
+  // sem registro nenhum só quando não há filtro nem busca — filtro ou busca sem resultado cai na lista com "Nenhum insumo encontrado"
+  const empty = !loading && insumos.length === 0 && filtro === 'Todos' && !query.trim()
 
   // RN-NOVA-4 (#336) — contador exibido no badge de cada aba, sempre do endpoint agregado (nunca
   // recalculado sobre a janela carregada) — só null enquanto a 1ª chamada não voltou.
@@ -923,26 +932,8 @@ export default function ListaInsumosPage() {
             ))}
           </div>
 
-          <div className="mt-3.5 flex flex-col items-center gap-3">
-            <div className="w-full text-right text-[12.5px] text-muted">
-              {lista.length} {lista.length === 1 ? 'insumo' : 'insumos'}
-            </div>
-            {hasNext && (
-              <button
-                onClick={carregarMais}
-                disabled={loadingMore}
-                className={clsx(
-                  'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
-                )}
-              >
-                {loadingMore
-                  ? <><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
-                  : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
-                }
-              </button>
-            )}
-          </div>
+          <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+            esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'insumo' : 'insumos'}</span>} />
         </>
       )}
 

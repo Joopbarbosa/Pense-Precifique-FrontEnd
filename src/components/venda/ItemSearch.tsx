@@ -1,19 +1,19 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import OpcaoInativa from '../shared/OpcaoInativa'
-import clsx from 'clsx'
 import { Layers, Box, Filter } from 'lucide-react'
 import { EstoqueTags, FracionavelBadge, EstoqueInsuficienteBadge } from '../ui/Badge'
-import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import type { PageResponse } from '../../types/shared'
 import type { ProdutoResponse } from '../../types/produto'
 import type { ItemCatalogoBuscaResponse } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
+import Paginacao from '../shared/Paginacao'
 import { BRL } from './formato'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 /**
- * Painel de busca de item de venda — Produto avulso e/ou item de Catálogo, com paginação real do
- * branch de catálogo (RN-NOVA-18, V0.8.3).
+ * Painel de busca de item de venda — Produto avulso e/ou item de Catálogo, com paginação real (RN-NOVA-18, V0.8.3;
+ * paginação numerada de 10 por página desde a #994, RN-NOVA-31 — a mesma página vale para as duas fontes).
  *
  * Os dois consumidores batem em endpoints diferentes (`orcamentoService.buscarItensCatalogo` com
  * filtro de catálogo; `caixaService.buscarItensCatalogo` sem), então as buscas entram por prop.
@@ -22,6 +22,10 @@ import { BRL } from './formato'
  * chama). Elas entram na dependência do fetcher paginado e do efeito de busca — uma função nova a
  * cada render dispara busca em laço infinito.
  */
+// #994 (RN-NOVA-31 item 2): 10 por página nas buscas em lista suspensa
+const POR_PAGINA = 10
+const SEM_ITENS: never[] = []
+
 export default function ItemSearch({
   open, onClose, modo = 'tudo', buscarItensCatalogo, buscarProdutos,
   catalogos = [], catalogoFiltro = '', onSelectCatalogoFiltro,
@@ -31,7 +35,7 @@ export default function ItemSearch({
   onClose: () => void
   modo?: 'tudo' | 'catalogo' | 'produto'
   buscarItensCatalogo: (busca: string | undefined, page: number, size: number) => Promise<PageResponse<ItemCatalogoBuscaResponse>>
-  buscarProdutos: (busca: string | undefined) => Promise<ProdutoResponse[]>
+  buscarProdutos: (busca: string | undefined, page: number, size: number) => Promise<PageResponse<ProdutoResponse>>
   catalogos?: CatalogoResponse[]
   catalogoFiltro?: string
   onSelectCatalogoFiltro?: (id: string) => void
@@ -39,32 +43,25 @@ export default function ItemSearch({
   onSelectProdutoAvulso: (produto: ProdutoResponse) => void
 }) {
   const [q, setQ] = useState('')
-  const [produtos, setProdutos] = useState<ProdutoResponse[]>([])
+  const [catalogo, setCatalogo] = useState<PageResponse<ItemCatalogoBuscaResponse> | null>(null)
+  const [produtosPg, setProdutosPg] = useState<PageResponse<ProdutoResponse> | null>(null)
   const [loading, setLoading] = useState(false)
   const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
 
-  // RN-NOVA-18 (V0.8.3) — paginação real do branch de item de catálogo, via usePaginatedList
-  // (mesmo hook/padrão de ListaProducaoPage.tsx). fetcher memoizado por [busca] para não recriar a
-  // cada render do componente (produtos/loading/maxHeight mudando não pode disparar o efeito de
-  // busca abaixo de novo — só mudança real de filtro/query).
+  // #994 (RN-NOVA-31) — uma página só (10 por fonte) vale para as duas fontes; mudar a busca, o modo ou o catálogo volta à
+  // página 1, e escolher um item não muda de página. `buscarItensCatalogo` e `buscarProdutos` só mudam com o catálogo e
+  // o modo, que entram na chave.
   const debouncedQ = useDebouncedValue(q, 300)
-  const fetchItensCatalogo = useCallback(
-    (page: number, size: number) => buscarItensCatalogo(debouncedQ || undefined, page, size),
-    [buscarItensCatalogo, debouncedQ]
-  )
-  const {
-    items: itensCatalogo,
-    setItems: setItensCatalogo,
-    hasMore: hasMoreCatalogo,
-    loadingMore: loadingMoreCatalogo,
-    loadMore: handleCarregarMaisCatalogo,
-    reset: carregarCatalogo,
-  } = usePaginatedList<ItemCatalogoBuscaResponse>({
-    fetcher: fetchItensCatalogo,
-    pageSize: 8,
-    errorMessage: 'Não foi possível carregar os itens de catálogo.',
-  })
+  const chave = `${modo}|${catalogoFiltro}|${debouncedQ}`
+  const [pg, setPg] = useState({ chave: '', n: 0 })
+  const pagina = pg.chave === chave ? pg.n : 0
+  const irParaPagina = useCallback((n: number) => setPg({ chave, n }), [chave])
+  const itensCatalogo = catalogo?.content ?? SEM_ITENS
+  const produtos = produtosPg?.content ?? SEM_ITENS
+  const totalPaginas = Math.max(catalogo?.totalPages ?? 0, produtosPg?.totalPages ?? 0)
+  const ultima = (catalogo?.last ?? true) && (produtosPg?.last ?? true)
+  const total = (catalogo?.totalElements ?? 0) + (produtosPg?.totalElements ?? 0)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -100,8 +97,8 @@ export default function ItemSearch({
   useEffect(() => {
     if (!open) {
       setQ('')
-      setItensCatalogo([])
-      setProdutos([])
+      setCatalogo(null)
+      setProdutosPg(null)
       return
     }
     // #357 (correção) — guard contra fetch prematuro: ver nota completa em NovaProducaoPage.tsx.
@@ -110,29 +107,25 @@ export default function ItemSearch({
     const load = async () => {
       setLoading(true)
       try {
-        const tarefas: Promise<void>[] = []
-        if (modo !== 'produto') {
-          tarefas.push(carregarCatalogo())
-        } else if (!cancelled) {
-          setItensCatalogo([])
-        }
-        if (modo === 'tudo' || modo === 'produto') {
-          tarefas.push(
-            buscarProdutos(debouncedQ || undefined).then(lista => {
-              if (!cancelled) setProdutos(lista)
-            }).catch(() => { if (!cancelled) setProdutos([]) })
-          )
-        } else {
-          if (!cancelled) setProdutos([])
-        }
-        await Promise.all(tarefas)
+        const termo = debouncedQ || undefined
+        const [c, p] = await Promise.all([
+          modo !== 'produto' ? buscarItensCatalogo(termo, pagina, POR_PAGINA).catch(() => null) : Promise.resolve(null),
+          modo !== 'catalogo' ? buscarProdutos(termo, pagina, POR_PAGINA).catch(() => null) : Promise.resolve(null),
+        ])
+        if (cancelled) return
+        // página que passou do limite (registros removidos): mostra a última que existe
+        const vazio = (c?.content.length ?? 0) === 0 && (p?.content.length ?? 0) === 0
+        const ultimaExistente = Math.max(c?.totalPages ?? 0, p?.totalPages ?? 0) - 1
+        if (pagina > 0 && vazio && ultimaExistente >= 0) { irParaPagina(ultimaExistente); return }
+        setCatalogo(c)
+        setProdutosPg(p)
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
-  }, [debouncedQ, open, q, modo, carregarCatalogo, buscarProdutos, setItensCatalogo])
+  }, [debouncedQ, open, q, modo, pagina, buscarItensCatalogo, buscarProdutos, irParaPagina])
 
   if (!open) return null
 
@@ -186,7 +179,7 @@ export default function ItemSearch({
             {/* #641 (RN-NOVA-40) — item indisponível (catálogo ou componente inativo): riscado, com "Inativo", sem poder escolher. */}
             {itensCatalogo.map(item => item.ativo === false ? (
               <OpcaoInativa key={item.id} className="px-[11px] py-2.5">
-                <div className="truncate text-sm font-medium">{item.nome}</div>
+                <div className="truncate text-sm font-medium">{rotuloProduto(item.nome, item.marca)}</div>
                 <div className="text-xs">{item.catalogoNome}</div>
               </OpcaoInativa>
             ) : (
@@ -200,7 +193,7 @@ export default function ItemSearch({
                   <Layers size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{item.nome}</div>
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{rotuloProduto(item.nome, item.marca)}</div>
                   <div className="text-xs text-muted">{BRL(item.precoVenda)} · {item.catalogoNome}</div>
                   {/* V0.13.0 — item de catálogo passou a ter N componentes, cada um com seu próprio
                       estoque; não há badge de quantidade exata única pra mostrar na busca. Os dois
@@ -227,7 +220,7 @@ export default function ItemSearch({
             {/* #616 (RN-NOVA-40) — produto inativo: riscado, com "Inativo", sem poder escolher. */}
             {produtos.map(p => p.ativo === false ? (
               <OpcaoInativa key={p.id} className="px-[11px] py-2.5">
-                <div className="truncate text-sm font-medium">{p.nome}</div>
+                <div className="truncate text-sm font-medium">{rotuloProduto(p.nome, p.marca)}</div>
               </OpcaoInativa>
             ) : (
               <button
@@ -240,7 +233,7 @@ export default function ItemSearch({
                   <Box size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{p.nome}</div>
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-dark">{rotuloProduto(p.nome, p.marca)}</div>
                   <div className="text-xs text-muted">{BRL(p.precoVenda ?? 0)} / unidade</div>
                   <EstoqueTags
                     className="mt-1"
@@ -264,23 +257,13 @@ export default function ItemSearch({
           </div>
         )}
       </div>
-      {itensCatalogo.length > 0 && hasMoreCatalogo && (
-        // RN-NOVA-18 — rodapé fixo, simétrico ao "sticky top-0" da barra de busca acima (mesmo
-        // container rolável `wrapRef`): fica sempre visível no rodapé do painel calibrado para 8
-        // linhas, sem exigir rolagem extra dentro do popover para achar o botão (decisão do
-        // usuário, Passo 0 item 4 — ver DECISOES_V0.8.3.md). Sem `data-search-row`: não entra no
-        // cálculo de `maxHeight` (useLayoutEffect acima), que só mede linhas de item real.
-        <div className="sticky bottom-0 z-10 border-t border-line bg-white px-1.5 py-1.5">
-          <button
-            onClick={handleCarregarMaisCatalogo}
-            disabled={loadingMoreCatalogo}
-            className={clsx(
-              'h-9 w-full rounded-lg border-[1.5px] border-line bg-white font-[inherit] text-[13.5px] font-semibold text-body',
-              loadingMoreCatalogo ? 'cursor-default opacity-60' : 'cursor-pointer'
-            )}
-          >
-            {loadingMoreCatalogo ? 'Carregando…' : 'Carregar mais'}
-          </button>
+      {total > 0 && (
+        // RN-NOVA-18 / #994 — rodapé fixo, simétrico ao "sticky top-0" da barra de busca acima (mesmo container rolável
+        // `wrapRef`): fica sempre visível no rodapé do painel calibrado para 8 linhas. Sem `data-search-row`: não entra
+        // no cálculo de `maxHeight` (useLayoutEffect acima), que só mede linhas de item real.
+        <div className="sticky bottom-0 z-10 border-t border-line bg-white px-1.5 pb-1.5">
+          <Paginacao pagina={pagina} totalPaginas={totalPaginas} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+            esquerda={<span data-testid="total-registros">{total} {total === 1 ? 'resultado' : 'resultados'}</span>} />
         </div>
       )}
     </div>

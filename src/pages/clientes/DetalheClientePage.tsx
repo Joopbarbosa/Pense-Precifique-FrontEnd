@@ -10,6 +10,7 @@ import { BigNumber, BigNumberGroup, Button, SegmentedControl } from '../../compo
 import Spinner from '../../components/ui/Spinner'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
+import Paginacao from '../../components/shared/Paginacao'
 import { InativoBadge, PapelTags } from '../../components/cliente/PapelTags'
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import ModalRegistro, { type TipoRegistro } from '../../components/cliente/ModalRegistro'
@@ -336,34 +337,38 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
 
 // ---------- Aba Histórico: listas ----------
 
-function useHistorico<T>(fetcher: (page: number) => Promise<{ content: T[]; last: boolean }>, ativo: boolean) {
+function useHistorico<T>(fetcher: (page: number) => Promise<{ content: T[]; last: boolean; totalPages: number; totalElements: number }>, ativo: boolean) {
+  // #994 (RN-NOVA-31) — histórico com paginação numerada: cada página troca a anterior
   const [itens, setItens] = useState<T[]>([])
   const [page, setPage] = useState(0)
-  const [hasNext, setHasNext] = useState(false)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+  const [ultima, setUltima] = useState(true)
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+
+  const carregar = (pagina: number, primeira: boolean): Promise<void> => {
+    if (primeira) setLoading(true)
+    setErro(null)
+    return fetcher(pagina)
+      .then(r => {
+        // página que passou do limite (registros removidos): mostra a última que existe
+        if (r.content.length === 0 && pagina > 0 && r.totalPages > 0) return carregar(r.totalPages - 1, primeira)
+        setItens(r.content); setUltima(r.last); setTotalPages(r.totalPages); setTotalElements(r.totalElements); setPage(pagina)
+      })
+      .catch(err => setErro(extractApiError(err, 'Não foi possível carregar o histórico.')))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
     if (!ativo) return
-    setLoading(true)
-    setErro(null)
-    fetcher(0)
-      .then(r => { setItens(r.content); setHasNext(!r.last); setPage(0) })
-      .catch(err => setErro(extractApiError(err, 'Não foi possível carregar o histórico.')))
-      .finally(() => setLoading(false))
+    carregar(0, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ativo])
 
-  const carregarMais = () => {
-    setLoadingMore(true)
-    fetcher(page + 1)
-      .then(r => { setItens(prev => [...prev, ...r.content]); setHasNext(!r.last); setPage(page + 1) })
-      .catch(err => setErro(extractApiError(err, 'Não foi possível carregar o histórico.')))
-      .finally(() => setLoadingMore(false))
-  }
+  const irParaPagina = (pagina: number) => { void carregar(pagina, false) }
 
-  return { itens, hasNext, loading, loadingMore, erro, carregarMais }
+  return { itens, page, totalPages, totalElements, ultima, loading, erro, irParaPagina }
 }
 
 function ListaHistorico<T>({ titulo, icone, colunas, h, vazio, renderLinha, legenda }: {
@@ -399,13 +404,10 @@ function ListaHistorico<T>({ titulo, icone, colunas, h, vazio, renderLinha, lege
             {colunas.map(c => <div key={c} className="text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">{c}</div>)}
           </div>
           {h.itens.map(renderLinha)}
-          {h.hasNext && (
-            <div className="flex justify-center border-t border-line px-5 py-3">
-              <Button variant="ghost" onClick={h.carregarMais} disabled={h.loadingMore}>
-                {h.loadingMore ? 'Carregando…' : 'Carregar mais'}
-              </Button>
-            </div>
-          )}
+          <div className="border-t border-line px-5 pb-3">
+            <Paginacao pagina={h.page} totalPaginas={h.totalPages} ultima={h.ultima} onMudar={h.irParaPagina}
+              esquerda={<span data-testid="total-registros">{h.totalElements} {h.totalElements === 1 ? 'registro' : 'registros'}</span>} />
+          </div>
         </>
       )}
     </div>

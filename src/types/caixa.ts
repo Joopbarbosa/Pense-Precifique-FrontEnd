@@ -107,6 +107,8 @@ export interface VendaCaixaItemCustomizacaoResponse {
   quantidade: number
   precoUnitario: number
   subtotal: number
+  /** #720 — Produto da customização; nulo = excluído. */
+  destinoId?: string | null
 }
 
 export interface VendaCaixaItemResponse {
@@ -119,11 +121,16 @@ export interface VendaCaixaItemResponse {
   precoUnitario: number
   subtotal: number
   customizacoes: VendaCaixaItemCustomizacaoResponse[]
+  /** #720 (RN-NOVA-14) — PRODUTO ou CATALOGO; `destinoId` nulo = cadastro excluído (sem link). */
+  destinoTipo?: 'PRODUTO' | 'CATALOGO'
+  destinoId?: string | null
 }
 
 export interface VendaCaixaPagamentoResponse {
   id: string
   metodoPagamentoId: string
+  /** #993 (RN-NOVA-30) — forma de pagamento pelo nome. */
+  metodoPagamentoNome: string
   valor: number
   parcelas?: number | null
   taxaPercentualAplicada?: number | null
@@ -134,6 +141,8 @@ export interface VendaCaixaResponse {
   numero: number
   identificador: string
   clienteId?: string | null
+  /** #993 (RN-NOVA-30) — nome do cliente; nulo = sem cliente ("Consumidor final"). */
+  clienteNome?: string | null
   dataVenda: string
   caixaTurnoId: string
   status: StatusVendaCaixa
@@ -167,4 +176,29 @@ export type RegistrarVendaResultado = VendaCaixaResponse | ConfirmacaoEstoqueNeg
 
 export function ehAvisoEstoqueNegativo(r: RegistrarVendaResultado): r is ConfirmacaoEstoqueNegativoResponse {
   return Array.isArray((r as ConfirmacaoEstoqueNegativoResponse).avisos)
+}
+
+// V0.17.0 — #973 (RN-NOVA-26): histórico das vendas do Caixa, de todos os turnos.
+export interface HistoricoVendaResponse {
+  id: string
+  identificador: string
+  numero: number
+  data: string
+  /** "Consumidor final" quando a venda não tem cliente. */
+  cliente: string
+  itens: string
+  formas: string[]
+  total: number
+  status: 'CONCLUIDA' | 'CANCELADA'
+}
+
+export interface FiltroHistoricoVendas {
+  de?: string
+  ate?: string
+  status?: string[]
+  forma?: string
+  busca?: string
+  sort?: string
+  page?: number
+  size?: number
 }

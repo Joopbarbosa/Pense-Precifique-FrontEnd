@@ -32,6 +32,7 @@ import {
   ClienteSelect, SectionCard, ModoToggle,
   BRL, carregarCalculadoraAvulso, carregarCalculadoraCatalogo,
 } from '../../components/venda'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 
 // Símbolo exibido na UI ('%' | 'R$') é conceito distinto do valor aceito pela API
@@ -473,8 +474,8 @@ export default function CriarOrcamentoPage() {
     [catalogoFiltro]
   )
   const buscarProdutosOrcamento = useCallback(
-    (busca: string | undefined) =>
-      produtoService.listar(0, 20, 'PRODUTO', busca, modoItens === 'produto', undefined, true).then(d => d.content),
+    (busca: string | undefined, page: number, size: number) =>
+      produtoService.listar(page, size, 'PRODUTO', busca, modoItens === 'produto', undefined, true),
     [modoItens]
   )
   // #218 (RN-NOVA-8/9/11) — última simulação de estoque conhecida por produtoId (não por item da
@@ -1051,7 +1052,7 @@ export default function CriarOrcamentoPage() {
               const produto = calculadoraPendente.produto
               setItems(arr => [...arr, {
                 id: Date.now(),
-                nome: produto.nome,
+                nome: rotuloProduto(produto.nome, produto.marca),
                 qtd: 1,
                 preco: precoFinal,
                 customs: [],
@@ -1066,7 +1067,7 @@ export default function CriarOrcamentoPage() {
               const item = calculadoraPendente.item
               setItems(arr => [...arr, {
                 id: Date.now(),
-                nome: item.nome,
+                nome: rotuloProduto(item.nome, item.marca),
                 qtd: 1,
                 preco: precoFinal,
                 customs: [],

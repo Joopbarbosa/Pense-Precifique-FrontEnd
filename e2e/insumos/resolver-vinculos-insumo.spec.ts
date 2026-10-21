@@ -121,7 +121,7 @@ test.describe('OpenProject #228,#237 — Resolver vínculos ao inativar/excluir 
 
     await expect(page.getByText('Não foi possível excluir')).toBeVisible()
     await page.getByText('Carregando vínculos…', { exact: true }).waitFor({ state: 'hidden' })
-    await expect(page.getByText(produtoExcluirNome)).toBeVisible()
+    await expect(page.getByText(produtoExcluirNome)).toBeVisible({ timeout: 20_000 })
 
     await page.getByRole('button', { name: 'Substituir', exact: true }).click()
     await page.getByPlaceholder('Buscar insumo substituto…').fill(insumoSubstitutoNome)

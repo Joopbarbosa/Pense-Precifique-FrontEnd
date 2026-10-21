@@ -1,3 +1,4 @@
+import ModalVendasDoDia from '../../components/caixa/ModalVendasDoDia'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import OpcaoInativa from '../../components/shared/OpcaoInativa'
 import clsx from 'clsx'
@@ -29,6 +30,7 @@ import type {
   AvisoEstoqueNegativoResponse, VendaCaixaRequest,
 } from '../../types/caixa'
 import { ehAvisoEstoqueNegativo } from '../../types/caixa'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 /**
  * #487/#488 (V0.12.0) — Caixa/PDV, Epic #416. Venda de balcão paralela ao Orçamento: sem
@@ -915,6 +917,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
   const [erro, setErro] = useState<string | null>(null)
   const [vendaConcluida, setVendaConcluida] = useState<VendaCaixaResponse | null>(null)
   const [modalSangria, setModalSangria] = useState(false)
+  const [modalVendasDoDia, setModalVendasDoDia] = useState(false)
   const [modalFechamento, setModalFechamento] = useState(false)
   const [modalVendas, setModalVendas] = useState(false)
 
@@ -940,7 +943,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
     []
   )
   const buscarProdutosCaixa = useCallback(
-    (busca?: string) => produtoService.listar(0, 8, undefined, busca, true, true, true).then(d => d.content),
+    (busca: string | undefined, page: number, size: number) => produtoService.listar(page, size, undefined, busca, true, true, true),
     []
   )
 
@@ -953,7 +956,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
       // Não há mais estoque/fracionável agregado na busca (item pode ter N componentes) — achado
       // registrado em decisoes-catalogo.md.
       return [...prev, {
-        key: item.id, itemCatalogoId: item.id, nome: item.nome,
+        key: item.id, itemCatalogoId: item.id, nome: rotuloProduto(item.nome, item.marca),
         preco: item.precoVenda, qtd: 1, customs: [], customsFixas: [],
         catalogoNome: item.catalogoNome,
         permitirEstoqueNegativo: true, estoqueAtual: null,
@@ -967,7 +970,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
       const existente = prev.find(i => i.produtoId === produto.id && !i.itemCatalogoId)
       if (existente) return prev.map(i => i.key === existente.key ? { ...i, qtd: i.qtd + 1 } : i)
       return [...prev, {
-        key: produto.id, produtoId: produto.id, nome: produto.nome,
+        key: produto.id, produtoId: produto.id, nome: rotuloProduto(produto.nome, produto.marca),
         preco: produto.precoVenda ?? 0, qtd: 1, customs: [], customsFixas: [],
         produtoIdentificador: produto.identificador,
         permitirEstoqueNegativo: produto.permitirEstoqueNegativo, estoqueAtual: produto.estoqueAtual,
@@ -1096,6 +1099,10 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
         <div className="flex flex-wrap gap-2.5">
           <Button variant="ghost" size="sm" icon={<History size={14} />} onClick={() => setModalVendas(true)}>
             Vendas do turno
+          </Button>
+          {/* V0.17.0 #973/#992 (RN-NOVA-26): vendas de hoje de todos os turnos, ao lado de "Vendas do turno"; a tela completa abre em aba nova */}
+          <Button variant="ghost" size="sm" icon={<History size={14} />} onClick={() => setModalVendasDoDia(true)}>
+            Histórico de vendas
           </Button>
           <Button variant="ghost" size="sm" icon={<ArrowDownCircle size={14} />} onClick={() => setModalSangria(true)}>
             Sangria / Suprimento
@@ -1290,6 +1297,7 @@ function VendaCaixaView({ turno, onTurnoAtualizado }: {
         </div>
       </div>
 
+      {modalVendasDoDia && <ModalVendasDoDia onClose={() => setModalVendasDoDia(false)} />}
       <SangriaSuprimentoModal open={modalSangria} onClose={() => setModalSangria(false)} onSaved={() => setToast('Movimento registrado com sucesso!')} />
       <FecharCaixaModal open={modalFechamento} onClose={() => setModalFechamento(false)} turno={turno} onFechado={onTurnoAtualizado} />
       <VendasDoTurnoModal

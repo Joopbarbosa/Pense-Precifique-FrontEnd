@@ -15,12 +15,14 @@ import type { MetodoPagamentoConfiguravelResponse } from '../../types/empresa'
  */
 export const PARCELAS_MAX_PADRAO = 12
 
-export default function MetodoPagamentoEscolha({ value, onChange, salvo, parcelas, onParcelas }: {
+export default function MetodoPagamentoEscolha({ value, onChange, salvo, parcelas, onParcelas, padraoId }: {
   value: string | null
   onChange: (id: string) => void
   salvo?: MetodoPagamentoRef | null
   parcelas?: number | null
   onParcelas?: (n: number | null) => void
+  /** #997 — método a pré-selecionar quando nada está escolhido, se ainda estiver ativo (senão, nenhum). */
+  padraoId?: string | null
 }) {
   const [metodos, setMetodos] = useState<MetodoPagamentoConfiguravelResponse[] | null>(null)
   useEffect(() => { empresaService.listarMetodosPagamento().then(setMetodos).catch(() => setMetodos([])) }, [])
@@ -31,6 +33,12 @@ export default function MetodoPagamentoEscolha({ value, onChange, salvo, parcela
     if (salvo && !lista.some(m => m.id === salvo.id)) lista.push(salvo)
     return lista
   }, [metodos, salvo])
+
+  useEffect(() => {
+    if (metodos === null || value || !padraoId) return
+    if (metodos.some(m => m.ativo && m.id === padraoId)) onChange(padraoId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metodos])
 
   const escolhido = opcoes.find(m => m.id === value)
   const credito = escolhido?.tipo === 'CARTAO_CREDITO'

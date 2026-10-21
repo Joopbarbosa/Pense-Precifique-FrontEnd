@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -15,13 +15,21 @@ import { usuarioService } from '../../services/usuarioService'
 import { unidadeMedidaService } from '../../services/unidadeMedidaService'
 import type {
   EmpresaResponse, ConfiguracaoResponse, MetodoPagamentoConfiguravelResponse, TipoMetodoPagamento,
-  HorarioFuncionamento,
+  MetodoPagamentoConfiguravelUpdateRequest, HorarioFuncionamento,
 } from '../../types/empresa'
 import type { UnidadeMedidaResponse } from '../../types/unidadeMedida'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
+import { useAuthStore } from '../../store/authStore'
 import { LABEL_TIPO_METODO_PAGAMENTO, ICON_TIPO_METODO_PAGAMENTO } from '../../constants/metodoPagamentoConfiguravel'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../utils/telefone'
+import { ControleModoTelefone, useModoTelefone } from '../../components/ui/TelefoneEstrangeiro'
+import {
+  EdicaoConfiguracoesProvider, useEdicaoConfiguracoes, useRegistrarEdicao,
+  type ItemPendente, type AlteracaoCampo,
+} from '../../hooks/useEdicaoConfiguracoes'
+import { BRL } from '../../components/venda/formato'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -115,9 +123,10 @@ function SubNav({ aba, setAba }: { aba: SubAba; setAba: (a: SubAba) => void }) {
 
 /* ── PerfilCard ──────────────────────────────────────────────── */
 
-function PerfilCard({ nome, email, configurada, logoUrl, onEditarPerfil }: {
+function PerfilCard({ nome, email, semContato, configurada, logoUrl, onEditarPerfil }: {
   nome?: string
   email?: string
+  semContato?: boolean
   configurada: boolean
   logoUrl?: string
   onEditarPerfil: () => void
@@ -149,6 +158,11 @@ function PerfilCard({ nome, email, configurada, logoUrl, onEditarPerfil }: {
           <>
             <h3 className="mt-[13px] text-[17px] font-bold tracking-[-0.01em] text-dark">{nome}</h3>
             <p className="mt-[3px] text-[13.5px] text-muted">{email || ''}</p>
+            {semContato && (
+              <p className="mx-auto mt-[5px] max-w-[260px] text-[12.5px] leading-normal text-muted">
+                Adicione e-mail, telefone e logo para aparecerem nos PDFs e recibos.
+              </p>
+            )}
             <button
               onClick={onEditarPerfil}
               className="group mt-4 inline-flex items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 font-[inherit] text-[13.5px] font-semibold text-teal transition-[gap] duration-150 hover:gap-2.5"
@@ -183,29 +197,28 @@ function Precificacao({
   initialValorHora,
   initialMargemPadrao,
   onSave,
-  saving,
   empresaNome,
   empresaEmail,
   empresaConfigurada,
+  empresaSemContato,
   empresaLogoUrl,
   onEditarPerfil,
 }: {
   initialValorHora: number
   initialMargemPadrao: number
   onSave: (valorHora: number, margemPadrao: number) => Promise<void>
-  saving: boolean
   empresaNome?: string
   empresaEmail?: string
   empresaConfigurada: boolean
+  empresaSemContato: boolean
   empresaLogoUrl?: string
   onEditarPerfil: () => void
 }) {
   const [hora, setHora] = useState(formatHora(initialValorHora))
   const [margem, setMargem] = useState(formatMargem(initialMargemPadrao))
-  const { toast, setToast } = useToast()
   const [saved, setSaved] = useState({ hora: formatHora(initialValorHora), margem: formatMargem(initialMargemPadrao) })
-  const [fieldErrors, setFieldErrors] = useState<{ hora?: string; margem?: string }>({})
-  const dirty = hora !== saved.hora || margem !== saved.margem
+  const horaAlterada = hora !== saved.hora
+  const margemAlterada = margem !== saved.margem
 
   useEffect(() => {
     const h = formatHora(initialValorHora)
@@ -215,33 +228,35 @@ function Precificacao({
     setSaved({ hora: h, margem: m })
   }, [initialValorHora, initialMargemPadrao])
 
-  const validate = () => {
-    const erros: { hora?: string; margem?: string } = {}
-    if (!hora.trim() || parseDecimal(hora) <= 0) erros.hora = 'Informe um valor maior que zero.'
-    if (!margem.trim() || parseDecimal(margem) <= 0) erros.margem = 'Informe um valor maior que zero.'
-    return erros
+  const horaInvalida = !hora.trim() || parseDecimal(hora) <= 0
+  const margemInvalida = !margem.trim() || parseDecimal(margem) <= 0
+  const fieldErrors = {
+    hora: horaAlterada && horaInvalida ? 'Informe um valor maior que zero.' : undefined,
+    margem: margemAlterada && margemInvalida ? 'Informe um valor maior que zero.' : undefined,
   }
 
-  const isValid = hora.trim() && parseDecimal(hora) > 0 && margem.trim() && parseDecimal(margem) > 0
-
-  const salvar = async () => {
-    const erros = validate()
-    if (Object.keys(erros).length > 0) {
-      setFieldErrors(erros)
-      return
-    }
-    setFieldErrors({})
-    try {
-      await onSave(parseDecimal(hora), parseDecimal(margem))
-      setSaved({ hora, margem })
-      setToast('Configurações salvas com sucesso!')
-    } catch (err: any) {
-      setToast(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
-    }
-  }
+  // V0.17.0 (#983) — a aba só registra o que está pendente; o botão e o indicador são da página.
+  const itens = useMemo<ItemPendente[]>(() => {
+    const alteracoes: AlteracaoCampo[] = []
+    if (horaAlterada) alteracoes.push({ campo: 'Valor da hora', antes: BRL(parseDecimal(saved.hora)), depois: BRL(parseDecimal(hora)) })
+    if (margemAlterada) alteracoes.push({ campo: 'Margem de lucro padrão', antes: `${saved.margem}%`, depois: `${margem}%` })
+    if (alteracoes.length === 0) return []
+    const erro = (horaAlterada && horaInvalida) || (margemAlterada && margemInvalida)
+      ? 'Precificação: informe o valor da hora e a margem maiores que zero.' : undefined
+    return [{
+      chave: 'precificacao',
+      alteracoes,
+      erro,
+      salvar: async () => {
+        await onSave(parseDecimal(hora), parseDecimal(margem))
+        setSaved({ hora, margem })
+      },
+    }]
+  }, [hora, margem, saved, onSave, horaAlterada, margemAlterada, horaInvalida, margemInvalida])
+  useRegistrarEdicao('precificacao', itens)
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,640px)_320px]">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex flex-col gap-6">
         <div className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <div className="mb-[5px] flex items-center gap-[11px]">
@@ -259,7 +274,7 @@ function Precificacao({
               <label className="mb-2 block text-[13.5px] font-semibold text-body">
                 Valor da sua hora de trabalho <span className="text-warning-alt">*</span>
               </label>
-              <AffixInput value={hora} onChange={v => { setHora(v.replace(/[^\d.,]/g, '')); setFieldErrors(p => ({ ...p, hora: undefined })) }} prefix="R$/h" icon={<Clock size={18} />} inputMode="decimal" error={fieldErrors.hora} />
+              <AffixInput value={hora} onChange={v => setHora(v.replace(/[^\d.,]/g, ''))} prefix="R$/h" icon={<Clock size={18} />} inputMode="decimal" error={fieldErrors.hora} />
               {fieldErrors.hora
                 ? <p className="mt-1.5 text-[12.5px] font-medium text-warning-alt">{fieldErrors.hora}</p>
                 : <p className="mt-2 text-[12.5px] text-dim">Quanto vale uma hora do seu tempo produzindo.</p>
@@ -269,7 +284,7 @@ function Precificacao({
               <label className="mb-2 block text-[13.5px] font-semibold text-body">
                 Margem de lucro padrão <span className="text-warning-alt">*</span>
               </label>
-              <AffixInput value={margem} onChange={v => { setMargem(v.replace(/[^\d]/g, '')); setFieldErrors(p => ({ ...p, margem: undefined })) }} suffix="%" inputMode="numeric" error={fieldErrors.margem} />
+              <AffixInput value={margem} onChange={v => setMargem(v.replace(/[^\d]/g, ''))} suffix="%" inputMode="numeric" error={fieldErrors.margem} />
               {fieldErrors.margem
                 ? <p className="mt-1.5 text-[12.5px] font-medium text-warning-alt">{fieldErrors.margem}</p>
                 : <p className="mt-2 text-[12.5px] text-dim">Percentual aplicado sobre o custo para formar o preço sugerido.</p>
@@ -283,36 +298,27 @@ function Precificacao({
               Alterar estes valores <strong className="font-bold">não recalcula orçamentos já criados</strong>. Somente novos orçamentos usarão os parâmetros atualizados.
             </p>
           </div>
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3.5 border-t border-line pt-[22px]">
-            <span className={clsx('flex items-center gap-[7px] text-[12.5px] font-medium', dirty ? 'text-warning' : 'text-dim')}>
-              <span className={clsx('h-2 w-2 rounded-full', dirty ? 'bg-[#E8913B] shadow-[0_0_0_4px_rgba(232,145,59,0.18)]' : 'bg-dim')} />
-              {dirty ? 'Você tem alterações não salvas' : 'Tudo salvo'}
-            </span>
-            <Button variant="primary" icon={<Check size={14} />} disabled={!dirty || saving || !isValid} onClick={salvar}>
-              {saving ? 'Salvando…' : 'Salvar alterações'}
-            </Button>
-          </div>
         </div>
       </div>
 
-      <PerfilCard nome={empresaNome} email={empresaEmail} configurada={empresaConfigurada} logoUrl={empresaLogoUrl} onEditarPerfil={onEditarPerfil} />
-      <Toast message={toast} />
+      <PerfilCard nome={empresaNome} email={empresaEmail} semContato={empresaSemContato} configurada={empresaConfigurada} logoUrl={empresaLogoUrl} onEditarPerfil={onEditarPerfil} />
     </div>
   )
 }
 
 /* ── CfgField / CfgInput / SectionHead ───────────────────────── */
 
-function CfgField({ label, opt, children }: { label: string; opt?: boolean; children: React.ReactNode }) {
-  return (
-    <label className="block">
+/** `group`: campo com botões (ex.: controle Nacional | Estrangeiro) não vai dentro de <label>, senão o botão herda o nome do campo (#186). */
+function CfgField({ label, opt, group, children }: { label: string; opt?: boolean; group?: boolean; children: React.ReactNode }) {
+  const conteudo = (
+    <>
       <span className="mb-2 block text-[13.5px] font-semibold text-body">
         {label}{opt && <span className="ml-1.5 text-xs font-medium text-faint">(opcional)</span>}
       </span>
       {children}
-    </label>
+    </>
   )
+  return group ? <div className="block" role="group" aria-label={label}>{conteudo}</div> : <label className="block">{conteudo}</label>
 }
 
 function CfgInput({ value: extValue, onChange: extOnChange, defaultValue = '', type = 'text', placeholder, readOnly, inputMode }: {
@@ -438,7 +444,6 @@ function PerfilEmpresa({
   logoUrl,
   onLogoChange,
   onSave,
-  saving,
 }: {
   initialNome: string
   initialEmail: string
@@ -448,11 +453,12 @@ function PerfilEmpresa({
   logoUrl?: string
   onLogoChange: (logoUrl: string | undefined) => void
   onSave: (nome: string, email: string, whatsapp: string, endereco: string, horarios: HorarioFuncionamento[]) => Promise<void>
-  saving: boolean
 }) {
   const [nome, setNome] = useState(initialNome)
   const [email, setEmail] = useState(initialEmail)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
+  // V0.17.0 #964 (RN-NOVA-19): telefone nacional com máscara ou estrangeiro
+  const modoWhatsapp = useModoTelefone(whatsapp, setWhatsapp)
   const [endereco, setEndereco] = useState(initialEndereco)
   const [horarios, setHorarios] = useState(() => horariosParaEstado(initialHorarios))
   const [logoEnviando, setLogoEnviando] = useState(false)
@@ -495,38 +501,62 @@ function PerfilEmpresa({
   const alterarHorario = (dia: number, patch: Partial<HorarioDiaEstado>) =>
     setHorarios(prev => ({ ...prev, [dia]: { ...prev[dia], ...patch } }))
 
-  const salvar = async () => {
-    const diaInvalido = DIAS_SEMANA.find(d => {
-      const h = horarios[d.valor]
-      return !h.fechado && h.fechamento <= h.abertura
-    })
-    if (diaInvalido) {
-      setToast(`${diaInvalido.label}: o horário de fechamento precisa ser depois do de abertura.`)
-      return
+  // V0.17.0 (#983) — a aba só registra o que está pendente; o botão e o indicador são da página.
+  const baseHorarios = useMemo(() => horariosParaEstado(initialHorarios), [initialHorarios])
+  const itens = useMemo<ItemPendente[]>(() => {
+    const alteracoes: AlteracaoCampo[] = []
+    const texto = (v: string) => v.trim() || '(vazio)'
+    if (nome !== initialNome) alteracoes.push({ campo: 'Nome da empresa', antes: texto(initialNome), depois: texto(nome) })
+    if (email !== initialEmail) alteracoes.push({ campo: 'E-mail de contato', antes: texto(initialEmail), depois: texto(email) })
+    if (whatsapp !== initialWhatsapp) alteracoes.push({ campo: 'WhatsApp / Telefone', antes: texto(initialWhatsapp), depois: texto(whatsapp) })
+    if (endereco !== initialEndereco) alteracoes.push({ campo: 'Endereço', antes: texto(initialEndereco), depois: texto(endereco) })
+    const descreverDia = (h: HorarioDiaEstado) => h.fechado ? 'Fechado' : `${h.abertura} às ${h.fechamento}`
+    for (const d of DIAS_SEMANA) {
+      const antes = baseHorarios[d.valor]
+      const depois = horarios[d.valor]
+      if (descreverDia(antes) !== descreverDia(depois)) {
+        alteracoes.push({ campo: `Horário — ${d.label}`, antes: descreverDia(antes), depois: descreverDia(depois) })
+      }
     }
-    try {
-      const horariosRequest: HorarioFuncionamento[] = DIAS_SEMANA.map(d => {
-        const h = horarios[d.valor]
-        return {
-          diaSemana: d.valor,
-          fechado: h.fechado,
-          horaAbertura: h.fechado ? undefined : h.abertura,
-          horaFechamento: h.fechado ? undefined : h.fechamento,
-        }
-      })
-      await onSave(nome, email, whatsapp, endereco, horariosRequest)
-      setToast('Configurações salvas com sucesso!')
-    } catch (err: any) {
-      setToast(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
+    if (alteracoes.length === 0) return []
+
+    let erro: string | undefined
+    if (!telefoneValido(whatsapp)) {
+      erro = `${MENSAGEM_TELEFONE_INVALIDO}: confira o WhatsApp / Telefone da empresa.`
+    } else {
+      const diaInvalido = DIAS_SEMANA.find(d => !horarios[d.valor].fechado && horarios[d.valor].fechamento <= horarios[d.valor].abertura)
+      if (diaInvalido) erro = `${diaInvalido.label}: o horário de fechamento precisa ser depois do de abertura.`
     }
-  }
+
+    return [{
+      chave: 'perfil',
+      alteracoes,
+      erro,
+      salvar: async () => {
+        const horariosRequest: HorarioFuncionamento[] = DIAS_SEMANA.map(d => {
+          const h = horarios[d.valor]
+          return {
+            diaSemana: d.valor,
+            fechado: h.fechado,
+            horaAbertura: h.fechado ? undefined : h.abertura,
+            horaFechamento: h.fechado ? undefined : h.fechamento,
+          }
+        })
+        await onSave(nome, email, whatsapp, endereco, horariosRequest)
+      },
+    }]
+  }, [nome, email, whatsapp, endereco, horarios, baseHorarios, initialNome, initialEmail, initialWhatsapp, initialEndereco, onSave])
+  useRegistrarEdicao('perfil', itens)
 
   return (
-    <div className="max-w-[640px] animate-fade-up">
-      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <div className="animate-fade-up">
+      <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<Building2 size={17} />} titulo="Perfil da empresa" />
 
-        <div className="mb-[22px] flex flex-wrap items-center gap-section border-b border-line pb-[22px]">
+        {/* RN-NOVA-32 (#996): em tela larga, logo e dados à esquerda e o horário à direita; abaixo de 1024 px, uma coluna */}
+        <div className="grid gap-x-10 lg:grid-cols-2" data-testid="perfil-colunas">
+        <div data-testid="perfil-coluna-dados">
+        <div className="mb-4 flex flex-wrap items-center gap-section border-b border-line pb-4">
           <span className="grid h-[84px] w-[84px] shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-cream shadow-card">
             {logoUrl
               ? <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
@@ -564,33 +594,35 @@ function PerfilEmpresa({
           <CfgField label="E-mail de contato">
             <CfgInput value={email} onChange={setEmail} type="email" placeholder="email@contato.com" />
           </CfgField>
-          <CfgField label="WhatsApp / Telefone">
-            <CfgInput value={whatsapp} onChange={setWhatsapp} inputMode="tel" placeholder="(00) 00000-0000" />
+          <CfgField label="WhatsApp / Telefone" group>
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <CfgInput value={whatsapp} onChange={modoWhatsapp.digitar} inputMode="tel"
+                  placeholder={modoWhatsapp.estrangeiro ? '+55 11 00000-0000' : '(00) 00000-0000'} />
+              </div>
+              <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+            </div>
           </CfgField>
           <CfgField label="Endereço" opt>
             <CfgInput value={endereco} onChange={setEndereco} placeholder="Rua, número, bairro, cidade" />
           </CfgField>
         </div>
 
-        <div className="mt-[22px] flex gap-3 rounded-xl border border-teal/18 border-l-[3px] border-l-teal bg-teal/6 px-4 py-3.5">
+        <div className="mt-4 flex gap-3 rounded-xl border border-teal/18 border-l-[3px] border-l-teal bg-teal/6 px-4 py-3.5">
           <Info size={15} className="mt-px shrink-0 text-teal" />
           <p className="m-0 text-[13px] leading-[1.55] text-[#3F5B54]">
             Estas informações aparecem em todos os PDFs gerados pelo sistema (orçamentos, recibos e multas).
           </p>
         </div>
+        </div>
 
-        <div className="mt-6 border-t border-line pt-[22px]">
+        <div data-testid="perfil-coluna-horario" className="mt-5 border-t border-line pt-4 lg:mt-0 lg:border-t-0 lg:pt-0">
           <h3 className="m-0 mb-1 text-[15px] font-bold text-dark">Horário de funcionamento</h3>
           <p className="m-0 mb-4 text-[12.5px] text-muted">
             Abrir o caixa fora do horário configurado só avisa — nunca bloqueia.
           </p>
           <HorarioSemanaEditor horarios={horarios} onChange={alterarHorario} />
         </div>
-
-        <div className="mt-6 flex justify-end border-t border-line pt-[22px]">
-          <Button variant="primary" icon={<Check size={14} />} disabled={saving} onClick={salvar}>
-            {saving ? 'Salvando…' : 'Salvar alterações'}
-          </Button>
         </div>
       </div>
 
@@ -599,9 +631,77 @@ function PerfilEmpresa({
   )
 }
 
+/* ── AlterarEmailModal (#334, RN-NOVA-1) ─────────────────────── */
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function AlterarEmailModal({ open, onClose, onAlterado }: {
+  open: boolean; onClose: () => void; onAlterado: () => void
+}) {
+  const [novoEmail, setNovoEmail] = useState('')
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setNovoEmail('')
+    setSenhaAtual('')
+    setErro(null)
+  }, [open])
+
+  const salvar = async () => {
+    const email = novoEmail.trim()
+    if (!EMAIL_VALIDO.test(email)) { setErro('E-mail inválido'); return }
+    if (!senhaAtual) { setErro('Informe a senha atual'); return }
+    setSalvando(true)
+    setErro(null)
+    try {
+      const resp = await usuarioService.alterarEmail({ novoEmail: email, senhaAtual })
+      // o token antigo deixa de valer: grava o novo antes de qualquer outra chamada
+      useAuthStore.getState().atualizarSessao(resp.token, { id: resp.usuarioId, email: resp.email })
+      onAlterado()
+      onClose()
+    } catch (err: any) {
+      const campos = err?.response?.data?.fieldErrors as Record<string, string> | null | undefined
+      setErro(campos?.novoEmail ?? extractApiError(err, 'Não foi possível alterar o e-mail. Tente novamente.'))
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Alterar e-mail de acesso"
+      subtitle="A troca vale na hora. Em outros aparelhos ou abas, você precisará entrar de novo."
+      icon={<ShieldCheck size={17} />}
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+          <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Alterar e-mail'}</Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <CfgField label="Novo e-mail">
+          <CfgInput value={novoEmail} onChange={setNovoEmail} type="email" placeholder="novo@email.com" />
+        </CfgField>
+        <CfgField label="Senha atual">
+          <CfgInput value={senhaAtual} onChange={setSenhaAtual} type="password" placeholder="Confirme com sua senha" />
+        </CfgField>
+        {erro && <p role="alert" className="text-[12.5px] font-medium text-danger-deep">{erro}</p>}
+      </div>
+    </ModalShell>
+  )
+}
+
 /* ── ContaSeguranca ──────────────────────────────────────────── */
 
 function ContaSeguranca() {
+  const emailAcesso = useAuthStore(s => s.usuario?.email ?? '')
+  const [modalEmailAberto, setModalEmailAberto] = useState(false)
   const [senhaAtual, setSenhaAtual] = useState('')
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('')
@@ -632,16 +732,19 @@ function ContaSeguranca() {
   }
 
   return (
-    <div className="flex max-w-[640px] animate-fade-up flex-col gap-[22px]">
+    <div className="grid animate-fade-up items-start gap-[18px] lg:grid-cols-2">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <SectionHead icon={<ShieldCheck size={17} />} titulo="Dados de acesso" />
 
         <CfgField label="E-mail atual">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="min-w-0 flex-[1_1_240px]"><CfgInput defaultValue="ana@atelier.com" readOnly /></div>
-            <Button variant="ghost">Alterar e-mail</Button>
+            <div className="min-w-0 flex-[1_1_240px]"><CfgInput value={emailAcesso} readOnly /></div>
+            <Button variant="ghost" onClick={() => setModalEmailAberto(true)}>Alterar e-mail</Button>
           </div>
         </CfgField>
+        <p className="mt-2 text-[12.5px] text-muted">
+          Este é o e-mail que você usa para entrar. O e-mail de contato da empresa fica no Perfil da empresa.
+        </p>
 
         <div className="mt-[22px] border-t border-line pt-[22px]">
           <h3 className="m-0 mb-4 text-[15px] font-bold text-dark">Alterar senha</h3>
@@ -659,6 +762,12 @@ function ContaSeguranca() {
       </div>
 
       <Toast message={toast} />
+
+      <AlterarEmailModal
+        open={modalEmailAberto}
+        onClose={() => setModalEmailAberto(false)}
+        onAlterado={() => setToast('E-mail de acesso alterado. Use o novo e-mail no próximo login.')}
+      />
 
       <div className="rounded-card border-[1.5px] border-[#F2D8CF] bg-[#FEF8F6] px-7 py-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <h3 className="m-0 text-[15.5px] font-bold text-danger-deep">Excluir conta</h3>
@@ -697,13 +806,13 @@ const TIPOS_CARTAO: TipoMetodoPagamento[] = ['CARTAO_CREDITO', 'CARTAO_DEBITO']
 function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
   open: boolean; onClose: () => void
   metodo: MetodoPagamentoConfiguravelResponse | null
-  onSaved: (m: MetodoPagamentoConfiguravelResponse) => void
+  /** V0.17.0 (#983): devolve só a alteração; a gravação é do "Salvar alterações" da página. */
+  onSaved: (alteracao: MetodoPagamentoConfiguravelUpdateRequest) => void
 }) {
   const [valor, setValor] = useState('')
   const [maxParcelas, setMaxParcelas] = useState('1')
   const [uniforme, setUniforme] = useState(true)
   const [taxasPorParcela, setTaxasPorParcela] = useState<Record<number, string>>({})
-  const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
@@ -720,7 +829,7 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
   const ehCredito = metodo.tipo === 'CARTAO_CREDITO'
   const max = Math.min(24, Math.max(1, parseInt(maxParcelas, 10) || 1))
 
-  const salvar = async () => {
+  const aplicar = () => {
     if (ehCredito && !uniforme) {
       const semTaxa = Array.from({ length: max }, (_, i) => i + 1).find(p => !taxasPorParcela[p]?.trim())
       if (semTaxa) {
@@ -728,26 +837,18 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
         return
       }
     }
-    setSalvando(true)
     setErro(null)
-    try {
-      const atualizado = await empresaService.atualizarMetodoPagamento(metodo.id, {
-        taxaMaquininha: parseDecimal(valor),
-        ...(ehCredito ? {
-          maxParcelas: max,
-          taxaParcelaUniforme: uniforme,
-          ...(uniforme ? {} : {
-            taxasParcela: Array.from({ length: max }, (_, i) => ({ parcela: i + 1, taxa: parseDecimal(taxasPorParcela[i + 1]) })),
-          }),
-        } : {}),
-      })
-      onSaved(atualizado)
-      onClose()
-    } catch (err: any) {
-      setErro(extractApiError(err, 'Erro ao salvar. Tente novamente.'))
-    } finally {
-      setSalvando(false)
-    }
+    onSaved({
+      taxaMaquininha: parseDecimal(valor),
+      ...(ehCredito ? {
+        maxParcelas: max,
+        taxaParcelaUniforme: uniforme,
+        ...(uniforme ? {} : {
+          taxasParcela: Array.from({ length: max }, (_, i) => ({ parcela: i + 1, taxa: parseDecimal(taxasPorParcela[i + 1]) })),
+        }),
+      } : {}),
+    })
+    onClose()
   }
 
   return (
@@ -755,12 +856,12 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
       open={open}
       onClose={onClose}
       title={`Configurar — ${LABEL_TIPO_METODO[metodo.tipo]}`}
-      subtitle="Taxa da maquininha é só informativa — não desconta nada do valor recebido."
+      subtitle="Taxa da maquininha é só informativa — não desconta nada do valor recebido. Só é gravada em Salvar alterações."
       icon={<Percent size={17} />}
       footer={
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
-          <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</Button>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" onClick={aplicar}>Aplicar</Button>
         </div>
       }
     >
@@ -820,30 +921,21 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
 
 function NovoMetodoOutroModal({ open, onClose, onCreated }: {
   open: boolean; onClose: () => void
-  onCreated: (m: MetodoPagamentoConfiguravelResponse) => void
+  /** V0.17.0 (#983): só devolve o nome; o método é criado no "Salvar alterações" da página. */
+  onCreated: (nome: string) => void
 }) {
   const [nome, setNome] = useState('')
-  const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => { if (open) { setNome(''); setErro(null) } }, [open])
 
-  const salvar = async () => {
+  const adicionar = () => {
     if (!nome.trim()) {
       setErro('Informe o nome do método.')
       return
     }
-    setSalvando(true)
-    setErro(null)
-    try {
-      const criado = await empresaService.criarMetodoPagamento({ tipo: 'OUTRO', nome: nome.trim() })
-      onCreated(criado)
-      onClose()
-    } catch (err: any) {
-      setErro(extractApiError(err, 'Erro ao criar método. Tente novamente.'))
-    } finally {
-      setSalvando(false)
-    }
+    onCreated(nome.trim())
+    onClose()
   }
 
   return (
@@ -851,12 +943,12 @@ function NovoMetodoOutroModal({ open, onClose, onCreated }: {
       open={open}
       onClose={onClose}
       title="Novo método de pagamento"
-      subtitle="Ex.: Fiado, Vale-presente."
+      subtitle="Ex.: Fiado, Vale-presente. Só é criado em Salvar alterações."
       icon={<Tag size={17} />}
       footer={
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
-          <Button variant="primary" onClick={salvar} disabled={salvando}>{salvando ? 'Criando…' : 'Criar método'}</Button>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" onClick={adicionar}>Adicionar método</Button>
         </div>
       }
     >
@@ -868,11 +960,12 @@ function NovoMetodoOutroModal({ open, onClose, onCreated }: {
   )
 }
 
-function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }: {
+function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, onDescartar }: {
   metodo: MetodoPagamentoConfiguravelResponse
   onToggle: (v: boolean) => void
   onConfigurarTaxa: () => void
-  atualizando: boolean
+  /** Só nos métodos novos, ainda não criados. */
+  onDescartar?: () => void
 }) {
   const label = metodo.tipo === 'OUTRO' ? (metodo.nome || 'Sem nome') : LABEL_TIPO_METODO[metodo.tipo]
   const podeConfigurarTaxa = TIPOS_CARTAO.includes(metodo.tipo)
@@ -894,6 +987,9 @@ function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }
             {metodo.tipo === 'OUTRO' && (
               <span className="shrink-0 rounded-full bg-line-soft px-2 py-0.5 text-[10.5px] font-semibold text-subtle">Personalizado</span>
             )}
+            {onDescartar && (
+              <span className="shrink-0 rounded-full bg-teal/10 px-2 py-0.5 text-[10.5px] font-semibold text-teal">Novo — não salvo</span>
+            )}
           </div>
           {podeConfigurarTaxa && (
             <button onClick={onConfigurarTaxa} className="mt-0.5 border-none bg-transparent p-0 text-[12.5px] font-semibold text-teal underline-offset-2 hover:underline">
@@ -902,49 +998,150 @@ function MetodoPagamentoCard({ metodo, onToggle, onConfigurarTaxa, atualizando }
           )}
         </div>
       </div>
-      <SegmentedControl
-        options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
-        value={metodo.ativo}
-        onChange={onToggle}
-        height="h-9"
-        optionWidth="w-[52px]"
-        textSize="text-[12.5px]"
-        className={clsx('shrink-0', atualizando && 'pointer-events-none opacity-60')}
-      />
+      <div className="flex shrink-0 items-center gap-2">
+        {onDescartar && <Button variant="ghost" onClick={onDescartar}>Descartar</Button>}
+        <SegmentedControl
+          options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+          value={metodo.ativo}
+          onChange={onToggle}
+          height="h-9"
+          optionWidth="w-[52px]"
+          textSize="text-[12.5px]"
+          className="shrink-0"
+        />
+      </div>
     </div>
   )
 }
 
-function MetodosPagamento({ metodos, onReload }: {
+type EdicaoMetodo = MetodoPagamentoConfiguravelUpdateRequest
+interface NovoMetodo { tempId: string; nome: string; ativo: boolean }
+
+const taxasIguais = (a?: { parcela: number; taxa: number }[] | null, b?: { parcela: number; taxa: number }[] | null) =>
+  JSON.stringify((a ?? []).map(t => [t.parcela, t.taxa])) === JSON.stringify((b ?? []).map(t => [t.parcela, t.taxa]))
+
+/** Tira da edição o que voltou ao valor gravado — assim "desfazer" a mão também zera a pendência. */
+function podarEdicao(m: MetodoPagamentoConfiguravelResponse, e: EdicaoMetodo): EdicaoMetodo {
+  const r: EdicaoMetodo = { ...e }
+  if (r.ativo === m.ativo) delete r.ativo
+  if (r.taxaMaquininha != null && r.taxaMaquininha === (m.taxaMaquininha ?? null)) delete r.taxaMaquininha
+  if (r.maxParcelas != null || r.taxaParcelaUniforme != null) {
+    const uniforme = r.taxaParcelaUniforme ?? (m.taxaParcelaUniforme !== false)
+    const parcelamentoIgual = (r.maxParcelas ?? (m.maxParcelas ?? 1)) === (m.maxParcelas ?? 1)
+      && uniforme === (m.taxaParcelaUniforme !== false)
+      && (uniforme || taxasIguais(r.taxasParcela, m.taxasParcela))
+    if (parcelamentoIgual) { delete r.maxParcelas; delete r.taxaParcelaUniforme; delete r.taxasParcela }
+  }
+  return r
+}
+
+function aplicarEdicao(m: MetodoPagamentoConfiguravelResponse, e?: EdicaoMetodo): MetodoPagamentoConfiguravelResponse {
+  if (!e) return m
+  const v = { ...m, ...e }
+  if (e.taxaParcelaUniforme === true) v.taxasParcela = []
+  return v
+}
+
+const descreverTaxasParcela = (m: MetodoPagamentoConfiguravelResponse) =>
+  m.taxaParcelaUniforme === false
+    ? (m.taxasParcela ?? []).map(t => `${t.parcela}x ${formatMargem(t.taxa)}%`).join(', ')
+    : 'Igual para todas'
+
+function alteracoesDoMetodo(m: MetodoPagamentoConfiguravelResponse, e: EdicaoMetodo): AlteracaoCampo[] {
+  const depois = aplicarEdicao(m, e)
+  const lista: AlteracaoCampo[] = []
+  if (e.ativo !== undefined) lista.push({ campo: 'Ativo', antes: m.ativo ? 'Sim' : 'Não', depois: depois.ativo ? 'Sim' : 'Não' })
+  if (e.taxaMaquininha !== undefined) {
+    const fmt = (v?: number | null) => v != null ? `${formatMargem(v)}%` : 'não informada'
+    lista.push({ campo: 'Taxa da maquininha', antes: fmt(m.taxaMaquininha), depois: fmt(depois.taxaMaquininha) })
+  }
+  if (e.maxParcelas !== undefined && (m.maxParcelas ?? 1) !== depois.maxParcelas) {
+    lista.push({ campo: 'Parcela máxima', antes: `${m.maxParcelas ?? 1}x`, depois: `${depois.maxParcelas}x` })
+  }
+  if (e.taxaParcelaUniforme !== undefined && descreverTaxasParcela(m) !== descreverTaxasParcela(depois)) {
+    lista.push({ campo: 'Taxa por parcela', antes: descreverTaxasParcela(m), depois: descreverTaxasParcela(depois) })
+  }
+  return lista
+}
+
+const rotuloMetodo = (m: MetodoPagamentoConfiguravelResponse) =>
+  m.tipo === 'OUTRO' ? (m.nome || 'Sem nome') : LABEL_TIPO_METODO[m.tipo]
+
+function MetodosPagamento({ metodos, onChange }: {
   metodos: MetodoPagamentoConfiguravelResponse[]
-  onReload: (novos: MetodoPagamentoConfiguravelResponse[]) => void
+  onChange: React.Dispatch<React.SetStateAction<MetodoPagamentoConfiguravelResponse[]>>
 }) {
-  const { toast, setToast } = useToast()
-  const [atualizandoId, setAtualizandoId] = useState<string | null>(null)
+  // V0.17.0 (#983, RN-NOVA-28 item 7) — ativar/desativar, taxa/parcelas e criar "Outro" ficam
+  // pendentes até o "Salvar alterações" da página; cada método é um item próprio do salvar.
+  const [edicoes, setEdicoes] = useState<Record<string, EdicaoMetodo>>({})
+  const [novos, setNovos] = useState<NovoMetodo[]>([])
   const [metodoTaxa, setMetodoTaxa] = useState<MetodoPagamentoConfiguravelResponse | null>(null)
   const [modalNovoAberto, setModalNovoAberto] = useState(false)
 
-  const substituir = (atualizado: MetodoPagamentoConfiguravelResponse) => {
-    onReload(metodos.map(m => m.id === atualizado.id ? atualizado : m))
-  }
-
-  const toggle = async (m: MetodoPagamentoConfiguravelResponse, ativo: boolean) => {
-    setAtualizandoId(m.id)
-    try {
-      const atualizado = await empresaService.atualizarMetodoPagamento(m.id, { ativo })
-      substituir(atualizado)
-    } catch (err: any) {
-      setToast(extractApiError(err, 'Erro ao atualizar método. Tente novamente.'))
-    } finally {
-      setAtualizandoId(null)
-    }
-  }
-
   const ordem: Record<TipoMetodoPagamento, number> = { DINHEIRO: 0, PIX: 1, CARTAO_CREDITO: 2, CARTAO_DEBITO: 3, OUTRO: 4 }
-  const metodosOrdenados = [...metodos].sort((a, b) => (ordem[a.tipo] - ordem[b.tipo]) || (a.nome || '').localeCompare(b.nome || ''))
+  const metodosOrdenados = useMemo(
+    () => [...metodos].sort((a, b) => (ordem[a.tipo] - ordem[b.tipo]) || (a.nome || '').localeCompare(b.nome || '')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [metodos])
+
+  const editar = (m: MetodoPagamentoConfiguravelResponse, patch: EdicaoMetodo) =>
+    setEdicoes(prev => {
+      const podada = podarEdicao(m, { ...prev[m.id], ...patch })
+      const { [m.id]: _descartada, ...resto } = prev
+      return Object.keys(podada).length > 0 ? { ...resto, [m.id]: podada } : resto
+    })
+
+  const itens = useMemo<ItemPendente[]>(() => {
+    const lista: ItemPendente[] = []
+    for (const m of metodosOrdenados) {
+      const e = edicoes[m.id]
+      if (!e) continue
+      lista.push({
+        chave: m.id,
+        sufixo: rotuloMetodo(m),
+        alteracoes: alteracoesDoMetodo(m, e),
+        salvar: async () => {
+          const atualizado = await empresaService.atualizarMetodoPagamento(m.id, e)
+          onChange(prev => prev.map(x => x.id === m.id ? atualizado : x))
+          setEdicoes(prev => { const { [m.id]: _gravada, ...resto } = prev; return resto })
+        },
+      })
+    }
+    for (const n of novos) {
+      lista.push({
+        chave: n.tempId,
+        sufixo: n.nome,
+        alteracoes: [{ campo: 'Novo método', antes: '—', depois: `${n.nome} (${n.ativo ? 'ativo' : 'inativo'})` }],
+        salvar: async () => {
+          const criado = await empresaService.criarMetodoPagamento({ tipo: 'OUTRO', nome: n.nome })
+          setNovos(prev => prev.filter(x => x.tempId !== n.tempId))
+          onChange(prev => [...prev, criado])
+          if (criado.ativo !== n.ativo) {
+            try {
+              const atualizado = await empresaService.atualizarMetodoPagamento(criado.id, { ativo: n.ativo })
+              onChange(prev => prev.map(x => x.id === criado.id ? atualizado : x))
+            } catch (err) {
+              setEdicoes(prev => ({ ...prev, [criado.id]: { ativo: n.ativo } }))
+              throw err
+            }
+          }
+        },
+      })
+    }
+    return lista
+  }, [metodosOrdenados, edicoes, novos, onChange])
+  useRegistrarEdicao('pagamento', itens)
+
+  const visiveis: { metodo: MetodoPagamentoConfiguravelResponse; original?: MetodoPagamentoConfiguravelResponse; novo?: NovoMetodo }[] = [
+    ...metodosOrdenados.map(m => ({ metodo: aplicarEdicao(m, edicoes[m.id]), original: m })),
+    ...novos.map(n => ({
+      metodo: { id: n.tempId, tipo: 'OUTRO', nome: n.nome, afetaCaixaFisico: false, ativo: n.ativo } as MetodoPagamentoConfiguravelResponse,
+      novo: n,
+    })),
+  ]
 
   return (
-    <div className="max-w-[640px] animate-fade-up">
+    <div className="animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="mb-[5px] flex items-center justify-between gap-3">
           <div className="flex items-center gap-[11px]">
@@ -959,14 +1156,16 @@ function MetodosPagamento({ metodos, onReload }: {
           Formas de pagamento aceitas no Caixa — uma venda pode ser dividida entre vários.
         </p>
 
-        <div className="flex flex-col gap-2.5">
-          {metodosOrdenados.map(m => (
+        <div className="grid items-start gap-2.5 lg:grid-cols-2">
+          {visiveis.map(({ metodo, original, novo }) => (
             <MetodoPagamentoCard
-              key={m.id}
-              metodo={m}
-              atualizando={atualizandoId === m.id}
-              onToggle={ativo => toggle(m, ativo)}
-              onConfigurarTaxa={() => setMetodoTaxa(m)}
+              key={metodo.id}
+              metodo={metodo}
+              onToggle={ativo => original
+                ? editar(original, { ativo })
+                : setNovos(prev => prev.map(x => x.tempId === novo!.tempId ? { ...x, ativo } : x))}
+              onConfigurarTaxa={() => setMetodoTaxa(metodo)}
+              onDescartar={novo ? () => setNovos(prev => prev.filter(x => x.tempId !== novo.tempId)) : undefined}
             />
           ))}
         </div>
@@ -976,14 +1175,16 @@ function MetodosPagamento({ metodos, onReload }: {
         open={!!metodoTaxa}
         metodo={metodoTaxa}
         onClose={() => setMetodoTaxa(null)}
-        onSaved={substituir}
+        onSaved={alteracao => {
+          const original = metodosOrdenados.find(m => m.id === metodoTaxa?.id)
+          if (original) editar(original, alteracao)
+        }}
       />
       <NovoMetodoOutroModal
         open={modalNovoAberto}
         onClose={() => setModalNovoAberto(false)}
-        onCreated={m => onReload([...metodos, m])}
+        onCreated={nome => setNovos(prev => [...prev, { tempId: `novo-${Date.now()}-${prev.length}`, nome, ativo: true }])}
       />
-      <Toast message={toast} />
     </div>
   )
 }
@@ -1104,7 +1305,7 @@ function UnidadesMedida() {
   }
 
   return (
-    <div className="max-w-[640px] animate-fade-up">
+    <div className="animate-fade-up">
       <div className="rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="mb-[5px] flex items-center justify-between gap-3">
           <div className="flex items-center gap-[11px]">
@@ -1129,7 +1330,7 @@ function UnidadesMedida() {
             Nenhuma unidade cadastrada ainda.
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="grid items-start gap-2.5 lg:grid-cols-2">
             {unidades.map(u => (
               <div key={u.id} className="flex items-center justify-between gap-4 rounded-input border-[1.5px] border-line bg-white px-4 py-3.5">
                 <div className="flex min-w-0 items-center gap-3">
@@ -1198,6 +1399,26 @@ function UnidadesMedida() {
   )
 }
 
+/* ── BarraSalvar (#983, RN-NOVA-28) — um só indicador e um só botão para a tela inteira ───────── */
+
+function BarraSalvar() {
+  const { temPendencia, salvando, primeiroErro, salvarAlteracoes } = useEdicaoConfiguracoes()
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3.5 rounded-card border border-[#F0EEE9] bg-white px-5 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]" data-testid="barra-salvar">
+      <div className="flex flex-col gap-0.5">
+        <span className={clsx('flex items-center gap-[7px] text-[12.5px] font-medium', temPendencia ? 'text-warning' : 'text-dim')}>
+          <span className={clsx('h-2 w-2 rounded-full', temPendencia ? 'bg-[#E8913B] shadow-[0_0_0_4px_rgba(232,145,59,0.18)]' : 'bg-dim')} />
+          {temPendencia ? 'Você tem alterações não salvas' : 'Tudo salvo'}
+        </span>
+        {primeiroErro && <span className="ml-[15px] text-[12.5px] font-medium text-warning-alt">{primeiroErro}</span>}
+      </div>
+      <Button variant="primary" icon={<Check size={14} />} disabled={!temPendencia || salvando || !!primeiroErro} onClick={() => { void salvarAlteracoes() }}>
+        {salvando ? 'Salvando…' : 'Salvar alterações'}
+      </Button>
+    </div>
+  )
+}
+
 /* ── ConfiguracoesPage ───────────────────────────────────────── */
 
 export default function ConfiguracoesPage() {
@@ -1206,8 +1427,7 @@ export default function ConfiguracoesPage() {
   const [configuracao, setConfiguracao] = useState<ConfiguracaoResponse | null>(null)
   const [metodosPagamento, setMetodosPagamento] = useState<MetodoPagamentoConfiguravelResponse[]>([])
   const [loadingData, setLoadingData] = useState(true)
-  const [savingPrecif, setSavingPrecif] = useState(false)
-  const [savingPerfil, setSavingPerfil] = useState(false)
+  const { toast, setToast } = useToast()
 
   useEffect(() => {
     Promise.all([
@@ -1222,30 +1442,23 @@ export default function ConfiguracoesPage() {
       .finally(() => setLoadingData(false))
   }, [])
 
-  const handleSavePrecificacao = async (valorHora: number, margemPadrao: number) => {
-    setSavingPrecif(true)
-    try {
-      const result = await empresaService.upsertConfiguracao({ valorHora, margemPadrao })
-      setConfiguracao(result)
-    } finally {
-      setSavingPrecif(false)
-    }
-  }
+  const handleSavePrecificacao = useCallback(async (valorHora: number, margemPadrao: number) => {
+    const result = await empresaService.upsertConfiguracao({ valorHora, margemPadrao })
+    setConfiguracao(result)
+  }, [])
 
-  const handleSavePerfil = async (
+  const handleSavePerfil = useCallback(async (
     nome: string, email: string, whatsapp: string, endereco: string, horarios: HorarioFuncionamento[]
   ) => {
-    setSavingPerfil(true)
-    try {
-      const result = await empresaService.upsertEmpresa({ nome, email, whatsapp, endereco, horarios })
-      setEmpresa(result)
-    } finally {
-      setSavingPerfil(false)
-    }
-  }
+    const result = await empresaService.upsertEmpresa({ nome, email, whatsapp, endereco, horarios })
+    setEmpresa(result)
+  }, [])
+
+  const aoSalvar = useCallback(() => setToast('Configurações salvas com sucesso!'), [setToast])
 
   return (
     <AppLayout active="config" compact>
+      <EdicaoConfiguracoesProvider onSalvou={aoSalvar}>
 
       <div className="mb-[22px] flex items-center gap-[15px]">
         <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[15px] bg-teal/10 text-teal">
@@ -1266,20 +1479,23 @@ export default function ConfiguracoesPage() {
         </div>
       ) : (
         <>
-          {aba === 'precificacao' && (
+          {(aba === 'precificacao' || aba === 'perfil' || aba === 'pagamento') && <BarraSalvar />}
+          {/* As três abas com salvar único ficam sempre montadas (só escondidas) para as alterações
+              pendentes sobreviverem à troca de aba — RN-NOVA-28 item 3. */}
+          <div hidden={aba !== 'precificacao'} data-testid="aba-precificacao">
             <Precificacao
               initialValorHora={configuracao?.valorHora ?? 0}
               initialMargemPadrao={configuracao?.margemPadrao ?? 0}
               onSave={handleSavePrecificacao}
-              saving={savingPrecif}
               empresaNome={empresa?.nome}
               empresaEmail={empresa?.email}
               empresaConfigurada={!!empresa}
+              empresaSemContato={!!empresa && !empresa.email && !empresa.whatsapp && !empresa.logoUrl}
               empresaLogoUrl={empresa?.logoUrl}
               onEditarPerfil={() => setAba('perfil')}
             />
-          )}
-          {aba === 'perfil' && (
+          </div>
+          <div hidden={aba !== 'perfil'} data-testid="aba-perfil">
             <PerfilEmpresa
               initialNome={empresa?.nome ?? ''}
               initialEmail={empresa?.email ?? ''}
@@ -1289,17 +1505,18 @@ export default function ConfiguracoesPage() {
               logoUrl={empresa?.logoUrl}
               onLogoChange={logoUrl => setEmpresa(prev => prev ? { ...prev, logoUrl } : prev)}
               onSave={handleSavePerfil}
-              saving={savingPerfil}
             />
-          )}
-          {aba === 'pagamento' && (
-            <MetodosPagamento metodos={metodosPagamento} onReload={setMetodosPagamento} />
-          )}
-          {aba === 'unidades' && <UnidadesMedida />}
-          {aba === 'conta' && <ContaSeguranca />}
+          </div>
+          <div hidden={aba !== 'pagamento'} data-testid="aba-pagamento">
+            <MetodosPagamento metodos={metodosPagamento} onChange={setMetodosPagamento} />
+          </div>
+          {aba === 'unidades' && <div data-testid="aba-unidades"><UnidadesMedida /></div>}
+          {aba === 'conta' && <div data-testid="aba-conta"><ContaSeguranca /></div>}
         </>
       )}
 
+      <Toast message={toast} />
+      </EdicaoConfiguracoesProvider>
     </AppLayout>
   )
 }

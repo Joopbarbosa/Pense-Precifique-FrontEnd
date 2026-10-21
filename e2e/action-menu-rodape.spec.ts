@@ -76,7 +76,7 @@ test.describe('#699 — ActionMenu perto do rodapé', () => {
 /**
  * OpenProject #710 — a rolagem que já estava em curso ao abrir o menu não o fecha
  *
- * Dado que a listagem tem mais de uma página e a artesã rolou até "Carregar mais"
+ * Dado que a listagem tem mais de uma página e a artesã foi para a página 2 e voltou para a 1 (V0.17.0 #994: paginação numerada)
  * Quando ela abre o menu "Mais ações" de uma linha lá em cima (o navegador rola de volta até a linha)
  * Então o menu continua aberto e a ação pode ser clicada
  */
@@ -101,8 +101,11 @@ test.describe('#710 — ActionMenu e a rolagem logo ao abrir', () => {
     }
   })
 
-  test('menu de uma linha do topo abre e fica aberto depois de "Carregar mais"', async ({ page }) => {
-    await page.getByRole('button', { name: /Carregar mais/ }).click()
+  test('menu de uma linha do topo abre e fica aberto depois de trocar de página', async ({ page }) => {
+    await page.getByRole('button', { name: 'Próxima', exact: true }).click()
+    await expect(page.getByText(/Página 2 de/)).toBeVisible()
+    await page.getByRole('button', { name: 'Anterior', exact: true }).click()
+    await expect(page.getByText(/Página 1 de/)).toBeVisible()
     await page.waitForTimeout(400)
     const linha = page.getByText(alvo, { exact: true }).first().locator('xpath=../..')
     await linha.getByRole('button', { name: 'Mais ações' }).click()

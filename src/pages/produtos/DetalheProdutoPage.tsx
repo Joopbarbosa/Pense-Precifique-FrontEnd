@@ -16,10 +16,14 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { tipoProdutoBadge } from '../../utils/badges'
+import Paginacao from '../../components/shared/Paginacao'
+import type { PageResponse } from '../../types/shared'
+import { LinhaPrecoSugeridoProduto } from '../../components/produto/HistoricoPrecoSugerido'
 import type { ProdutoDetalheResponse, MovimentacaoProdutoResponse, BaixaManualProdutoRequest } from '../../types/produto'
 import { MOTIVOS_BAIXA_PRODUTO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade } from '../../utils/quantidade'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 const moeda = (n: number, dec?: number) =>
   'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
@@ -258,12 +262,23 @@ export default function DetalheProdutoPage() {
   const { id } = useParams()
   const [produto, setProduto] = useState<ProdutoDetalheResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoProdutoResponse[]>([])
+  // #994 (RN-NOVA-31) — histórico com paginação numerada: cada página troca a anterior
   const [movPage, setMovPage] = useState(0)
-  const [movHasNext, setMovHasNext] = useState(false)
-  const [movLoadingMore, setMovLoadingMore] = useState(false)
+  const [movTotalPages, setMovTotalPages] = useState(0)
+  const [movTotal, setMovTotal] = useState(0)
+  const [movLast, setMovLast] = useState(true)
+  const [movLoading, setMovLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [aba, setAba] = useState<'historico' | 'ficha'>('historico')
   const [modal, setModal] = useState<'baixa' | null>(null)
+
+  const aplicarMovs = (movs: PageResponse<MovimentacaoProdutoResponse>, pagina: number) => {
+    setMovimentacoes(movs.content)
+    setMovLast(movs.last)
+    setMovTotalPages(movs.totalPages)
+    setMovTotal(movs.totalElements)
+    setMovPage(pagina)
+  }
 
   useEffect(() => {
     if (!id) return
@@ -274,26 +289,23 @@ export default function DetalheProdutoPage() {
     ])
       .then(([prod, movs]) => {
         setProduto(prod)
-        setMovimentacoes(movs.content)
-        setMovHasNext(!movs.last)
-        setMovPage(0)
+        aplicarMovs(movs, 0)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [id])
 
-  const carregarMaisMovs = () => {
+  const irParaMovs = (pagina: number) => {
     if (!id) return
-    const nextPage = movPage + 1
-    setMovLoadingMore(true)
-    produtoService.listarMovimentacoes(id, nextPage)
+    setMovLoading(true)
+    produtoService.listarMovimentacoes(id, pagina)
       .then(data => {
-        setMovimentacoes(prev => [...prev, ...data.content])
-        setMovHasNext(!data.last)
-        setMovPage(nextPage)
+        // página que passou do limite (registros removidos): mostra a última que existe
+        if (data.content.length === 0 && pagina > 0 && data.totalPages > 0) return irParaMovs(data.totalPages - 1)
+        aplicarMovs(data, pagina)
       })
       .catch(console.error)
-      .finally(() => setMovLoadingMore(false))
+      .finally(() => setMovLoading(false))
   }
 
   const handleBaixaSuccess = () => {
@@ -304,9 +316,7 @@ export default function DetalheProdutoPage() {
       produtoService.listarMovimentacoes(id, 0),
     ]).then(([prod, movs]) => {
       setProduto(prod)
-      setMovimentacoes(movs.content)
-      setMovHasNext(!movs.last)
-      setMovPage(0)
+      aplicarMovs(movs, 0)
     }).catch(console.error)
   }
 
@@ -366,7 +376,7 @@ export default function DetalheProdutoPage() {
           Produtos
         </span>
         <ChevronRight size={15} className="text-dim" />
-        <span className="whitespace-nowrap font-semibold text-body">{produto.nome}</span>
+        <span className="whitespace-nowrap font-semibold text-body">{rotuloProduto(produto.nome, produto.marca)}</span>
       </div>
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-section">
@@ -379,7 +389,7 @@ export default function DetalheProdutoPage() {
               {produto.identificador && (
                 <span className="shrink-0 text-[13px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{produto.identificador}</span>
               )}
-              <h1 className="m-0 whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{produto.nome}</h1>
+              <h1 className="m-0 whitespace-nowrap text-[25px] font-bold tracking-[-0.02em] text-dark">{rotuloProduto(produto.nome, produto.marca)}</h1>
               <span
                 className="inline-flex h-[26px] items-center whitespace-nowrap rounded-full px-[11px] text-[12.5px] font-bold tracking-[0.01em]"
                 style={{ background: badge.bg, color: badge.fg }}
@@ -465,6 +475,7 @@ export default function DetalheProdutoPage() {
                 Nenhuma movimentação registrada ainda.
               </div>
             ) : movimentacoes.map((mov) => {
+              if (mov.tipoLinha === 'PRECO_SUGERIDO') return <LinhaPrecoSugeridoProduto key={mov.id} mov={mov} />
               const kind = resolveKind(mov)
               const pos = mov.tipo === 'ENTRADA'
               const deltaClass = kind === 'estorno' ? 'text-danger' : (pos ? 'text-success' : 'text-danger')
@@ -579,26 +590,8 @@ export default function DetalheProdutoPage() {
       </div>
 
       {aba === 'historico' && (
-        <div className="mt-[13px] flex flex-col items-center gap-2.5">
-          <div className="w-full text-right text-[12.5px] text-muted">
-            {movimentacoes.length} movimentaç{movimentacoes.length === 1 ? 'ão' : 'ões'}
-          </div>
-          {movHasNext && (
-            <button
-              onClick={carregarMaisMovs}
-              disabled={movLoadingMore}
-              className={clsx(
-                'inline-flex h-[42px] items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-5 font-[inherit] text-[13.5px] font-semibold text-teal transition-colors duration-100',
-                movLoadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
-              )}
-            >
-              {movLoadingMore
-                ? <><Spinner size={15} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
-                : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
-              }
-            </button>
-          )}
-        </div>
+        <Paginacao pagina={movPage} totalPaginas={movTotalPages} ultima={movLast} carregando={movLoading} onMudar={irParaMovs}
+          esquerda={<span data-testid="total-registros">{movTotal} movimentaç{movTotal === 1 ? 'ão' : 'ões'}</span>} />
       )}
 
       {modal === 'baixa' && id && (

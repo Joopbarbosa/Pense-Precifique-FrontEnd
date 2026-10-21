@@ -38,7 +38,6 @@ export default function ModalInsumosFornecedor({ fornecedorId, fornecedorNome, o
     fornecedorInsumoService.listarPorFornecedor(fornecedorId).then(setVinculos)
       .catch(err => setErro(extractApiError(err, 'Não foi possível carregar os insumos.')))
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(carregar, [fornecedorId])
 
   const linhas = useMemo(() => {

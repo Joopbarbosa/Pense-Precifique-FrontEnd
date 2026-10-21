@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, Pencil, Plus, ShoppingCart, Trash2, Users, FileSearch } from 'lucide-react'
+import { Ban, BarChart3, ClipboardList, Copy, CreditCard, FileText, PackageCheck, Pencil, Plus, ShoppingCart, Trash2, Users, FileSearch } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, EmptyState } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
@@ -17,9 +17,12 @@ import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import { FornecedorSelect } from '../../components/compra/Pickers'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
 import { formatarData, hojeIso } from '../../components/compra/formato'
+import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import Paginacao from '../../components/shared/Paginacao'
 import { useToast } from '../../hooks/useToast'
 import type { CadastroRef, CompraResponse, CompraResumoResponse, ContagensCompra, ImpactoCompraResponse, StatusCompra } from '../../types/compra'
 
@@ -27,9 +30,13 @@ import type { CadastroRef, CompraResponse, CompraResumoResponse, ContagensCompra
 // virou página própria (/compras/dashboard); o endereço antigo ?aba=dashboard redireciona para lá.
 // #591 (RN-NOVA-44): cada filtro de status mostra a quantidade do total da conta.
 
-const FILTROS_STATUS: { id: StatusCompra | 'TODAS'; label: string; contagem: keyof ContagensCompra }[] = [
+type FiltroStatus = StatusCompra | 'TODAS' | 'ATRASADAS'
+const FILTROS_STATUS: { id: FiltroStatus; label: string; contagem: keyof ContagensCompra }[] = [
   { id: 'TODAS', label: 'Todas', contagem: 'todas' },
   { id: 'RASCUNHO', label: 'Rascunhos', contagem: 'rascunhos' },
+  // #958 (RN-NOVA-6) — atrasadas são um subconjunto das pendentes
+  { id: 'PENDENTE_RECEBIMENTO', label: 'Pendentes de recebimento', contagem: 'pendentes' },
+  { id: 'ATRASADAS', label: 'Atrasadas', contagem: 'atrasadas' },
   { id: 'CONFIRMADA', label: 'Confirmadas', contagem: 'confirmadas' },
   { id: 'CANCELADA', label: 'Canceladas', contagem: 'canceladas' },
 ]
@@ -59,11 +66,20 @@ export default function ComprasPage() {
   const { pedir: pedirDuplicar, modal: modalDuplicar } = useDuplicarCompra(mostrarErro)
   const [contagens, setContagens] = useState<ContagensCompra | null>(null)
   const atualizarContagens = useCallback(() => { compraService.contagens().then(setContagens).catch(() => setContagens(null)) }, [])
-  const [status, setStatus] = useState<StatusCompra | 'TODAS'>('TODAS')
-  const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
-  const [de, setDe] = useState('')
-  const [ate, setAte] = useState('')
-  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>({ campo: 'dataCompra', dir: 'desc' })
+  // #994 — página, filtros e ordenação ficam na URL: voltar de uma compra reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [status, setStatus] = useState<FiltroStatus>(() => FILTROS_STATUS.find(f => f.id === inicial.texto('status'))?.id ?? 'TODAS')
+  const [fornecedor, setFornecedor] = useState<CadastroRef | null>(() => {
+    const id = inicial.texto('fornecedor')
+    return id ? { id, identificador: '', nome: inicial.texto('fornecedorNome', 'Fornecedor'), ativa: true } : null
+  })
+  const [de, setDe] = useState(() => inicial.texto('de'))
+  const [ate, setAte] = useState(() => inicial.texto('ate'))
+  const [ordem, setOrdem] = useState<{ campo: CampoOrdem; dir: 'asc' | 'desc' }>(() => {
+    const campo = COLUNAS.find(c => c.campo === inicial.texto('ordem'))?.campo ?? 'dataCompra'
+    return { campo, dir: inicial.texto('dir', campo === 'dataCompra' ? 'desc' : 'asc') === 'asc' ? 'asc' : 'desc' }
+  })
+  const chaveCarregada = useRef<string | null>(null)
   const [acao, setAcao] = useState<Acao | null>(null)
   const [processando, setProcessando] = useState(false)
   const [impacto, setImpacto] = useState<{ titulo: string; impacto: ImpactoCompraResponse } | null>(null)
@@ -75,20 +91,31 @@ export default function ComprasPage() {
   }, [])
 
   const fetcher = useCallback((page: number, size: number) => compraService.listar(page, size, {
-    status: status === 'TODAS' ? undefined : status,
+    status: status === 'TODAS' || status === 'ATRASADAS' ? undefined : status,
+    atrasadas: status === 'ATRASADAS' ? true : undefined,
     fornecedorId: fornecedor?.id,
     de: de || undefined,
     ate: ate || undefined,
     sort: `${ordem.campo},${ordem.dir}`,
   }), [status, fornecedor, de, ate, ordem])
 
-  const { items: compras, hasMore, loading, loadingMore, error, loadMore, reset } = usePaginatedList({
-    fetcher, errorMessage: 'Não foi possível carregar as compras.',
+  const { items: compras, page, totalPages, ultima, totalElements, loading, error, irParaPagina, recarregar: recarregarPagina, reset } = usePaginatedList({
+    fetcher, errorMessage: 'Não foi possível carregar as compras.', paginaInicial: inicial.pagina(),
   })
 
-  useEffect(() => { reset() }, [reset])
+  // primeira carga na página que a URL pediu; depois, qualquer filtro ou ordenação volta à página 1
+  useEffect(() => {
+    // (a repetição do efeito no modo estrito do React também cai no caso "mesma chave")
+    const chave = `${status}|${fornecedor?.id}|${de}|${ate}|${ordem.campo}|${ordem.dir}`
+    if (chaveCarregada.current === null || chaveCarregada.current === chave) recarregarPagina()
+    else reset()
+    chaveCarregada.current = chave
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher])
+  useEspelharNaUrl({ pagina: page + 1, status, fornecedor: fornecedor?.id, fornecedorNome: fornecedor?.nome, de, ate, ordem: ordem.campo, dir: ordem.dir },
+    { pagina: 1, status: 'TODAS', ordem: 'dataCompra', dir: ordem.campo === 'dataCompra' ? 'desc' : 'asc' })
   useEffect(() => { atualizarContagens() }, [atualizarContagens])
-  const recarregar = () => { reset(); atualizarContagens() }
+  const recarregar = () => { recarregarPagina(); atualizarContagens() }
 
   const ordenar = (campo: CampoOrdem) => setOrdem(o => o.campo === campo
     ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
@@ -112,7 +139,7 @@ export default function ComprasPage() {
     setProcessando(true)
     try {
       await compraService.excluirRascunho(acao.compra.id)
-      setToast(`Rascunho ${acao.compra.identificador} excluído.`)
+      setToast(`${acao.compra.status === 'RASCUNHO' ? 'Rascunho' : 'Compra'} ${acao.compra.identificador} excluído${acao.compra.status === 'RASCUNHO' ? '' : 'a'}.`)
       setAcao(null)
       recarregar()
     } catch (err) {
@@ -125,6 +152,13 @@ export default function ComprasPage() {
 
   const itensMenu = (c: CompraResumoResponse): ActionMenuItem[] => {
     const pdf: ActionMenuItem = { label: 'PDF', icon: <FileText size={15} />, onClick: () => navigate(`/compras/${c.id}/pdf`) }
+    if (c.status === 'PENDENTE_RECEBIMENTO') return [
+      { label: 'Dar entrada', icon: <PackageCheck size={15} />, onClick: () => navigate(`/compras/entrada?compra=${c.id}`) },
+      { label: 'Editar', icon: <Pencil size={15} />, onClick: () => navigate(`/compras/${c.id}/editar`) },
+      pdf,
+      { label: 'Cancelar compra', icon: <Ban size={15} />, danger: true, dividerBefore: true, onClick: () => abrirComCompra('cancelar', c.id) },
+      { label: 'Excluir', icon: <Trash2 size={15} />, danger: true, onClick: () => setAcao({ tipo: 'excluir', compra: c }) },
+    ]
     if (c.status === 'RASCUNHO') return [
       { label: 'Editar', icon: <Pencil size={15} />, onClick: () => navigate(`/compras/${c.id}/editar`) },
       pdf,
@@ -156,6 +190,7 @@ export default function ComprasPage() {
         <div className="flex flex-wrap gap-2.5">
           <Button variant="ghost" icon={<BarChart3 size={16} />} onClick={() => navigate('/compras/dashboard')}>Dashboard</Button>
           <Button variant="ghost" icon={<Users size={16} />} onClick={() => navigate('/clientes')}>Clientes e Fornecedores</Button>
+          <Button variant="secondary" icon={<PackageCheck size={16} />} onClick={() => navigate('/compras/entrada')}>Entrada de compras</Button>
           <Button variant="secondary" icon={<ShoppingCart size={16} />} onClick={() => navigate('/compras/lista?aba=nova')}>Gerar lista de compras</Button>
           <Button variant="secondary" icon={<FileSearch size={16} />} onClick={() => navigate('/compras/nota')}>Ler nota fiscal</Button>
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/compras/nova')}>Registrar compra</Button>
@@ -231,6 +266,7 @@ export default function ComprasPage() {
               <div className="text-[14.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">{BRL(c.total)}</div>
               <div className="mt-2 flex flex-wrap gap-1.5 md:mt-0">
                 <StatusCompraBadge status={c.status} size="sm" />
+                {c.status === 'PENDENTE_RECEBIMENTO' && <PrevisaoTag previsao={c.previsaoEntrega} diasAtraso={c.diasAtraso} size="sm" />}
                 {c.status === 'CONFIRMADA' && !c.pago && <NaoPagaBadge size="sm" />}
               </div>
               <div className="absolute right-2 top-2 md:static md:flex md:justify-end" onClick={e => e.stopPropagation()}>
@@ -243,9 +279,9 @@ export default function ComprasPage() {
 
       {acao?.tipo === 'excluir' && (
         <ConfirmacaoModal open onClose={() => setAcao(null)} onConfirm={excluir} variant="danger"
-          title={`Excluir o rascunho ${acao.compra.identificador}?`} icon={<Trash2 size={16} />} width={420}
-          confirmLabel="Excluir rascunho" confirming={processando}
-          description={`O rascunho some da lista. O número ${acao.compra.identificador} não volta a ser usado.`} />
+          title={`Excluir ${acao.compra.status === 'RASCUNHO' ? 'o rascunho' : 'a compra'} ${acao.compra.identificador}?`} icon={<Trash2 size={16} />} width={420}
+          confirmLabel={acao.compra.status === 'RASCUNHO' ? 'Excluir rascunho' : 'Excluir compra'} confirming={processando}
+          description={`${acao.compra.status === 'RASCUNHO' ? 'O rascunho some' : 'A compra pendente some'} da lista. O número ${acao.compra.identificador} não volta a ser usado.`} />
       )}
       {acao?.tipo === 'pagamento' && (
         <ModalPagamento compra={acao.compra} onClose={() => setAcao(null)}
@@ -260,10 +296,9 @@ export default function ComprasPage() {
       {modalDuplicar}
       {modalErro}
 
-      {hasMore && !loading && (
-        <div className="mt-5 flex justify-center">
-          <Button variant="ghost" onClick={loadMore} disabled={loadingMore}>{loadingMore ? 'Carregando…' : 'Carregar mais'}</Button>
-        </div>
+      {!loading && !error && compras.length > 0 && (
+        <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+          esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'compra' : 'compras'}</span>} />
       )}
     </AppLayout>
   )

@@ -1,8 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import clsx from 'clsx'
 import { Logo, Wordmark, Button, Input, Spinner } from '../../components/ui'
-import { X, Image, AlertCircle, Mail, Lock } from 'lucide-react'
+import { AlertCircle, Mail, Lock } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { useAuthStore } from '../../store/authStore'
 import { extractApiError } from '../../utils/apiError'
@@ -72,74 +71,6 @@ function StrengthMeter({ senha }: { senha: string }) {
   )
 }
 
-// ── LogoUpload ─────────────────────────────────────────────────────────────
-function LogoUpload({ preview, onPick, onRemove }: {
-  preview: string | null
-  onPick: (src: string) => void
-  onRemove: () => void
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => onPick(reader.result as string)
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }
-
-  return (
-    <div className={clsx(
-      'flex items-center gap-4 rounded-[14px] p-3.5 transition-all duration-150',
-      preview ? 'border-[1.5px] border-line bg-white' : 'border-[1.6px] border-dashed border-[#D4D0C8] bg-cream'
-    )}>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-
-      {preview ? (
-        <div className="relative shrink-0">
-          <img
-            src={preview}
-            alt="Logo"
-            className="h-[72px] w-[72px] animate-pop rounded-full border-2 border-teal/35 object-cover"
-          />
-          <button
-            type="button"
-            onClick={onRemove}
-            aria-label="Remover logo"
-            className="absolute top-[-5px] right-[-5px] grid h-6 w-6 place-items-center rounded-full border border-line bg-white text-danger shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      ) : (
-        <div className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[14px] bg-teal/8 text-teal">
-          <Image size={28} />
-        </div>
-      )}
-
-      <div className="flex-1">
-        <div className="mb-[3px] text-sm font-semibold text-dark">
-          {preview ? 'Logo enviada' : 'Logo do ateliê'}
-          <span className="ml-1.5 text-xs font-normal text-muted">opcional</span>
-        </div>
-        <div className={clsx('text-[12.5px] text-muted', !preview && 'mb-[9px]')}>
-          {preview ? 'Aparece nos seus PDFs e orçamentos.' : 'PNG ou JPG, até 2 MB. Aparece nos PDFs.'}
-        </div>
-        {!preview && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="h-[34px] rounded-lg border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[13px] font-semibold text-body hover:bg-cream"
-          >
-            Escolher arquivo
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ── SuccessNote ────────────────────────────────────────────────────────────
 function SuccessNote({ nome }: { nome: string }) {
   return (
@@ -169,7 +100,6 @@ export default function CadastroPage() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [senha2, setSenha2] = useState('')
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [touched, setTouched] = useState({
     nome: false, empresa: false, email: false, senha: false, senha2: false,
   })
@@ -205,9 +135,10 @@ export default function CadastroPage() {
         email: email.trim(),
         senha,
         confirmarSenha: senha2,
+        nomeEmpresa: empresa.trim(),
       })
       setAuth(response.token, { id: response.usuarioId, email: response.email })
-      // TODO: Épico 2 — passar nome/empresa para onboarding e salvar via EmpresaService
+      // #339 — o nome da empresa já foi gravado no cadastro; o onboarding parte dele
       navigate('/onboarding')
     } catch (error: any) {
       const msg = extractApiError(error, 'Erro ao criar conta. Tente novamente.')
@@ -353,12 +284,6 @@ export default function CadastroPage() {
                 </div>
 
                 <StrengthMeter senha={senha} />
-
-                <LogoUpload
-                  preview={logoPreview}
-                  onPick={setLogoPreview}
-                  onRemove={() => setLogoPreview(null)}
-                />
 
                 <Button
                   variant="primary"

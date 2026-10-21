@@ -17,6 +17,7 @@ import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
 import { primeiroCampoInvalido, useModalErro } from '../../hooks/useModalErro'
 import type { CadastroRef, CompraRequest, CompraResponse, ImpactoCompraResponse, InsumoRef, TipoDesconto } from '../../types/compra'
+import { lerUltimoMetodoPagamentoCompra, gravarUltimoMetodoPagamentoCompra } from '../../utils/ultimoMetodoPagamentoCompra'
 
 // V0.15.0 — "Registrar compra" (#541, RN-NOVA-4) com método de pagamento (#550, RN-NOVA-23).
 // /compras/nova (compra nova) e /compras/:id/editar (só RASCUNHO). Estoque e custo só mudam ao
@@ -77,9 +78,12 @@ export default function FormCompraPage() {
   const [compra, setCompra] = useState<CompraResponse | null>(null)
 
   const [dataCompra, setDataCompra] = useState(hojeIso())
+  const [entregaImediata, setEntregaImediata] = useState(true)
+  const [previsaoEntrega, setPrevisaoEntrega] = useState('')
   const [multiplos, setMultiplos] = useState(false)
   const [fornecedor, setFornecedor] = useState<CadastroRef | null>(null)
-  const [pago, setPago] = useState(false)
+  // RN-NOVA-33 (#997): compra nova (nada gravado) abre em "Pago"; rascunho já gravado mostra o que está gravado.
+  const [pago, setPago] = useState(!editando)
   const [metodoId, setMetodoId] = useState<string | null>(null)
   const [parcelas, setParcelas] = useState<number | null>(null)
   const [observacoes, setObservacoes] = useState('')
@@ -97,9 +101,11 @@ export default function FormCompraPage() {
     if (!id) return
     compraService.buscar(id)
       .then(c => {
-        if (c.status !== 'RASCUNHO') { navigate(`/compras/${c.id}`, { replace: true }); return }
+        if (c.status !== 'RASCUNHO' && c.status !== 'PENDENTE_RECEBIMENTO') { navigate(`/compras/${c.id}`, { replace: true }); return }
         setCompra(c)
         setDataCompra(c.dataCompra)
+        setEntregaImediata(c.entregaImediata !== false)
+        setPrevisaoEntrega(c.previsaoEntrega ?? '')
         setMultiplos(c.multiplosFornecedores)
         setFornecedor(c.fornecedor)
         setPago(c.pago)
@@ -149,6 +155,8 @@ export default function FormCompraPage() {
 
   const montarRequest = (): CompraRequest => ({
     dataCompra,
+    entregaImediata,
+    previsaoEntrega: entregaImediata ? null : (previsaoEntrega || null),
     multiplosFornecedores: multiplos,
     fornecedorId: fornecedor?.id ?? null,
     pago,
@@ -197,7 +205,7 @@ export default function FormCompraPage() {
     setSalvando('rascunho'); setFieldErrors({})
     try {
       const salvo = editando ? await compraService.atualizarRascunho(id!, montarRequest()) : await compraService.salvarRascunho(montarRequest())
-      navigate(`/compras/${salvo.id}`, { state: { toast: `Rascunho ${salvo.identificador} salvo. O estoque ainda não mudou.` } })
+      navigate(`/compras/${salvo.id}`, { state: { toast: pendente ? `Compra ${salvo.identificador} atualizada.` : `Rascunho ${salvo.identificador} salvo. O estoque ainda não mudou.` } })
     } catch (err) {
       tratarErro(err, 'Não foi possível salvar o rascunho.')
     } finally {
@@ -210,6 +218,12 @@ export default function FormCompraPage() {
     setSalvando('confirmar'); setFieldErrors({})
     try {
       const r = editando ? await compraService.confirmar(id!, montarRequest()) : await compraService.confirmarNova(montarRequest())
+      if (r.compra.pago) gravarUltimoMetodoPagamentoCompra(r.compra.metodoPagamento?.id)
+      if (r.compra.status === 'PENDENTE_RECEBIMENTO') {
+        // #958 — entrega não imediata: nada entrou no estoque, então não há modal de impacto
+        navigate(`/compras/${r.compra.id}`, { replace: true, state: { toast: `Compra ${r.compra.identificador} registrada como pendente de recebimento. O estoque ainda não mudou.` } })
+        return
+      }
       setImpacto({ impacto: r.impacto, compraId: r.compra.id, identificador: r.compra.identificador })
     } catch (err) {
       tratarErro(err, 'Não foi possível confirmar a compra.')
@@ -226,7 +240,8 @@ export default function FormCompraPage() {
   const totalDescontos = Math.round((totalCheio - somaLinhas + descontoNotaReais) * 100) / 100
   const totalPrevia = Math.round((somaLinhas - descontoNotaReais) * 100) / 100
   const erroLinha = (idx: number, campo: 'quantidade' | 'precoCheio' | 'descontoValor') => fieldErrors[`itens[${idx}].${campo}`]
-  const titulo = editando ? `Editar rascunho ${compra?.identificador ?? ''}` : 'Registrar compra'
+  const pendente = compra?.status === 'PENDENTE_RECEBIMENTO'
+  const titulo = editando ? `Editar ${pendente ? 'compra' : 'rascunho'} ${compra?.identificador ?? ''}` : 'Registrar compra'
   const idsNaCompra = linhas.map(l => l.insumo.id)
 
   if (carregando || erroCarga) {
@@ -261,27 +276,46 @@ export default function FormCompraPage() {
               <input type="date" value={dataCompra} max={hojeIso()} onChange={e => setDataCompra(e.target.value)}
                 className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </Field>
-            <Field label="Mais de um fornecedor?" group size="md">
-              <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
-            </Field>
+            {!pendente && (
+              <Field label="Entrega imediata?" group size="md">
+                <SegmentedControl options={[{ value: true, label: 'Sim' }, { value: false, label: 'Não' }]} value={entregaImediata}
+                  onChange={v => { setEntregaImediata(v); if (v) setPrevisaoEntrega('') }} />
+              </Field>
+            )}
+            {!entregaImediata && (
+              <Field label="Previsão de entrega" required size="md" hint="O estoque só muda quando a entrega for registrada.">
+                <input type="date" value={previsaoEntrega} min={pendente ? dataCompra : (dataCompra > hojeIso() ? dataCompra : hojeIso())}
+                  onChange={e => setPrevisaoEntrega(e.target.value)} aria-label="Previsão de entrega"
+                  className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+              </Field>
+            )}
+            {/* V0.17.0 #966 (RN-NOVA-21): "Mais de um fornecedor?" e "Pagamento" numa linha só, abaixo da data;
+                em tela estreita os dois empilham. Nenhuma regra muda, só a posição. */}
+            {/* #985: a linha usa as mesmas colunas da de cima (md: 2, xl: 4), então os dois controles têm a largura de "Entrega imediata?" */}
+            <div className="grid grid-cols-1 gap-section md:col-span-2 md:grid-cols-2 xl:col-span-4 xl:grid-cols-4">
+              <Field label="Mais de um fornecedor?" group size="md">
+                <SegmentedControl options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]} value={multiplos} onChange={alternarMultiplos} />
+              </Field>
+              <Field label="Pagamento" group size="md">
+                <SegmentedControl options={[{ value: false, label: 'Não pago' }, { value: true, label: 'Pago' }]} value={pago}
+                  onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
+              </Field>
+              {pago && (
+                <div className="md:col-span-2">
+                  <Field label="Como foi paga?" required group size="md">
+                    <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
+                      padraoId={editando ? null : lerUltimoMetodoPagamentoCompra()}
+                      parcelas={parcelas} onParcelas={setParcelas} />
+                  </Field>
+                </div>
+              )}
+            </div>
             <div className="md:col-span-2">
               <Field label={multiplos ? 'Fornecedor padrão das linhas' : 'Fornecedor'} opt group size="md"
                 hint={multiplos ? 'Cada linha começa com este fornecedor e pode ser trocada.' : 'Vale para todos os insumos desta compra.'}>
                 <FornecedorSelect value={fornecedor} onChange={setFornecedor} />
               </Field>
             </div>
-            <Field label="Pagamento" group size="md">
-              <SegmentedControl options={[{ value: false, label: 'Não pago' }, { value: true, label: 'Pago' }]} value={pago}
-                onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
-            </Field>
-            {pago && (
-              <div className="md:col-span-1 xl:col-span-3">
-                <Field label="Como foi paga?" required group size="md">
-                  <MetodoPagamentoEscolha value={metodoId} onChange={setMetodoId} salvo={compra?.metodoPagamento}
-                    parcelas={parcelas} onParcelas={setParcelas} />
-                </Field>
-              </div>
-            )}
           </div>
         </div>
 
@@ -417,12 +451,18 @@ export default function FormCompraPage() {
         <div className="flex flex-col gap-3 px-[26px] py-section">
           <div className="flex flex-wrap justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate(editando ? `/compras/${id}` : '/compras')} disabled={!!salvando}>Cancelar</Button>
-            <Button variant="secondary" icon={<Save size={16} />} disabled={!!salvando} onClick={salvarRascunho}>
-              {salvando === 'rascunho' ? 'Salvando…' : 'Salvar rascunho'}
-            </Button>
-            <Button variant="primary" icon={<Check size={16} />} disabled={!!salvando} onClick={() => setConfirmarAberto(true)}>
-              {salvando === 'confirmar' ? 'Confirmando…' : 'Confirmar compra'}
-            </Button>
+            {pendente ? (
+              <Button variant="primary" icon={<Save size={16} />} disabled={!!salvando} onClick={salvarRascunho}>
+                {salvando === 'rascunho' ? 'Salvando…' : 'Salvar alterações'}
+              </Button>
+            ) : (<>
+              <Button variant="secondary" icon={<Save size={16} />} disabled={!!salvando} onClick={salvarRascunho}>
+                {salvando === 'rascunho' ? 'Salvando…' : 'Salvar rascunho'}
+              </Button>
+              <Button variant="primary" icon={<Check size={16} />} disabled={!!salvando} onClick={() => setConfirmarAberto(true)}>
+                {salvando === 'confirmar' ? 'Confirmando…' : 'Confirmar compra'}
+              </Button>
+            </>)}
           </div>
         </div>
       </div>
@@ -435,7 +475,9 @@ export default function FormCompraPage() {
         icon={<Check size={16} />}
         width={440}
         confirmLabel="Confirmar compra"
-        description="O estoque e o custo dos insumos serão atualizados agora. Depois de confirmada, só o pagamento pode ser alterado; para desfazer, será preciso cancelar a compra."
+        description={entregaImediata
+          ? 'O estoque e o custo dos insumos serão atualizados agora. Depois de confirmada, só o pagamento pode ser alterado; para desfazer, será preciso cancelar a compra.'
+          : 'A compra ficará pendente de recebimento: o estoque e o custo dos insumos só mudam quando você registrar a entrada. Enquanto isso você pode editar, excluir ou cancelar a compra.'}
       />
 
       {modalErro}

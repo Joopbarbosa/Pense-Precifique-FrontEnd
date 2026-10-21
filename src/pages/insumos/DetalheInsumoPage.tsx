@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -12,11 +12,16 @@ import { Minus, ChevronDown, AlertCircle, ArrowDown, ArrowLeft, Box, ChevronRigh
 import VinculosFornecedorInsumo from '../../components/compra/VinculosFornecedorInsumo'
 import HistoricoNotaInsumo from '../../components/compra/nota/HistoricoNotaInsumo'
 import { FracionavelBadge, EstoqueNegativoBadge } from '../../components/ui/Badge'
+import type { PageResponse } from '../../types/shared'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 import type { InsumoResponse, MovimentacaoInsumoResponse, ProdutoRelacionadoResponse, BaixaManualInsumoRequest, TipoExibicaoQuantidade } from '../../types/insumo'
 import { insumoService } from '../../services/insumoService'
 import { MOTIVOS_BAIXA_INSUMO, MOTIVO_LABEL } from '../../constants'
 import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade, tentarConverterFracao } from '../../utils/quantidade'
+import { formatarData } from '../../components/compra/formato'
+import Paginacao from '../../components/shared/Paginacao'
+import { LinhaPrecoSugeridoInsumo } from '../../components/produto/HistoricoPrecoSugerido'
 import { BRL } from '../../components/venda/formato'
 
 const numQtd = (s: string) => {
@@ -30,6 +35,10 @@ const moeda = BRL
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR')
+
+// #959 (DT-NOVA-4): a entrada de compra mostra a data do recebimento; a ordem do histórico segue a criação.
+const dataDaMovimentacao = (m: { createdAt: string; dataReferencia?: string | null }) =>
+  m.dataReferencia ? formatarData(m.dataReferencia) : formatDate(m.createdAt)
 
 const TIPO_LABEL: Record<string, string> = {
   PRODUTO: 'Produto',
@@ -53,7 +62,7 @@ function tituloMovimentacao(m: MovimentacaoInsumoResponse): { titulo: string; ti
 }
 
 // V0.15.0 (#542, RN-NOVA-7) — a referência é o identificador legível que vem pronto da API
-// (`referencia`), nunca o ID interno; leva ao detalhe da origem. Venda do Caixa (CX-N) não tem
+// (`referencia`), nunca o ID interno; leva ao detalhe da origem, em aba nova. Venda do Caixa (CX-N) não tem
 // página de detalhe, então fica só o texto.
 const ROTA_REFERENCIA: Record<string, (id: string) => string> = {
   PRODUCAO: id => `/producao/${id}`,
@@ -64,8 +73,9 @@ const ROTA_REFERENCIA: Record<string, (id: string) => string> = {
 function Referencia({ m }: { m: MovimentacaoInsumoResponse }) {
   if (!m.referencia) return null
   const rota = m.referenciaTipo && m.referenciaId ? ROTA_REFERENCIA[m.referenciaTipo] : undefined
+  // V0.17.0 #967 (RN-NOVA-22): a referência abre a página da origem em aba nova; o histórico segue aberto
   return rota
-    ? <Link to={rota(m.referenciaId!)} className="font-semibold text-teal no-underline hover:underline">{m.referencia}</Link>
+    ? <a href={rota(m.referenciaId!)} target="_blank" rel="noopener noreferrer" className="font-semibold text-teal no-underline hover:underline">{m.referencia}</a>
     : <span>{m.referencia}</span>
 }
 
@@ -246,6 +256,9 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
   return (
     <>
       {movimentacoes.map(m => {
+        if (m.tipoLinha === 'PRECO_SUGERIDO' && m.precosSugeridos) {
+          return <LinhaPrecoSugeridoInsumo key={m.id} data={m.createdAt} agregado={m.precosSugeridos} />
+        }
         const { titulo, tipoDisplay } = tituloMovimentacao(m)
         const positivo = m.tipo === 'ENTRADA'
         const isEstorno = tipoDisplay === 'estorno'
@@ -262,7 +275,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
               riscado && 'opacity-60',
               isEstorno && 'bg-danger-bg'
             )}>
-              <div className="text-[13px] text-body [font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</div>
+              <div className="text-[13px] text-body [font-variant-numeric:tabular-nums]">{dataDaMovimentacao(m)}</div>
               <div className={riscado ? 'line-through' : undefined}>
                 <HistTipo tipo={tipoDisplay} titulo={titulo} />
               </div>
@@ -302,7 +315,7 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
                 'mt-2.5 flex flex-wrap items-center gap-2 text-[12.5px]',
                 isEstorno ? 'italic text-danger-deep' : 'text-muted'
               )}>
-                <span className="[font-variant-numeric:tabular-nums]">{formatDate(m.createdAt)}</span>
+                <span className="[font-variant-numeric:tabular-nums]">{dataDaMovimentacao(m)}</span>
                 <span className="text-[#D8D4CC]">·</span>
                 <span className="[font-variant-numeric:tabular-nums]">{m.custoUnitario != null ? moeda(m.custoUnitario) : '—'}</span>
                 {ref && <><span className="text-[#D8D4CC]">·</span><span>{ref}</span></>}
@@ -320,7 +333,8 @@ function HistRows({ movimentacoes, unidade, fracionavel, tipoExibicaoQuantidade 
   )
 }
 
-function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean; onSelect: (produtoId: string) => void }) {
+/** #986 (RN-NOVA-22, alteração): clicar no registro abre o cadastro do produto em aba nova; o detalhe do insumo fica aberto. */
+function FichasList({ produtos, loading }: { produtos: ProdutoRelacionadoResponse[]; loading: boolean }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
@@ -341,10 +355,12 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
   return (
     <div>
       {produtos.map((p) => (
-        <button
+        <a
           key={p.id}
-          onClick={() => onSelect(p.id)}
-          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] hover:bg-cream"
+          href={`/produtos/${p.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full animate-fade-up items-center gap-3.5 border-0 border-t border-line bg-transparent px-5 py-4 text-left font-[inherit] no-underline hover:bg-cream"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-teal/10 text-teal">
             <Box size={16} />
@@ -354,7 +370,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
               {p.identificador && (
                 <span className="shrink-0 text-[12.5px] font-semibold text-muted [font-variant-numeric:tabular-nums]">{p.identificador}</span>
               )}
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{p.nome}</span>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-dark">{rotuloProduto(p.nome, p.marca)}</span>
             </div>
           </div>
           <span className="shrink-0 whitespace-nowrap rounded-full bg-line-soft px-2.5 py-1 text-[11.5px] font-semibold text-subtle">
@@ -363,7 +379,7 @@ function FichasList({ produtos, loading, onSelect }: { produtos: ProdutoRelacion
           <span className="flex shrink-0 text-dim">
             <ChevronRight size={15} />
           </span>
-        </button>
+        </a>
       ))}
     </div>
   )
@@ -376,10 +392,13 @@ export default function DetalheInsumoPage() {
   const [aba, setAba] = useState<'historico' | 'fichas' | 'fornecedores' | 'notas'>('historico')
   const [insumo, setInsumo] = useState<InsumoResponse | null>(null)
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoInsumoResponse[]>([])
+  // #994 (RN-NOVA-31) — histórico com paginação numerada: cada página troca a anterior
   const [histPage, setHistPage] = useState(0)
-  const [histHasNext, setHistHasNext] = useState(false)
+  const [histTotalPages, setHistTotalPages] = useState(0)
+  const [histTotal, setHistTotal] = useState(0)
+  const [histLast, setHistLast] = useState(true)
   const [loading, setLoading] = useState(true)
-  const [loadingMoreHist, setLoadingMoreHist] = useState(false)
+  const [loadingHist, setLoadingHist] = useState(false)
   const [produtosRelacionados, setProdutosRelacionados] = useState<ProdutoRelacionadoResponse[]>([])
   const [loadingFichas, setLoadingFichas] = useState(false)
 
@@ -391,6 +410,14 @@ export default function DetalheInsumoPage() {
     { id: 'notas' as const, label: 'Histórico de Nota Fiscal', icon: FileText, size: 17 },
   ]
 
+  const aplicarHistorico = (hist: PageResponse<MovimentacaoInsumoResponse>, pagina: number) => {
+    setMovimentacoes(hist.content)
+    setHistLast(hist.last)
+    setHistTotalPages(hist.totalPages)
+    setHistTotal(hist.totalElements)
+    setHistPage(pagina)
+  }
+
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -399,9 +426,7 @@ export default function DetalheInsumoPage() {
       insumoService.listarMovimentacoes(id, 0),
     ]).then(([ins, hist]) => {
       setInsumo(ins)
-      setMovimentacoes(hist.content)
-      setHistHasNext(!hist.last)
-      setHistPage(0)
+      aplicarHistorico(hist, 0)
     }).catch(console.error)
       .finally(() => setLoading(false))
   }, [id])
@@ -415,18 +440,17 @@ export default function DetalheInsumoPage() {
       .finally(() => setLoadingFichas(false))
   }, [aba, id])
 
-  const carregarMaisHistorico = () => {
+  const irParaHistorico = (pagina: number) => {
     if (!id) return
-    const nextPage = histPage + 1
-    setLoadingMoreHist(true)
-    insumoService.listarMovimentacoes(id, nextPage)
+    setLoadingHist(true)
+    insumoService.listarMovimentacoes(id, pagina)
       .then(hist => {
-        setMovimentacoes(prev => [...prev, ...hist.content])
-        setHistHasNext(!hist.last)
-        setHistPage(nextPage)
+        // página que passou do limite (registros removidos): mostra a última que existe
+        if (hist.content.length === 0 && pagina > 0 && hist.totalPages > 0) return irParaHistorico(hist.totalPages - 1)
+        aplicarHistorico(hist, pagina)
       })
       .catch(console.error)
-      .finally(() => setLoadingMoreHist(false))
+      .finally(() => setLoadingHist(false))
   }
 
   const recarregarAposBaixa = () => {
@@ -436,9 +460,7 @@ export default function DetalheInsumoPage() {
       insumoService.listarMovimentacoes(id, 0),
     ]).then(([ins, hist]) => {
       setInsumo(ins)
-      setMovimentacoes(hist.content)
-      setHistHasNext(!hist.last)
-      setHistPage(0)
+      aplicarHistorico(hist, 0)
     }).catch(console.error)
   }
 
@@ -558,7 +580,7 @@ export default function DetalheInsumoPage() {
             )}
           </>
         ) : aba === 'fichas' ? (
-          <FichasList produtos={produtosRelacionados} loading={loadingFichas} onSelect={produtoId => navigate(`/produtos/${produtoId}`)} />
+          <FichasList produtos={produtosRelacionados} loading={loadingFichas} />
         ) : aba === 'notas' ? (
           <HistoricoNotaInsumo insumoId={insumo.id} unidade={insumo.unidadeMedida} />
         ) : (
@@ -567,26 +589,8 @@ export default function DetalheInsumoPage() {
       </div>
 
       {aba === 'historico' && (
-        <div className="mt-[13px] flex flex-col items-center gap-3">
-          <div className="w-full text-right text-[12.5px] text-muted">
-            {movimentacoes.length} movimentaç{movimentacoes.length === 1 ? 'ão' : 'ões'}
-          </div>
-          {histHasNext && (
-            <button
-              onClick={carregarMaisHistorico}
-              disabled={loadingMoreHist}
-              className={clsx(
-                'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                loadingMoreHist ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
-              )}
-            >
-              {loadingMoreHist
-                ? <><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
-                : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
-              }
-            </button>
-          )}
-        </div>
+        <Paginacao pagina={histPage} totalPaginas={histTotalPages} ultima={histLast} carregando={loadingHist} onMudar={irParaHistorico}
+          esquerda={<span data-testid="total-registros">{histTotal} movimentaç{histTotal === 1 ? 'ão' : 'ões'}</span>} />
       )}
 
       {modal === 'baixa' && (

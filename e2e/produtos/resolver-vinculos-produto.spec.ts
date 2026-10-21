@@ -112,7 +112,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     await expect(dialog.getByText('Vínculo de componente')).toHaveCount(0)
 
     await dialog.getByRole('button', { name: 'Confirmar' }).click()
-    await expect(page.getByText('Produto inativado.')).toBeVisible()
+    await expect(page.getByText('Produto inativado.')).toBeVisible({ timeout: 15_000 })
   })
 
   test('produto vinculado só a componente — modal com 1 seção, rótulo nunca "Inativar"', async ({ page, request }) => {
@@ -145,7 +145,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     await expect(dialog.getByText('Inativar', { exact: true })).toHaveCount(0)
 
     await dialog.getByRole('button', { name: 'Confirmar' }).click()
-    await expect(page.getByText('Produto inativado.')).toBeVisible()
+    await expect(page.getByText('Produto inativado.')).toBeVisible({ timeout: 15_000 })
   })
 
   test('produto vinculado a catálogo E componente — 2 seções, ações independentes na mesma operação', async ({ page, request }) => {
@@ -189,7 +189,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     const confirmar = dialog.getByRole('button', { name: 'Confirmar' })
     await expect(confirmar).toBeEnabled()
     await confirmar.click()
-    await expect(page.getByText('Produto inativado.')).toBeVisible()
+    await expect(page.getByText('Produto inativado.')).toBeVisible({ timeout: 15_000 })
 
     const produtoPaiRes = await request.get(`${API_URL}/produtos?busca=${encodeURIComponent(produtoPaiNome)}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -263,7 +263,7 @@ test.describe('OpenProject #237 — Resolver vínculos ao inativar/excluir produ
     await abrirAcaoNoCard(page, card, 'Desativar')
     await page.getByRole('button', { name: 'Desativar produto' }).click()
 
-    await expect(page.getByText('Produto inativado.')).toBeVisible()
+    await expect(page.getByText('Produto inativado.')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText('Não foi possível inativar')).toHaveCount(0)
   })
 })

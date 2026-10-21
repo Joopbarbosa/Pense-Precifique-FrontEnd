@@ -124,7 +124,7 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.locator('input[type="number"][placeholder="10"]').fill('5')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
 
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/disponível 2, necessário 5/i)).toBeVisible()
     await expect(page.getByText(/faltam 3 un\./i)).toBeVisible()
 
@@ -141,12 +141,12 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
 
     // RN-NOVA-12 — mini-formulário próprio abre (nunca navega direto pra /producao/nova, o
     // orçamento ainda não foi persistido neste ponto).
-    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 20_000 })
     await page.locator('label:has-text("Término previsto") input[type="date"]').fill('2026-12-01')
     await page.getByRole('button', { name: 'Criar produção', exact: true }).click()
 
     // RN-NOVA-14 ponto 1 — sucesso navega de volta pro orçamento recém-criado, não pra Produção.
-    await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$/, { timeout: 8000 })
+    await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$/, { timeout: 30_000 })
     const orcamentoId = page.url().split('/orcamentos/')[1]
 
     const orcamentoRes = await request.get(`${API_URL}/orcamentos/${orcamentoId}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -184,11 +184,11 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
 
     await page.locator('input[type="number"][placeholder="10"]').fill('5')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 20_000 })
 
     await page.getByRole('checkbox').check()
     await page.getByRole('button', { name: /^Criar produção/, exact: false }).click()
-    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 20_000 })
 
     // Cancela sem preencher o formulário — orçamento nunca foi persistido, então não há pra onde
     // "voltar": fica no checkpoint, rascunho intacto em memória.

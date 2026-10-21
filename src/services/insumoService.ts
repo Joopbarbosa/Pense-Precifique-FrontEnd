@@ -7,12 +7,15 @@ export const insumoService = {
   // raiz do bug original de #336: insumo inativado fora da 1ª página não aparecia no filtro).
   // #295 (V0.14.0, RN-NOVA-2) — `sort` agora é parâmetro, default `numero,desc` (identificador
   // decrescente) quando o chamador não passa nada — antes era sempre `nome` fixo.
+  // #994 (RN-NOVA-31) — `estoque` (BAIXO, NEGATIVO, POSITIVO) filtra no servidor.
   // #616 (RN-NOVA-40) — `incluirInativos`: seletores mostram os inativos depois dos ativos (ignora `ativo`).
-  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc', incluirInativos = false): Promise<PageResponse<InsumoResponse>> => {
+  listar: async (page: number, size = 20, busca?: string, ativo?: boolean, sort = 'numero,desc', incluirInativos = false, estoque?: 'BAIXO' | 'NEGATIVO' | 'POSITIVO'): Promise<PageResponse<InsumoResponse>> => {
     const params: Record<string, unknown> = { page, size, sort }
     if (busca) params.busca = busca
     if (ativo != null) params.ativo = ativo
     if (incluirInativos) params.incluirInativos = true
+    // #994 — filtros de estoque no servidor, para valerem em todas as páginas
+    if (estoque) params.estoque = estoque
     const response = await api.get('/insumos', { params })
     return response.data
   },
@@ -65,8 +68,8 @@ export const insumoService = {
     return response.data.content
   },
 
-  listarProdutosRelacionados: async (id: string): Promise<ProdutoRelacionadoResponse[]> => {
-    const response = await api.get(`/insumos/${id}/produtos-relacionados`)
+  listarProdutosRelacionados: async (id: string, somenteAtivos = false): Promise<ProdutoRelacionadoResponse[]> => {
+    const response = await api.get(`/insumos/${id}/produtos-relacionados`, { params: somenteAtivos ? { somenteAtivos: true } : undefined })
     return response.data
   },
 

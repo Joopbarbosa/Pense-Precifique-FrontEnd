@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import BotaoAjuda from '../../components/ui/BotaoAjuda'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Card } from '../../components/ui/Card'
@@ -11,6 +12,7 @@ import { insumoService } from '../../services/insumoService'
 import type { DashboardResponse } from '../../types/dashboard'
 import type { InsumoResponse } from '../../types/insumo'
 import type { StatusOrcamento } from '../../types'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 
 function fmtBRL(v: number): string {
@@ -97,14 +99,14 @@ export default function DashboardPage() {
 
       {/* Números — #604 (RN-NOVA-34): cartão padrão com esconder/mostrar. */}
       <BigNumberGroup tela="dashboard-inicial" testid="numeros-dashboard-inicial" colunas="md:grid-cols-3">
-        <BigNumber icone={<DollarSign size={14} />} titulo="Faturamento do mês" destaque
+        <BigNumber icone={<DollarSign size={14} />} titulo="Faturamento do mês" ajuda="inicio-faturamento" destaque
           valor={loading ? '—' : fmtBRL(data?.receitaMes ?? 0)}>
           {!loading && (data?.receitaMes ?? 0) === 0 && <span>Sem receita este mês</span>}
         </BigNumber>
-        <BigNumber icone={<Box size={14} />} titulo="Produtos cadastrados" valor={loading ? '—' : String(produtosCadastrados)}>
+        <BigNumber icone={<Box size={14} />} titulo="Produtos cadastrados" ajuda="inicio-produtos" valor={loading ? '—' : String(produtosCadastrados)}>
           {!loading && produtosCadastrados === 0 && <span>Nenhum produto ainda</span>}
         </BigNumber>
-        <BigNumber icone={<Files size={14} />} titulo="Orçamentos pendentes" valor={loading ? '—' : String(data?.orcamentosPendentes ?? 0)}>
+        <BigNumber icone={<Files size={14} />} titulo="Orçamentos pendentes" ajuda="inicio-orcamentos-pendentes" valor={loading ? '—' : String(data?.orcamentosPendentes ?? 0)}>
           {!loading && <span>{(data?.orcamentosPendentes ?? 0) === 0 ? 'Nenhum pendente' : 'Aguardando resposta'}</span>}
         </BigNumber>
       </BigNumberGroup>
@@ -117,8 +119,9 @@ export default function DashboardPage() {
               <AlertTriangle size={20} />
             </span>
             <div className="min-w-[220px] flex-1">
-              <div className="text-[15.5px] font-semibold text-[#2D2A26]">
+              <div className="flex items-center gap-1.5 text-[15.5px] font-semibold text-[#2D2A26]">
                 {insumosEstoqueBaixo.length} {insumosEstoqueBaixo.length === 1 ? 'insumo com estoque baixo' : 'insumos com estoque baixo'}
+                <BotaoAjuda id="inicio-estoque-baixo" />
               </div>
               <div className="mt-[11px] flex flex-wrap gap-2">
                 {insumosEstoqueBaixo.slice(0, 6).map((ins) => (
@@ -153,7 +156,7 @@ export default function DashboardPage() {
                 <Files size={22} />
               </span>
               <div>
-                <div className="text-base font-bold text-[#2D2A26]">Orçamentos Recentes</div>
+                <div className="flex items-center gap-1.5 text-base font-bold text-[#2D2A26]">Orçamentos Recentes<BotaoAjuda id="inicio-orcamentos-recentes" /></div>
                 <div className="mt-px text-[13px] text-dim">Últimas movimentações</div>
               </div>
             </div>
@@ -195,18 +198,18 @@ export default function DashboardPage() {
                 <Box size={20} />
               </span>
               <div>
-                <div className="text-base font-bold text-[#2D2A26]">Mais Vendidos</div>
-                <div className="mt-px text-[13px] text-dim">Top produtos do período</div>
+                <div className="flex items-center gap-1.5 text-base font-bold text-[#2D2A26]">Mais Vendidos<BotaoAjuda id="inicio-mais-vendidos" /></div>
+                <div className="mt-px text-[13px] text-dim">Top produtos do mês</div>
               </div>
             </div>
 
             {data.produtosMaisVendidos.length === 0 ? (
-              <p className="m-0 text-sm text-faint">Nenhum produto vendido ainda.</p>
+              <p className="m-0 text-sm text-faint">Nenhum produto vendido neste mês.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {data.produtosMaisVendidos.map((prod, i) => (
                   <div
-                    key={prod.nomeProduto}
+                    key={`${prod.tipo}-${prod.id ?? prod.nomeProduto}`}
                     className="flex items-center gap-3 rounded-[10px] border border-[#ECEAE5] bg-cream px-3.5 py-[11px]"
                   >
                     <span className={clsx(
@@ -217,11 +220,11 @@ export default function DashboardPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-[#2D2A26]">
-                        {prod.nomeProduto}
+                        {rotuloProduto(prod.nomeProduto, prod.marca)}
                       </div>
                     </div>
                     <span className="shrink-0 text-[13px] font-semibold text-dim">
-                      {prod.quantidade} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
+                      {prod.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {prod.quantidade === 1 ? 'vendido' : 'vendidos'}
                     </span>
                   </div>
                 ))}

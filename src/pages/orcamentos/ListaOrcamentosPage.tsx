@@ -11,6 +11,9 @@ import { orcamentoService } from '../../services/orcamentoService'
 import type { OrcamentoResponse, StatusOrcamento } from '../../types/orcamento'
 import { STATUS_LABEL } from '../../constants'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import { useAoMudar } from '../../hooks/useAoMudar'
+import Paginacao from '../../components/shared/Paginacao'
 import { useRetryCooldown } from '../../hooks/useRetryCooldown'
 import { dispararDownloadBlob } from '../../utils/download'
 import { dataLocalISO } from '../../utils/dataLocal'
@@ -51,15 +54,16 @@ function fmtData(iso: string): string {
 
 // #255 — campo aninhado (cliente.nome) e simples (numero/total/createdAt) vão via ?sort= do
 // backend (confirmado por curl no Passo 0); status ordena pelo ciclo de vida do pedido
-// (RASCUNHO→ENVIADO→...→PAGO/CANCELADO), que não existe como ordem alfabética no banco — por
-// isso é reordenado no cliente sobre os itens já carregados, nunca via ?sort=status.
+// (RASCUNHO→ENVIADO→...→PAGO/CANCELADO), que não é a ordem alfabética do banco. Desde a #994
+// (RN-NOVA-31) essa ordem também é do servidor (`cicloDeVida`), para valer em todas as páginas.
 type SortField = 'numero' | 'cliente' | 'total' | 'createdAt' | 'status'
 
-const SORT_BACKEND_FIELD: Record<Exclude<SortField, 'status'>, string> = {
+const SORT_BACKEND_FIELD: Record<SortField, string> = {
   numero: 'numero',
   cliente: 'cliente.nome',
   total: 'total',
   createdAt: 'createdAt',
+  status: 'cicloDeVida',
 }
 
 function OrcamentoRow({ orc, onVerDetalhes, onBaixarPdf }: {
@@ -147,37 +151,35 @@ function OrcamentoCard({ orc, index, onVerDetalhes, onBaixarPdf }: {
 
 export default function ListaOrcamentosPage() {
   const navigate = useNavigate()
-  const [filtro, setFiltro] = useState<StatusOrcamento | ''>('')
+  // #994 — página, busca, status, período e ordenação ficam na URL: voltar de um orçamento reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [filtro, setFiltro] = useState<StatusOrcamento | ''>(() => FILTERS.find(f => f.value && f.value === inicial.texto('status'))?.value ?? '')
   const [periodOpen, setPeriodOpen] = useState(false)
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [appliedDateFrom, setAppliedDateFrom] = useState('')
-  const [appliedDateTo, setAppliedDateTo] = useState('')
+  const [dateFrom, setDateFrom] = useState(() => inicial.texto('de'))
+  const [dateTo, setDateTo] = useState(() => inicial.texto('ate'))
+  const [appliedDateFrom, setAppliedDateFrom] = useState(() => inicial.texto('de'))
+  const [appliedDateTo, setAppliedDateTo] = useState(() => inicial.texto('ate'))
   const periodRef = useRef<HTMLDivElement>(null)
-  const isFirstFiltro = useRef(true)
-  const isFirstPeriodo = useRef(true)
-  const isFirstSort = useRef(true)
   const downloadRetry = useRetryCooldown()
 
   // Default explícito por decisão de produto: a listagem deve abrir ordenada por Número, não
   // depender da ordem natural (não garantida) que o Postgres devolve sem ORDER BY.
-  const [sortField, setSortField] = useState<SortField | null>('numero')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [sortField, setSortField] = useState<SortField | null>(() => {
+    const c = inicial.texto('ordem', 'numero') as SortField
+    return c in SORT_BACKEND_FIELD ? c : 'numero'
+  })
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => inicial.texto('dir', 'asc') === 'desc' ? 'desc' : 'asc')
 
-  // status não vai pro backend (ordena por ciclo de vida, não alfabético) — mantém numero,asc
-  // como ordem-base estável para o reordenamento no cliente não misturar com paginação.
-  const sortParam = sortField === 'status'
-    ? 'numero,asc'
-    : sortField
-      ? `${SORT_BACKEND_FIELD[sortField]},${sortDir}`
-      : undefined
+  const sortParam = sortField ? `${SORT_BACKEND_FIELD[sortField]},${sortDir}` : undefined
 
   const {
     items: orcamentos,
-    hasMore,
+    page,
+    totalPages,
+    ultima,
+    totalElements,
     loading,
-    loadingMore,
-    loadMore,
+    irParaPagina,
     query,
     setQuery,
     reset,
@@ -185,25 +187,13 @@ export default function ListaOrcamentosPage() {
   } = useDebounceSearch({
     fetcher: (page, size, q) => orcamentoService.listar(page, size, filtro || undefined, q, appliedDateFrom || undefined, appliedDateTo || undefined, sortParam),
     errorMessage: 'Não foi possível carregar os orçamentos.',
+    buscaInicial: inicial.texto('busca'),
+    paginaInicial: inicial.pagina(),
   })
+  useEspelharNaUrl({ pagina: page + 1, busca: query, status: filtro, de: appliedDateFrom, ate: appliedDateTo, ordem: sortField, dir: sortDir },
+    { pagina: 1, busca: '', status: '', de: '', ate: '', ordem: 'numero', dir: 'asc' })
 
-  useEffect(() => {
-    if (isFirstFiltro.current) { isFirstFiltro.current = false; return }
-    reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtro])
-
-  useEffect(() => {
-    if (isFirstPeriodo.current) { isFirstPeriodo.current = false; return }
-    reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedDateFrom, appliedDateTo])
-
-  useEffect(() => {
-    if (isFirstSort.current) { isFirstSort.current = false; return }
-    reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortParam])
+  useAoMudar(`${filtro}|${appliedDateFrom}|${appliedDateTo}|${sortParam}`, reset)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -226,10 +216,6 @@ export default function ListaOrcamentosPage() {
       setSortField(field)
       setSortDir('asc')
     }
-  }
-
-  const handleCarregarMais = async () => {
-    await loadMore()
   }
 
   // Sem gate de preview aqui (RN-NOVA-2 não se aplica — não há preview nesta tela), mas com o
@@ -272,18 +258,6 @@ export default function ListaOrcamentosPage() {
   const searchActive = query.trim().length > 0
   const globalEmpty = !loading && orcamentos.length === 0 && filtro === '' && !searchActive && !periodActive
   const filtroEmpty = !loading && orcamentos.length === 0 && (filtro !== '' || searchActive || periodActive)
-
-  // Índice de posição de cada status no ciclo de vida real (mesma ordem de FILTERS, que já
-  // segue RASCUNHO→ENVIADO→APROVADO→...→PAGO/CANCELADO) — única fonte de verdade da ordem.
-  const statusOrdem: Record<string, number> = {}
-  FILTERS.forEach((f, i) => { if (f.value) statusOrdem[f.value] = i })
-
-  const orcamentosOrdenados = sortField === 'status'
-    ? [...orcamentos].sort((a, b) => {
-        const diff = statusOrdem[a.status] - statusOrdem[b.status]
-        return sortDir === 'asc' ? diff : -diff
-      })
-    : orcamentos
 
   return (
     <AppLayout active="orcamentos" compact>
@@ -451,7 +425,7 @@ export default function ListaOrcamentosPage() {
                   <div />
                 </div>
 
-                {orcamentosOrdenados.map((o, i) => {
+                {orcamentos.map((o, i) => {
                   const onBaixarPdf = o.status !== 'CANCELADO'
                     ? () => handleBaixarPdf(o)
                     : null
@@ -473,24 +447,8 @@ export default function ListaOrcamentosPage() {
                 })}
               </div>
 
-              {/* Contador + Carregar mais */}
-              <div className="mt-3.5 flex items-center justify-between">
-                <span className="text-[12.5px] text-muted">
-                  {orcamentos.length} {orcamentos.length === 1 ? 'orçamento' : 'orçamentos'}
-                </span>
-                {hasMore && (
-                  <button
-                    onClick={handleCarregarMais}
-                    disabled={loadingMore}
-                    className={clsx(
-                      'h-9 rounded-lg border-[1.5px] border-line bg-white px-section font-[inherit] text-[13.5px] font-semibold text-body',
-                      loadingMore ? 'cursor-default opacity-60' : 'cursor-pointer'
-                    )}
-                  >
-                    {loadingMore ? 'Carregando…' : 'Carregar mais'}
-                  </button>
-                )}
-              </div>
+              <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+                esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'orçamento' : 'orçamentos'}</span>} />
             </>
           )}
         </>

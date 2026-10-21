@@ -10,6 +10,9 @@ import DetalheClientePage from '../pages/clientes/DetalheClientePage'
 import ComprasPage from '../pages/compras/ComprasPage'
 import DashboardComprasPage from '../pages/compras/DashboardComprasPage'
 import FormCompraPage from '../pages/compras/FormCompraPage'
+import EntradaComprasPage from '../pages/compras/EntradaComprasPage'
+import DashboardVendasPage from '../pages/dashboard/DashboardVendasPage'
+import DashboardCadastrosPage from '../pages/dashboard/DashboardCadastrosPage'
 import LerNotaPage from '../pages/compras/LerNotaPage'
 import HistoricoVinculosNotaPage from '../pages/compras/HistoricoVinculosNotaPage'
 import DetalheCompraPage from '../pages/compras/DetalheCompraPage'
@@ -41,6 +44,7 @@ import EditarProducaoPage from '../pages/producao/EditarProducaoPage'
 import DetalheProducaoPage from '../pages/producao/DetalheProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 import CaixaPage from '../pages/caixa/CaixaPage'
+import HistoricoVendasPage from '../pages/caixa/HistoricoVendasPage'
 
 export const router = createBrowserRouter([
   // Rotas públicas
@@ -71,10 +75,14 @@ export const router = createBrowserRouter([
       { path: '/orcamentos/:id/recibo-estorno',       element: <ReciboEstornoPage /> },
 
       { path: '/caixa',                element: <CaixaPage /> },
+      { path: '/caixa/historico',      element: <HistoricoVendasPage /> },
 
       { path: '/compras',              element: <ComprasPage /> },
+      { path: '/vendas/dashboard',     element: <DashboardVendasPage /> },
+      { path: '/cadastros/dashboard',  element: <DashboardCadastrosPage /> },
       { path: '/compras/dashboard',    element: <DashboardComprasPage /> },
       { path: '/compras/nova',         element: <FormCompraPage /> },
+      { path: '/compras/entrada',      element: <EntradaComprasPage /> },
       { path: '/compras/nota',         element: <LerNotaPage /> },
       { path: '/compras/nota/vinculos', element: <HistoricoVinculosNotaPage /> },
       { path: '/compras/lista',        element: <ListaComprasPage /> },

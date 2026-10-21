@@ -7,6 +7,7 @@ export interface CadastroRequest {
   email: string
   senha: string
   confirmarSenha: string
+  nomeEmpresa?: string
 }
 
 export interface AuthResponse {
@@ -28,6 +29,11 @@ export interface AlterarSenhaRequest {
   senhaAtual: string
   novaSenha: string
   confirmarNovaSenha: string
+}
+
+export interface AlterarEmailRequest {
+  novoEmail: string
+  senhaAtual: string
 }
 
 export interface ApiErrorResponse {

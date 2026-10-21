@@ -29,6 +29,8 @@ export interface FichaTecnicaItemResponse {
 
 export interface ProdutoRequest {
   nome: string
+  /** #1017 (RN-NOVA-36) — marca opcional, até 100 caracteres. */
+  marca?: string
   tipo: TipoProduto
   descricao?: string
   tempoProducao: number
@@ -50,6 +52,7 @@ export interface ProdutoResponse {
   numero?: number
   identificador?: string
   nome: string
+  marca?: string | null
   tipo: TipoProduto
   precoVenda?: number
   precoCusto: number
@@ -117,6 +120,12 @@ export interface MovimentacaoProdutoResponse {
   precoVendido?: number
   estornada: boolean
   createdAt: string
+  /** #672 (DT-NOVA-7) — MOVIMENTACAO (estoque) ou PRECO_SUGERIDO (mudança do preço sugerido, sem quantidade). */
+  tipoLinha?: 'MOVIMENTACAO' | 'PRECO_SUGERIDO'
+  precoSugeridoAnterior?: number | null
+  precoSugeridoNovo?: number | null
+  causaPrecoSugerido?: string | null
+  referenciaTexto?: string | null
 }
 
 export interface CatalogoVinculadoResponse {

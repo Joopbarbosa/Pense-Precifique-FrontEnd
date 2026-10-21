@@ -3,6 +3,8 @@ import { Truck } from 'lucide-react'
 import { Button, Field, Input, ModalShell, TextArea } from '../../ui'
 import { clienteService } from '../../../services/clienteService'
 import { extrairErroExplicado } from '../../../utils/apiError'
+import { MENSAGEM_TELEFONE_INVALIDO, telefoneValido } from '../../../utils/telefone'
+import { ControleModoTelefone, useModoTelefone } from '../../ui/TelefoneEstrangeiro'
 import type { ClienteResponse } from '../../../types/cliente'
 import type { FornecedorProposta } from '../../../types/compraNota'
 
@@ -26,7 +28,15 @@ export default function ModalCadastrarFornecedorNota({ proposta, onClose, onCria
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
+  // V0.17.0 #964 (RN-NOVA-19): telefone fora dos dois formatos bloqueia antes de enviar
+  const modoWhatsapp = useModoTelefone(whatsapp, setWhatsapp)
+  const modoTelefone = useModoTelefone(telefone, setTelefone)
+
   const salvar = async () => {
+    if (!telefoneValido(whatsapp) || !telefoneValido(telefone)) {
+      setErro(`${MENSAGEM_TELEFONE_INVALIDO}: confira o WhatsApp e o Telefone.`)
+      return
+    }
     setSalvando(true)
     setErro('')
     try {
@@ -54,8 +64,18 @@ export default function ModalCadastrarFornecedorNota({ proposta, onClose, onCria
         <Input id="fornecedor-nota-cnpj" label="CNPJ" value={proposta.cnpj ?? ''} onChange={() => undefined} disabled />
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <Input id="fornecedor-nota-email" label="E-mail" type="email" value={email} onChange={setEmail} />
-          <Input id="fornecedor-nota-whatsapp" label="WhatsApp" type="tel" value={whatsapp} onChange={setWhatsapp} />
-          <Input id="fornecedor-nota-telefone" label="Telefone" type="tel" value={telefone} onChange={setTelefone} />
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Input id="fornecedor-nota-whatsapp" label="WhatsApp" type="tel" value={whatsapp} onChange={modoWhatsapp.digitar} error={!telefoneValido(whatsapp) ? MENSAGEM_TELEFONE_INVALIDO : undefined} />
+            </div>
+            <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Input id="fornecedor-nota-telefone" label="Telefone" type="tel" value={telefone} onChange={modoTelefone.digitar} error={!telefoneValido(telefone) ? MENSAGEM_TELEFONE_INVALIDO : undefined} />
+            </div>
+            <ControleModoTelefone estrangeiro={modoTelefone.estrangeiro} onAlternar={modoTelefone.alternar} />
+          </div>
           <Input id="fornecedor-nota-site" label="Site" value={site} onChange={setSite} />
         </div>
         <Input id="fornecedor-nota-endereco" label="Endereço" value={endereco} onChange={setEndereco} />

@@ -26,6 +26,8 @@ export interface ItemCatalogoComponenteResponse {
 
 export interface ItemCatalogoRequest {
   nome: string
+  /** #1017 (RN-NOVA-36) — marca opcional, até 100 caracteres. */
+  marca?: string
   componentes: ItemCatalogoComponenteRequest[]
   tempoProducao: number
   margemLucro?: number
@@ -37,6 +39,7 @@ export interface ItemCatalogoRequest {
 export interface ItemCatalogoResponse {
   id: string
   nome: string
+  marca?: string | null
   componentes: ItemCatalogoComponenteResponse[]
   tempoProducao: number
   margemLucro: number | null

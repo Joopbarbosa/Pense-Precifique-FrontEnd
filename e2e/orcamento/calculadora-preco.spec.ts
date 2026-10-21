@@ -69,6 +69,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(produto.nome)
     await page.getByText(produto.nome, { exact: true }).click()
 
     await expect(page.getByText('Calculadora de Preço').first()).toBeVisible()
@@ -93,6 +95,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(produto.nome)
     await page.getByText(produto.nome, { exact: true }).click()
 
     const sugerido = await lerPrecoSugerido(page)
@@ -127,6 +131,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(produto.nome)
     await page.getByText(produto.nome, { exact: true }).click()
     await expect(page.getByText('Calculadora de Preço').first()).toBeVisible()
 
@@ -149,6 +155,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(`QA-399d-Item-${ts}`)
     await page.getByText(`QA-399d-Item-${ts}`, { exact: true }).click()
 
     await expect(page.getByText('Calculadora de Preço').first()).toBeVisible()
@@ -173,6 +181,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(produtoAvulso.nome)
     await page.getByText(produtoAvulso.nome, { exact: true }).click()
     await page.getByRole('button', { name: 'Adicionar ao orçamento' }).click()
 
@@ -207,6 +217,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await selecionarCliente(page, cliente.nome)
     await page.route(`${E2E_BROWSER_API_URL}/configuracoes/precificacao`, route => route.fulfill({ status: 500, body: '{}' }))
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(produto.nome)
     await page.getByText(produto.nome, { exact: true }).click()
 
     await expect(page.getByText('Não foi possível carregar os dados de preço deste item.')).toBeVisible()
@@ -252,6 +264,8 @@ test.describe('#399 — ORC-020 (REVISÃO) — calculadora de preço no Orçamen
     await selecionarCliente(page, cliente.nome)
     await page.getByRole('button', { name: 'Catálogo' }).click()
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // a busca de itens pagina de 10 em 10: em banco cheio o item novo não está na primeira página
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(item.nome)
     await page.getByText(item.nome, { exact: true }).click()
 
     // ModalCalculadoraItem descarta a mensagem específica do erro lançado por

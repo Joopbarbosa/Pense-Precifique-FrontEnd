@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Eye, Power, Pencil, Copy, Camera, Layers, Plus, Search, Box, ChevronRight, AlertCircle, Trash2, Repeat } from 'lucide-react'
+import { Eye, Power, Pencil, Copy, Camera, Layers, Plus, Search, Box, AlertCircle, Trash2, Repeat } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import ModalShell from '../../components/ui/ModalShell'
@@ -15,10 +15,14 @@ import { EstoqueTags } from '../../components/ui/Badge'
 import { produtoService } from '../../services/produtoService'
 import { itemCatalogoService } from '../../services/itemCatalogoService'
 import { useDebounceSearch } from '../../hooks/useDebounceSearch'
+import { useEspelharNaUrl, useParamsIniciais } from '../../hooks/useEstadoNaUrl'
+import { useAoMudar } from '../../hooks/useAoMudar'
+import Paginacao from '../../components/shared/Paginacao'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 import type { ProdutoResponse, ProdutoContagensResponse, ComponenteVinculadoResponse, AcaoResolucaoVinculo, ResolverVinculosProdutoRequest } from '../../types/produto'
 import type { TipoProduto } from '../../types/index'
+import { rotuloProduto } from '../../utils/rotuloProduto'
 
 const CATS = ['Todos', 'Produto', 'Customização', 'Inativos']
 
@@ -173,7 +177,7 @@ function ProductCard({ p, index, onVer, onEditar, onDuplicar, onDesativar, onRea
           </div>
         )}
         <h3 className="m-0 text-[15.5px] font-semibold leading-[1.3] tracking-[-0.01em] text-dark">
-          {p.nome}
+          {rotuloProduto(p.nome, p.marca)}
         </h3>
         {!isCustom && (
           <EstoqueTags
@@ -250,7 +254,7 @@ function SeletorProdutoSubstituto({ label, tipoFiltro, produtoAtualId, seleciona
 
       {selecionado ? (
         <div className="flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] border-teal/40 bg-teal/5 px-3 py-2.5">
-          <span className="text-[13.5px] font-semibold text-dark">{selecionado.nome}</span>
+          <span className="text-[13.5px] font-semibold text-dark">{rotuloProduto(selecionado.nome, selecionado.marca)}</span>
           <button onClick={() => onSelect(null)} className="flex border-none bg-transparent text-faint hover:text-danger">
             <Trash2 size={15} />
           </button>
@@ -280,7 +284,7 @@ function SeletorProdutoSubstituto({ label, tipoFiltro, produtoAtualId, seleciona
                   onMouseDown={() => onSelect(p)}
                   className="flex w-full flex-col items-start gap-1 rounded-lg border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
                 >
-                  <span className="text-[13.5px] font-semibold text-dark">{p.nome}</span>
+                  <span className="text-[13.5px] font-semibold text-dark">{rotuloProduto(p.nome, p.marca)}</span>
                   {tipoFiltro === 'PRODUTO' && (
                     <EstoqueTags
                       fracionavel={!p.algumInsumoNaoFracionavel}
@@ -519,8 +523,12 @@ function ProdutoResolverVinculosModal({ produto, operacao, catalogoVinculos, com
 
 export default function ListaProdutosPage() {
   const navigate = useNavigate()
-  const [cat, setCat] = useState('Todos')
-  const isFirstCat = useRef(true)
+  // #994 — página, busca e categoria ficam na URL: voltar de um produto reabre a lista como estava
+  const inicial = useParamsIniciais()
+  const [cat, setCat] = useState(() => {
+    const c = inicial.texto('cat', 'Todos')
+    return c in CAT_TO_TIPO || c in CAT_TO_ATIVO ? c : 'Todos'
+  })
   const [confirmAcao, setConfirmAcao] = useState<{ tipo: 'desativar' | 'excluir'; produto: ProdutoResponse } | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [bloqueio, setBloqueio] = useState<{
@@ -537,24 +545,24 @@ export default function ListaProdutosPage() {
   const {
     items: produtos,
     setItems: setProdutos,
-    hasMore: hasNext,
+    page,
+    totalPages,
+    ultima,
     totalElements,
-    setTotalElements,
     loading,
-    loadingMore,
-    loadMore: carregarMais,
+    irParaPagina,
+    recarregar,
     query: busca,
     setQuery: setBusca,
     reset,
   } = useDebounceSearch({
     fetcher: (page, size, q) => produtoService.listar(page, size, CAT_TO_TIPO[cat], q, undefined, CAT_TO_ATIVO[cat]),
+    buscaInicial: inicial.texto('busca'),
+    paginaInicial: inicial.pagina(),
   })
+  useEspelharNaUrl({ pagina: page + 1, busca, cat }, { pagina: 1, busca: '', cat: 'Todos' })
 
-  useEffect(() => {
-    if (isFirstCat.current) { isFirstCat.current = false; return }
-    reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cat])
+  useAoMudar(cat, reset)
 
   const carregarContadores = () => {
     produtoService.contagens().then(setContadores).catch(() => {})
@@ -587,9 +595,8 @@ export default function ListaProdutosPage() {
         setToast('Produto inativado.')
       } else {
         await produtoService.excluir(produto.id)
-        setProdutos(prev => prev.filter(x => x.id !== produto.id))
-        setTotalElements(prev => Math.max(0, prev - 1))
         setToast('Produto excluído.')
+        recarregar()
       }
       setConfirmAcao(null)
       carregarContadores()
@@ -717,27 +724,8 @@ export default function ListaProdutosPage() {
             ))}
           </div>
 
-          {/* Contador + Carregar mais */}
-          <div className="mt-section flex flex-col items-center gap-3">
-            <div className="w-full self-end text-right text-[13px] text-muted">
-              {produtos.length} de {totalElements} {totalElements === 1 ? 'produto' : 'produtos'}
-            </div>
-            {hasNext && (
-              <button
-                onClick={carregarMais}
-                disabled={loadingMore}
-                className={clsx(
-                  'inline-flex h-11 items-center gap-2 rounded-input border-[1.5px] border-line bg-white px-6 font-[inherit] text-sm font-semibold text-teal transition-colors duration-100',
-                  loadingMore ? 'cursor-default opacity-70' : 'cursor-pointer hover:bg-teal/6'
-                )}
-              >
-                {loadingMore
-                  ? <><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</>
-                  : <>Carregar mais <ChevronRight size={15} className="rotate-90" /></>
-                }
-              </button>
-            )}
-          </div>
+          <Paginacao pagina={page} totalPaginas={totalPages} ultima={ultima} carregando={loading} onMudar={irParaPagina}
+            esquerda={<span data-testid="total-registros">{totalElements} {totalElements === 1 ? 'produto' : 'produtos'}</span>} />
         </>
       )}
 
@@ -786,9 +774,8 @@ export default function ListaProdutosPage() {
               setProdutos(prev => prev.map(x => x.id === produto.id ? { ...x, ativo: false } : x))
               setToast('Produto inativado.')
             } else {
-              setProdutos(prev => prev.filter(x => x.id !== produto.id))
-              setTotalElements(prev => Math.max(0, prev - 1))
               setToast('Produto excluído.')
+              recarregar()
             }
             setBloqueio(null)
           }}

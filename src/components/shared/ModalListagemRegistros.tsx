@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { ExternalLink, List, Search } from 'lucide-react'
+import { List, Search } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import SortableHeader from './SortableHeader'
+import Paginacao from './Paginacao'
 import CampoFiltros, { type FiltroEscolhido, type GrupoFiltro } from './CampoFiltros'
 import ModalRegistro, { type TipoRegistro } from '../cliente/ModalRegistro'
+import { dashboardVendasService } from '../../services/dashboardVendasService'
+import type { OrigemVenda } from '../../types/dashboardVendas'
 import { BRL } from '../venda/formato'
 import { formatarData, hojeIso, STATUS_COMPRA_LABEL } from '../compra/formato'
 import { clienteService } from '../../services/clienteService'
@@ -29,6 +32,8 @@ import type { StatusOrcamento } from '../../types/orcamento'
 export type FonteListagem =
   | { tipo: 'cadastro'; cadastroId: string; papel: PapelCadastro }
   | { tipo: 'compras' }
+  /** V0.17.0 #968/#971 (DT-NOVA-18): vendas do Dashboard de Vendas (Caixa e orçamento), filtradas pelo número clicado. */
+  | { tipo: 'vendas' }
 
 /** Filtro vindo do ponto de entrada; vira etiquetas no campo de filtros, que a pessoa pode tirar. */
 export interface FiltroInicial {
@@ -46,6 +51,8 @@ export interface FiltroInicial {
   rotulos?: string[]
   /** Ordenação inicial, ex. 'data,asc' (padrão: data mais recente primeiro). */
   sort?: string
+  /** Só para a fonte "vendas": o que forma o número clicado no dashboard. */
+  vendas?: { origem?: OrigemVenda; produtoId?: string; forma?: string; somenteQueContam?: boolean }
 }
 
 interface Linha {
@@ -77,6 +84,8 @@ const buscarFornecedores = (termo: string) => clienteService.listar(0, 8, termo 
   .then(p => p.content.map(c => ({ valor: c.id, rotulo: c.nome })))
 
 function gruposDa(fonte: FonteListagem): GrupoFiltro[] {
+  // Vendas do dashboard: o recorte vem do número clicado; a busca e o período ficam na própria modal.
+  if (fonte.tipo === 'vendas') return []
   if (fonte.tipo === 'cadastro' && fonte.papel === 'CLIENTE') return [
     { id: 'tipo', rotulo: 'Tipo', opcoes: [{ valor: 'ORCAMENTO', rotulo: 'Orçamento' }, { valor: 'VENDA_CAIXA', rotulo: 'Venda do Caixa' }] },
     { id: 'conta', rotulo: 'Conta como compra', opcoes: [{ valor: 'sim', rotulo: 'Sim' }] },
@@ -125,6 +134,7 @@ const dateInput = 'h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 
 
 // A ordenação pública da modal é sempre data/identificador/valor/status; compras usam os nomes do GET /compras.
 const CAMPO_COMPRAS: Record<Campo, string> = { data: 'dataCompra', identificador: 'numero', valor: 'total', status: 'status' }
+const CAMPO_VENDAS: Record<Campo, string> = { data: 'data', identificador: 'identificador', valor: 'total', status: 'status' }
 
 /** #602 (RN-NOVA-32) — mesmo texto do backend (ClienteHistoricoService, "Período inválido"). */
 export const ERRO_PERIODO = {
@@ -132,6 +142,15 @@ export const ERRO_PERIODO = {
   mensagem: 'A data inicial não pode ser depois da data final.',
   motivo: 'O período vai da data inicial até a data final.',
   comoResolver: 'Troque as datas de lugar (ex.: de 01/09/2026 até 30/09/2026).',
+}
+
+/** #988: "N vendas · M unidades" quando a lista de vendas é de um produto; senão, "N registros". */
+function contagem(total: number, unidades: number | null, vendas: boolean): string {
+  if (vendas && unidades != null) {
+    const un = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(unidades)
+    return `${total} ${total === 1 ? 'venda' : 'vendas'} · ${un} ${unidades === 1 ? 'unidade' : 'unidades'}`
+  }
+  return `${total} ${total === 1 ? 'registro' : 'registros'}`
 }
 
 export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtro, onClose }: {
@@ -152,11 +171,14 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const [ordem, setOrdem] = useState<{ campo: Campo; dir: 'asc' | 'desc' }>({ campo: ordemInicialCampo, dir: ordemInicialDir })
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [total, setTotal] = useState(0)
+  const [unidades, setUnidades] = useState<number | null>(null)
   const [page, setPage] = useState(0)
-  const [temMais, setTemMais] = useState(false)
+  const [ultima, setUltima] = useState(true)
+  const [totalPaginas, setTotalPaginas] = useState(0)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [vendaAberta, setVendaAberta] = useState<string | null>(null)
+  // V0.17.0 #968/#970 (RN-NOVA-23 item 3): a linha abre a modal de dados do registro, em qualquer fonte
+  const [detalhe, setDetalhe] = useState<{ tipo: TipoRegistro; id: string } | null>(null)
   const { modalErro, mostrarErro } = useModalErro()
   const seq = useRef(0)
 
@@ -164,9 +186,21 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
   const pagamento = valores('pagamento')
   const pago = pagamento.length === 1 ? pagamento[0] as 'true' | 'false' : undefined
 
-  const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean }> => {
-    const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : ordem.campo},${ordem.dir}`
+  const buscar = async (pagina: number): Promise<{ linhas: Linha[]; total: number; last: boolean; totalPages: number; unidades?: number | null }> => {
+    const sort = `${fonte.tipo === 'compras' ? CAMPO_COMPRAS[ordem.campo] : fonte.tipo === 'vendas' ? CAMPO_VENDAS[ordem.campo] : ordem.campo},${ordem.dir}`
     const status = valores('status')
+    if (fonte.tipo === 'vendas') {
+      const v = filtro.vendas ?? {}
+      const r = await dashboardVendasService.lista({
+        de: de || undefined, ate: ate || undefined, origem: v.origem, busca: q || undefined,
+        somenteQueContam: v.somenteQueContam, produtoId: v.produtoId, forma: v.forma, sort, page: pagina, size: POR_PAGINA,
+      })
+      return {
+        linhas: r.vendas.content.map(l => ({ id: l.id, tipo: l.origem, identificador: l.identificador, data: l.data, status: l.status,
+          valor: l.total, resumoItens: l.itens, pago: null })),
+        total: r.quantidadeFiltrada, last: r.vendas.last, totalPages: r.vendas.totalPages, unidades: r.unidadesDoProduto,
+      }
+    }
     if (fonte.tipo === 'cadastro') {
       const r = await clienteService.registros(fonte.cadastroId, pagina, POR_PAGINA, {
         papel: fonte.papel, busca: q || undefined, status: status.length ? status : undefined,
@@ -174,7 +208,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
         comDesconto: valores('desconto').length > 0, itemId: valores('item'),
         de: de || undefined, ate: ate || undefined, sort,
       })
-      return { linhas: r.content.map(x => ({ ...x })), total: r.totalElements, last: r.last }
+      return { linhas: r.content.map(x => ({ ...x })), total: r.totalElements, last: r.last, totalPages: r.totalPages }
     }
     const r = await compraService.listar(pagina, POR_PAGINA, {
       status: status as StatusCompra[], pago: pago === undefined ? undefined : pago === 'true',
@@ -185,7 +219,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
     return {
       linhas: r.content.map(c => ({ id: c.id, tipo: 'COMPRA' as const, identificador: c.identificador, data: c.dataCompra, status: c.status,
         valor: c.total, resumoItens: c.resumoItens, pago: c.pago })),
-      total: r.totalElements, last: r.last,
+      total: r.totalElements, last: r.last, totalPages: r.totalPages,
     }
   }
 
@@ -195,8 +229,10 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
     buscar(pagina)
       .then(r => {
         if (minha !== seq.current) return
-        setLinhas(prev => pagina === 0 ? r.linhas : [...prev, ...r.linhas])
-        setTotal(r.total); setTemMais(!r.last); setPage(pagina)
+        // #994: página que passou do limite (registros removidos) mostra a última que existe
+        if (r.linhas.length === 0 && pagina > 0 && r.totalPages > 0) { carregar(r.totalPages - 1); return }
+        setLinhas(r.linhas)
+        setTotal(r.total); setUnidades(r.unidades ?? null); setUltima(r.last); setTotalPaginas(r.totalPages); setPage(pagina)
       })
       .catch(err => { if (minha === seq.current) setErro(extractApiError(err, 'Não foi possível carregar a listagem.')) })
       .finally(() => { if (minha === seq.current) setCarregando(false) })
@@ -222,10 +258,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
     else setAte(valor)
   }
 
-  const abrir = (l: Linha) => {
-    if (l.tipo === 'VENDA_CAIXA') { setVendaAberta(l.id); return }
-    window.open(l.tipo === 'ORCAMENTO' ? `/orcamentos/${l.id}` : `/compras/${l.id}`, '_blank', 'noopener')
-  }
+  const abrir = (l: Linha) => setDetalhe({ tipo: l.tipo, id: l.id })
 
   const grade = 'md:grid-cols-[1.1fr_0.8fr_2.2fr_1fr_0.9fr_24px]'
 
@@ -238,7 +271,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
             <label className="relative block min-w-[220px] flex-1">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input value={busca} onChange={e => setBusca(e.target.value)} aria-label="Buscar na listagem"
-                placeholder={fonte.tipo === 'compras' || (fonte.tipo === 'cadastro' && fonte.papel === 'FORNECEDOR') ? 'Buscar por número ou insumo' : 'Buscar por número ou item'}
+                placeholder={fonte.tipo === 'vendas' ? 'Buscar por venda ou cliente' : fonte.tipo === 'compras' || (fonte.tipo === 'cadastro' && fonte.papel === 'FORNECEDOR') ? 'Buscar por número ou insumo' : 'Buscar por número ou item'}
                 className="h-9 w-full rounded-input border-[1.5px] border-line bg-white pl-8 pr-3 font-[inherit] text-[13px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </label>
             <label className="flex items-center gap-1.5 text-[12.5px] font-semibold text-body">
@@ -253,7 +286,7 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
             <div className="min-w-[280px] flex-1">
               <CampoFiltros grupos={grupos} escolhidos={filtros} onChange={setFiltros} />
             </div>
-            <span className="pt-2.5 text-[12.5px] text-muted">{carregando && page === 0 ? '' : `${total} ${total === 1 ? 'registro' : 'registros'}`}</span>
+            <span data-testid="contagem-registros" className="pt-2.5 text-[12.5px] text-muted">{carregando && page === 0 ? '' : contagem(total, unidades, fonte.tipo === 'vendas')}</span>
           </div>
 
           <div className="rounded-input border border-line" data-testid="modal-listagem">
@@ -288,23 +321,20 @@ export default function ModalListagemRegistros({ titulo, subtitulo, fonte, filtr
                     )}
                   </span>
                   <span className="text-right font-semibold text-dark [font-variant-numeric:tabular-nums] md:text-left">{BRL(l.valor)}</span>
-                  <span className="hidden text-muted md:block">{l.tipo !== 'VENDA_CAIXA' && <ExternalLink size={14} />}</span>
                 </button>
               ))}
               {carregando && (
                 <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
               )}
-              {temMais && !carregando && (
-                <div className="flex justify-center border-t border-line py-2.5">
-                  <Button variant="ghost" size="sm" onClick={() => carregar(page + 1)}>Carregar mais</Button>
-                </div>
-              )}
             </div>
           </div>
+          {!erro && total > 0 && (
+            <Paginacao pagina={page} totalPaginas={totalPaginas} ultima={ultima} carregando={carregando} onMudar={carregar} />
+          )}
         </div>
       </ModalShell>
       {modalErro}
-      {vendaAberta && <ModalRegistro tipo="VENDA_CAIXA" id={vendaAberta} onClose={() => setVendaAberta(null)} />}
+      {detalhe && <ModalRegistro tipo={detalhe.tipo} id={detalhe.id} onClose={() => setDetalhe(null)} />}
     </>
   )
 }
