@@ -19,6 +19,8 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto }: {
 }) {
   const origem = ORIGEM[c.origem]
   const atraso = textoAtraso(c)
+  const concluido = c.situacao === 'CONCLUIDO'
+  const cancelado = c.situacao === 'CANCELADO'
   return (
     <button
       type="button"
@@ -30,12 +32,12 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto }: {
       title={[c.titulo, atraso, ...c.marcacoes, ...c.avisos].filter(Boolean).join(' — ')}
       className={clsx(
         'flex w-full min-w-0 flex-col rounded-lg border px-2 py-1 text-left text-xs leading-tight transition-colors hover:brightness-95',
-        c.atrasado ? 'border-danger-line bg-danger-bg text-danger-deep' : origem.chip,
-        c.situacao === 'CANCELADO' && 'opacity-50',
+        c.atrasado ? 'border-danger-strong bg-danger-strong text-white' : concluido ? 'border-azul/20 bg-azul/10 text-dark' : origem.chip,
+        cancelado && 'opacity-50',
       )}
     >
-      <span className={clsx('flex min-w-0 items-center gap-1 font-semibold', c.situacao !== 'PENDENTE' && 'line-through')}>
-        <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', c.atrasado ? 'bg-danger' : origem.ponto)} aria-hidden />
+      <span className={clsx('flex min-w-0 items-center gap-1 font-semibold', c.atrasado && 'text-white', (concluido || cancelado) && 'line-through text-subtle')}>
+        <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', c.atrasado ? 'bg-white' : concluido || cancelado ? 'bg-subtle' : origem.ponto)} aria-hidden />
         {c.horario && <span className="shrink-0">{c.horario}</span>}
         <span className="truncate">{c.titulo}</span>
       </span>

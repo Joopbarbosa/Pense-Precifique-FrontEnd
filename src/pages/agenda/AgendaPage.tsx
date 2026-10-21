@@ -11,13 +11,14 @@ import ModalAtrasados from '../../components/agenda/ModalAtrasados'
 import ModalDia from '../../components/agenda/ModalDia'
 import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
 import ModalEvento from '../../components/agenda/ModalEvento'
+import FiltrosAgenda from '../../components/agenda/FiltrosAgenda'
 import { agendaService } from '../../services/agendaService'
 import { empresaService } from '../../services/empresaService'
-import type { AgendaResumo, Compromisso, VisaoAgenda } from '../../types/agenda'
+import type { AgendaResumo, Compromisso, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
 import type { HorarioFuncionamento } from '../../types/empresa'
 import { dataLocalIso } from '../../utils/data'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
-import { navegar, periodoDaVisao, tituloDoPeriodo } from '../../utils/agenda'
+import { filtrarCompromissos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
 
 const OPCOES_VISAO = [
   { value: 'DIA' as VisaoAgenda, label: 'Dia' },
@@ -59,8 +60,10 @@ export default function AgendaPage() {
   const [diaAberto, setDiaAberto] = useState<string | null>(null)
   const [aberto, setAberto] = useState<Compromisso | null>(null)
   const [novoEvento, setNovoEvento] = useState(false)
+  const [filtros, setFiltros] = useState<FiltrosAgendaValue>({ mostrar: 'TODOS', origens: [] })
 
   const periodo = useMemo(() => periodoDaVisao(visao, referencia), [visao, referencia])
+  const periodoContemHoje = periodo.de <= hoje && hoje <= periodo.ate
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -79,20 +82,22 @@ export default function AgendaPage() {
   useEffect(() => { void carregar() }, [carregar])
   useEffect(() => { empresaService.getEmpresa().then(e => setHorarios(e?.horarios)).catch(() => setHorarios(undefined)) }, [])
 
+  const compromissosVisiveis = useMemo(() => filtrarCompromissos(compromissos, filtros), [compromissos, filtros])
   const porDia = useMemo(() => {
     const mapa = new Map<string, Compromisso[]>()
-    for (const c of compromissos) {
+    for (const c of compromissosVisiveis) {
       const lista = mapa.get(c.dataExibicao)
       if (lista) lista.push(c)
       else mapa.set(c.dataExibicao, [c])
     }
     return mapa
-  }, [compromissos])
+  }, [compromissosVisiveis])
 
   // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
   const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje) }
   const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setAberto(c) }
-  const vazio = !carregando && !erro && compromissos.length === 0
+  const filtrosAtivos = filtros.mostrar !== 'TODOS' || filtros.origens.length > 0
+  const vazio = !carregando && !erro && compromissosVisiveis.length === 0
 
   return (
     <AppLayout active="agenda" compact>
@@ -106,13 +111,18 @@ export default function AgendaPage() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" icon={<ChevronLeft size={16} />} onClick={() => setReferencia(navegar(visao, referencia, -1))}>Anterior</Button>
-          <Button variant="ghost" size="sm" onClick={() => setReferencia(hoje)}>Hoje</Button>
+          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => setReferencia(hoje)}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
           <span className="ml-2 text-[15px] font-semibold capitalize text-dark" data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
         </div>
         <SegmentedControl options={OPCOES_VISAO} value={visao} onChange={setVisao} height="h-9" display="inline-flex"
           optionWidth="whitespace-nowrap px-4" textSize="text-[13.5px]" />
       </div>
+
+      <FiltrosAgenda filtros={filtros} ativo={filtrosAtivos}
+        onMudarMostrar={(mostrar: MostrarAgenda) => setFiltros(atual => ({ ...atual, mostrar }))}
+        onMudarOrigens={(origens: OrigemCompromisso[]) => setFiltros(atual => ({ ...atual, origens }))}
+        onLimpar={() => setFiltros({ mostrar: 'TODOS', origens: [] })} />
 
       {erro && <p className="rounded-card border border-danger-line bg-danger-bg px-4 py-3 text-sm text-danger-deep">{erro}</p>}
       {carregando && compromissos.length === 0 && !erro ? (
@@ -122,7 +132,9 @@ export default function AgendaPage() {
       ) : (
         <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} faixa={faixaDeFuncionamento(horarios)} onAbrir={abrir} />
       )}
-      {vazio && <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia">Nenhum compromisso neste período</p>}
+      {vazio && (filtrosAtivos
+        ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>
+        : <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia">Nenhum compromisso neste período</p>)}
 
       {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}

@@ -58,6 +58,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     await page.getByRole('button', { name: 'Próximo' }).click()
     const chip = page.getByTestId('compromisso').filter({ hasText: `Início previsto — ${producao.identificador} (Bolsa ${sufixo} — Atelier, +2 produtos)` })
     await expect(chip).toBeVisible()
+    await expect(chip).toHaveClass(/bg-purple\/15/)
     await chip.click()
     const itens = page.getByTestId('produtos-da-producao').locator('li')
     await expect(itens).toHaveCount(3)
@@ -80,6 +81,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     await page.getByRole('button', { name: 'Próximo' }).click()
     const chip = page.getByTestId('compromisso').filter({ hasText: `Entrega de compra — ${compra.identificador}` })
     await expect(chip).toBeVisible()
+    await expect(chip).toHaveClass(/bg-azul\/20/)
     await chip.click()
     await expect(page.getByTestId('insumos-da-compra')).toContainText('×10')
 
@@ -110,6 +112,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     const chip = page.getByTestId('compromisso').filter({ hasText: `Entrega de compra — ${compra.identificador}` })
     await expect(chip).toBeVisible()
+    await expect(chip).toHaveClass(/bg-danger-strong/)
     await expect(chip).toContainText('Atrasada há 3 dias')
     await chip.click()
     await page.getByRole('button', { name: 'Concluir' }).click()
