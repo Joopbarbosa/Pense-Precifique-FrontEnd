@@ -36,9 +36,10 @@ test.describe('#1034 — Agenda', () => {
     const hoje = hojeLocal(0)
     const cabecalhoHoje = page.getByTestId(`cabecalho-dia-${hoje}`)
     await expect(cabecalhoHoje.locator('span')).toHaveText([
-      new Intl.DateTimeFormat('pt-BR', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${hoje}T12:00:00Z`)).replace('.', '').toUpperCase(),
+      new Intl.DateTimeFormat('pt-BR', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${hoje}T12:00:00Z`)).replace('.', ''),
       String(Number(hoje.slice(8, 10))),
     ])
+    await expect(cabecalhoHoje.locator('span').first()).toHaveClass(/uppercase/)
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await expect(page.getByTestId(`cabecalho-dia-${hoje}`).locator('span')).toHaveCount(2)
     await page.getByRole('button', { name: 'Próximo' }).click()
