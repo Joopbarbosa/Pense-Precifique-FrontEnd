@@ -1,3 +1,4 @@
+import { dataLocalIso } from '../../utils/data'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
@@ -11,7 +12,7 @@ import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { FornecedorSelect, InsumoPicker } from '../../components/compra/Pickers'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
 import DescontoInput from '../../components/compra/DescontoInput'
-import { erroDesconto, hojeIso, moeda, paraCampo, parseDecimal } from '../../components/compra/formato'
+import { erroDesconto, moeda, paraCampo, parseDecimal } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
 import { extractApiError } from '../../utils/apiError'
@@ -77,7 +78,7 @@ export default function FormCompraPage() {
   const [erroCarga, setErroCarga] = useState<string | null>(null)
   const [compra, setCompra] = useState<CompraResponse | null>(null)
 
-  const [dataCompra, setDataCompra] = useState(hojeIso())
+  const [dataCompra, setDataCompra] = useState(dataLocalIso())
   const [entregaImediata, setEntregaImediata] = useState(true)
   const [previsaoEntrega, setPrevisaoEntrega] = useState('')
   const [multiplos, setMultiplos] = useState(false)
@@ -273,7 +274,7 @@ export default function FormCompraPage() {
           <SectionTitle number="1" title="Dados da compra" subtitle="Quando, de quem e como foi paga." />
           <div className="grid grid-cols-1 gap-section md:grid-cols-2 xl:grid-cols-4">
             <Field label="Data da compra" required size="md">
-              <input type="date" value={dataCompra} max={hojeIso()} onChange={e => setDataCompra(e.target.value)}
+              <input type="date" value={dataCompra} max={dataLocalIso()} onChange={e => setDataCompra(e.target.value)}
                 className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
             </Field>
             {!pendente && (
@@ -284,7 +285,7 @@ export default function FormCompraPage() {
             )}
             {!entregaImediata && (
               <Field label="Previsão de entrega" required size="md" hint="O estoque só muda quando a entrega for registrada.">
-                <input type="date" value={previsaoEntrega} min={pendente ? dataCompra : (dataCompra > hojeIso() ? dataCompra : hojeIso())}
+                <input type="date" value={previsaoEntrega} min={pendente ? dataCompra : (dataCompra > dataLocalIso() ? dataCompra : dataLocalIso())}
                   onChange={e => setPrevisaoEntrega(e.target.value)} aria-label="Previsão de entrega"
                   className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
               </Field>

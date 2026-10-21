@@ -1,3 +1,4 @@
+import { MESES, formatarData } from '../../utils/data'
 import { useEffect, useMemo, useState } from 'react'
 import BotaoAjuda from '../ui/BotaoAjuda'
 import clsx from 'clsx'
@@ -6,7 +7,7 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import { Button, ModalShell, SegmentedControl } from '../ui'
 import Spinner from '../ui/Spinner'
 import { InsumoPicker } from './Pickers'
-import { formatarData, moeda, qtd } from './formato'
+import { moeda, qtd } from './formato'
 import { compraService } from '../../services/compraService'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { extractApiError } from '../../utils/apiError'
@@ -24,7 +25,6 @@ type Modo = 'pct' | 'brl'
 type Selecionado = { id: string; nome: string; unidade: string; slot: number }
 
 const MAX_INSUMOS = 5
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 const ts = (iso: string) => { const [a, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(a, m - 1, d).getTime() }
 const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`

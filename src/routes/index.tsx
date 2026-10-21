@@ -4,6 +4,7 @@ import LoginPage from '../pages/auth/LoginPage'
 import CadastroPage from '../pages/auth/CadastroPage'
 import OnboardingPage from '../pages/auth/OnboardingPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
+import AgendaPage from '../pages/agenda/AgendaPage'
 import ClientesPage from '../pages/clientes/ClientesPage'
 import FormClientePage from '../pages/clientes/FormClientePage'
 import DetalheClientePage from '../pages/clientes/DetalheClientePage'
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/onboarding', element: <OnboardingPage /> },
 
+      { path: '/agenda',     element: <AgendaPage /> },
       { path: '/dashboard',  element: <DashboardPage /> },
       { path: '/clientes',            element: <ClientesPage /> },
       { path: '/clientes/novo',       element: <FormClientePage /> },

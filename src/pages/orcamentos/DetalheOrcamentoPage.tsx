@@ -40,7 +40,7 @@ import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
-import { dataLocalISO } from "../../utils/dataLocal";
+import { dataLocalIso, formatarDataHora } from "../../utils/data";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -142,7 +142,15 @@ const CANCEL_KIND_HINT: Record<ReturnType<typeof cancelKind>, string | null> = {
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
 
-function Timeline({ current }: { current: ApiStatus }) {
+/** RN-NOVA-14 (V0.18.0) — data e hora de cada passo já ocorrido; o passo sem data (orçamento anterior à V0.18.0) fica sem ela. */
+function datasDosPassos(o: OrcamentoDetalheResponse): Partial<Record<ApiStatus, string | null | undefined>> {
+  return {
+    RASCUNHO: o.createdAt, ENVIADO: o.dataEnvio, APROVADO: o.dataAprovacao, SINAL_PAGO: o.dataSinalPago,
+    FINALIZADO: o.dataFinalizacao, PAGO: o.dataPagamento, ENTREGUE: o.dataEntrega,
+  };
+}
+
+function Timeline({ current, datas = {} }: { current: ApiStatus; datas?: Partial<Record<ApiStatus, string | null | undefined>> }) {
   const ci = STEPS.indexOf(current);
   return (
     <div className="flex items-start max-[680px]:flex-col max-[680px]:items-stretch">
@@ -194,6 +202,11 @@ function Timeline({ current }: { current: ApiStatus }) {
               >
                 {STATUS_LABEL[s]}
               </span>
+              {(done || active) && datas[s] && (
+                <span className="mt-0.5 block whitespace-nowrap text-[11px] text-muted" data-testid={`data-passo-${s}`}>
+                  {formatarDataHora(datas[s])}
+                </span>
+              )}
               {active && (
                 <span className="mt-[5px] inline-block rounded-full bg-teal/12 px-2 py-0.5 text-[10.5px] font-semibold text-teal">
                   Atual
@@ -755,7 +768,7 @@ function ModalCancelEstorno({
   const [step, setStep] = useState(1);
   const [estornar, setEstornar] = useState(true);
   const [dataEstorno, setDataEstorno] = useState(
-    dataLocalISO(),
+    dataLocalIso(),
   );
 
   const valorSinal = orcamento.valorSinal || 0;
@@ -1682,7 +1695,7 @@ export default function DetalheOrcamentoPage() {
           <div className="mb-6 text-[13px] font-semibold text-body">
             Andamento do pedido
           </div>
-          <Timeline current={status} />
+          <Timeline current={status} datas={datasDosPassos(orcamento)} />
 
           {/* Achado da suíte QA (V0.10.0): esta linha misturava 2 ações independentes (cancelar /
               avançar status) sob um único gate `!finalizado` — fazia sentido enquanto os dois
@@ -1830,6 +1843,11 @@ export default function DetalheOrcamentoPage() {
               <div className="mt-0.5 text-[13px] text-[#8A5A4E]">
                 Este orçamento foi cancelado e não pode mais avançar de status.
               </div>
+              {orcamento.dataCancelamento && (
+                <div data-testid="data-passo-CANCELADO" className="mt-0.5 text-[12px] text-[#8A5A4E]">
+                  Cancelado em {formatarDataHora(orcamento.dataCancelamento)}
+                </div>
+              )}
             </div>
           </div>
           {/* RN-NOVA-1/ORC-036 (mini-estorno, V0.8.2) — sinal pago excedeu o valor bruto da multa,
