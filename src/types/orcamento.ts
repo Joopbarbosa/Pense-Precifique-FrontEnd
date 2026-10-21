@@ -69,6 +69,13 @@ export interface SimulacaoEstoqueProdutoResponse {
   situacao: SituacaoAlertaInsumo;
 }
 
+/** V0.18.0 (#1038, RN-NOVA-22) — um comentário da conversa do orçamento (imutável, com data e hora). */
+export interface ComentarioOrcamento {
+  id: string;
+  texto: string;
+  criadoEm: string;
+}
+
 export interface OrcamentoRequest {
   clienteId: string;
   itens: OrcamentoItemRequest[];
