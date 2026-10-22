@@ -119,6 +119,7 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     const dow = new Date(`${hojeLocal(1)}T12:00:00`).getDay()
     test.skip(dow === 6, 'amanhã é sábado: o dia seguinte cai em outra semana')
     const chip = page.getByTestId(`dia-${hojeLocal(1)}`).getByTestId('compromisso').filter({ hasText: titulo })
+    await chip.scrollIntoViewIfNeeded() // a linha de dia inteiro tem altura máxima e rola por dentro
     await chip.dragTo(page.getByTestId(`dia-${hojeLocal(2)}`))
     await expect.poll(async () => (await doDia(request, titulo, hojeLocal(2))).length).toBe(1)
     expect((await doDia(request, titulo, hojeLocal(1))).length).toBe(0)

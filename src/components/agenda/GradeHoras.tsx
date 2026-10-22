@@ -36,7 +36,7 @@ interface Arrasto { chave: string; dia: string; inicio: number; fim: number }
  * V0.18.0 (#1034, RN-NOVA-2 v4) — visões Dia e Semana no modelo do Google Agenda: as 24 horas numa coluna à esquerda, linha de dia
  * inteiro no topo e cada compromisso com horário como um bloco que começa na hora de início e dura até o término (1 hora, sem
  * término); os que se sobrepõem ficam lado a lado. A grade rola por dentro (cabeçalho e dia inteiro fixos), abre na hora atual e marca
- * o minuto de agora com um traço laranja (#1052). Clicar num espaço vazio cria um evento (#1064); o compromisso avulso pendente se
+ * o minuto de agora com um traço laranja (#1052). A linha de dia inteiro tem altura máxima e rola por dentro, para muitos compromissos não cobrirem a grade. Clicar num espaço vazio cria um evento (#1064); o compromisso avulso pendente se
  * arrasta para outro dia e hora e se estica pela borda de baixo (#1065).
  */
 export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onCriar, onMover, onEsticar, onMoverDia }: {
@@ -162,7 +162,7 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
               </div>
             ))}
           </div>
-          <div className="grid border-b border-line" style={colunas} data-testid="linha-dia-inteiro">
+          <div className="grid max-h-[104px] overflow-y-auto border-b border-line" style={colunas} data-testid="linha-dia-inteiro">
             <div className="p-1.5 text-right text-[11px] font-semibold text-subtle">dia inteiro</div>
             {dias.map(d => (
               <div key={d} data-testid={`dia-${d}`} className={clsx('flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5', d === hoje && 'bg-orange/5')}
