@@ -49,6 +49,19 @@ export function domingoDaSemana(iso: string): string {
   return somarDias(iso, -diaDaSemana(iso))
 }
 
+/** Número da semana domingo–sábado; a semana que contém 1º de janeiro é a semana 1 (#1067). */
+export function numeroDaSemana(iso: string): number {
+  const anoDaData = Number(iso.slice(0, 4))
+  const inicioSemana = paraMs(iso) - diaDaSemana(iso) * DIA_MS
+  const ano = [anoDaData, anoDaData + 1].find(a => {
+    const primeiroDeJaneiro = Date.UTC(a, 0, 1)
+    return inicioSemana <= primeiroDeJaneiro && primeiroDeJaneiro < inicioSemana + 7 * DIA_MS
+  }) ?? anoDaData
+  const primeiroDeJaneiro = Date.UTC(ano, 0, 1)
+  const primeiroDomingo = primeiroDeJaneiro - new Date(primeiroDeJaneiro).getUTCDay() * DIA_MS
+  return Math.floor((inicioSemana - primeiroDomingo) / (7 * DIA_MS)) + 1
+}
+
 export function primeiroDoMes(iso: string): string {
   return `${iso.slice(0, 7)}-01`
 }

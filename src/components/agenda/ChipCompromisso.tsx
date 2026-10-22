@@ -1,7 +1,10 @@
 import clsx from 'clsx'
+import { useState } from 'react'
+import { Check } from 'lucide-react'
 import type { Compromisso } from '../../types/agenda'
 import { duracaoEmMinutos } from '../../utils/agenda'
 import { ORIGEM } from './origem'
+import CartaoResumo from './CartaoResumo'
 
 /**
  * V0.18.0 (#1034) — um compromisso na grade. Atrasado ganha destaque (RN-NOVA-4); concluído fica riscado e cancelado fica
@@ -21,6 +24,7 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
   /** Ocupa a altura toda do bloco (grade de horas: o bloco tem a altura de 1 hora). */
   preencher?: boolean
 }) {
+  const [ancora, setAncora] = useState<DOMRect | null>(null)
   const origem = ORIGEM[c.origem]
   const atraso = textoAtraso(c)
   const concluido = c.situacao === 'CONCLUIDO'
@@ -33,24 +37,30 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
       data-situacao={c.situacao}
       data-atrasado={c.atrasado ? 'sim' : 'nao'}
       onClick={() => onAbrir(c)}
+      onMouseEnter={e => {
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setAncora(e.currentTarget.getBoundingClientRect())
+      }}
+      onMouseLeave={() => setAncora(null)}
       title={[c.titulo, atraso, ...c.marcacoes, ...c.avisos].filter(Boolean).join(' — ')}
       className={clsx(
         'flex w-full min-w-0 flex-col rounded-lg border px-2 py-1 text-left text-xs leading-tight transition-colors hover:brightness-95',
-        c.atrasado ? 'border-danger-strong bg-danger-strong text-white' : concluido ? 'border-azul/20 bg-azul/10 text-dark' : origem.chip,
+        c.atrasado ? 'border-danger-strong bg-danger-strong text-white' : concluido ? 'border-success bg-success text-white' : origem.chip,
         cancelado && 'opacity-50',
         preencher && 'h-full overflow-hidden',
       )}
     >
-      <span className={clsx('flex min-w-0 items-center gap-1 font-semibold', c.atrasado && 'text-white', (concluido || cancelado) && 'line-through text-subtle')}>
-        <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', c.atrasado ? 'bg-white' : concluido || cancelado ? 'bg-subtle' : origem.ponto)} aria-hidden />
+      <span className={clsx('flex min-w-0 items-center gap-1 font-semibold', (c.atrasado || concluido) && 'text-white', cancelado && 'line-through text-subtle')}>
+        {!concluido && <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', c.atrasado ? 'bg-white' : cancelado ? 'bg-subtle' : origem.ponto)} aria-hidden />}
         {c.horario && <span className="shrink-0">{c.horario}</span>}
-        <span className="truncate">{c.titulo}</span>
+        {concluido && <Check size={13} className="shrink-0" aria-hidden />}
+        <span className={clsx('truncate', (concluido || cancelado) && 'line-through')}>{c.titulo}</span>
       </span>
       {!compacto && (atraso || c.marcacoes.length > 0) && (
         <span className="mt-0.5 truncate text-[11px] font-medium">
           {[atraso, ...c.marcacoes].filter(Boolean).join(' · ')}
         </span>
       )}
+      {ancora && <CartaoResumo compromisso={c} ancora={ancora} atraso={atraso} />}
     </button>
   )
 }

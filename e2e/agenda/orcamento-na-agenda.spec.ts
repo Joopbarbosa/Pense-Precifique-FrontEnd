@@ -43,6 +43,8 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await page.getByRole('button', { name: 'Próximo' }).click()
     const chip = page.getByTestId('compromisso').filter({ hasText: `Sinal a receber — ORC-${orcamento.numero} (${nomeCliente}) — R$ 30,00` })
     await expect(chip).toBeVisible()
+    await expect(chip).toHaveClass(/bg-rose-bg/)
+    await expect(chip).not.toHaveClass(/bg-teal/)
     await chip.click()
     const painel = page.getByTestId('painel-orcamento')
     await expect(painel).toContainText(nomeCliente)
