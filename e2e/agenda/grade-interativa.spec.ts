@@ -112,9 +112,9 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
   test('CT-1065-04 — evento sem horário arrasta para outro dia no Mês', async ({ page, request }) => {
     const token = await apiLogin(request)
     const titulo = `QA1065-DiaInteiro-${Date.now()}`
-    // dias do mês seguinte, sem os compromissos que os outros testes criam para hoje e amanhã
-    const origem = hojeLocal(35)
-    const destino = hojeLocal(36)
+    // dias distantes, sem os compromissos que os outros testes criam (hoje, amanhã e hoje + 35)
+    const origem = hojeLocal(50)
+    const destino = hojeLocal(51)
     await criarCompromissoUsuaria(request, token, { titulo, data: origem })
     await login(page)
     await page.goto('/agenda')
