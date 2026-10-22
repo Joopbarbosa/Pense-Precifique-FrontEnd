@@ -14,16 +14,12 @@ export function textoAtraso(c: Compromisso): string | null {
   return `${palavra} há ${c.diasAtraso} ${c.diasAtraso === 1 ? 'dia' : 'dias'}`
 }
 
-export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, continuacao, naoTermina, sangria }: {
+export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, preencher }: {
   compromisso: Compromisso
   onAbrir: (c: Compromisso) => void
   compacto?: boolean
-  /** Dia seguinte ao original de um atrasado: a barra se liga ao trecho anterior (RN-NOVA-4 v2). */
-  continuacao?: boolean
-  /** O atrasado segue no dia seguinte: a barra se liga ao próximo trecho. */
-  naoTermina?: boolean
-  /** Margem negativa (px, classe) que leva a barra até a borda da célula para ligar os dias. */
-  sangria?: { esquerda: string; direita: string }
+  /** Ocupa a altura toda do bloco (grade de horas: o bloco tem a altura de 1 hora). */
+  preencher?: boolean
 }) {
   const origem = ORIGEM[c.origem]
   const atraso = textoAtraso(c)
@@ -36,23 +32,18 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, con
       data-origem={c.origem}
       data-situacao={c.situacao}
       data-atrasado={c.atrasado ? 'sim' : 'nao'}
-      data-continuacao={continuacao ? 'sim' : 'nao'}
       onClick={() => onAbrir(c)}
       title={[c.titulo, atraso, ...c.marcacoes, ...c.avisos].filter(Boolean).join(' — ')}
       className={clsx(
         'flex w-full min-w-0 flex-col rounded-lg border px-2 py-1 text-left text-xs leading-tight transition-colors hover:brightness-95',
         c.atrasado ? 'border-danger-strong bg-danger-strong text-white' : concluido ? 'border-azul/20 bg-azul/10 text-dark' : origem.chip,
         cancelado && 'opacity-50',
-        continuacao && 'rounded-l-none border-l-0',
-        naoTermina && 'rounded-r-none border-r-0',
-        continuacao && sangria?.esquerda,
-        naoTermina && sangria?.direita,
+        preencher && 'h-full overflow-hidden',
       )}
     >
       <span className={clsx('flex min-w-0 items-center gap-1 font-semibold', c.atrasado && 'text-white', (concluido || cancelado) && 'line-through text-subtle')}>
         <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', c.atrasado ? 'bg-white' : concluido || cancelado ? 'bg-subtle' : origem.ponto)} aria-hidden />
-        {continuacao && <span className="shrink-0" aria-hidden>↳</span>}
-        {c.horario && !continuacao && <span className="shrink-0">{c.horario}</span>}
+        {c.horario && <span className="shrink-0">{c.horario}</span>}
         <span className="truncate">{c.titulo}</span>
       </span>
       {!compacto && (atraso || c.marcacoes.length > 0) && (
