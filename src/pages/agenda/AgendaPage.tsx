@@ -137,7 +137,7 @@ export default function AgendaPage() {
           <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
         </div>
-        <span className="sr-only" data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
+        <span className={visao === 'MES' ? 'text-[15px] font-semibold capitalize text-dark' : 'sr-only'} data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
         <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
         <div className="ml-auto"><Button icon={<CalendarPlus size={16} />} onClick={() => abrirNovoEvento()}>Novo evento</Button></div>
       </div>
