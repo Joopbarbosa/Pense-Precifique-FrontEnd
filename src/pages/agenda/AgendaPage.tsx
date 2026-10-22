@@ -130,28 +130,24 @@ export default function AgendaPage() {
 
   return (
     <AppLayout active="agenda" compact>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Agenda</h1>
-        <Button icon={<CalendarPlus size={16} />} onClick={() => abrirNovoEvento()}>Novo evento</Button>
-      </div>
-
-      <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
-
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" icon={<ChevronLeft size={16} />} onClick={() => setReferencia(navegar(visao, referencia, -1))}>Anterior</Button>
           <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
-          <span className="ml-2 text-[15px] font-semibold capitalize text-dark" data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
         </div>
-        <SegmentedControl options={OPCOES_VISAO} value={visao} onChange={setVisao} height="h-9" display="inline-flex"
-          optionWidth="whitespace-nowrap px-4" textSize="text-[13.5px]" />
+        <span className={visao === 'MES' ? 'text-[15px] font-semibold capitalize text-dark' : 'sr-only'} data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
+        <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
+        <div className="ml-auto"><Button icon={<CalendarPlus size={16} />} onClick={() => abrirNovoEvento()}>Novo evento</Button></div>
       </div>
 
       <FiltrosAgenda filtros={filtros} ativo={filtrosAtivos}
         onMudarMostrar={(mostrar: MostrarAgenda) => setFiltros(atual => ({ ...atual, mostrar }))}
         onMudarOrigens={(origens: OrigemCompromisso[]) => setFiltros(atual => ({ ...atual, origens }))}
-        onLimpar={() => setFiltros({ mostrar: 'TODOS', origens: [] })} />
+        onLimpar={() => setFiltros({ mostrar: 'TODOS', origens: [] })}
+        direita={<SegmentedControl options={OPCOES_VISAO} value={visao} onChange={setVisao} height="h-9" display="inline-flex"
+          optionWidth="whitespace-nowrap px-4" textSize="text-[13.5px]" />} />
 
       {erro && <p className="rounded-card border border-danger-line bg-danger-bg px-4 py-3 text-sm text-danger-deep">{erro}</p>}
       {carregando && compromissos.length === 0 && !erro ? (
