@@ -150,7 +150,7 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
 
   return (
     <div ref={rolagem} data-testid="grade-horas"
-      className="max-h-[calc(100dvh-340px)] min-h-[420px] overflow-auto rounded-card border border-line bg-white">
+      className="max-h-[calc(100dvh-152px)] min-h-[420px] overflow-auto rounded-card border border-line bg-white">
       <div className={minimo}>
         <div className="sticky top-0 z-20 bg-white" data-testid="cabecalho-fixo">
           <div className="grid border-b border-line bg-cream text-center text-xs font-semibold text-subtle" style={colunas}>

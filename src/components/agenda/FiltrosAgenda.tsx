@@ -34,16 +34,16 @@ export default function FiltrosAgenda({ filtros, ativo, onMudarMostrar, onMudarO
   }
 
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="filtros-agenda">
+    <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="filtros-agenda">
       {esquerda}
       <label className="flex items-center gap-2 text-xs font-semibold text-body">
         Mostrar
         <select aria-label="Mostrar" value={filtros.mostrar} onChange={e => onMudarMostrar(e.target.value as MostrarAgenda)}
-          className="h-9 min-w-[170px] rounded-input border border-line bg-white px-3 text-sm font-medium text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus">
+          className="h-9 min-w-[165px] rounded-input border border-line bg-white px-3 text-sm font-medium text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus">
           {OPCOES_MOSTRAR.map(opcao => <option key={opcao.value} value={opcao.value}>{opcao.label}</option>)}
         </select>
       </label>
-      <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-0 p-0">
+      <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-0 p-0">
         <legend className="float-left mr-1 p-0 text-xs font-semibold text-body">Origem</legend>
         {ORIGENS.map(origem => (
           <label key={origem.value} className="flex cursor-pointer items-center gap-1.5 text-sm text-body">
@@ -53,7 +53,7 @@ export default function FiltrosAgenda({ filtros, ativo, onMudarMostrar, onMudarO
           </label>
         ))}
       </fieldset>
-      <button type="button" disabled={!ativo} onClick={onLimpar} className="h-9 rounded-btn px-3 text-sm font-semibold text-teal enabled:hover:bg-teal/10 disabled:cursor-not-allowed disabled:text-faint">
+      <button type="button" disabled={!ativo} onClick={onLimpar} className="h-9 rounded-btn px-2 text-sm font-semibold text-teal enabled:hover:bg-teal/10 disabled:cursor-not-allowed disabled:text-faint">
         Limpar filtros
       </button>
       {direita && <div className="ml-auto">{direita}</div>}

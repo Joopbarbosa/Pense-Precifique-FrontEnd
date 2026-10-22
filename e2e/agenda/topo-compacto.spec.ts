@@ -54,4 +54,18 @@ test.describe('#1070 — topo compacto da Agenda', () => {
     await page.getByRole('button', { name: 'Semana', exact: true }).click()
     await expect(page.getByTestId('titulo-periodo')).toHaveClass(/sr-only/) // só para leitor de tela, sem ocupar espaço
   })
+
+  test('CEN-NOVO-116 — Semana e Mês vão até o fim da tela e rolam por dentro, sem rolar a página', async ({ page }) => {
+    await login(page)
+    await page.goto('/agenda')
+    const viewport = page.viewportSize()!
+    const semana = await caixa(page.getByTestId('grade-horas'))
+    expect(viewport.height - (semana.y + semana.height)).toBeLessThan(40) // sem faixa vazia embaixo
+    await page.getByRole('button', { name: 'Mês', exact: true }).click()
+    const mes = page.getByTestId('rolagem-mes')
+    await expect(mes).toBeVisible()
+    const { cabe, pagina } = await mes.evaluate(e => ({ cabe: e.scrollHeight > e.clientHeight, pagina: document.documentElement.scrollHeight - window.innerHeight }))
+    expect(cabe).toBe(true) // o mês rola dentro da agenda
+    expect(pagina).toBeLessThanOrEqual(0) // e a página não rola
+  })
 })
