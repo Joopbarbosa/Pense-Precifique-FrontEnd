@@ -105,7 +105,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     const compra = await registrarCompraPendente(request, token, [{ insumoId: insumo.id, quantidade: 5, precoTotal: 20 }], hojeLocal(1), hojeLocal(0))
     const { execFileSync } = await import('child_process')
     execFileSync('docker', ['exec', process.env.DB_CONTAINER ?? '', 'psql', '-U', 'pense_user', '-d', process.env.DB_NAME ?? '', '-v', 'ON_ERROR_STOP=1', '-c',
-      `UPDATE compras SET previsao_entrega = CURRENT_DATE - 3 WHERE id = '${compra.id}'`], { stdio: 'ignore' })
+      `UPDATE compras SET previsao_entrega = '${hojeLocal(-3)}' WHERE id = '${compra.id}'`], { stdio: 'ignore' })
 
     await login(page)
     await page.goto('/agenda')
