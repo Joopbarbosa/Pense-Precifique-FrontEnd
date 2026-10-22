@@ -97,7 +97,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     expect((await lista.json()).status).toBe('PENDENTE_RECEBIMENTO')
   })
 
-  test('CT-549-02 — compra atrasada sobe para hoje com "Atrasada há N dias"; Concluir leva à Entrada de compras', async ({ page, request }) => {
+  test('CT-549-02 — compra atrasada fica no dia da previsão com "Atrasada há N dias"; Concluir leva à Entrada de compras', async ({ page, request }) => {
     const token = await apiLogin(request)
     const insumo = await criarInsumoComEstoque(request, token, `QA549b-Insumo-${Date.now()}`, 0, true)
     insumoIds.push(insumo.id)
@@ -105,11 +105,12 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     const compra = await registrarCompraPendente(request, token, [{ insumoId: insumo.id, quantidade: 5, precoTotal: 20 }], hojeLocal(1), hojeLocal(0))
     const { execFileSync } = await import('child_process')
     execFileSync('docker', ['exec', process.env.DB_CONTAINER ?? '', 'psql', '-U', 'pense_user', '-d', process.env.DB_NAME ?? '', '-v', 'ON_ERROR_STOP=1', '-c',
-      `UPDATE compras SET previsao_entrega = CURRENT_DATE - 3 WHERE id = '${compra.id}'`], { stdio: 'ignore' })
+      `UPDATE compras SET previsao_entrega = '${hojeLocal(-3)}' WHERE id = '${compra.id}'`], { stdio: 'ignore' })
 
     await login(page)
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Anterior' }).click() // o atrasado fica no dia original (RN-NOVA-4 v3)
     const chip = page.getByTestId('compromisso').filter({ hasText: `Entrega de compra — ${compra.identificador}` })
     await expect(chip).toBeVisible()
     await expect(chip).toHaveClass(/bg-danger-strong/)

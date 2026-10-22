@@ -13,9 +13,7 @@ import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
 import ModalEvento from '../../components/agenda/ModalEvento'
 import FiltrosAgenda from '../../components/agenda/FiltrosAgenda'
 import { agendaService } from '../../services/agendaService'
-import { empresaService } from '../../services/empresaService'
 import type { AgendaResumo, Compromisso, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
-import type { HorarioFuncionamento } from '../../types/empresa'
 import { dataLocalIso } from '../../utils/data'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
 import { distribuirPorDia, filtrarCompromissos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
@@ -25,18 +23,6 @@ const OPCOES_VISAO = [
   { value: 'SEMANA' as VisaoAgenda, label: 'Semana' },
   { value: 'MES' as VisaoAgenda, label: 'Mês' },
 ]
-
-/** Horas de abertura mais cedo e de último fechamento entre os dias em que a empresa abre; nulo sem horário configurado (RN-NOVA-2). */
-function faixaDeFuncionamento(horarios: HorarioFuncionamento[] | undefined): { inicio: number; fim: number } | null {
-  const abertos = (horarios ?? []).filter(h => !h.fechado && h.horaAbertura && h.horaFechamento)
-  if (abertos.length === 0) return null
-  const inicio = Math.min(...abertos.map(h => Number(h.horaAbertura!.slice(0, 2))))
-  const fim = Math.max(...abertos.map(h => {
-    const [hh, mm] = h.horaFechamento!.split(':').map(Number)
-    return mm > 0 ? hh : Math.max(hh - 1, 0)
-  }))
-  return { inicio, fim: Math.max(fim, inicio) }
-}
 
 /**
  * V0.18.0 (#1034, RN-NOVA-1 a RN-NOVA-7) — a Agenda: visões Dia, Semana (a que abre) e Mês, faixa de atrasados e de hoje,
@@ -54,7 +40,6 @@ export default function AgendaPage() {
   const [referencia, setReferencia] = useState(hoje)
   const [compromissos, setCompromissos] = useState<Compromisso[]>([])
   const [resumo, setResumo] = useState<AgendaResumo | null>(null)
-  const [horarios, setHorarios] = useState<HorarioFuncionamento[] | undefined>(undefined)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [atrasadosAberto, setAtrasadosAberto] = useState(false)
@@ -89,11 +74,9 @@ export default function AgendaPage() {
     document.addEventListener('visibilitychange', aoVoltar)
     return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', aoVoltar) }
   }, [carregar])
-  useEffect(() => { empresaService.getEmpresa().then(e => setHorarios(e?.horarios)).catch(() => setHorarios(undefined)) }, [])
 
   const compromissosVisiveis = useMemo(() => filtrarCompromissos(compromissos, filtros), [compromissos, filtros])
-  // RN-NOVA-4 v2: o atrasado entra em todos os dias do período entre a origem e hoje
-  const porDia = useMemo(() => distribuirPorDia(compromissosVisiveis, periodo.dias), [compromissosVisiveis, periodo.dias])
+  const porDia = useMemo(() => distribuirPorDia(compromissosVisiveis), [compromissosVisiveis])
 
   // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
   const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje); setSinalHoje(n => n + 1) }
@@ -132,7 +115,7 @@ export default function AgendaPage() {
       ) : visao === 'MES' ? (
         <GradeMes dias={periodo.dias} mesDeReferencia={referencia} hoje={hoje} porDia={porDia} onAbrir={abrir} onVerDia={setDiaAberto} />
       ) : (
-        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} faixa={faixaDeFuncionamento(horarios)} onAbrir={abrir} sinalHoje={sinalHoje} />
+        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} onAbrir={abrir} sinalHoje={sinalHoje} />
       )}
       {vazio && (filtrosAtivos
         ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>

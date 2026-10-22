@@ -1,12 +1,9 @@
 import clsx from 'clsx'
 import type { Compromisso } from '../../types/agenda'
-import { DIAS_SEMANA_CURTO, diaDoMes, ehContinuacao, ehUltimoDia } from '../../utils/agenda'
+import { DIAS_SEMANA_CURTO, diaDoMes } from '../../utils/agenda'
 import ChipCompromisso from './ChipCompromisso'
 
 const LIMITE_POR_DIA = 3
-/** Barras de atrasados têm pista própria e não contam nos 3 do dia; passando de 3, as excedentes entram no "+N" (RN-NOVA-2 v2). */
-const LIMITE_BARRAS = 3
-const SANGRIA = { esquerda: '-ml-1.5', direita: '-mr-1.5' }
 
 /** V0.18.0 (#1034, RN-NOVA-2) — visão Mês: até 3 compromissos por dia e o indicador "+N" que abre a lista do dia. */
 export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir, onVerDia }: {
@@ -26,11 +23,8 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
         <div className="grid grid-cols-7" data-testid="grade-mes">
           {dias.map(dia => {
             const itens = porDia.get(dia) ?? []
-            const barras = itens.filter(c => c.atrasado)
-            const comuns = itens.filter(c => !c.atrasado)
-            const barrasVisiveis = barras.slice(0, LIMITE_BARRAS)
-            const visiveis = comuns.slice(0, LIMITE_POR_DIA)
-            const restantes = itens.length - barrasVisiveis.length - visiveis.length
+            const visiveis = itens.slice(0, LIMITE_POR_DIA)
+            const restantes = itens.length - visiveis.length
             const foraDoMes = dia.slice(0, 7) !== mesDeReferencia.slice(0, 7)
             return (
               <div key={dia} data-testid={`dia-${dia}`}
@@ -43,10 +37,6 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
                   </button>
                 </div>
                 <div className="flex flex-col gap-1">
-                  {barrasVisiveis.map(c => (
-                    <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} compacto sangria={SANGRIA}
-                      continuacao={ehContinuacao(c, dia)} naoTermina={!ehUltimoDia(c, dia)} />
-                  ))}
                   {visiveis.map(c => <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} compacto />)}
                   {restantes > 0 && (
                     <button type="button" data-testid={`mais-${dia}`} onClick={() => onVerDia(dia)}
