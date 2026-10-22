@@ -1,6 +1,6 @@
 import api from './api'
 import type {
-  AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, CompromissoUsuariaRequest, EditarCompromissoRequest, EscopoEdicao, PaginaCompromissos,
+  AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, CompromissoUsuariaRequest, EditarCompromissoRequest, EscopoEdicao, PaginaCompromissos, ResumoDoDia,
 } from '../types/agenda'
 
 // V0.18.0 — #1034 (DT-NOVA-2). Contrato: modulos/AGENDA/contrato-agenda.md.
@@ -12,6 +12,11 @@ export const agendaService = {
 
   resumo: async (): Promise<AgendaResumo> => {
     const response = await api.get('/agenda/resumo')
+    return response.data
+  },
+
+  resumoDoDia: async (): Promise<ResumoDoDia> => {
+    const response = await api.get('/agenda/resumo-do-dia')
     return response.data
   },
 

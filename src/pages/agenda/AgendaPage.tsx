@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarPlus, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
@@ -8,6 +8,7 @@ import FaixaResumo from '../../components/agenda/FaixaResumo'
 import GradeMes from '../../components/agenda/GradeMes'
 import GradeHoras from '../../components/agenda/GradeHoras'
 import ModalAtrasados from '../../components/agenda/ModalAtrasados'
+import ModalResumoDoDia from '../../components/agenda/ModalResumoDoDia'
 import ModalDia from '../../components/agenda/ModalDia'
 import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
 import ModalEvento from '../../components/agenda/ModalEvento'
@@ -47,6 +48,7 @@ export default function AgendaPage() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [atrasadosAberto, setAtrasadosAberto] = useState(false)
+  const [resumoDoDiaAberto, setResumoDoDiaAberto] = useState(false)
   const [diaAberto, setDiaAberto] = useState<string | null>(null)
   const [aberto, setAberto] = useState<Compromisso | null>(null)
   // Novo evento: a data e, quando o clique foi num horário vazio da grade, o início e o término (#1064)
@@ -123,7 +125,7 @@ export default function AgendaPage() {
 
   // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
   const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje); setSinalHoje(n => n + 1) }
-  const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setAberto(c) }
+  const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setResumoDoDiaAberto(false); setAberto(c) }
   const abrirNovoEvento = (data: string = referencia) => setNovoEvento({ data })
   const filtrosAtivos = filtros.mostrar !== 'TODOS' || filtros.origens.length > 0
   const vazio = !carregando && !erro && compromissosVisiveis.length === 0
@@ -146,6 +148,7 @@ export default function AgendaPage() {
         onMudarMostrar={(mostrar: MostrarAgenda) => setFiltros(atual => ({ ...atual, mostrar }))}
         onMudarOrigens={(origens: OrigemCompromisso[]) => setFiltros(atual => ({ ...atual, origens }))}
         onLimpar={() => setFiltros({ mostrar: 'TODOS', origens: [] })}
+        esquerda={<Button variant="ghost" size="sm" icon={<ClipboardList size={16} />} onClick={() => setResumoDoDiaAberto(true)}>Resumo do dia</Button>}
         direita={<SegmentedControl options={OPCOES_VISAO} value={visao} onChange={setVisao} height="h-9" display="inline-flex"
           optionWidth="whitespace-nowrap px-4" textSize="text-[13.5px]" />} />
 
@@ -163,6 +166,7 @@ export default function AgendaPage() {
         ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>
         : <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia">Nenhum compromisso neste período</p>)}
 
+      {resumoDoDiaAberto && <ModalResumoDoDia onClose={() => setResumoDoDiaAberto(false)} onAbrir={abrir} />}
       {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
       {novoEvento && <ModalEvento dataInicial={novoEvento.data} horarioInicial={novoEvento.horario} horarioFimInicial={novoEvento.horarioFim}

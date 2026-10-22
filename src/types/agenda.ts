@@ -93,3 +93,18 @@ export interface CompromissoUsuariaDetalhe {
   /** `removido`: o insumo foi inativado ou excluído depois do vínculo ("Insumo removido" no lugar do link). */
   insumo?: { id: string; nome: string; removido: boolean } | null
 }
+
+/** #1071 — Resumo do dia: o que é de hoje e o que está atrasado, por assunto. "A pagar" fica indisponível até o Financeiro. */
+export interface ResumoDoDia {
+  data: string
+  paraHoje: number
+  atrasados: number
+  aReceber: ValoresDoDia
+  aPagar: ValoresDoDia
+  entregas: Compromisso[]
+  producoes: Compromisso[]
+  outros: Compromisso[]
+  insumosFaltantes: InsumoFaltante[]
+}
+export interface ValoresDoDia { disponivel: boolean; total: number | null; totalAtrasado: number | null; itens: Compromisso[] }
+export interface InsumoFaltante { nome: string; siglaUnidade: string | null; necessario: number; emEstoque: number; falta: number }
