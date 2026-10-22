@@ -12,17 +12,21 @@ import ModalDia from '../../components/agenda/ModalDia'
 import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
 import ModalEvento from '../../components/agenda/ModalEvento'
 import FiltrosAgenda from '../../components/agenda/FiltrosAgenda'
+import ModalShell from '../../components/ui/ModalShell'
 import { agendaService } from '../../services/agendaService'
-import type { AgendaResumo, Compromisso, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
+import { extractApiError } from '../../utils/apiError'
+import type { AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, EscopoEdicao, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
 import { dataLocalIso } from '../../utils/data'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
-import { distribuirPorDia, filtrarCompromissos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
+import { distribuirPorDia, ehMovel, filtrarCompromissos, horarioDeMinutos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
 
 const OPCOES_VISAO = [
   { value: 'DIA' as VisaoAgenda, label: 'Dia' },
   { value: 'SEMANA' as VisaoAgenda, label: 'Semana' },
   { value: 'MES' as VisaoAgenda, label: 'Mês' },
 ]
+
+interface Mudanca { data?: string; horario?: string | null; horarioFim?: string | null }
 
 /**
  * V0.18.0 (#1034, RN-NOVA-1 a RN-NOVA-7) — a Agenda: visões Dia, Semana (a que abre) e Mês, faixa de atrasados e de hoje,
@@ -45,7 +49,10 @@ export default function AgendaPage() {
   const [atrasadosAberto, setAtrasadosAberto] = useState(false)
   const [diaAberto, setDiaAberto] = useState<string | null>(null)
   const [aberto, setAberto] = useState<Compromisso | null>(null)
-  const [novoEvento, setNovoEvento] = useState(false)
+  // Novo evento: a data e, quando o clique foi num horário vazio da grade, o início e o término (#1064)
+  const [novoEvento, setNovoEvento] = useState<{ data: string; horario?: string; horarioFim?: string } | null>(null)
+  // arrastar ou esticar um compromisso de série pergunta se vale só para a ocorrência ou para a série (#1065)
+  const [escolhaEscopo, setEscolhaEscopo] = useState<{ d: CompromissoUsuariaDetalhe; mudanca: Mudanca; escopo: EscopoEdicao } | null>(null)
   const [filtros, setFiltros] = useState<FiltrosAgendaValue>({ mostrar: 'TODOS', origens: [] })
 
   const periodo = useMemo(() => periodoDaVisao(visao, referencia), [visao, referencia])
@@ -78,6 +85,42 @@ export default function AgendaPage() {
   const compromissosVisiveis = useMemo(() => filtrarCompromissos(compromissos, filtros), [compromissos, filtros])
   const porDia = useMemo(() => distribuirPorDia(compromissosVisiveis), [compromissosVisiveis])
 
+  const aplicarMudanca = async (d: CompromissoUsuariaDetalhe, mudanca: Mudanca, escopo?: EscopoEdicao) => {
+    try {
+      await agendaService.editarCompromisso(d.id, d.dataOriginal, {
+        escopo, titulo: d.titulo, data: mudanca.data ?? d.data,
+        horario: mudanca.horario !== undefined ? mudanca.horario : d.horario ?? null,
+        horarioFim: mudanca.horarioFim !== undefined ? mudanca.horarioFim : d.horarioFim ?? null,
+        orcamentoId: d.orcamento?.id ?? null, insumoId: d.insumo && !d.insumo.removido ? d.insumo.id : null,
+      })
+      setEscolhaEscopo(null)
+      await carregar()
+    } catch (err) {
+      setEscolhaEscopo(null)
+      setErro(extractApiError(err, 'Não foi possível alterar o compromisso.'))
+    }
+  }
+
+  /** #1065 — mover e esticar valem só para o compromisso avulso; a série pergunta o escopo, salvo quando muda o dia (só por ocorrência). */
+  const alterar = async (c: Compromisso, mudanca: Mudanca) => {
+    if (!ehMovel(c) || !c.dataOriginalOcorrencia) return
+    try {
+      const d = await agendaService.detalheCompromisso(c.referenciaId, c.dataOriginalOcorrencia)
+      const mudaDia = mudanca.data !== undefined && mudanca.data !== d.data
+      if (d.serie && !mudaDia) { setEscolhaEscopo({ d, mudanca, escopo: 'OCORRENCIA' }); return }
+      await aplicarMudanca(d, mudanca, d.serie ? 'OCORRENCIA' : undefined)
+    } catch (err) {
+      setErro(extractApiError(err, 'Não foi possível alterar o compromisso.'))
+    }
+  }
+  const moverNaGrade = (c: Compromisso, dia: string, inicio: number, fim: number | null) =>
+    void alterar(c, { data: dia, horario: horarioDeMinutos(inicio), horarioFim: fim != null ? horarioDeMinutos(fim) : null })
+  const esticarNaGrade = (c: Compromisso, fim: number) => void alterar(c, { horarioFim: horarioDeMinutos(fim) })
+  const moverParaDia = (chave: string, dia: string) => {
+    const c = compromissos.find(x => x.chave === chave)
+    if (c && dia !== c.dataExibicao) void alterar(c, { data: dia })
+  }
+
   // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
   const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje); setSinalHoje(n => n + 1) }
   const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setAberto(c) }
@@ -88,7 +131,7 @@ export default function AgendaPage() {
     <AppLayout active="agenda" compact>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Agenda</h1>
-        <Button icon={<CalendarPlus size={16} />} onClick={() => setNovoEvento(true)}>Novo evento</Button>
+        <Button icon={<CalendarPlus size={16} />} onClick={() => setNovoEvento({ data: referencia })}>Novo evento</Button>
       </div>
 
       <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
@@ -113,9 +156,11 @@ export default function AgendaPage() {
       {carregando && compromissos.length === 0 && !erro ? (
         <div className="flex justify-center py-16"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={24} /></div>
       ) : visao === 'MES' ? (
-        <GradeMes dias={periodo.dias} mesDeReferencia={referencia} hoje={hoje} porDia={porDia} onAbrir={abrir} onVerDia={setDiaAberto} />
+        <GradeMes dias={periodo.dias} mesDeReferencia={referencia} hoje={hoje} porDia={porDia} onAbrir={abrir} onVerDia={setDiaAberto} onMoverDia={moverParaDia} />
       ) : (
-        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} onAbrir={abrir} sinalHoje={sinalHoje} />
+        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} onAbrir={abrir} sinalHoje={sinalHoje}
+          onCriar={(dia, inicio, fim) => setNovoEvento({ data: dia, horario: inicio, horarioFim: fim })}
+          onMover={moverNaGrade} onEsticar={esticarNaGrade} onMoverDia={moverParaDia} />
       )}
       {vazio && (filtrosAtivos
         ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>
@@ -123,7 +168,17 @@ export default function AgendaPage() {
 
       {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
-      {novoEvento && <ModalEvento dataInicial={referencia} onClose={() => setNovoEvento(false)} onSalvo={() => { setNovoEvento(false); void carregar() }} />}
+      {novoEvento && <ModalEvento dataInicial={novoEvento.data} horarioInicial={novoEvento.horario} horarioFimInicial={novoEvento.horarioFim}
+        onClose={() => setNovoEvento(null)} onSalvo={() => { setNovoEvento(null); void carregar() }} />}
+      {escolhaEscopo && (
+        <ModalShell open onClose={() => setEscolhaEscopo(null)} width={420} title="Alterar compromisso" subtitle="Este compromisso se repete."
+          footer={<><Button variant="ghost" onClick={() => setEscolhaEscopo(null)}>Fechar</Button>
+            <Button onClick={() => void aplicarMudanca(escolhaEscopo.d, escolhaEscopo.mudanca, escolhaEscopo.escopo)}>Aplicar</Button></>}>
+          <SegmentedControl options={[{ value: 'OCORRENCIA' as EscopoEdicao, label: 'Só esta ocorrência' }, { value: 'SERIE' as EscopoEdicao, label: 'A série inteira' }]}
+            value={escolhaEscopo.escopo} onChange={escopo => setEscolhaEscopo({ ...escolhaEscopo, escopo })} height="h-11" textSize="text-sm"
+            activeColors={['bg-teal text-white', 'bg-teal text-white']} />
+        </ModalShell>
+      )}
       {aberto && <DetalheCompromisso compromisso={aberto} onClose={() => setAberto(null)} onAlterado={() => { setAberto(null); void carregar() }} />}
     </AppLayout>
   )

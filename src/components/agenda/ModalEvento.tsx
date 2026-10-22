@@ -32,19 +32,23 @@ export interface VinculoInicial { orcamento?: { id: string; identificador: strin
  * só na criação. Na edição de uma série, `escopo` diz se a mudança vale para a ocorrência ou para a série inteira (a data só muda por
  * ocorrência). Os bloqueios de regra vêm do servidor e aparecem na própria modal.
  */
-export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicial, onClose, onSalvo }: {
+export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicial, horarioInicial, horarioFimInicial, onClose, onSalvo }: {
   /** Quando informado, a modal edita essa ocorrência; senão, cria um evento novo. */
   edicao?: CompromissoUsuariaDetalhe
   escopo?: EscopoEdicao
   /** Vínculos que já vêm preenchidos (por exemplo, o orçamento de onde o evento foi aberto). */
   vinculoInicial?: VinculoInicial
   dataInicial?: string
+  /** Horário que já vem preenchido (criar clicando num horário vazio da grade, #1064). */
+  horarioInicial?: string
+  horarioFimInicial?: string
   onClose: () => void
   onSalvo: () => void
 }) {
   const [titulo, setTitulo] = useState(edicao?.titulo ?? '')
   const [data, setData] = useState(edicao?.data ?? dataInicial ?? dataLocalIso())
-  const [horario, setHorario] = useState(edicao?.horario ?? '')
+  const [horario, setHorario] = useState(edicao?.horario ?? horarioInicial ?? '')
+  const [horarioFim, setHorarioFim] = useState(edicao?.horarioFim ?? horarioFimInicial ?? '')
   const [orcamento, setOrcamento] = useState<{ id: string; identificador: string } | null>(
     edicao?.orcamento ? { id: edicao.orcamento.id, identificador: edicao.orcamento.identificador } : vinculoInicial?.orcamento ?? null)
   const [insumo, setInsumo] = useState<{ id: string; nome: string } | null>(
@@ -64,6 +68,8 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
     const e: Record<string, string> = {}
     if (!titulo.trim()) e.titulo = 'Informe o título'
     if (!data && !serieInteira) e.data = 'Informe a data'
+    if (horarioFim && !horario) e.horarioFim = 'Informe o horário de início para definir o término'
+    else if (horarioFim && horarioFim <= horario) e.horarioFim = 'O término deve ser depois do início'
     if (!edicao && recorrencia === 'SEMANAL' && dias.length === 0) e.diasSemana = 'Escolha pelo menos um dia da semana'
     const n = Number(quantidade)
     if (!edicao && recorrencia !== 'NENHUMA' && !indefinida && (!Number.isInteger(n) || n < 2 || n > 365)) e.quantidade = 'A quantidade de ocorrências vai de 2 a 365'
@@ -74,11 +80,11 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
       if (edicao) {
         await agendaService.editarCompromisso(edicao.id, edicao.dataOriginal, {
           escopo, titulo: titulo.trim(), data: serieInteira ? undefined : data, horario: horario || null,
-          orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
+          horarioFim: horario && horarioFim ? horarioFim : null, orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
         })
       } else {
         await agendaService.criarCompromisso({
-          titulo: titulo.trim(), data, horario: horario || null, orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
+          titulo: titulo.trim(), data, horario: horario || null, horarioFim: horario && horarioFim ? horarioFim : null, orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
           recorrencia, diasSemana: recorrencia === 'SEMANAL' ? dias : undefined,
           quantidadeOcorrencias: recorrencia !== 'NENHUMA' && !indefinida ? n : undefined,
         })
@@ -86,7 +92,7 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
       onSalvo()
     } catch (err) {
       const fe = (err as { response?: { data?: { fieldErrors?: Record<string, string> } } })?.response?.data?.fieldErrors
-      if (fe && Object.keys(fe).length > 0) setErros({ titulo: fe.titulo, data: fe.data, diasSemana: fe.diasSemana, quantidade: fe.quantidadeOcorrencias, insumo: fe.insumoId } as Record<string, string>)
+      if (fe && Object.keys(fe).length > 0) setErros({ titulo: fe.titulo, data: fe.data, horarioFim: fe.horarioFim, diasSemana: fe.diasSemana, quantidade: fe.quantidadeOcorrencias, insumo: fe.insumoId } as Record<string, string>)
       setErroGeral(extractApiError(err, 'Não foi possível salvar o evento.'))
     } finally {
       setSalvando(false)
@@ -104,7 +110,7 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
           <input value={titulo} maxLength={120} onChange={e => setTitulo(e.target.value)} aria-label="Título" placeholder="Ex.: Comprar linha de bordar"
             className={clsx(inputBase, erros.titulo ? 'border-danger' : 'border-line')} />
         </Field>
-        <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
+        <div className="grid grid-cols-3 gap-3 max-[480px]:grid-cols-1">
           {!serieInteira && (
             <Field label="Data" required erro={erros.data}>
               <input type="date" value={data} onChange={e => setData(e.target.value)} aria-label="Data" className={clsx(inputBase, erros.data ? 'border-danger' : 'border-line')} />
@@ -112,6 +118,10 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
           )}
           <Field label="Horário" opt>
             <input type="time" value={horario} onChange={e => setHorario(e.target.value)} aria-label="Horário" className={clsx(inputBase, 'border-line')} />
+          </Field>
+          <Field label="Término" opt erro={erros.horarioFim}>
+            <input type="time" value={horarioFim} onChange={e => setHorarioFim(e.target.value)} aria-label="Término"
+              className={clsx(inputBase, erros.horarioFim ? 'border-danger' : 'border-line')} />
           </Field>
         </div>
         <Field label="Orçamento" opt>

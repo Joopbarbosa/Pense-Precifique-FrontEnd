@@ -5,7 +5,7 @@ import { API_URL } from './auth'
 export async function criarCompromissoUsuaria(
   request: APIRequestContext,
   token: string,
-  corpo: { titulo: string; data: string; horario?: string; orcamentoId?: string; insumoId?: string; recorrencia?: string; diasSemana?: string[]; quantidadeOcorrencias?: number },
+  corpo: { titulo: string; data: string; horario?: string; horarioFim?: string; orcamentoId?: string; insumoId?: string; recorrencia?: string; diasSemana?: string[]; quantidadeOcorrencias?: number },
 ) {
   const res = await request.post(`${API_URL}/agenda/compromissos-usuaria`, { headers: { Authorization: `Bearer ${token}` }, data: corpo })
   if (!res.ok()) throw new Error(`Falha ao criar compromisso de teste: ${res.status()} ${await res.text()}`)

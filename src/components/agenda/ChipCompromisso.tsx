@@ -14,12 +14,14 @@ export function textoAtraso(c: Compromisso): string | null {
   return `${palavra} há ${c.diasAtraso} ${c.diasAtraso === 1 ? 'dia' : 'dias'}`
 }
 
-export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, preencher }: {
+export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, preencher, arrastavel }: {
   compromisso: Compromisso
   onAbrir: (c: Compromisso) => void
   compacto?: boolean
   /** Ocupa a altura toda do bloco (grade de horas: o bloco tem a altura de 1 hora). */
   preencher?: boolean
+  /** Compromisso avulso que a usuária pode levar para outro dia arrastando (linha de dia inteiro e Mês, #1065). */
+  arrastavel?: boolean
 }) {
   const origem = ORIGEM[c.origem]
   const atraso = textoAtraso(c)
@@ -33,6 +35,8 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
       data-situacao={c.situacao}
       data-atrasado={c.atrasado ? 'sim' : 'nao'}
       onClick={() => onAbrir(c)}
+      draggable={arrastavel || undefined}
+      onDragStart={arrastavel ? e => { e.dataTransfer.setData('text/plain', c.chave); e.dataTransfer.effectAllowed = 'move' } : undefined}
       title={[c.titulo, atraso, ...c.marcacoes, ...c.avisos].filter(Boolean).join(' — ')}
       className={clsx(
         'flex w-full min-w-0 flex-col rounded-lg border px-2 py-1 text-left text-xs leading-tight transition-colors hover:brightness-95',

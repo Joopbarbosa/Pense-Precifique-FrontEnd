@@ -149,51 +149,74 @@ export function minutosAgoraBrasilia(agora: Date = new Date()): number {
   return h * 60 + m
 }
 
-/** Duração de um compromisso com horário na grade: 1 hora, já que o compromisso só tem a hora de início (#1061). */
-export const DURACAO_BLOCO_MIN = 60
+/** Duração de um compromisso com horário na grade quando não tem hora de término: 1 hora (#1061, #1063). */
+export const DURACAO_PADRAO_MIN = 60
+/** Altura mínima de um bloco, em minutos, para o título caber (#1063). */
+export const DURACAO_MINIMA_MIN = 30
 
 export interface BlocoNaGrade {
   compromisso: Compromisso
   /** Minutos desde a meia-noite em que o bloco começa. */
   inicio: number
+  /** Minutos desde a meia-noite em que o bloco termina (já com a duração mínima). */
+  fim: number
   /** Posição lado a lado entre os blocos que se sobrepõem no tempo (0 = primeira coluna). */
   coluna: number
   /** Quantas colunas o grupo de blocos sobrepostos tem. */
   colunas: number
 }
 
-/** Hora de início em minutos desde a meia-noite ("07:30" = 450). */
+/** Hora em minutos desde a meia-noite ("07:30" = 450). */
 export function minutosDoHorario(horario: string): number {
   const [h, m] = horario.split(':').map(Number)
   return h * 60 + (m || 0)
 }
 
+/** "07:30" a partir de minutos desde a meia-noite (limitado a 00:00 e 23:59). */
+export function horarioDeMinutos(minutos: number): string {
+  const m = Math.min(Math.max(Math.round(minutos), 0), 23 * 60 + 59)
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+}
+
+/** Fim do bloco em minutos: a hora de término, ou 1 hora depois do início; nunca menos que a duração mínima. */
+export function fimDoBloco(c: Compromisso): number {
+  const inicio = minutosDoHorario(c.horario as string)
+  const fim = c.horarioFim ? minutosDoHorario(c.horarioFim) : inicio + DURACAO_PADRAO_MIN
+  return Math.max(fim, inicio + DURACAO_MINIMA_MIN)
+}
+
 /**
- * Posiciona os compromissos com horário de um dia como no Google Agenda: cada um começa na sua hora e dura
- * {@link DURACAO_BLOCO_MIN}; os que se sobrepõem no tempo dividem a largura do dia, lado a lado.
+ * Posiciona os compromissos com horário de um dia como no Google Agenda: cada um começa na sua hora e dura até o término (ou 1
+ * hora); os que se sobrepõem no tempo dividem a largura do dia, lado a lado.
  */
 export function posicionarBlocos(compromissos: Compromisso[]): BlocoNaGrade[] {
-  const itens = compromissos
+  const itens: BlocoNaGrade[] = compromissos
     .filter(c => !!c.horario)
-    .map(c => ({ compromisso: c, inicio: minutosDoHorario(c.horario as string), coluna: 0, colunas: 1 }))
-    .sort((a, b) => a.inicio - b.inicio)
-  let grupo: typeof itens = []
+    .map(c => ({ compromisso: c, inicio: minutosDoHorario(c.horario as string), fim: fimDoBloco(c), coluna: 0, colunas: 1 }))
+    .sort((a, b) => a.inicio - b.inicio || a.fim - b.fim)
+  let grupo: BlocoNaGrade[] = []
   let fimDoGrupo = -1
+  const fimDasColunas: number[] = []
   const fecharGrupo = () => {
     const colunas = grupo.reduce((m, b) => Math.max(m, b.coluna + 1), 1)
     for (const b of grupo) b.colunas = colunas
     grupo = []
+    fimDasColunas.length = 0
   }
-  const fimDasColunas: number[] = []
   for (const b of itens) {
-    if (grupo.length > 0 && b.inicio >= fimDoGrupo) { fecharGrupo(); fimDasColunas.length = 0 }
+    if (grupo.length > 0 && b.inicio >= fimDoGrupo) fecharGrupo()
     let coluna = fimDasColunas.findIndex(fim => fim <= b.inicio)
     if (coluna === -1) coluna = fimDasColunas.length
-    fimDasColunas[coluna] = b.inicio + DURACAO_BLOCO_MIN
+    fimDasColunas[coluna] = b.fim
     b.coluna = coluna
     grupo.push(b)
-    fimDoGrupo = Math.max(fimDoGrupo, b.inicio + DURACAO_BLOCO_MIN)
+    fimDoGrupo = Math.max(fimDoGrupo, b.fim)
   }
   if (grupo.length > 0) fecharGrupo()
   return itens
+}
+
+/** O compromisso que a usuária pode mover e esticar na Agenda: só o avulso pendente (orçamento, produção e compra vêm da origem). */
+export function ehMovel(c: Compromisso): boolean {
+  return c.origem === 'AVULSO' && c.situacao === 'PENDENTE'
 }
