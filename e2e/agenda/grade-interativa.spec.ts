@@ -23,6 +23,19 @@ async function abrirAmanha(page: Page) {
   await page.getByRole('button', { name: 'Próximo' }).click()
 }
 
+/** A grade rola sozinha ao abrir (hora atual ou 7h): espera o bloco parar de se mover antes de arrastar. */
+async function caixaEstavel(alvo: import('@playwright/test').Locator) {
+  await expect(alvo).toBeVisible()
+  let anterior = await alvo.boundingBox()
+  for (let i = 0; i < 20; i++) {
+    await alvo.page().waitForTimeout(150)
+    const atual = await alvo.boundingBox()
+    if (atual && anterior && atual.x === anterior.x && atual.y === anterior.y) return atual
+    anterior = atual
+  }
+  return (await alvo.boundingBox())!
+}
+
 test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
   test('CT-1063-01 — o evento com término vira um bloco com a duração real', async ({ page, request }) => {
     const token = await apiLogin(request)
@@ -62,7 +75,7 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(1), horario: '09:00', horarioFim: '10:00' })
     await abrirAmanha(page)
     const bloco = page.getByTestId('compromisso').filter({ hasText: titulo })
-    const c = (await bloco.boundingBox())!
+    const c = await caixaEstavel(bloco)
     await page.mouse.move(c.x + c.width / 2, c.y + 20)
     await page.mouse.down()
     await page.mouse.move(c.x + c.width / 2, c.y + 20 + 56, { steps: 6 }) // +1 hora
@@ -78,7 +91,7 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(1), horario: '09:00', horarioFim: '10:00' })
     await abrirAmanha(page)
     const alca = page.getByTestId('bloco-movel').filter({ hasText: titulo }).getByTestId('alca-esticar')
-    const a = (await alca.boundingBox())!
+    const a = await caixaEstavel(alca)
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2)
     await page.mouse.down()
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 56, { steps: 6 }) // +1 hora
