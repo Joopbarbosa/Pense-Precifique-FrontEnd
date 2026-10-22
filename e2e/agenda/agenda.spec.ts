@@ -139,4 +139,18 @@ test.describe('#1034 — Agenda', () => {
     await page.goto('/agenda')
     await expect(page.getByTestId('numero-semana')).toHaveText('Sem 43')
   })
+
+  test('CT-1069 / CEN-NOVO-95 — clicar no espaço vazio do Mês cria evento sem horário; o número abre a lista do dia', async ({ page }) => {
+    await login(page)
+    await page.goto('/agenda')
+    await page.getByRole('button', { name: 'Mês', exact: true }).click()
+    const celula = page.getByTestId('dia-2026-10-25')
+    await celula.getByRole('button', { name: 'Ver o dia 2026-10-25' }).click()
+    await expect(page.getByRole('dialog')).toContainText('domingo, 25 de outubro')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('criar-dia-2026-10-25').click()
+    const modal = page.getByTestId('modal-evento')
+    await expect(modal.getByLabel('Data')).toHaveValue('2026-10-25')
+    await expect(modal.getByLabel('Horário')).toHaveValue('')
+  })
 })
