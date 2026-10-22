@@ -18,9 +18,9 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
   onMoverDia?: (chave: string, dia: string) => void
 }) {
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[720px] overflow-hidden rounded-card border border-line bg-white">
-        <div className="grid grid-cols-7 border-b border-line bg-cream text-center text-xs font-semibold uppercase tracking-wide text-subtle">
+    <div className="max-h-[calc(100dvh-152px)] min-h-[420px] overflow-auto rounded-card border border-line bg-white" data-testid="rolagem-mes">
+      <div className="min-w-[720px]">
+        <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-line bg-cream text-center text-xs font-semibold uppercase tracking-wide text-subtle">
           {DIAS_SEMANA_CURTO.map(d => <div key={d} className="py-2">{d}</div>)}
         </div>
         <div className="grid grid-cols-7" data-testid="grade-mes">
