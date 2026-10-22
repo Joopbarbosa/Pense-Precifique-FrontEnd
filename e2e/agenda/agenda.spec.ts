@@ -67,7 +67,7 @@ test.describe('#1034 — Agenda', () => {
     await page.getByRole('button', { name: 'Mês', exact: true }).click()
     await expect(page.getByTestId('grade-mes')).toBeVisible()
     await expect(page.getByTestId(`dia-${hoje}`)).toHaveClass(/bg-orange\/5/)
-    await expect(page.getByTestId(`dia-${hoje}`).locator('button').first()).toHaveClass(/bg-orange/)
+    await expect(page.getByTestId(`dia-${hoje}`).getByRole('button', { name: `Ver o dia ${hoje}` })).toHaveClass(/bg-orange/)
     expect(await page.locator('[data-testid^="dia-"]').count()).toBe(42)
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await expect(page.getByTestId('grade-horas')).toBeVisible()
