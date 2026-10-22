@@ -133,4 +133,10 @@ test.describe('#1034 — Agenda', () => {
     await chip.click()
     await expect(page.getByTestId('detalhe-compromisso')).toBeVisible()
   })
+
+  test('CT-1067 / CEN-NOVO-102 — mostra a semana 43 de 18 a 24/10/2026', async ({ page }) => {
+    await login(page)
+    await page.goto('/agenda')
+    await expect(page.getByTestId('numero-semana')).toHaveText('Sem 43')
+  })
 })

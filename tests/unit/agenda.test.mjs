@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { filtrarCompromissos } from '../../src/utils/agenda.ts'
+import { filtrarCompromissos, numeroDaSemana } from '../../src/utils/agenda.ts'
 
 const compromisso = (chave, origem, situacao, atrasado = false) => ({
   chave,
@@ -31,4 +31,11 @@ test('combina situação e origens e trata origem vazia como todas', () => {
     filtrarCompromissos(compromissos, { mostrar: 'CONCLUIDOS', origens: [] }).map(c => c.chave),
     ['avulso-concluido'],
   )
+})
+
+test('calcula número da semana domingo a sábado com a semana de 1º de janeiro como semana 1', () => {
+  assert.equal(numeroDaSemana('2026-10-18'), 43)
+  assert.equal(numeroDaSemana('2026-01-01'), 1)
+  assert.equal(numeroDaSemana('2026-12-27'), 1)
+  assert.equal(numeroDaSemana('2025-12-28'), 1)
 })

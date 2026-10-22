@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { Compromisso } from '../../types/agenda'
-import { DIAS_SEMANA_CURTO, DURACAO_BLOCO_MIN, diaDaSemana, diaDoMes, minutosAgoraBrasilia, posicionarBlocos } from '../../utils/agenda'
+import { DIAS_SEMANA_CURTO, DURACAO_BLOCO_MIN, diaDaSemana, diaDoMes, minutosAgoraBrasilia, numeroDaSemana, posicionarBlocos } from '../../utils/agenda'
 import ChipCompromisso from './ChipCompromisso'
 
 const LARGURA_HORAS = 56
@@ -53,7 +53,9 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje }: {
       <div className={minimo}>
         <div className="sticky top-0 z-20 bg-white" data-testid="cabecalho-fixo">
           <div className="grid border-b border-line bg-cream text-center text-xs font-semibold text-subtle" style={colunas}>
-            <div />
+            <div className="flex items-center justify-center text-[10px] font-semibold uppercase tracking-wide" data-testid="numero-semana">
+              {dias.length === 7 ? `Sem ${numeroDaSemana(dias[0])}` : ''}
+            </div>
             {dias.map(d => (
               <div key={d} className={clsx('flex flex-col items-center gap-0.5 py-2 leading-tight', d === hoje && 'text-orange')} data-testid={`cabecalho-dia-${d}`}>
                 <span className="uppercase tracking-wide">{DIAS_SEMANA_CURTO[diaDaSemana(d)]}</span>
