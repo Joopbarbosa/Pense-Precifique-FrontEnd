@@ -109,20 +109,28 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     await expect(page.getByTestId('detalhe-compromisso')).toBeVisible()
   })
 
-  test('CT-1065-04 — evento de dia inteiro arrasta para outro dia na Semana', async ({ page, request }) => {
+  test('CT-1065-04 — evento sem horário arrasta para outro dia no Mês', async ({ page, request }) => {
     const token = await apiLogin(request)
     const titulo = `QA1065-DiaInteiro-${Date.now()}`
-    await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(1) })
+    // dias do mês seguinte, sem os compromissos que os outros testes criam para hoje e amanhã
+    const origem = hojeLocal(35)
+    const destino = hojeLocal(36)
+    await criarCompromissoUsuaria(request, token, { titulo, data: origem })
     await login(page)
     await page.goto('/agenda')
-    // amanhã e depois de amanhã precisam estar na mesma semana (de domingo a sábado)
-    const dow = new Date(`${hojeLocal(1)}T12:00:00`).getDay()
-    test.skip(dow === 6, 'amanhã é sábado: o dia seguinte cai em outra semana')
-    const chip = page.getByTestId(`dia-${hojeLocal(1)}`).getByTestId('compromisso').filter({ hasText: titulo })
-    await chip.scrollIntoViewIfNeeded() // a linha de dia inteiro tem altura máxima e rola por dentro
-    // a célula estica até o fim do conteúdo do dia mais cheio; solta perto do topo, que é a parte visível da linha
-    await chip.dragTo(page.getByTestId(`dia-${hojeLocal(2)}`), { targetPosition: { x: 20, y: 12 } })
-    await expect.poll(async () => (await doDia(request, titulo, hojeLocal(2))).length).toBe(1)
-    expect((await doDia(request, titulo, hojeLocal(1))).length).toBe(0)
+    await page.getByRole('button', { name: 'Mês', exact: true }).click()
+    const ano = (iso: string) => Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7))
+    for (let i = 0; i < ano(origem) - ano(hojeLocal(0)); i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    const chip = page.getByTestId(`dia-${origem}`).getByTestId('compromisso').filter({ hasText: titulo })
+    // o dragTo não inicia o arraste do navegador de forma confiável: o gesto é feito com o mouse, em etapas
+    const de = await caixaEstavel(chip)
+    const para = (await page.getByTestId(`dia-${destino}`).boundingBox())!
+    await page.mouse.move(de.x + de.width / 2, de.y + de.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(de.x + de.width / 2 + 10, de.y + de.height / 2 + 10, { steps: 4 })
+    await page.mouse.move(para.x + 40, para.y + 40, { steps: 8 })
+    await page.mouse.up()
+    await expect.poll(async () => (await doDia(request, titulo, destino)).length).toBe(1)
+    expect((await doDia(request, titulo, origem)).length).toBe(0)
   })
 })
