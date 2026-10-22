@@ -5,7 +5,7 @@ import { hojeLocal } from '../helpers/data'
 import { criarCompromissoUsuaria } from '../helpers/agenda'
 
 /**
- * Resumo do dia (V0.18.0, Aditivo 5, #1071) — CEN-NOVO-113 a 116. A conta de teste é compartilhada, então os títulos são únicos
+ * Resumo do dia (V0.18.0, Aditivo 5, #1071) — CEN-NOVO-113 a 115. A conta de teste é compartilhada, então os títulos são únicos
  * e as contagens são comparadas com o resumo da própria API.
  */
 test.describe('#1071 — Resumo do dia', () => {
