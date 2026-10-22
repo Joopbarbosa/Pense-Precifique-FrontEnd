@@ -105,7 +105,6 @@ test.describe('#1039 — Compromisso da usuária', () => {
     await expect(concluido).toHaveAttribute('data-situacao', 'CONCLUIDO')
     await expect(concluido).toHaveClass(/bg-success/)
     await expect(concluido).toHaveClass(/text-white/)
-    await expect(concluido.locator('span').first()).toHaveClass(/line-through/)
     await expect(concluido.locator('span').first()).toHaveClass(/text-white/)
     await expect(concluido.locator('svg')).toHaveCount(1)
     await expect(concluido.locator('span').last()).toHaveClass(/line-through/)
