@@ -1,12 +1,12 @@
 import clsx from 'clsx'
 import type { Compromisso } from '../../types/agenda'
-import { DIAS_SEMANA_CURTO, diaDoMes } from '../../utils/agenda'
+import { DIAS_SEMANA_CURTO, diaDoMes, ehMovel } from '../../utils/agenda'
 import ChipCompromisso from './ChipCompromisso'
 
 const LIMITE_POR_DIA = 3
 
 /** V0.18.0 (#1034, RN-NOVA-2) — visão Mês: até 3 compromissos por dia e o indicador "+N" que abre a lista do dia. */
-export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir, onVerDia, onCriar }: {
+export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir, onVerDia, onCriar, onMoverDia }: {
   dias: string[]
   mesDeReferencia: string
   hoje: string
@@ -14,6 +14,8 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
   onAbrir: (c: Compromisso) => void
   onVerDia: (dia: string) => void
   onCriar: (dia: string) => void
+  /** Um compromisso avulso foi solto em outro dia (#1065). */
+  onMoverDia?: (chave: string, dia: string) => void
 }) {
   return (
     <div className="overflow-x-auto">
@@ -29,6 +31,8 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
             const foraDoMes = dia.slice(0, 7) !== mesDeReferencia.slice(0, 7)
             return (
               <div key={dia} data-testid={`dia-${dia}`}
+                onDragOver={onMoverDia ? e => e.preventDefault() : undefined}
+                onDrop={onMoverDia ? e => { e.preventDefault(); const chave = e.dataTransfer.getData('text/plain'); if (chave) onMoverDia(chave, dia) } : undefined}
                 className={clsx('relative min-h-[112px] border-b border-r border-line p-1.5', foraDoMes && 'bg-cream/60', dia === hoje && 'bg-orange/5')}>
                 <button type="button" data-testid={`criar-dia-${dia}`} aria-label={`Criar evento em ${dia}`} onClick={() => onCriar(dia)}
                   className="absolute inset-0 z-0 cursor-pointer rounded-md bg-transparent hover:bg-cream/60 focus-visible:outline-2 focus-visible:outline-teal" />
@@ -40,7 +44,7 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
                   </button>
                 </div>
                 <div className="relative z-10 flex flex-col gap-1">
-                  {visiveis.map(c => <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} compacto />)}
+                  {visiveis.map(c => <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} compacto arrastavel={!!onMoverDia && ehMovel(c)} />)}
                   {restantes > 0 && (
                     <button type="button" data-testid={`mais-${dia}`} onClick={() => onVerDia(dia)}
                       className="rounded-lg px-2 py-0.5 text-left text-xs font-semibold text-teal hover:bg-teal/10">

@@ -26,6 +26,8 @@ export interface Compromisso {
   /** Último dia: hoje no atrasado (a barra de continuidade vai de um ao outro, RN-NOVA-4 v2); a própria data nos demais. */
   dataFim: string
   horario?: string | null
+  /** Hora de término do compromisso avulso (#1063); nula = o bloco dura 1 hora na grade. */
+  horarioFim?: string | null
   diaInteiro: boolean
   atrasado: boolean
   diasAtraso: number
@@ -55,6 +57,7 @@ export interface CompromissoUsuariaRequest {
   titulo: string
   data: string
   horario?: string | null
+  horarioFim?: string | null
   orcamentoId?: string | null
   insumoId?: string | null
   recorrencia?: RecorrenciaCompromisso
@@ -67,6 +70,7 @@ export interface EditarCompromissoRequest {
   titulo: string
   data?: string | null
   horario?: string | null
+  horarioFim?: string | null
   orcamentoId?: string | null
   insumoId?: string | null
 }
@@ -78,6 +82,7 @@ export interface CompromissoUsuariaDetalhe {
   dataOriginal: string
   data: string
   horario?: string | null
+  horarioFim?: string | null
   situacao: SituacaoCompromisso
   observacaoCancelamento?: string | null
   serie: boolean
