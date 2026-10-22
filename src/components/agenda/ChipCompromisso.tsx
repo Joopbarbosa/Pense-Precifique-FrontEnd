@@ -1,7 +1,9 @@
 import clsx from 'clsx'
+import { useState } from 'react'
 import type { Compromisso } from '../../types/agenda'
 import { duracaoEmMinutos } from '../../utils/agenda'
 import { ORIGEM } from './origem'
+import CartaoResumo from './CartaoResumo'
 
 /**
  * V0.18.0 (#1034) — um compromisso na grade. Atrasado ganha destaque (RN-NOVA-4); concluído fica riscado e cancelado fica
@@ -21,6 +23,7 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
   /** Ocupa a altura toda do bloco (grade de horas: o bloco tem a altura de 1 hora). */
   preencher?: boolean
 }) {
+  const [ancora, setAncora] = useState<DOMRect | null>(null)
   const origem = ORIGEM[c.origem]
   const atraso = textoAtraso(c)
   const concluido = c.situacao === 'CONCLUIDO'
@@ -33,6 +36,10 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
       data-situacao={c.situacao}
       data-atrasado={c.atrasado ? 'sim' : 'nao'}
       onClick={() => onAbrir(c)}
+      onMouseEnter={e => {
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setAncora(e.currentTarget.getBoundingClientRect())
+      }}
+      onMouseLeave={() => setAncora(null)}
       title={[c.titulo, atraso, ...c.marcacoes, ...c.avisos].filter(Boolean).join(' — ')}
       className={clsx(
         'flex w-full min-w-0 flex-col rounded-lg border px-2 py-1 text-left text-xs leading-tight transition-colors hover:brightness-95',
@@ -51,6 +58,7 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
           {[atraso, ...c.marcacoes].filter(Boolean).join(' · ')}
         </span>
       )}
+      {ancora && <CartaoResumo compromisso={c} ancora={ancora} atraso={atraso} />}
     </button>
   )
 }
