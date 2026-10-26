@@ -36,7 +36,7 @@ import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
-import { dataLocalIso, formatarDataHora } from "../../utils/data";
+import { dataLocalIso, formatarData, formatarDataHora } from "../../utils/data";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -1633,6 +1633,11 @@ export default function DetalheOrcamentoPage() {
                   )}>
                     {BRL(orcamento.valorSinal || 0)}
                   </div>
+                  {orcamento.sinalAte && (
+                    <div data-testid="detalhe-sinal-ate" className="mt-0.5 text-xs text-muted">
+                      Sinal até {formatarData(orcamento.sinalAte)}
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-[140px] flex-1 rounded-[10px] border border-line bg-cream px-3.5 py-2.5">
                   <div className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em] text-dim">
