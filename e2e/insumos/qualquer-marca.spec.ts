@@ -16,12 +16,13 @@ async function salvar(page: Page) {
   ids.push(id)
   return id
 }
-// #712 — "Não validar marca" é um alternador Sim/Não pequeno (antes um switch).
-const opcaoNaoValidarMarca = (page: Page) => page.getByRole('group', { name: 'Não validar marca' })
-const ligar = (page: Page) => opcaoNaoValidarMarca(page).getByRole('button', { name: 'Sim', exact: true }).click()
-const desligar = (page: Page) => opcaoNaoValidarMarca(page).getByRole('button', { name: 'Não', exact: true }).click()
-const ligada = (page: Page) => expect(opcaoNaoValidarMarca(page).getByRole('button', { name: 'Sim', exact: true })).toHaveAttribute('aria-pressed', 'true')
-const desligada = (page: Page) => expect(opcaoNaoValidarMarca(page).getByRole('button', { name: 'Não', exact: true })).toHaveAttribute('aria-pressed', 'true')
+// #1103 — o alternador agora é "Validar marca" (Sim = valida; Não = qualquer marca). Os helpers mantêm a
+// linguagem dos cenários: "ligar" = não validar marca (botão Não), "desligar" = validar (botão Sim).
+const opcaoValidarMarca = (page: Page) => page.getByRole('group', { name: 'Validar marca', exact: true })
+const ligar = (page: Page) => opcaoValidarMarca(page).getByRole('button', { name: 'Não', exact: true }).click()
+const desligar = (page: Page) => opcaoValidarMarca(page).getByRole('button', { name: 'Sim', exact: true }).click()
+const ligada = (page: Page) => expect(opcaoValidarMarca(page).getByRole('button', { name: 'Não', exact: true })).toHaveAttribute('aria-pressed', 'true')
+const desligada = (page: Page) => expect(opcaoValidarMarca(page).getByRole('button', { name: 'Sim', exact: true })).toHaveAttribute('aria-pressed', 'true')
 test.beforeEach(async ({ page }) => { await login(page) })
 test.afterEach(async ({ request }) => {
   const token = await apiLogin(request)
@@ -88,11 +89,11 @@ test('CEN-NOVO-49: cancelar preserva marca; confirmar apaga e marca a opção', 
   await expect(page.getByText('Qualquer marca', { exact: true })).toBeVisible()
 })
 
-// #721 — "Não validar marca" fica à esquerda do campo Marca, na mesma linha (abaixo do nome).
-test('#721 — o alternador "Não validar marca" fica à esquerda do campo Marca', async ({ page }) => {
+// #721 — "Validar marca" fica à esquerda do campo Marca, na mesma linha (abaixo do nome).
+test('#721 — o alternador "Validar marca" fica à esquerda do campo Marca', async ({ page }) => {
   await page.goto('/insumos/novo')
   const nome = await page.getByPlaceholder('Papel couchê 180g').boundingBox()
-  const alternador = await opcaoNaoValidarMarca(page).boundingBox()
+  const alternador = await opcaoValidarMarca(page).boundingBox()
   const marca = await page.getByPlaceholder('Suzano').boundingBox()
   expect(nome && alternador && marca).toBeTruthy()
   expect(alternador!.x + alternador!.width).toBeLessThanOrEqual(marca!.x)

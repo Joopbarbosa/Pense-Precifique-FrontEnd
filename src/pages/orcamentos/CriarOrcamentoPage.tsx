@@ -5,8 +5,8 @@ import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import { Button, ModalShell, SegmentedControl, TextArea } from '../../components/ui'
 import {
-  AlertCircle, AlertTriangle,
-  Calendar, Wallet, DollarSign, FileText, StickyNote, ShoppingCart, Plus, Check, Factory,
+  AlertCircle, AlertTriangle, ArrowLeft,
+  Calendar, Wallet, DollarSign, FileText, StickyNote, ShoppingCart, Plus, Check,
 } from 'lucide-react'
 import { clienteService } from '../../services/clienteService'
 import { produtoService } from '../../services/produtoService'
@@ -17,15 +17,12 @@ import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
 import type {
   OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
-  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, CriarProducaoVinculadaRequest,
+  SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
 } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
-import type { AlertaInsumo } from '../../types/producao'
 import { METODOS_PAGAMENTO } from '../../constants'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
-import ModalVincularProducao from '../../components/orcamento/ModalVincularProducao'
-import SelecaoProducaoEstoque from '../../components/orcamento/SelecaoProducaoEstoque'
 // Componentes de venda compartilhados com o Caixa (V0.12.0) — antes eram funções locais deste
 // arquivo, o que levou o Caixa a reimplementar cada um deles do zero.
 import {
@@ -475,8 +472,9 @@ export default function CriarOrcamentoPage() {
   const [descValor, setDescValor] = useState('')
   const [metodoPagamento, setMetodoPagamento] = useState('PIX')
   const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
-  const [temPrazoProducao, setTemPrazoProducao] = useState(true)
-  const [prazoDias, setPrazoDias] = useState('1')
+  // #1111 — orçamento novo começa sem prazo de produção; a edição carrega o que foi gravado
+  const [temPrazoProducao, setTemPrazoProducao] = useState(false)
+  const [prazoDias, setPrazoDias] = useState('')
   const [prazoDiasError, setPrazoDiasError] = useState('')
   const [inicioImediato, setInicioImediato] = useState(true)
   const [dataInicioEstimada, setDataInicioEstimada] = useState('')
@@ -488,7 +486,12 @@ export default function CriarOrcamentoPage() {
   const [sinalAte, setSinalAte] = useState('')
   const [sinalAteGravado, setSinalAteGravado] = useState('')
   const [sinalAteError, setSinalAteError] = useState('')
-  const [validade, setValidade] = useState('')
+  // #1111 — validade padrão de 7 dias a partir de hoje no orçamento novo (a edição substitui pelo valor gravado)
+  const [validade, setValidade] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return id ? '' : dataLocalIso(d)
+  })
   const [obs, setObs] = useState('')
   const [productOpen, setProductOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -511,28 +514,6 @@ export default function CriarOrcamentoPage() {
   // lista: o backend acumula quantidade quando o mesmo produto aparece em mais de um item).
   const [simulacoes, setSimulacoes] = useState<Record<string, SimulacaoEstoqueProdutoResponse>>({})
   const [pendentesAvanco, setPendentesAvanco] = useState<SimulacaoEstoqueProdutoResponse[] | null>(null)
-  // RN-NOVA-11 (revisada, checkpoint em lote) — seleção de itens por checkbox na modal de
-  // checkpoint, para acionar "Criar produção" uma única vez cobrindo todos os selecionados.
-  const [selecionadosProducao, setSelecionadosProducao] = useState<Set<string>>(new Set())
-  // RN-ORC-VINC-02 ponto 1 (P-F004) — sub-modal de "vincular a produção existente", embutida no
-  // mesmo checkpoint acima. orcamentoCriadoId != null indica que o orçamento já foi persistido como
-  // efeito da pré-visualização do vínculo (ver handleSimularVinculo).
-  const [modalVincular, setModalVincular] = useState(false)
-  const [orcamentoCriadoId, setOrcamentoCriadoId] = useState<string | null>(null)
-  const [confirmandoVinculo, setConfirmandoVinculo] = useState(false)
-  // RN-NOVA-12/13/14 (#375+308) — mini-formulário próprio de "Criar produção (N)" do checkpoint,
-  // separado do ModalVincularProducao (que é !editando-only e cobre sempre todos os itens). Cobre
-  // criação E edição: persiste o orçamento (POST ou PUT, conforme editando) antes de chamar
-  // criar-producao-vinculada só com os produtoIds selecionados. edicaoPersistidaCheckpoint rastreia
-  // se o PUT desta ação específica já aconteceu, pra decidir se o cancelamento deve navegar de volta
-  // pro orçamento (RN-NOVA-14 ponto 2) — em edição, orcamentoCriadoId nunca é setado (id já existe).
-  const [modalCriarProducaoCheckpoint, setModalCriarProducaoCheckpoint] = useState(false)
-  const [formDataInicioProducaoCheckpoint, setFormDataInicioProducaoCheckpoint] = useState('')
-  const [formDataTerminoProducaoCheckpoint, setFormDataTerminoProducaoCheckpoint] = useState('')
-  const [formObsProducaoCheckpoint, setFormObsProducaoCheckpoint] = useState('')
-  const [formErroProducaoCheckpoint, setFormErroProducaoCheckpoint] = useState<string | null>(null)
-  const [criandoProducaoCheckpoint, setCriandoProducaoCheckpoint] = useState(false)
-  const [edicaoPersistidaCheckpoint, setEdicaoPersistidaCheckpoint] = useState(false)
   const { toast, setToast } = useToast()
   const prodRef = useRef<HTMLDivElement>(null)
 
@@ -670,7 +651,8 @@ export default function CriarOrcamentoPage() {
     for (const it of items) {
       if (!it.produtoId || vistos.has(it.produtoId)) continue
       const sim = simulacoes[it.produtoId]
-      if (sim && sim.situacao !== 'SUFICIENTE') {
+      // #1107 — só avisa se o estoque já está ou vai ficar negativo com este orçamento
+      if (sim && sim.estoqueAtual - sim.quantidadeNecessaria < 0) {
         vistos.add(it.produtoId)
         pendentes.push(sim)
       }
@@ -722,7 +704,6 @@ export default function CriarOrcamentoPage() {
 
     const pendentes = calcularItensPendentesAvanco()
     if (pendentes.length > 0) {
-      setSelecionadosProducao(new Set())
       setPendentesAvanco(pendentes)
       return
     }
@@ -786,123 +767,6 @@ export default function CriarOrcamentoPage() {
     }
   }
 
-  // RN-ORC-VINC-02 ponto 1 (P-F004) — orçamento ainda não existe neste checkpoint; ao escolher
-  // vincular a uma produção existente, o orçamento é criado (uma única vez, id guardado em
-  // orcamentoCriadoId) na primeira simulação, para então usar os endpoints reais de
-  // simular-vincular-producao/vincular-producao. Continua "embutido" (sem trocar de tela) — só a
-  // persistência acontece um pouco antes da confirmação final, não é uma escolha de UX, é
-  // consequência de os dois endpoints serem escopados a /orcamentos/{id}.
-  const handleSimularVinculo = async (producaoId: string): Promise<AlertaInsumo[]> => {
-    let orcId = orcamentoCriadoId
-    if (!orcId) {
-      const created = await orcamentoService.criar(montarPayload())
-      orcId = created.id
-      setOrcamentoCriadoId(orcId)
-    }
-    return orcamentoService.simularVincularProducao(orcId, producaoId)
-  }
-
-  // RN-ORC-VINC-02 ponto 1 (P-F005) — mesma criação silenciosa do orçamento de handleSimularVinculo
-  // acima: "criar produção nova" e "vincular existente" convergem no mesmo ponto de persistência do
-  // orçamento, só o passo seguinte diverge (criar-producao-vinculada em vez de
-  // simular/vincular-producao). Sem etapa de simulação — o endpoint não tem variante `simular-`,
-  // confirmar já é o único passo (ver ModalVincularProducao).
-  const handleCriarProducaoNova = async (dados: CriarProducaoVinculadaRequest) => {
-    let orcId = orcamentoCriadoId
-    if (!orcId) {
-      const created = await orcamentoService.criar(montarPayload())
-      orcId = created.id
-      setOrcamentoCriadoId(orcId)
-    }
-    await orcamentoService.criarProducaoVinculada(orcId, dados)
-    navigate(`/orcamentos/${orcId}`)
-  }
-
-  const handleConfirmarVinculo = async (producaoId: string) => {
-    if (!orcamentoCriadoId) return
-    setConfirmandoVinculo(true)
-    try {
-      await orcamentoService.vincularProducao(orcamentoCriadoId, producaoId)
-    } catch (err) {
-      console.error('Erro ao vincular produção ao orçamento recém-criado:', err)
-    } finally {
-      setConfirmandoVinculo(false)
-      navigate(`/orcamentos/${orcamentoCriadoId}`)
-    }
-  }
-
-  // Uma vez que o orçamento já foi criado como efeito da pré-visualização acima, não faz sentido
-  // continuar no formulário de criação (evita duplicar orçamento se a artesã clicar em "Criar
-  // orçamento" de novo) — fechar a modal navega direto para o orçamento já existente.
-  const handleFecharModalVincular = () => {
-    if (orcamentoCriadoId) {
-      navigate(`/orcamentos/${orcamentoCriadoId}`)
-      return
-    }
-    setModalVincular(false)
-  }
-
-  // RN-NOVA-12/13 (#375+308) — "Criar produção (N)" do checkpoint: persiste o orçamento (criação
-  // ou edição, mesmo mecanismo de salvarOrcamento/montarPayload) e só então cria a produção
-  // vinculada cobrindo unicamente os produtoIds selecionados. Erro de persistência usa o mesmo
-  // tratamento de salvarOrcamento (toast, sem navegar); erro do passo de vincular fica inline no
-  // formulário (mesmo padrão de ModalVincularProducao.handleCriarNova), pra permitir retry sem
-  // perder o orçamento já persistido.
-  const handleCriarProducaoCheckpoint = async () => {
-    if (!formDataTerminoProducaoCheckpoint) {
-      setFormErroProducaoCheckpoint('Informe o prazo de término previsto.')
-      return
-    }
-    setCriandoProducaoCheckpoint(true)
-    setFormErroProducaoCheckpoint(null)
-
-    let orcId: string
-    try {
-      if (editando && id) {
-        await orcamentoService.editar(id, montarPayload())
-        setEdicaoPersistidaCheckpoint(true)
-        orcId = id
-      } else if (orcamentoCriadoId) {
-        orcId = orcamentoCriadoId
-      } else {
-        const created = await orcamentoService.criar(montarPayload())
-        orcId = created.id
-        setOrcamentoCriadoId(orcId)
-      }
-    } catch (err) {
-      console.error(editando ? 'Erro ao salvar alterações do orçamento:' : 'Erro ao criar orçamento:', err)
-      setToast(extractApiError(err, editando ? 'Erro ao salvar alterações. Tente novamente.' : 'Erro ao criar orçamento. Tente novamente.'))
-      setCriandoProducaoCheckpoint(false)
-      return
-    }
-
-    try {
-      await orcamentoService.criarProducaoVinculada(orcId, {
-        dataInicio: formDataInicioProducaoCheckpoint || undefined,
-        dataTerminoPrevista: formDataTerminoProducaoCheckpoint,
-        observacoes: formObsProducaoCheckpoint || undefined,
-        produtoIds: Array.from(selecionadosProducao),
-      })
-      navigate(`/orcamentos/${orcId}`)
-    } catch (err) {
-      setFormErroProducaoCheckpoint(extractApiError(err, 'Não foi possível criar a produção. Tente novamente.'))
-    } finally {
-      setCriandoProducaoCheckpoint(false)
-    }
-  }
-
-  // RN-NOVA-14 ponto 2 — cancelamento do checkpoint: só navega de volta pro orçamento se ele já foi
-  // persistido como efeito desta ação (criado agora ou, em edição, com o PUT desta ação já
-  // confirmado) — nunca perde o rascunho em memória se nada foi persistido ainda.
-  const handleFecharModalCriarProducaoCheckpoint = () => {
-    setModalCriarProducaoCheckpoint(false)
-    if (orcamentoCriadoId) {
-      navigate(`/orcamentos/${orcamentoCriadoId}`)
-    } else if (editando && id && edicaoPersistidaCheckpoint) {
-      navigate(`/orcamentos/${id}`)
-    }
-  }
-
   const summaryProps = {
     subtotal, descTipo, descValor, setDescTipo, setDescValor, descontoAplicado, total, validade, setValidade, obs, setObs, sinalAtivo, sinalAplicado, restante, onSubmit: handleSubmit, loading,
     submitLabel: editando ? 'Salvar alterações' : 'Criar orçamento',
@@ -940,6 +804,10 @@ export default function CriarOrcamentoPage() {
       {/* Header */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
+          <button type="button" onClick={() => navigate('/orcamentos')}
+            className="mb-2 inline-flex items-center gap-1.5 border-0 bg-transparent p-0 font-[inherit] text-[13px] font-semibold text-muted hover:text-teal">
+            <ArrowLeft size={15} /> Voltar para orçamentos
+          </button>
           <div className="mb-[5px] text-[12.5px] font-semibold uppercase tracking-wider text-teal">
             Orçamentos
           </div>
@@ -1085,14 +953,14 @@ export default function CriarOrcamentoPage() {
               : carregarCalculadoraCatalogo(calculadoraPendente.item.catalogoId, calculadoraPendente.item.id)
           }
           onClose={() => setCalculadoraPendente(null)}
-          onConfirm={precoFinal => {
+          onConfirm={(precoFinal, quantidade) => {
             if (calculadoraPendente.tipo === 'avulso') {
               const produto = calculadoraPendente.produto
               setItems(arr => [...arr, {
                 id: Date.now(),
                 nome: rotuloProduto(produto.nome, produto.marca),
-                qtd: 1,
-                preco: precoFinal,
+                qtd: quantidade,
+                preco: precoFinal / quantidade,
                 customs: [],
                 produtoId: produto.id,
                 produtoIdentificador: produto.identificador,
@@ -1106,8 +974,8 @@ export default function CriarOrcamentoPage() {
               setItems(arr => [...arr, {
                 id: Date.now(),
                 nome: rotuloProduto(item.nome, item.marca),
-                qtd: 1,
-                preco: precoFinal,
+                qtd: quantidade,
+                preco: precoFinal / quantidade,
                 customs: [],
                 itemCatalogoId: item.id,
                 catalogoNome: item.catalogoNome,
@@ -1125,177 +993,43 @@ export default function CriarOrcamentoPage() {
       )}
 
 
-      {/* Modal de checkpoint único de aviso de estoque (RN-NOVA-11 revisada, OpenProject #246/#245)
-          — ponto único de aviso ao clicar "Criar orçamento". Nunca bloqueia a criação, independente
-          de permitirEstoqueNegativo (a única trava real de negócio é o avanço para Finalizado,
-          backend). Cada item tem um checkbox; "Criar produção" cobre os selecionados numa única
-          ação (RN-NOVA-5), sem exigir seleção para prosseguir com "Continuar mesmo assim". A modal
-          "Orçamento criado com aviso de estoque" (pós-criação) foi removida — este checkpoint já
-          cumpre o papel de aviso antes da criação. */}
-      {pendentesAvanco && !modalVincular && !modalCriarProducaoCheckpoint && (
+      {/* #1107 — aviso de estoque: só aparece quando o item já está ou vai ficar com estoque negativo. Só informa
+          (OK segue com o salvamento); o vínculo com produção acontece na aprovação, nunca na criação. */}
+      {pendentesAvanco && (
         <ModalShell
           open
           onClose={() => setPendentesAvanco(null)}
-          title="Itens com estoque insuficiente"
+          title="Estoque ficará negativo"
           subtitle={editando ? 'Aviso antes de salvar as alterações' : 'Aviso antes de criar o orçamento'}
           icon={<AlertTriangle size={20} />}
           iconBg="rgba(249,115,22,0.14)"
           iconColor="#A35A26"
-          width={560}
+          width={520}
           footer={
-            <div className="flex w-full flex-col gap-2.5">
-              <div className="flex justify-between gap-2.5">
-                {/* P-F007 (#312+318) — "Vincular produção existente" fica de fora na edição: o fluxo
-                    cria o orçamento como efeito colateral da simulação (só faz sentido quando ainda
-                    não existe id). Em edição o orçamento já existe — quem cair aqui pode salvar e
-                    usar o caminho já existente na tela de Detalhe (ORC-028, "Criar produção"). */}
-                {!editando && (
-                  <Button variant="secondary" onClick={() => setModalVincular(true)}>
-                    <Factory size={14} /> Vincular produção existente
-                  </Button>
-                )}
-                <Button
-                  variant="secondary"
-                  disabled={selecionadosProducao.size === 0}
-                  onClick={() => {
-                    setFormDataInicioProducaoCheckpoint('')
-                    setFormDataTerminoProducaoCheckpoint('')
-                    setFormObsProducaoCheckpoint('')
-                    setFormErroProducaoCheckpoint(null)
-                    setModalCriarProducaoCheckpoint(true)
-                  }}
-                >
-                  <Factory size={14} /> Criar produção{selecionadosProducao.size > 0 ? ` (${selecionadosProducao.size})` : ''}
-                </Button>
-              </div>
-              <div className="flex justify-between gap-2.5">
-                <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
-                <Button variant="primary" onClick={() => { setPendentesAvanco(null); salvarOrcamento() }}>
-                  {editando ? 'Salvar mesmo assim' : 'Continuar mesmo assim'}
-                </Button>
-              </div>
-            </div>
+            <>
+              <Button variant="ghost" onClick={() => setPendentesAvanco(null)}>Revisar itens</Button>
+              <Button variant="primary" onClick={() => { setPendentesAvanco(null); salvarOrcamento() }}>OK</Button>
+            </>
           }
         >
           <p className="m-0 mb-3.5 text-[13.5px] text-muted">
             {editando
-              ? 'Estes itens vão ficar com estoque negativo se as alterações forem salvas assim. Você pode salvar mesmo assim ou selecionar itens para criar uma produção agora, cobrindo a diferença.'
-              : 'Estes itens vão ficar com estoque negativo se o orçamento for criado assim. Você pode continuar mesmo assim, vincular a uma produção que já está aguardando início, ou selecionar itens para criar uma produção agora, cobrindo a diferença.'}
+              ? 'Estes itens ficam com estoque negativo se as alterações forem salvas assim.'
+              : 'Estes itens ficam com estoque negativo se o orçamento for criado assim.'}
           </p>
-          <SelecaoProducaoEstoque
-            itens={pendentesAvanco.map(p => ({
-              produtoId: p.produtoId,
-              nomeProduto: p.nomeProduto,
-              estoqueAtual: p.estoqueAtual,
-              quantidadeNecessaria: p.quantidadeNecessaria,
-              quantidadeFaltante: Math.max(0, Math.ceil(p.quantidadeNecessaria - p.estoqueAtual)),
-            }))}
-            selecionados={selecionadosProducao}
-            onToggle={produtoId => setSelecionadosProducao(prev => {
-              const next = new Set(prev)
-              if (next.has(produtoId)) next.delete(produtoId)
-              else next.add(produtoId)
-              return next
-            })}
-          />
+          <ul className="m-0 flex list-none flex-col gap-2 p-0" data-testid="itens-estoque-negativo">
+            {pendentesAvanco.map(p => (
+              <li key={p.produtoId} className="rounded-input border border-line px-3.5 py-2.5 text-[13.5px] text-body">
+                <div className="font-semibold text-dark">{p.nomeProduto}</div>
+                <div className="text-muted">
+                  Estoque {p.estoqueAtual} · precisa de {p.quantidadeNecessaria} · fica em {p.estoqueAtual - p.quantidadeNecessaria}
+                </div>
+              </li>
+            ))}
+          </ul>
         </ModalShell>
       )}
 
-      {!editando && modalVincular && pendentesAvanco && (
-        <ModalVincularProducao
-          onClose={handleFecharModalVincular}
-          jaVinculadasIds={[]}
-          onSimular={handleSimularVinculo}
-          onConfirmar={handleConfirmarVinculo}
-          confirmando={confirmandoVinculo}
-          onCriarNova={handleCriarProducaoNova}
-        />
-      )}
-
-      {/* RN-NOVA-12/13/14 (#375+308) — mini-formulário próprio de "Criar produção (N)" do
-          checkpoint, separado do ModalVincularProducao acima: funciona em criação E edição (aquele
-          é !editando-only) e cria a produção só com os itens marcados (produtoIds), não todos os
-          itens do orçamento. Mesmo padrão visual do modoCriarNova de ModalVincularProducao. */}
-      {pendentesAvanco && modalCriarProducaoCheckpoint && (
-        <ModalShell
-          open
-          onClose={handleFecharModalCriarProducaoCheckpoint}
-          title="Criar produção"
-          subtitle={`Cobre só ${selecionadosProducao.size === 1 ? 'o item selecionado' : `os ${selecionadosProducao.size} itens selecionados`}`}
-          icon={<Factory size={18} />}
-          iconBg="#EAF1FB"
-          iconColor="#2A6FB0"
-          footer={
-            <>
-              <Button variant="ghost" onClick={handleFecharModalCriarProducaoCheckpoint} disabled={criandoProducaoCheckpoint}>
-                Cancelar
-              </Button>
-              <Button variant="primary" onClick={handleCriarProducaoCheckpoint} disabled={criandoProducaoCheckpoint}>
-                {criandoProducaoCheckpoint ? 'Criando...' : 'Criar produção'}
-              </Button>
-            </>
-          }
-        >
-          <div className="flex flex-col gap-4">
-            <p className="m-0 text-[13.5px] text-muted">
-              Fica vinculada a este orçamento automaticamente, cobrindo só os produtos marcados no
-              checkpoint — nasce em "Aguardando início".
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <label className="block flex-1 basis-[160px]">
-                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-                  <Calendar size={15} className="text-teal" /> Início
-                </span>
-                <input
-                  type="date"
-                  value={formDataInicioProducaoCheckpoint}
-                  onChange={(e) => setFormDataInicioProducaoCheckpoint(e.target.value)}
-                  disabled={criandoProducaoCheckpoint}
-                  className="h-[44px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
-                />
-              </label>
-              <label className="block flex-1 basis-[160px]">
-                <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-                  <Calendar size={15} className="text-teal" /> Término previsto <span className="text-orange">*</span>
-                </span>
-                <input
-                  type="date"
-                  value={formDataTerminoProducaoCheckpoint}
-                  min={formDataInicioProducaoCheckpoint || undefined}
-                  onChange={(e) => setFormDataTerminoProducaoCheckpoint(e.target.value)}
-                  disabled={criandoProducaoCheckpoint}
-                  className={clsx(
-                    'h-[44px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14px] text-dark outline-hidden transition-colors duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12',
-                    formErroProducaoCheckpoint && !formDataTerminoProducaoCheckpoint ? 'border-danger' : 'border-line'
-                  )}
-                />
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="mb-[7px] flex items-center gap-[7px] text-[13px] font-semibold text-body">
-                <StickyNote size={15} className="text-teal" /> Observações <span className="text-[11.5px] font-medium text-muted">(opcional)</span>
-              </span>
-              <TextArea
-                value={formObsProducaoCheckpoint}
-                onChange={setFormObsProducaoCheckpoint}
-                rows={3}
-                disabled={criandoProducaoCheckpoint}
-                textSize="text-sm"
-                placeholder="Ex: separar embalagem especial para este pedido"
-              />
-            </label>
-
-            {formErroProducaoCheckpoint && (
-              <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <span>{formErroProducaoCheckpoint}</span>
-              </div>
-            )}
-          </div>
-        </ModalShell>
-      )}
 
     </AppLayout>
   )

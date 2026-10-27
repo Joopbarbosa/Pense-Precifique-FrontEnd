@@ -24,7 +24,7 @@ import type {
 import type { ClienteResponse } from "../../types/cliente";
 import ModaisAvancarStatus from "../../components/orcamento/ModaisAvancarStatus";
 import ComentariosOrcamento from "../../components/orcamento/ComentariosOrcamento";
-import { ACAO_AVANCAR_STATUS } from "../../components/orcamento/acaoAvancarStatus";
+import { rotuloAcaoAvancar } from "../../components/orcamento/acaoAvancarStatus";
 import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento";
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
 import { VinculoAtivoBadge, Toast } from "../../components/shared";
@@ -36,7 +36,7 @@ import { useRetryCooldown } from "../../hooks/useRetryCooldown";
 import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
-import { dataLocalIso, formatarDataHora } from "../../utils/data";
+import { dataLocalIso, formatarData, formatarDataHora } from "../../utils/data";
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -60,7 +60,6 @@ type ApiStatus =
 // ser "Confirmar pagamento", já que o próximo passo agora é PAGO) e não existia entrada pra PAGO
 // (deveria ser "Marcar como entregue"), então o botão de avançar sumia por completo nesse status.
 // Consequência direta de #466, corrigida inline (não é tarefa nova).
-const ACTION_LABEL = ACAO_AVANCAR_STATUS;
 
 // Descrição do próximo passo
 const NEXT_HINT: Partial<Record<ApiStatus, string>> = {
@@ -1162,7 +1161,7 @@ export default function DetalheOrcamentoPage() {
 
   const status = orcamento.status as ApiStatus;
   const meta = STATUS_META[status] || STATUS_META.RASCUNHO;
-  const actionLabel = ACTION_LABEL[status];
+  const actionLabel = rotuloAcaoAvancar(status, fluxo.precisaVincularProducao, fluxo.temVinculo);
   const nextHint = NEXT_HINT[status];
   // RN-NOVA-10 (V0.10.0, #466) — terminal da timeline passou de PAGO para ENTREGUE; mesmo achado
   // do ACTION_LABEL/NEXT_HINT acima, corrigido junto.
@@ -1339,13 +1338,16 @@ export default function DetalheOrcamentoPage() {
                   dá pra saber o que está sendo feito pra esse pedido.
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={fluxo.abrirVincularProducao}
-              >
-                Vincular produção
-              </Button>
+              {/* #1110 — no APROVADO o botão principal já é "Vincular produção"; o atalho do card só vale nos demais passos */}
+              {status !== "APROVADO" && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={fluxo.abrirVincularProducao}
+                >
+                  Vincular produção
+                </Button>
+              )}
             </div>
           )}
 
@@ -1633,6 +1635,11 @@ export default function DetalheOrcamentoPage() {
                   )}>
                     {BRL(orcamento.valorSinal || 0)}
                   </div>
+                  {orcamento.sinalAte && (
+                    <div data-testid="detalhe-sinal-ate" className="mt-0.5 text-xs text-muted">
+                      Sinal até {formatarData(orcamento.sinalAte)}
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-[140px] flex-1 rounded-[10px] border border-line bg-cream px-3.5 py-2.5">
                   <div className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.03em] text-dim">

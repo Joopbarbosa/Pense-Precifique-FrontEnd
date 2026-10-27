@@ -2,7 +2,7 @@ import { expect, test, type Locator } from '@playwright/test'
 import { E2E_API_URL } from './helpers/target'
 import { apiLogin, criarInsumo, inativarInsumo } from './helpers/api'
 import { login } from './helpers/auth'
-import { criarCliente, selecionarCliente, adicionarItemAvulso } from './helpers/orcamento'
+import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi } from './helpers/orcamento'
 import { criarInsumoComEstoque } from './helpers/insumo'
 import {
   criarProdutoComFicha,
@@ -72,14 +72,13 @@ test('CEN-NOVO-70 — Registrar compra, Nova produção e vínculo exibem 8 regi
     await page.getByPlaceholder('Buscar produto...').click()
     await conferirOitoLinhasVisiveis(page.getByTestId('busca-produtos-producao'))
 
-    await page.goto('/orcamentos/novo')
-    await selecionarCliente(page, cliente.nome)
-    await adicionarItemAvulso(page, produtoBase.nome, 5)
-    await page.getByRole('button', { name: 'Não', exact: true }).first().click()
-    await page.waitForResponse(res => res.url().includes('/orcamentos/simular-alertas') && res.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible()
-    await page.getByRole('button', { name: /Vincular produção existente/ }).click()
+    // #1107 — o vínculo sai da criação; a modal abre pelo detalhe do orçamento aprovado.
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id,
+      [{ produtoId: produtoBase.id, precoUnitario: 20, margemAplicada: 50, quantidade: 5 }], { sinalAtivo: false })
+    await avancarStatusViaApi(request, token, orcamento.id)
+    await avancarStatusViaApi(request, token, orcamento.id)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
     await conferirOitoLinhasVisiveis(page.getByTestId('producoes-disponiveis'))
   } finally {

@@ -22,7 +22,7 @@ test.describe('#386 — Prazo de produção', () => {
     }
   })
 
-  test('CEN-NOVO-21 — prazo novo inicia em 1 e edição mostra o prazo salvo', async ({ page, request }) => {
+  test('CEN-NOVO-21 (revisado #1111) — prazo novo inicia em Não e edição mostra o prazo salvo', async ({ page, request }) => {
     const token = await apiLogin(request)
     const produto = await criarProdutoComEstoque(request, token, `QA386-Produto-${Date.now()}`, 100)
     produtoIds.push(produto.id)
@@ -32,8 +32,7 @@ test.describe('#386 — Prazo de produção', () => {
     await login(page)
     await page.goto('/orcamentos/novo')
     const prazo = page.locator('input[type="number"][placeholder="10"]')
-    await expect(prazo).toHaveValue('1')
-    await page.getByRole('button', { name: 'Não', exact: true }).first().click()
+    // #1111 — "Vai ter prazo de produção?" nasce em Não (sem campo de prazo); Sim abre o campo com 1 dia.
     await expect(prazo).toHaveCount(0)
     await page.getByRole('button', { name: 'Sim', exact: true }).first().click()
     await expect(prazo).toHaveValue('1')
@@ -59,6 +58,7 @@ test.describe('#386 — Prazo de produção', () => {
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
     await adicionarItemAvulso(page, produto.nome, 1)
+    await page.getByRole('button', { name: 'Sim', exact: true }).first().click()
     await page.locator('input[type="number"][placeholder="10"]').fill('')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
     await expect(page.getByText('Prazo obrigatório, mínimo 1 dia', { exact: true })).toBeVisible()

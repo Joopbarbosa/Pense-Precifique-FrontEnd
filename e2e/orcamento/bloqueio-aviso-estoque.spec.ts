@@ -93,7 +93,7 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await expect(page.getByText('Estoque insuficiente', { exact: true })).toBeVisible()
   })
 
-  test('ORC-CEN-087 (ex-CEN-NOVO-16/CEN-NOVO-1) — checkpoint com checkbox: "Criar produção" em lote persiste o orçamento e cria a produção vinculada só com os itens marcados (RN-NOVA-12/13/14-pt1)', async ({ page, request }) => {
+  test('ORC-CEN-087 (revisado #1107) — aviso "Estoque ficará negativo": OK cria o orçamento sem vincular produção', async ({ page, request }) => {
     const token = await apiLogin(request)
     // Precisa de ficha técnica válida (não só estoqueAtual) — mesmo motivo documentado em
     // itens-sem-estoque.spec.ts. Insumo fracionável evita a trava de múltiplo de rendimento
@@ -121,46 +121,25 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     await page.waitForTimeout(600)
     await expect(page.getByText('Itens com estoque insuficiente')).toHaveCount(0)
 
-    await page.locator('input[type="number"][placeholder="10"]').fill('5')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
 
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText(/disponível 2, necessário 5/i)).toBeVisible()
-    await expect(page.getByText(/faltam 3 un\./i)).toBeVisible()
+    // #1107 — aviso simples "Estoque ficará negativo", com OK; a produção não é mais criada na criação.
+    const aviso = page.getByTestId('itens-estoque-negativo')
+    await expect(page.getByText('Estoque ficará negativo')).toBeVisible({ timeout: 20_000 })
+    await expect(aviso).toContainText(nomeProduto)
+    await expect(aviso).toContainText('Estoque 2 · precisa de 5 · fica em -3')
+    await expect(page.getByRole('button', { name: /^Criar produção/ })).toHaveCount(0)
 
-    // Sem seleção, "Criar produção" fica desabilitado (RN-NOVA-13, caso composto — ORC-CEN-089).
-    const criarProducaoBtn = page.getByRole('button', { name: /^Criar produção/, exact: false })
-    await expect(criarProducaoBtn).toBeDisabled()
+    await page.getByRole('button', { name: 'OK', exact: true }).click()
 
-    // Marca o checkbox do item — habilita a ação em lote.
-    await page.getByRole('checkbox').check()
-    await expect(criarProducaoBtn).toBeEnabled()
-    await expect(page.getByText('Criar produção (1)')).toBeVisible()
-
-    await criarProducaoBtn.click()
-
-    // RN-NOVA-12 — mini-formulário próprio abre (nunca navega direto pra /producao/nova, o
-    // orçamento ainda não foi persistido neste ponto).
-    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 20_000 })
-    await page.locator('label:has-text("Término previsto") input[type="date"]').fill('2026-12-01')
-    await page.getByRole('button', { name: 'Criar produção', exact: true }).click()
-
-    // RN-NOVA-14 ponto 1 — sucesso navega de volta pro orçamento recém-criado, não pra Produção.
     await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$/, { timeout: 30_000 })
     const orcamentoId = page.url().split('/orcamentos/')[1]
-
     const orcamentoRes = await request.get(`${API_URL}/orcamentos/${orcamentoId}`, { headers: { Authorization: `Bearer ${token}` } })
     const orcamento = await orcamentoRes.json()
-    expect(orcamento.producoesVinculadas).toHaveLength(1)
-
-    const producaoRes = await request.get(`${API_URL}/producoes/${orcamento.producoesVinculadas[0].producaoId}`, { headers: { Authorization: `Bearer ${token}` } })
-    const producao = await producaoRes.json()
-    // RN-NOVA-13 — produção cobre só o item marcado, não todos os itens do orçamento.
-    expect(producao.produtos).toHaveLength(1)
-    expect(producao.produtos[0].nomeProduto).toBe(nomeProduto)
+    expect(orcamento.producoesVinculadas ?? []).toHaveLength(0)
   })
 
-  test('ORC-CEN-090 (ex-CEN-NOVO-4) — cancelar o mini-formulário antes de confirmar mantém a artesã no checkpoint, sem perder o rascunho (RN-NOVA-14-pt2)', async ({ page, request }) => {
+  test('ORC-CEN-090 (revisado #1107) — "Revisar itens" fecha o aviso e mantém o rascunho', async ({ page, request }) => {
     const token = await apiLogin(request)
     const insumo = await criarInsumoFracionavel(request, token, `QA218-Insumo-${Date.now()}`, 100, 'DECIMAL')
     const nomeProduto = `QA218-Cancelar-${Date.now()}`
@@ -182,17 +161,12 @@ test.describe('ORC-CEN-063 a 065 (revisados) — Aviso de estoque em Novo Orçam
     for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+', exact: true }).click()
     await page.waitForTimeout(600)
 
-    await page.locator('input[type="number"][placeholder="10"]').fill('5')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Estoque ficará negativo')).toBeVisible({ timeout: 20_000 })
 
-    await page.getByRole('checkbox').check()
-    await page.getByRole('button', { name: /^Criar produção/, exact: false }).click()
-    await expect(page.getByText(/Cobre só/)).toBeVisible({ timeout: 20_000 })
-
-    // Cancela sem preencher o formulário — orçamento nunca foi persistido, então não há pra onde
-    // "voltar": fica no checkpoint, rascunho intacto em memória.
-    await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
+    // "Revisar itens" fecha o aviso sem criar nada: o rascunho continua na tela.
+    await page.getByRole('button', { name: 'Revisar itens', exact: true }).click()
+    await expect(page.getByText('Estoque ficará negativo')).toHaveCount(0)
     await expect(page).toHaveURL(/\/orcamentos\/novo$/)
     await expect(page.getByText(nomeProduto, { exact: true }).first()).toBeVisible()
   })

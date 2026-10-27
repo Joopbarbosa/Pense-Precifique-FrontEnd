@@ -7,10 +7,19 @@ import type { StatusOrcamento } from '../../types/orcamento'
 export const ACAO_AVANCAR_STATUS: Partial<Record<StatusOrcamento, string>> = {
   RASCUNHO: 'Enviar orçamento',
   ENVIADO: 'Marcar como aprovado',
-  APROVADO: 'Confirmar início',
+  APROVADO: 'Iniciar produção',
   AGUARDANDO_SINAL: 'Confirmar recebimento do sinal',
   SINAL_PAGO: 'Iniciar produção',
   EM_PRODUCAO: 'Marcar como finalizado',
   FINALIZADO: 'Confirmar pagamento',
   PAGO: 'Marcar como entregue',
+}
+
+/**
+ * #1110 — no APROVADO sem sinal, a produção só começa com uma produção vinculada: sem vínculo o botão principal é "Vincular
+ * produção" (abre a modal de vínculo); com vínculo, "Iniciar produção". Nos demais passos o rótulo é o da tabela.
+ */
+export function rotuloAcaoAvancar(status: string, precisaVincularProducao: boolean, temVinculo: boolean): string | undefined {
+  if (status === 'APROVADO' && precisaVincularProducao && !temVinculo) return 'Vincular produção'
+  return ACAO_AVANCAR_STATUS[status as StatusOrcamento]
 }

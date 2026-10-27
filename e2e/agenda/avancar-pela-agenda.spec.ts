@@ -44,7 +44,11 @@ test.describe('#1037 — Avançar status pela Agenda', () => {
     await page.getByRole('button', { name: 'Marcar como aprovado' }).click()
     await expect(page.getByTestId('detalhe-compromisso')).toHaveCount(0)
     expect((await buscarOrcamento(request, token, orcamento.id)).status).toBe('APROVADO')
-    await expect(page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })).toHaveCount(0)
+    // #1112 — a validade não some: fica na Agenda como concluída (verde e riscada)
+    const chip = page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })
+    await expect(chip).toHaveCount(1)
+    await expect(chip).toHaveAttribute('data-situacao', 'CONCLUIDO')
+    await expect(chip.locator('span.line-through')).toBeVisible()
   })
 
   test('CT-1037-02 — confirmar o sinal pela Agenda: sai o "Sinal a receber" e entra a entrega estimada', async ({ page, request }) => {
@@ -69,7 +73,7 @@ test.describe('#1037 — Avançar status pela Agenda', () => {
     await abrirNaAgenda(page, `Entrega estimada — ORC-${orcamento.numero}`, 3)
     const modalVinculo = page.getByRole('dialog').last()
     const aberta = async () => {
-      await page.getByRole('button', { name: 'Confirmar início' }).click()
+      await page.getByRole('button', { name: 'Vincular produção' }).click()
       await expect(page.getByRole('button', { name: /Avançar sem vincular/ })).toBeVisible()
     }
     // pelo X (o primeiro "Fechar" da modal de vínculo é o do cabeçalho)

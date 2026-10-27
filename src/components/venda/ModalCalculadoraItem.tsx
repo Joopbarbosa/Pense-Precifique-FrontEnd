@@ -3,6 +3,7 @@ import { Calculator } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import CalculadoraPreco, { LinhaCalculadora } from '../shared/CalculadoraPreco'
 import type { DadosCalculadoraItem } from './types'
+import { BRL } from './formato'
 
 // RN-NOVA-22 (REVISÃO)/RN-NOVA-23/RN-NOVA-1/RN-NOVA-2 (V0.8.4/#399, DECISOES_V0.8.4.md) —
 // calculadora de preço ao adicionar produto avulso, customização ou item de catálogo ao
@@ -18,12 +19,14 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
    *  único (RN-NOVA-2: sem fallback pro preço cadastrado). */
   carregar: () => Promise<DadosCalculadoraItem>
   onClose: () => void
-  onConfirm: (precoFinal: number) => void
+  /** `precoFinal` é o total da quantidade informada (#1104); o chamador divide por `quantidade` para o preço unitário. */
+  onConfirm: (precoFinal: number, quantidade: number) => void
   confirmLabel?: string
 }) {
   const [estado, setEstado] = useState<'carregando' | 'erro' | 'ok'>('carregando')
   const [dados, setDados] = useState<DadosCalculadoraItem | null>(null)
   const [precoFinal, setPrecoFinal] = useState('')
+  const [quantidade, setQuantidade] = useState('1')
 
   useEffect(() => {
     let cancelado = false
@@ -42,9 +45,22 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
 
   const numLocal = (v: string) => parseFloat(v.replace(',', '.')) || 0
   const pf = numLocal(precoFinal)
+  // #1104 — Quantidade é o primeiro campo; custo, mão de obra, margem e sugerido acompanham. Quantidade vazia
+  // ou inválida conta como 1 nos cálculos, e o botão só confirma com número inteiro ≥ 1.
+  const qtdNum = Math.floor(numLocal(quantidade))
+  const qtdValida = qtdNum >= 1
+  const qtd = qtdValida ? qtdNum : 1
+  const sugeridoTotal = dados ? Math.round(dados.sugerido * qtd * 100) / 100 : 0
+  const mudarQuantidade = (v: string) => {
+    const limpo = v.replace(/\D/g, '').slice(0, 5)
+    const nova = Math.max(1, parseInt(limpo || '1', 10))
+    // mantém o preço por unidade que a usuária já definiu: o total acompanha a nova quantidade
+    setPrecoFinal(((pf / qtd) * nova).toFixed(2).replace('.', ','))
+    setQuantidade(limpo)
+  }
   // RN-NOVA-22 (REVISÃO) — comparação exata sobre o valor exibido (2 casas), sem
   // tolerância — diferente do overrideAtivo de Produto/Catálogo (0.005/0.001).
-  const diff = dados ? Math.round((pf - dados.sugerido) * 100) / 100 : 0
+  const diff = dados ? Math.round((pf - sugeridoTotal) * 100) / 100 : 0
   const overrideAtivo = diff !== 0
 
   return (
@@ -57,7 +73,7 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
       footer={estado === 'ok' ? (
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={() => onConfirm(pf)}>{confirmLabel}</Button>
+          <Button variant="primary" disabled={!qtdValida} onClick={() => onConfirm(pf, qtd)}>{confirmLabel}</Button>
         </>
       ) : undefined}
     >
@@ -76,16 +92,32 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
         </div>
       )}
       {estado === 'ok' && dados && (
+        <>
+        <label className="mb-3 block">
+          <span className="mb-1 block text-[13px] font-semibold">Quantidade</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            data-testid="calculadora-quantidade"
+            aria-label="Quantidade"
+            value={quantidade}
+            onChange={e => mudarQuantidade(e.target.value)}
+            className="h-10 w-28 rounded-lg border border-line px-3 text-sm"
+          />
+        </label>
         <CalculadoraPreco
           titulo={dados.titulo}
-          sugerido={dados.sugerido}
+          sugerido={sugeridoTotal}
           precoFinal={precoFinal}
           onPrecoFinalChange={setPrecoFinal}
           overrideAtivo={overrideAtivo}
           diffOverride={overrideAtivo ? diff : null}
         >
-          {dados.breakdown.map((linha, i) => <LinhaCalculadora key={i} {...linha} />)}
+          {dados.breakdown.map(({ unitario, ...linha }, i) => (
+            <LinhaCalculadora key={i} {...linha} value={unitario !== undefined ? BRL(unitario * qtd) : linha.value} />
+          ))}
         </CalculadoraPreco>
+        </>
       )}
     </ModalShell>
   )

@@ -52,7 +52,7 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await expect(painel).toContainText('R$ 100,00')
   })
 
-  test('CT-1035-02 — a validade aparece só no dia e some ao aprovar', async ({ page, request }) => {
+  test('CT-1035-02 — a validade aparece só no dia e, ao aprovar, fica concluída (#1112)', async ({ page, request }) => {
     const token = await apiLogin(request)
     const dia = hojeLocal(3)
     const { orcamento } = await novoOrcamento(request, token, 'QA1035B', { dataValidade: `${dia}T12:00:00` })
@@ -68,7 +68,9 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Próximo' }).click()
-    await expect(page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })).toHaveCount(0)
+    const chip = page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })
+    await expect(chip).toHaveCount(1)
+    await expect(chip).toHaveAttribute('data-situacao', 'CONCLUIDO')
   })
 
   test('CT-1035-03 — saldo a receber (total menos o sinal pago) no dia da entrega estimada', async ({ page, request }) => {
