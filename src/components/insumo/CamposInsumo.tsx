@@ -58,11 +58,11 @@ export default function CamposInsumo({ form, compacto = false }: { form: FormIns
           <input placeholder="Papel couchê 180g" className={inputBase} {...bind(form.nome, form.setNome)} />
         </Field>
         <div className="mt-3.5 grid grid-cols-1 items-start gap-3.5 md:grid-cols-[auto_1fr]">
-          <Field label="Não validar marca" group>
+          <Field label="Validar marca" group>
             <SegmentedControl
               options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
-              value={qualquerMarca}
-              onChange={form.definirQualquerMarca}
+              value={!qualquerMarca}
+              onChange={validar => form.definirQualquerMarca(!validar)}
               {...PEQUENO}
               className="mt-1.5"
             />
