@@ -622,7 +622,7 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
         mostrarSugerido={mostrarPrecoMargem}
         mensagemSemPreco={mensagemSemPreco}
         sugerido={sugerido}
-        precoFinalLabel="Preço final de venda"
+        precoFinalLabel="Preço de venda (unitário)"
         precoFinal={precoFinal}
         onPrecoFinalChange={setPrecoFinal}
         overrideAtivo={manual}
@@ -687,6 +687,14 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
             <div className="flex items-baseline justify-between gap-2.5 pb-1 pt-3">
               <span className="text-[13px] text-body">Lucro ({num(margem)}%)</span>
               <span className="text-sm font-bold text-success [font-variant-numeric:tabular-nums]">+ {moeda(lucro)}</span>
+            </div>
+            {/* #1155 — o preço de venda é por unidade; o total da receita é unitário × rendimento. */}
+            <div className="flex items-baseline justify-between gap-2.5 py-2.5" data-testid="preco-venda-total-receita">
+              <span className="text-[13.5px] font-semibold text-dark">
+                Preço de venda total da receita
+                {rendimentoNum > 0 && <span className="block text-[11.5px] font-normal text-dim">para {rendimentoNum} unidades</span>}
+              </span>
+              <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(pf * (rendimentoNum > 0 ? rendimentoNum : 1))}</span>
             </div>
           </>
         )}

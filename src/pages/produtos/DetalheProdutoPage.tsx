@@ -360,7 +360,11 @@ export default function DetalheProdutoPage() {
       hint: produto.rendimento != null ? `para ${produto.rendimento} unidades` : undefined,
     }] : []),
     ...(produto.precoSugerido != null ? [{ k: 'Preço sugerido', v: moeda(produto.precoSugerido), accent: true, hint: 'editável ao editar o produto' }] : []),
-    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda (unitário)', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+    ...(produto.precoVenda != null && !isCustom && produto.rendimento != null && produto.rendimento > 0 ? [{
+      k: 'Preço de venda total da receita', v: moeda(produto.precoVenda * produto.rendimento), blue: true,
+      hint: `para ${produto.rendimento} unidades`,
+    }] : []),
   ]
 
   const ABAS = [

@@ -90,7 +90,7 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await page.getByRole('button', { name: '2 Ficha Técnica' }).click()
 
     const sugeridoBox = page.getByText('Preço sugerido', { exact: true }).locator('xpath=following-sibling::div[1]')
-    const precoInput = page.getByText('Preço final de venda', { exact: true }).locator('xpath=following-sibling::div[1]//input')
+    const precoInput = page.getByText('Preço de venda (unitário)', { exact: true }).locator('xpath=following-sibling::div[1]//input')
 
     await expect(sugeridoBox).toBeVisible()
     const precoVendaOriginal = await precoInput.inputValue()
@@ -151,5 +151,27 @@ test.describe('OpenProject #210+231+234 — Eliminação do Produto Base / unifi
     await expect(opcaoInativa).toHaveAttribute('aria-disabled', 'true')
     await opcaoInativa.click()
     await expect(opcaoInativa).toBeVisible()
+  })
+
+  test('CT-1155-01 — preço de venda unitário e total da receita (unitário × rendimento)', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const insumo = await criarInsumoBarato(request, token, `QA-1155-Insumo-${Date.now()}`)
+    criadosInsumoIds.push(insumo.id)
+    const produto = await criarProdutoComFicha(request, token, `QA-1155-Produto-${Date.now()}`, [{ insumoId: insumo.id, quantidade: 1 }], 5)
+    criadosProdutoIds.push(produto.id)
+    const moedaNum = (t: string) => parseFloat(t.replace(/[^\d,]/g, '').replace(',', '.'))
+
+    await login(page)
+    await page.goto(`/produtos/${produto.id}`)
+    await expect(page.getByText('Preço de venda (unitário)', { exact: true })).toBeVisible()
+    const total = page.getByText('Preço de venda total da receita', { exact: true })
+    await expect(total).toBeVisible()
+    await expect(page.getByText('para 5 unidades').first()).toBeVisible()
+
+    await page.goto(`/produtos/${produto.id}/editar`)
+    await page.getByRole('button', { name: '2 Ficha Técnica' }).click()
+    const unitario = moedaNum(await page.getByText('Preço de venda (unitário)', { exact: true }).locator('xpath=following-sibling::div[1]//input').inputValue())
+    const totalTxt = await page.getByTestId('preco-venda-total-receita').innerText()
+    expect(moedaNum(totalTxt.split('\n').filter(l => l.includes('R$')).pop() as string)).toBeCloseTo(unitario * 5, 1)
   })
 })
