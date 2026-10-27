@@ -58,6 +58,7 @@ export interface CompromissoUsuariaRequest {
   data: string
   horario?: string | null
   horarioFim?: string | null
+  descricao?: string | null
   orcamentoId?: string | null
   insumoId?: string | null
   recorrencia?: RecorrenciaCompromisso
@@ -71,6 +72,7 @@ export interface EditarCompromissoRequest {
   data?: string | null
   horario?: string | null
   horarioFim?: string | null
+  descricao?: string | null
   orcamentoId?: string | null
   insumoId?: string | null
 }
@@ -83,6 +85,7 @@ export interface CompromissoUsuariaDetalhe {
   data: string
   horario?: string | null
   horarioFim?: string | null
+  descricao?: string | null
   situacao: SituacaoCompromisso
   observacaoCancelamento?: string | null
   serie: boolean

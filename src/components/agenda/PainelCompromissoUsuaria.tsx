@@ -61,6 +61,7 @@ export default function PainelCompromissoUsuaria({ compromisso, onAlterado }: { 
       <dl className="grid grid-cols-[110px_1fr] gap-y-2 rounded-card border border-line bg-cream px-4 py-3 text-sm text-body">
         <dt className="font-semibold text-dark">Situação</dt><dd>{SITUACAO[d.situacao]}</dd>
         {d.serie && (<><dt className="font-semibold text-dark">Repetição</dt><dd>{d.recorrencia === 'SEMANAL' ? 'Semanal' : 'Mensal'}{d.quantidadeOcorrencias ? `, ${d.quantidadeOcorrencias} ocorrências` : ', sem fim'}</dd></>)}
+        {d.descricao && (<><dt className="font-semibold text-dark">Descrição</dt><dd className="whitespace-pre-wrap break-words" data-testid="descricao-compromisso">{d.descricao}</dd></>)}
         {d.orcamento && (
           <><dt className="font-semibold text-dark">Orçamento</dt>
             <dd><button type="button" className="border-none bg-transparent p-0 font-[inherit] font-semibold text-teal underline" onClick={() => navigate(`/orcamentos/${d.orcamento!.id}`)}>{d.orcamento.identificador}</button> — {d.orcamento.cliente}</dd></>
