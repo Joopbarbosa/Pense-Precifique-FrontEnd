@@ -137,6 +137,12 @@ test.describe('#1034 — Agenda', () => {
   test('CT-1067 / CEN-NOVO-102 — mostra a semana 43 de 18 a 24/10/2026', async ({ page }) => {
     await login(page)
     await page.goto('/agenda')
+    // vai até a semana fixa (domingo 18/10/2026) a partir da semana de hoje, para não depender do dia da execução
+    const [a, m, d] = hojeLocal().split('-').map(Number)
+    const hoje = Date.UTC(a, m - 1, d)
+    const domingoAtual = hoje - new Date(hoje).getUTCDay() * 86_400_000
+    const semanas = Math.round((domingoAtual - Date.UTC(2026, 9, 18)) / (7 * 86_400_000))
+    for (let i = 0; i < Math.abs(semanas); i++) await page.getByRole('button', { name: semanas > 0 ? 'Anterior' : 'Próximo' }).click()
     await expect(page.getByTestId('numero-semana')).toHaveText('Sem 43')
   })
 
