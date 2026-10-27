@@ -33,7 +33,7 @@ test.describe('#1106 #1107 #1111 — criação de orçamento', () => {
   test('CT-1111-01 — validade nasce em 7 dias e prazo de produção nasce em Não', async ({ page }) => {
     await login(page)
     await page.goto('/orcamentos/novo')
-    await expect(page.locator(`input[type="date"][value="${hojeLocal(7)}"]`).first()).toBeVisible()
+    await expect(page.locator(`input[type="date"]:visible[value="${hojeLocal(7)}"]`).first()).toBeVisible()
     await expect(page.locator('input[type="number"][placeholder="10"]')).toHaveCount(0)
   })
 

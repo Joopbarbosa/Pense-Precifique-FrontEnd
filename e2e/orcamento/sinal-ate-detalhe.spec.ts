@@ -44,7 +44,7 @@ test.describe('#1105 — Sinal até no detalhe do orçamento', () => {
     await login(page)
     await page.goto(`/orcamentos/${orc.id}`)
 
-    await expect(page.getByText('Aguardando Sinal')).toBeVisible()
+    await expect(page.getByText('Aguardando Sinal').first()).toBeVisible()
     await expect(page.getByTestId('detalhe-sinal-ate')).toHaveCount(0)
   })
 })
