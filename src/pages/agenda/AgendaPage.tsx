@@ -93,7 +93,7 @@ export default function AgendaPage() {
         escopo, titulo: d.titulo, data: mudanca.data ?? d.data,
         horario: mudanca.horario !== undefined ? mudanca.horario : d.horario ?? null,
         horarioFim: mudanca.horarioFim !== undefined ? mudanca.horarioFim : d.horarioFim ?? null,
-        orcamentoId: d.orcamento?.id ?? null, insumoId: d.insumo && !d.insumo.removido ? d.insumo.id : null,
+        descricao: d.descricao ?? null, orcamentoId: d.orcamento?.id ?? null, insumoId: d.insumo && !d.insumo.removido ? d.insumo.id : null,
       })
       setEscolhaEscopo(null)
       await carregar()

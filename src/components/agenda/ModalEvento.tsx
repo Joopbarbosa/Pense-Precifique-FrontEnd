@@ -5,6 +5,7 @@ import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import Field from '../ui/Field'
 import SegmentedControl from '../ui/SegmentedControl'
+import TextArea from '../ui/TextArea'
 import ComboBusca from '../compra/ComboBusca'
 import { insumoService } from '../../services/insumoService'
 import { orcamentoService } from '../../services/orcamentoService'
@@ -49,6 +50,7 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
   const [data, setData] = useState(edicao?.data ?? dataInicial ?? dataLocalIso())
   const [horario, setHorario] = useState(edicao?.horario ?? horarioInicial ?? '')
   const [horarioFim, setHorarioFim] = useState(edicao?.horarioFim ?? horarioFimInicial ?? '')
+  const [descricao, setDescricao] = useState(edicao?.descricao ?? '')
   const [orcamento, setOrcamento] = useState<{ id: string; identificador: string } | null>(
     edicao?.orcamento ? { id: edicao.orcamento.id, identificador: edicao.orcamento.identificador } : vinculoInicial?.orcamento ?? null)
   const [insumo, setInsumo] = useState<{ id: string; nome: string } | null>(
@@ -80,11 +82,13 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
       if (edicao) {
         await agendaService.editarCompromisso(edicao.id, edicao.dataOriginal, {
           escopo, titulo: titulo.trim(), data: serieInteira ? undefined : data, horario: horario || null,
-          horarioFim: horario && horarioFim ? horarioFim : null, orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
+          horarioFim: horario && horarioFim ? horarioFim : null, descricao: descricao.trim() || null,
+          orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
         })
       } else {
         await agendaService.criarCompromisso({
-          titulo: titulo.trim(), data, horario: horario || null, horarioFim: horario && horarioFim ? horarioFim : null, orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
+          titulo: titulo.trim(), data, horario: horario || null, horarioFim: horario && horarioFim ? horarioFim : null, descricao: descricao.trim() || null,
+          orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
           recorrencia, diasSemana: recorrencia === 'SEMANAL' ? dias : undefined,
           quantidadeOcorrencias: recorrencia !== 'NENHUMA' && !indefinida ? n : undefined,
         })
@@ -92,7 +96,7 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
       onSalvo()
     } catch (err) {
       const fe = (err as { response?: { data?: { fieldErrors?: Record<string, string> } } })?.response?.data?.fieldErrors
-      if (fe && Object.keys(fe).length > 0) setErros({ titulo: fe.titulo, data: fe.data, horarioFim: fe.horarioFim, diasSemana: fe.diasSemana, quantidade: fe.quantidadeOcorrencias, insumo: fe.insumoId } as Record<string, string>)
+      if (fe && Object.keys(fe).length > 0) setErros({ titulo: fe.titulo, descricao: fe.descricao, data: fe.data, horarioFim: fe.horarioFim, diasSemana: fe.diasSemana, quantidade: fe.quantidadeOcorrencias, insumo: fe.insumoId } as Record<string, string>)
       setErroGeral(extractApiError(err, 'Não foi possível salvar o evento.'))
     } finally {
       setSalvando(false)
@@ -124,6 +128,9 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
               className={clsx(inputBase, erros.horarioFim ? 'border-danger' : 'border-line')} />
           </Field>
         </div>
+        <Field label="Descrição" opt erro={erros.descricao}>
+          <TextArea value={descricao} onChange={setDescricao} ariaLabel="Descrição" rows={3} placeholder="Detalhes do evento (opcional)" />
+        </Field>
         <Field label="Orçamento" opt>
           {orcamento ? (
             <Escolhido rotulo={orcamento.identificador} onRemover={() => setOrcamento(null)} />
