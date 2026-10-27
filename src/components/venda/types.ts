@@ -40,6 +40,8 @@ export interface LinhaVendaView {
 
 export interface DadosCalculadoraItem {
   titulo: string
+  /** Rota do produto (ou do catálogo) aberta em nova aba pelo botão "Ver produto" (#1154). */
+  linkProduto?: string
   sugerido: number
   precoInicial: number
   /** `unitario` (R$ por 1 unidade) faz a linha acompanhar a Quantidade da calculadora (#1104); sem ele, `value` fica fixo. */

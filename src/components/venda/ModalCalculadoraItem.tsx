@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calculator } from 'lucide-react'
+import { Calculator, ExternalLink } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import CalculadoraPreco, { LinhaCalculadora } from '../shared/CalculadoraPreco'
 import type { DadosCalculadoraItem } from './types'
@@ -93,6 +93,17 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
       )}
       {estado === 'ok' && dados && (
         <>
+        {dados.linkProduto && (
+          <a
+            href={dados.linkProduto}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="calculadora-ver-produto"
+            className="mb-3 inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
+          >
+            <ExternalLink size={14} /> Ver produto
+          </a>
+        )}
         <label className="mb-3 block">
           <span className="mb-1 block text-[13px] font-semibold">Quantidade</span>
           <input
@@ -117,6 +128,11 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
             <LinhaCalculadora key={i} {...linha} value={unitario !== undefined ? BRL(unitario * qtd) : linha.value} />
           ))}
         </CalculadoraPreco>
+        {/* #1154 — o preço unitário (preço final ÷ quantidade) fica sempre à vista, inclusive com Quantidade 1. */}
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-alt px-3 py-2 text-sm" data-testid="calculadora-preco-unitario">
+          <span className="font-semibold">Preço unitário</span>
+          <span className="font-bold">{BRL(pf / qtd)}</span>
+        </div>
         </>
       )}
     </ModalShell>
