@@ -19,8 +19,11 @@ export async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Cal
     produtoService.buscarPorId(produtoId) as Promise<ProdutoDetalheResponse & { precoSugerido: number; margemLucro: number }>,
     empresaService.getConfiguracao(),
   ])
-  const custoInsumos = detalhe.fichaTecnica.reduce((s, f) => s + f.quantidade * f.custoUnitario, 0)
-  const maoObra = (detalhe.tempoProducao / 60) * config.valorHora
+  // #1154 — ficha técnica e tempo de produção são do lote inteiro (a receita rende `rendimento` unidades): a
+  // calculadora trabalha por unidade, como o preço sugerido e o de venda que o Backend já devolve.
+  const rendimento = detalhe.rendimento && detalhe.rendimento > 0 ? detalhe.rendimento : 1
+  const custoInsumos = detalhe.fichaTecnica.reduce((s, f) => s + f.quantidade * f.custoUnitario, 0) / rendimento
+  const maoObra = ((detalhe.tempoProducao / 60) * config.valorHora) / rendimento
   // `margemLucro` do produto é a PORCENTAGEM cadastrada (ex.: 40 = 40%), não um valor em
   // R$ — o lucro em reais é a diferença entre o sugerido (já pronto do Backend) e o
   // custo total (insumos + mão de obra). Achado do teste visual desta tarefa: a
@@ -28,13 +31,14 @@ export async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Cal
   const lucro = detalhe.precoSugerido - custoInsumos - maoObra
   return {
     titulo,
+    linkProduto: `/produtos/${produtoId}`,
     sugerido: detalhe.precoSugerido,
     // #659 (altera CEN-NOVO-4) — abre com o preço de venda cadastrado (o que a artesã digitou); o sugerido
     // fica só como referência. Sem preço cadastrado, cai no sugerido.
     precoInicial: detalhe.precoVenda ?? detalhe.precoSugerido,
     breakdown: [
       { label: 'Custo dos insumos', value: BRL(custoInsumos), unitario: custoInsumos },
-      { label: 'Mão de obra', value: BRL(maoObra), unitario: maoObra, sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h` },
+      { label: 'Mão de obra', value: BRL(maoObra), unitario: maoObra, sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h${rendimento > 1 ? ` ÷ ${rendimento} un.` : ''}` },
       { label: 'Margem de lucro', value: BRL(lucro), unitario: lucro, sub: `${detalhe.margemLucro}%` },
     ],
   }
@@ -55,6 +59,7 @@ export async function carregarCalculadoraCatalogo(catalogoId: string, itemId: st
   // item (o que a artesã digitou no Catálogo; nunca muda sozinho); o sugerido fica só como referência.
   return {
     titulo: 'Calculadora de Preço',
+    linkProduto: `/catalogos/${catalogoId}`,
     sugerido: item.precoSugerido,
     precoInicial: item.precoVenda ?? item.precoSugerido,
     breakdown: [

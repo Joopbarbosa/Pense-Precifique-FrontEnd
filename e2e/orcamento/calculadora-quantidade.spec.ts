@@ -87,4 +87,33 @@ test.describe('#1104 — calculadora de preço com Quantidade', () => {
     await qtd.fill('abc')
     await expect(qtd).toHaveValue('')
   })
+
+  test('CT-1154-01 — preço unitário sempre visível e botão "Ver produto" em nova aba', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const ts = Date.now()
+    const insumo = await criarInsumoComEstoque(request, token, `QA-1154-Insumo-${ts}`, 100)
+    produtoIds.push(insumo.id)
+    const produto = await criarProdutoComFicha(request, token, `QA-1154-Produto-${ts}`, [{ insumoId: insumo.id, quantidade: 1 }])
+    produtoIds.push(produto.id)
+    const cliente = await criarCliente(request, token, `QA-1154-Cliente-${ts}`)
+
+    await login(page)
+    await page.goto('/orcamentos/novo')
+    await selecionarCliente(page, cliente.nome)
+    await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    await page.getByPlaceholder(/Buscar (produto|item)/).fill(produto.nome)
+    await page.getByText(produto.nome, { exact: true }).click()
+
+    const unitario = page.getByTestId('calculadora-preco-unitario')
+    await expect(unitario).toBeVisible()
+    const final1 = moeda(await page.getByText('Preço final de venda', { exact: true }).locator('xpath=following-sibling::div[1]//input').inputValue())
+    expect(moeda((await unitario.innerText()).replace('Preço unitário', ''))).toBeCloseTo(final1, 2)
+
+    await page.getByTestId('calculadora-quantidade').fill('4')
+    expect(moeda((await unitario.innerText()).replace('Preço unitário', ''))).toBeCloseTo(final1, 2)
+
+    const ver = page.getByTestId('calculadora-ver-produto')
+    await expect(ver).toHaveAttribute('href', `/produtos/${produto.id}`)
+    await expect(ver).toHaveAttribute('target', '_blank')
+  })
 })
