@@ -58,7 +58,12 @@ async function abrirVinculoNoAprovado(
   await login(page)
   await page.goto(`/orcamentos/${orcamento.id}`)
   await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
-  await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
+  // #1156 — com falta de estoque, o aviso vem antes do vínculo; o OK segue para a escolha da produção.
+  const escolha = page.getByText('Escolha uma produção aguardando início')
+  const ok = page.getByRole('button', { name: 'OK, vincular produção', exact: true })
+  await expect(ok.or(escolha)).toBeVisible()
+  if (await ok.isVisible()) await ok.click()
+  await expect(escolha).toBeVisible()
   return orcamento.id as string
 }
 
@@ -350,5 +355,33 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     // única prova que importa: apenas 1 produção nasceu vinculada, apesar dos N cliques
     expect(orcamentoFinal.producoesVinculadas).toHaveLength(1)
     criadasProducaoIds.push(orcamentoFinal.producoesVinculadas[0].producaoId)
+  })
+
+  test('CT-1156-01 — falta de estoque avisa antes do vínculo; OK segue; Cancelar não abre o vínculo', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const ts = Date.now()
+    const insumo = await criarInsumoComEstoque(request, token, `QA-1156-Insumo-${ts}`, 100)
+    criadosInsumoIds.push(insumo.id)
+    const produto = await criarProdutoComFicha(request, token, `QA-1156-Produto-${ts}`, [{ insumoId: insumo.id, quantidade: 1 }])
+    criadosProdutoIds.push(produto.id)
+    const cliente = await criarCliente(request, token, `QA-1156-Cliente-${ts}`)
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id,
+      [{ produtoId: produto.id, precoUnitario: 20, margemAplicada: 50, quantidade: 3 }], { sinalAtivo: false })
+    await avancarStatusViaApi(request, token, orcamento.id)
+    await avancarStatusViaApi(request, token, orcamento.id)
+
+    await login(page)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
+    const aviso = page.getByTestId('aviso-falta-estoque')
+    await expect(aviso).toContainText(produto.nome)
+    await expect(aviso).toContainText('precisa 3')
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
+    await expect(aviso).toBeHidden()
+    await expect(page.getByText('Escolha uma produção aguardando início')).toBeHidden()
+
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
+    await page.getByRole('button', { name: 'OK, vincular produção', exact: true }).click()
+    await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
   })
 })
