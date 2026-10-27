@@ -39,7 +39,7 @@ interface Arrasto { chave: string; dia: string; inicio: number; fim: number }
  * o minuto de agora com um traço laranja (#1052). A linha de dia inteiro tem altura máxima e rola por dentro, para muitos compromissos não cobrirem a grade. Clicar num espaço vazio cria um evento (#1064); o compromisso avulso pendente se
  * arrasta para outro dia e hora e se estica pela borda de baixo (#1065).
  */
-export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onCriar, onMover, onEsticar, onMoverDia }: {
+export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onCriar, onMover, onEsticar, onMoverDia, onVerDiaInteiro }: {
   dias: string[]
   hoje: string
   porDia: Map<string, Compromisso[]>
@@ -54,6 +54,8 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
   onEsticar?: (c: Compromisso, fim: number) => void
   /** Um avulso de dia inteiro foi solto em outro dia. */
   onMoverDia?: (chave: string, dia: string) => void
+  /** Clique no rótulo "dia inteiro": lista os compromissos de dia inteiro do período (#1158). */
+  onVerDiaInteiro?: () => void
 }) {
   const colunas = { gridTemplateColumns: `${LARGURA_HORAS}px repeat(${dias.length}, minmax(0, 1fr))` }
   const minimo = dias.length === 1 ? 'min-w-[320px]' : 'min-w-[760px]'
@@ -165,7 +167,10 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
             ))}
           </div>
           <div className="grid max-h-[104px] overflow-y-auto border-b border-line" style={colunas} data-testid="linha-dia-inteiro">
-            <div className="p-1.5 text-right text-[11px] font-semibold text-subtle">dia inteiro</div>
+            {onVerDiaInteiro ? (
+              <button type="button" data-testid="ver-dia-inteiro" onClick={onVerDiaInteiro}
+                className="p-1.5 text-right text-[11px] font-semibold text-teal underline-offset-2 hover:underline">dia inteiro</button>
+            ) : <div className="p-1.5 text-right text-[11px] font-semibold text-subtle">dia inteiro</div>}
             {dias.map(d => (
               <div key={d} data-testid={`dia-${d}`} className={clsx('flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5', d === hoje && 'bg-orange/5')}
                 onDragOver={onMoverDia ? e => e.preventDefault() : undefined}
