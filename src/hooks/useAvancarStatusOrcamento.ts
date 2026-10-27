@@ -8,6 +8,7 @@ import type {
   OrcamentoProducaoResponse,
   AvancaStatusRequest,
   SimulacaoAvancoStatusResponse,
+  SimulacaoEstoqueProdutoResponse,
   CriarProducaoVinculadaRequest,
 } from "../types/orcamento";
 
@@ -44,6 +45,8 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
   // handlers de sucesso/fechamento saberem que devem completar a transição em seguida. Nunca
   // bloqueia (RN-ORC-VINC-01).
   const [vinculoViaTransicao, setVinculoViaTransicao] = useState(false);
+  // #1156 — falta de estoque dos itens do orçamento, mostrada antes de abrir o vínculo com a produção.
+  const [avisoFaltaEstoque, setAvisoFaltaEstoque] = useState<SimulacaoEstoqueProdutoResponse[] | null>(null);
 
   // RN-ORC-VINC-02 ponto 2 (P-F005) — a interceptação só vale na transição real para EM_PRODUCAO
   // (APROVADO sem sinal ou SINAL_PAGO) e só quando ainda não há vínculo algum.
@@ -227,10 +230,38 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     handleAvancar();
   };
 
+  // #1156 — antes de abrir o vínculo, simula o estoque dos itens: se algum faltar, avisa primeiro (o OK segue
+  // para o vínculo); a falha da simulação nunca bloqueia o vínculo.
+  const abrirVinculoComAviso = async (viaTransicao: boolean) => {
+    setVinculoViaTransicao(viaTransicao);
+    try {
+      const itens = (orcamento?.itens ?? []).map((it) =>
+        it.itemCatalogoId ? { itemCatalogoId: it.itemCatalogoId, quantidade: it.quantidade } : { produtoId: it.produtoId, quantidade: it.quantidade });
+      const simulacao = itens.length > 0 ? await orcamentoService.simularEstoque(itens) : [];
+      const faltas = simulacao.filter((s) => s.situacao !== "SUFICIENTE");
+      if (faltas.length > 0) {
+        setAvisoFaltaEstoque(faltas);
+        return;
+      }
+    } catch {
+      // segue direto para o vínculo
+    }
+    setModalAvanco("vincularProducao");
+  };
+
+  const confirmarAvisoFaltaEstoque = () => {
+    setAvisoFaltaEstoque(null);
+    setModalAvanco("vincularProducao");
+  };
+
+  const fecharAvisoFaltaEstoque = () => {
+    setAvisoFaltaEstoque(null);
+    setVinculoViaTransicao(false);
+  };
+
   // Abre a modal de vínculo pelo card/atalho "Vincular produção" (sem completar a transição depois).
   const abrirVincularProducao = () => {
-    setVinculoViaTransicao(false);
-    setModalAvanco("vincularProducao");
+    void abrirVinculoComAviso(false);
   };
 
   // RN-ORC-VINC-02 ponto 2 — intercepta só a transição real para EM_PRODUCAO e só quando ainda não
@@ -241,8 +272,7 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     } else if (status === "ENVIADO") {
       handleClicarAprovar();
     } else if (precisaVincularProducao && producoesVinculadas.length === 0) {
-      setVinculoViaTransicao(true);
-      setModalAvanco("vincularProducao");
+      void abrirVinculoComAviso(true);
     } else {
       handleAvancar();
     }
@@ -256,6 +286,9 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     temVinculo: producoesVinculadas.length > 0,
     onPrimaryAction,
     abrirVincularProducao,
+    avisoFaltaEstoque,
+    confirmarAvisoFaltaEstoque,
+    fecharAvisoFaltaEstoque,
     fecharModalAvanco: () => setModalAvanco(null),
     // dados e ações das modais (consumidos por ModaisAvancarStatus)
     confirmacaoPendente,

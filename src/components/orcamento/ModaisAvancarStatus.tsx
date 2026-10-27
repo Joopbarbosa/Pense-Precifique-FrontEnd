@@ -1,6 +1,7 @@
 import ModalSinal from "./ModalSinal";
 import ModalConfirmarAtalho from "./ModalConfirmarAtalho";
 import ModalVincularProducao from "./ModalVincularProducao";
+import ModalAvisoFaltaEstoque from "./ModalAvisoFaltaEstoque";
 import ConfirmarEstoqueNegativoModal from "../producao/ConfirmarEstoqueNegativoModal";
 import type { OrcamentoDetalheResponse } from "../../types/orcamento";
 import type { FluxoAvancarStatus } from "../../hooks/useAvancarStatusOrcamento";
@@ -32,6 +33,14 @@ export default function ModaisAvancarStatus({
           onClose={fluxo.fecharAtalho}
           onConfirmarAtalho={fluxo.handleConfirmarAtalho}
           onSeguirFluxoNormal={fluxo.handleSeguirFluxoNormal}
+        />
+      )}
+
+      {fluxo.avisoFaltaEstoque && (
+        <ModalAvisoFaltaEstoque
+          itens={fluxo.avisoFaltaEstoque}
+          onClose={fluxo.fecharAvisoFaltaEstoque}
+          onOk={fluxo.confirmarAvisoFaltaEstoque}
         />
       )}
 
