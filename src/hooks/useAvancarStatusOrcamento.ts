@@ -253,6 +253,7 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     erroAvanco,
     modalAvanco,
     precisaVincularProducao,
+    temVinculo: producoesVinculadas.length > 0,
     onPrimaryAction,
     abrirVincularProducao,
     fecharModalAvanco: () => setModalAvanco(null),

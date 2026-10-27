@@ -47,7 +47,7 @@ test.describe('#1050 — Avançar status pelo Detalhe do Orçamento (fluxo extra
     expect((await buscarOrcamento(request, token, orcamento.id)).status).toBe('ENVIADO')
 
     await page.getByRole('button', { name: 'Marcar como aprovado' }).click()
-    await expect(page.getByRole('button', { name: 'Confirmar início' }).or(page.getByRole('button', { name: 'Confirmar recebimento do sinal' }))).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Iniciar produção' }).or(page.getByRole('button', { name: 'Confirmar recebimento do sinal' }))).toBeVisible()
     expect(['APROVADO', 'AGUARDANDO_SINAL']).toContain((await buscarOrcamento(request, token, orcamento.id)).status)
   })
 

@@ -184,7 +184,7 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
 
-    await page.getByRole('button', { name: 'Confirmar início', exact: true }).click()
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
 
     // RN-NOVA-13 (V0.10.0, #474) reverteu RN-ORC-VINC-02 ponto 2: fechar a modal sem vincular NÃO
@@ -302,8 +302,8 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
       page.getByText(new RegExp(`${producao.identificador}.*deve terminar depois do prazo prometido ao cliente`))
     ).toBeVisible()
 
-    // vínculo já existe -> "Confirmar início" avança direto, sem a modal de oferta — estouro é só aviso
-    await page.getByRole('button', { name: 'Confirmar início', exact: true }).click()
+    // vínculo já existe -> "Iniciar produção" avança direto, sem a modal de oferta — estouro é só aviso
+    await page.getByRole('button', { name: 'Iniciar produção', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Marcar como finalizado', exact: true })).toBeVisible({ timeout: 10000 })
 
     const orcamentoFinal = await buscarOrcamento(request, token, orcamento.id)
