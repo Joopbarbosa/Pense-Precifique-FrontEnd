@@ -58,10 +58,11 @@ export default function ModalCustomizacoes({
     setFila(resto.length > 0 ? resto : null)
   }
 
-  const confirmarDaFila = (precoFinal: number) => {
+  const confirmarDaFila = (precoFinal: number, quantidade: number) => {
     if (!fila) return
     const [atual, ...resto] = fila
-    const novasConfirmadas = [...confirmadas, { ...atual, valor: precoFinal }]
+    // #1104 — o preço da calculadora é o total da quantidade; a customização guarda valor unitário + qtd
+    const novasConfirmadas = [...confirmadas, { ...atual, valor: precoFinal / quantidade, qtd: quantidade }]
     if (resto.length > 0) {
       setConfirmadas(novasConfirmadas)
       setFila(resto)

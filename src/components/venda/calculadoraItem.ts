@@ -33,9 +33,9 @@ export async function carregarCalculadoraAvulso(produtoId: string, titulo = 'Cal
     // fica só como referência. Sem preço cadastrado, cai no sugerido.
     precoInicial: detalhe.precoVenda ?? detalhe.precoSugerido,
     breakdown: [
-      { label: 'Custo dos insumos', value: BRL(custoInsumos) },
-      { label: 'Mão de obra', value: BRL(maoObra), sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h` },
-      { label: 'Margem de lucro', value: BRL(lucro), sub: `${detalhe.margemLucro}%` },
+      { label: 'Custo dos insumos', value: BRL(custoInsumos), unitario: custoInsumos },
+      { label: 'Mão de obra', value: BRL(maoObra), unitario: maoObra, sub: `${detalhe.tempoProducao} min × ${BRL(config.valorHora)}/h` },
+      { label: 'Margem de lucro', value: BRL(lucro), unitario: lucro, sub: `${detalhe.margemLucro}%` },
     ],
   }
 }
@@ -58,7 +58,7 @@ export async function carregarCalculadoraCatalogo(catalogoId: string, itemId: st
     sugerido: item.precoSugerido,
     precoInicial: item.precoVenda ?? item.precoSugerido,
     breakdown: [
-      { label: `${item.nome} × ${item.componentes.length} componente(s)`, value: BRL(item.precoSugerido) },
+      { label: `${item.nome} × ${item.componentes.length} componente(s)`, value: BRL(item.precoSugerido), unitario: item.precoSugerido },
     ],
   }
 }

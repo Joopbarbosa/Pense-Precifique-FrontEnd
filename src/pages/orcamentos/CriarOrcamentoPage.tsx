@@ -953,14 +953,14 @@ export default function CriarOrcamentoPage() {
               : carregarCalculadoraCatalogo(calculadoraPendente.item.catalogoId, calculadoraPendente.item.id)
           }
           onClose={() => setCalculadoraPendente(null)}
-          onConfirm={precoFinal => {
+          onConfirm={(precoFinal, quantidade) => {
             if (calculadoraPendente.tipo === 'avulso') {
               const produto = calculadoraPendente.produto
               setItems(arr => [...arr, {
                 id: Date.now(),
                 nome: rotuloProduto(produto.nome, produto.marca),
-                qtd: 1,
-                preco: precoFinal,
+                qtd: quantidade,
+                preco: precoFinal / quantidade,
                 customs: [],
                 produtoId: produto.id,
                 produtoIdentificador: produto.identificador,
@@ -974,8 +974,8 @@ export default function CriarOrcamentoPage() {
               setItems(arr => [...arr, {
                 id: Date.now(),
                 nome: rotuloProduto(item.nome, item.marca),
-                qtd: 1,
-                preco: precoFinal,
+                qtd: quantidade,
+                preco: precoFinal / quantidade,
                 customs: [],
                 itemCatalogoId: item.id,
                 catalogoNome: item.catalogoNome,
