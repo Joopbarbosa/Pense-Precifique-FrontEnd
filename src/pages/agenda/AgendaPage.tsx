@@ -7,6 +7,7 @@ import SegmentedControl from '../../components/ui/SegmentedControl'
 import FaixaResumo from '../../components/agenda/FaixaResumo'
 import GradeMes from '../../components/agenda/GradeMes'
 import GradeHoras from '../../components/agenda/GradeHoras'
+import ModalDiaInteiro from '../../components/agenda/ModalDiaInteiro'
 import ModalAtrasados from '../../components/agenda/ModalAtrasados'
 import ModalResumoDoDia from '../../components/agenda/ModalResumoDoDia'
 import ModalDia from '../../components/agenda/ModalDia'
@@ -48,6 +49,7 @@ export default function AgendaPage() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [atrasadosAberto, setAtrasadosAberto] = useState(false)
+  const [diaInteiroAberto, setDiaInteiroAberto] = useState(false)
   const [resumoDoDiaAberto, setResumoDoDiaAberto] = useState(false)
   const [diaAberto, setDiaAberto] = useState<string | null>(null)
   const [aberto, setAberto] = useState<Compromisso | null>(null)
@@ -160,7 +162,7 @@ export default function AgendaPage() {
       ) : (
         <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} onAbrir={abrir} sinalHoje={sinalHoje}
           onCriar={(dia, inicio, fim) => setNovoEvento({ data: dia, horario: inicio, horarioFim: fim })}
-          onMover={moverNaGrade} onEsticar={esticarNaGrade} onMoverDia={moverParaDia} />
+          onMover={moverNaGrade} onEsticar={esticarNaGrade} onMoverDia={moverParaDia} onVerDiaInteiro={() => setDiaInteiroAberto(true)} />
       )}
       {vazio && (filtrosAtivos
         ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>
@@ -168,6 +170,7 @@ export default function AgendaPage() {
 
       {resumoDoDiaAberto && <ModalResumoDoDia onClose={() => setResumoDoDiaAberto(false)} onAbrir={abrir} />}
       {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
+      {diaInteiroAberto && <ModalDiaInteiro dias={periodo.dias} porDia={porDia} onClose={() => setDiaInteiroAberto(false)} onAbrir={abrir} />}
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
       {novoEvento && <ModalEvento dataInicial={novoEvento.data} horarioInicial={novoEvento.horario} horarioFimInicial={novoEvento.horarioFim}
         onClose={() => setNovoEvento(null)} onSalvo={() => { setNovoEvento(null); void carregar() }} />}
