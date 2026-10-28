@@ -41,10 +41,16 @@ test.describe('#1108/#1109 — Painel do orçamento na Agenda', () => {
     await expect(page.getByTestId('produtos-orcamento')).toContainText(`2× ${nomeProduto}`)
   })
 
-  test('CT-1109-01 — "Abrir orçamento" leva ao detalhe do orçamento', async ({ page, request }) => {
+  test('CT-1109-01 / CEN-NOVO-131 — "Abrir orçamento" abre o detalhe em nova aba e mantém a Agenda', async ({ page, request }) => {
     const { orcamento } = await abrirEntrega(page, request, 'QA1109A')
-    await page.getByRole('button', { name: 'Abrir orçamento' }).click()
-    await expect(page).toHaveURL(new RegExp(`/orcamentos/${orcamento.id}$`))
+    const urlAgenda = page.url()
+    const [nova] = await Promise.all([
+      page.context().waitForEvent('page'),
+      page.getByRole('button', { name: 'Abrir orçamento', exact: true }).click(),
+    ])
+    await expect(nova).toHaveURL(new RegExp(`/orcamentos/${orcamento.id}$`))
+    expect(page.url()).toBe(urlAgenda)
+    await expect(page.getByTestId('painel-orcamento')).toBeVisible()
   })
 
   test('CT-1109-02 — "Novo evento deste orçamento" abre a modal de novo evento', async ({ page, request }) => {
