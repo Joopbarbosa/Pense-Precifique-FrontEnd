@@ -64,7 +64,7 @@ export default function PainelCompromissoUsuaria({ compromisso, onAlterado }: { 
         {d.descricao && (<><dt className="font-semibold text-dark">Descrição</dt><dd className="whitespace-pre-wrap break-words" data-testid="descricao-compromisso">{d.descricao}</dd></>)}
         {d.orcamento && (
           <><dt className="font-semibold text-dark">Orçamento</dt>
-            <dd><button type="button" className="border-none bg-transparent p-0 font-[inherit] font-semibold text-teal underline" onClick={() => navigate(`/orcamentos/${d.orcamento!.id}`)}>{d.orcamento.identificador}</button> — {d.orcamento.cliente}</dd></>
+            <dd><button type="button" className="border-none bg-transparent p-0 font-[inherit] font-semibold text-teal underline" onClick={() => window.open(`/orcamentos/${d.orcamento!.id}`, '_blank', 'noopener')}>{d.orcamento.identificador}</button> — {d.orcamento.cliente}</dd></>
         )}
         {d.insumo && (
           <><dt className="font-semibold text-dark">Insumo</dt>

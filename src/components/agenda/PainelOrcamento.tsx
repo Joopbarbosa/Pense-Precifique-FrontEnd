@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { CalendarPlus, ExternalLink } from 'lucide-react'
 import clsx from 'clsx'
 import Spinner from '../ui/Spinner'
@@ -24,7 +23,6 @@ import type { OrcamentoDetalheResponse } from '../../types/orcamento'
  * Agenda recarrega para refletir os compromissos novos.
  */
 export default function PainelOrcamento({ orcamentoId, tipo, onAlterado }: { orcamentoId: string; tipo?: string; onAlterado: () => void }) {
-  const navigate = useNavigate()
   const [orcamento, setOrcamento] = useState<OrcamentoDetalheResponse | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [novoEvento, setNovoEvento] = useState(false)
@@ -81,7 +79,7 @@ export default function PainelOrcamento({ orcamentoId, tipo, onAlterado }: { orc
           <Button variant="secondary" size="sm" disabled={fluxo.saving} onClick={fluxo.onPrimaryAction}>{fluxo.saving ? 'Processando...' : acao}</Button>
         )}
         <Button variant="ghost" size="sm" icon={<CalendarPlus size={14} />} onClick={() => setNovoEvento(true)}>Novo evento deste orçamento</Button>
-        <Button variant="ghost" size="sm" icon={<ExternalLink size={14} />} onClick={() => navigate(`/orcamentos/${o.id}`)}>Abrir orçamento</Button>
+        <Button variant="ghost" size="sm" icon={<ExternalLink size={14} />} onClick={() => window.open(`/orcamentos/${o.id}`, '_blank', 'noopener')}>Abrir orçamento</Button>
       </div>
       <div>
         <div className="mb-2 text-[13px] font-semibold text-dark">Comentários</div>
