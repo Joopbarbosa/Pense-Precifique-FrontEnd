@@ -20,7 +20,7 @@ import { extractApiError } from '../../utils/apiError'
 import type { AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, EscopoEdicao, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
 import { dataLocalIso } from '../../utils/data'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
-import { distribuirPorDia, ehMovel, filtrarCompromissos, horarioDeMinutos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
+import { distribuirPorDia, ehMovel, buscarCompromissos, filtrarCompromissos, horarioDeMinutos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
 
 const OPCOES_VISAO = [
   { value: 'DIA' as VisaoAgenda, label: 'Dia' },
@@ -57,6 +57,7 @@ export default function AgendaPage() {
   const [novoEvento, setNovoEvento] = useState<{ data: string; horario?: string; horarioFim?: string } | null>(null)
   // arrastar ou esticar um compromisso de série pergunta se vale só para a ocorrência ou para a série (#1065)
   const [escolhaEscopo, setEscolhaEscopo] = useState<{ d: CompromissoUsuariaDetalhe; mudanca: Mudanca; escopo: EscopoEdicao } | null>(null)
+  const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<FiltrosAgendaValue>({ mostrar: 'TODOS', origens: [] })
 
   const periodo = useMemo(() => periodoDaVisao(visao, referencia), [visao, referencia])
@@ -86,7 +87,7 @@ export default function AgendaPage() {
     return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', aoVoltar) }
   }, [carregar])
 
-  const compromissosVisiveis = useMemo(() => filtrarCompromissos(compromissos, filtros), [compromissos, filtros])
+  const compromissosVisiveis = useMemo(() => buscarCompromissos(filtrarCompromissos(compromissos, filtros), busca), [compromissos, filtros, busca])
   const porDia = useMemo(() => distribuirPorDia(compromissosVisiveis), [compromissosVisiveis])
 
   const aplicarMudanca = async (d: CompromissoUsuariaDetalhe, mudanca: Mudanca, escopo?: EscopoEdicao) => {
@@ -130,6 +131,7 @@ export default function AgendaPage() {
   const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setResumoDoDiaAberto(false); setAberto(c) }
   const abrirNovoEvento = (data: string = referencia) => setNovoEvento({ data })
   const filtrosAtivos = filtros.mostrar !== 'TODOS' || filtros.origens.length > 0
+  const buscaAtiva = busca.trim().length > 0
   const vazio = !carregando && !erro && compromissosVisiveis.length === 0
 
   return (
@@ -146,7 +148,7 @@ export default function AgendaPage() {
         <div className="ml-auto"><Button icon={<CalendarPlus size={16} />} onClick={() => abrirNovoEvento()}>Novo evento</Button></div>
       </div>
 
-      <FiltrosAgenda filtros={filtros} ativo={filtrosAtivos}
+      <FiltrosAgenda busca={busca} onMudarBusca={setBusca} resultados={buscaAtiva && !carregando ? compromissosVisiveis.length : null} filtros={filtros} ativo={filtrosAtivos}
         onMudarMostrar={(mostrar: MostrarAgenda) => setFiltros(atual => ({ ...atual, mostrar }))}
         onMudarOrigens={(origens: OrigemCompromisso[]) => setFiltros(atual => ({ ...atual, origens }))}
         onLimpar={() => setFiltros({ mostrar: 'TODOS', origens: [] })}
@@ -164,7 +166,9 @@ export default function AgendaPage() {
           onCriar={(dia, inicio, fim) => setNovoEvento({ data: dia, horario: inicio, horarioFim: fim })}
           onMover={moverNaGrade} onEsticar={esticarNaGrade} onMoverDia={moverParaDia} onVerDiaInteiro={() => setDiaInteiroAberto(true)} />
       )}
-      {vazio && (filtrosAtivos
+      {vazio && (buscaAtiva
+        ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-busca">Nenhum compromisso encontrado neste período.</p>
+        : filtrosAtivos
         ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>
         : <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia">Nenhum compromisso neste período</p>)}
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import type { FiltrosAgenda as FiltrosAgendaValue, MostrarAgenda } from '../../utils/agenda'
+import { Search } from 'lucide-react'
+import { MAXIMO_BUSCA_AGENDA, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
 import type { OrigemCompromisso } from '../../types/agenda'
 
 const OPCOES_MOSTRAR: { value: MostrarAgenda; label: string }[] = [
@@ -16,7 +17,11 @@ const ORIGENS: { value: OrigemCompromisso; label: string }[] = [
   { value: 'AVULSO', label: 'Meus eventos' },
 ]
 
-export default function FiltrosAgenda({ filtros, ativo, onMudarMostrar, onMudarOrigens, onLimpar, esquerda, direita }: {
+export default function FiltrosAgenda({ busca, onMudarBusca, resultados, filtros, ativo, onMudarMostrar, onMudarOrigens, onLimpar, esquerda, direita }: {
+  /** #1165 — texto da busca; `resultados` é a contagem mostrada quando há busca. */
+  busca: string
+  onMudarBusca: (busca: string) => void
+  resultados: number | null
   filtros: FiltrosAgendaValue
   ativo: boolean
   onMudarMostrar: (mostrar: MostrarAgenda) => void
@@ -36,6 +41,15 @@ export default function FiltrosAgenda({ filtros, ativo, onMudarMostrar, onMudarO
   return (
     <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="filtros-agenda">
       {esquerda}
+      <label className="relative flex items-center">
+        <Search size={15} className="pointer-events-none absolute left-2.5 text-subtle" aria-hidden />
+        <input type="search" value={busca} maxLength={MAXIMO_BUSCA_AGENDA} onChange={e => onMudarBusca(e.target.value)} aria-label="Buscar na agenda"
+          placeholder="Buscar por título, cliente ou ORC-12"
+          className="h-9 w-[260px] rounded-input border border-line bg-white pl-8 pr-3 text-sm text-dark outline-none focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+      </label>
+      {resultados != null && <span className="text-xs font-semibold text-body" data-testid="busca-resultados" role="status">
+        {resultados === 1 ? '1 resultado neste período' : `${resultados} resultados neste período`}
+      </span>}
       <label className="flex items-center gap-2 text-xs font-semibold text-body">
         Mostrar
         <select aria-label="Mostrar" value={filtros.mostrar} onChange={e => onMudarMostrar(e.target.value as MostrarAgenda)}
