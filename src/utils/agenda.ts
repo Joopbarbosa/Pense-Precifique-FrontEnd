@@ -19,6 +19,22 @@ export function filtrarCompromissos(compromissos: Compromisso[], filtros: Filtro
   })
 }
 
+export const MAXIMO_BUSCA_AGENDA = 100
+
+function normalizarBusca(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+/**
+ * #1165 (RN-NOVA-38) — busca na visão atual: o título do compromisso (que já traz o cliente nos de orçamento) e o número do
+ * orçamento (ex.: "ORC-12"), sem diferenciar maiúscula nem acento. Texto só de espaços não filtra.
+ */
+export function buscarCompromissos(compromissos: Compromisso[], busca: string): Compromisso[] {
+  const termo = normalizarBusca(busca.slice(0, MAXIMO_BUSCA_AGENDA))
+  if (!termo) return compromissos
+  return compromissos.filter(c => normalizarBusca(c.titulo).includes(termo) || normalizarBusca(c.identificador ?? '').includes(termo))
+}
+
 /**
  * V0.18.0 (#1034, DT-NOVA-12) — datas da grade da Agenda. Só apresentação: navegar entre dias, semanas e meses e montar a
  * grade. O atraso e o dia de exibição vêm do servidor; aqui as datas civis são tratadas como texto "AAAA-MM-DD" e a conta
