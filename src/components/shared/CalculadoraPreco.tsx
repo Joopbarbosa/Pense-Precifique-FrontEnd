@@ -32,6 +32,8 @@ interface CalculadoraPrecoProps {
   overrideAtivo: boolean
   diffOverride?: number | null
   disabledInput?: boolean
+  /** Sem o cabeçalho com título: para quando a janela que a contém já mostra o título (calculadora do orçamento, RN-NOVA-34). */
+  compacto?: boolean
 }
 
 // RN-NOVA-22 (REVISÃO, V0.8.4/#399) — esquema de cor de 3 estados, derivado aqui
@@ -61,12 +63,12 @@ export default function CalculadoraPreco({
   precoFinalLabel = 'Preço final de venda',
   precoFinal, onPrecoFinalChange,
   overrideAtivo, diffOverride,
-  disabledInput = false,
+  disabledInput = false, compacto = false,
 }: CalculadoraPrecoProps) {
   const estado = estadoPreco(overrideAtivo, diffOverride)
   return (
     <div className="overflow-hidden rounded-card border-[1.5px] border-teal/30 bg-white shadow-[0_8px_26px_-12px_rgba(42,157,143,0.4)]">
-      <div className="flex items-center gap-[11px] border-b border-teal/18 bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
+      {!compacto && <div className="flex items-center gap-[11px] border-b border-teal/18 bg-[linear-gradient(135deg,rgba(42,157,143,0.12),rgba(42,157,143,0.04))] px-5 py-4">
         <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-white text-teal shadow-[0_3px_10px_-3px_rgba(42,157,143,0.4)]">
           <Calculator size={20} />
         </span>
@@ -76,7 +78,7 @@ export default function CalculadoraPreco({
             {calculando ? 'Calculando…' : <><Sparkles size={12} /> Atualiza em tempo real</>}
           </div>
         </div>
-      </div>
+      </div>}
 
       <div className="px-5 pb-5 pt-2.5">
         {children}
