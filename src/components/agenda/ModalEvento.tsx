@@ -1,14 +1,11 @@
 import { useState } from 'react'
 import clsx from 'clsx'
-import { CalendarPlus, X } from 'lucide-react'
+import { CalendarPlus } from 'lucide-react'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import Field from '../ui/Field'
 import SegmentedControl from '../ui/SegmentedControl'
 import TextArea from '../ui/TextArea'
-import ComboBusca from '../compra/ComboBusca'
-import { insumoService } from '../../services/insumoService'
-import { orcamentoService } from '../../services/orcamentoService'
 import { agendaService } from '../../services/agendaService'
 import { extractApiError } from '../../utils/apiError'
 import { dataLocalIso } from '../../utils/data'
@@ -29,7 +26,7 @@ export interface VinculoInicial { orcamento?: { id: string; identificador: strin
 
 /**
  * V0.18.0 (#1039, RN-NOVA-19 a RN-NOVA-21) — "Novo evento" e a edição do compromisso da usuária. Título (até 120) e data são
- * obrigatórios; horário, orçamento e insumo são opcionais (a busca só oferece registros ativos); a recorrência semanal ou mensal vale
+ * obrigatórios; horário e descrição são opcionais; orçamento e insumo não são mais escolhidos no formulário (RN-NOVA-36, só preservados); a recorrência semanal ou mensal vale
  * só na criação. Na edição de uma série, `escopo` diz se a mudança vale para a ocorrência ou para a série inteira (a data só muda por
  * ocorrência). Os bloqueios de regra vêm do servidor e aparecem na própria modal.
  */
@@ -51,10 +48,9 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
   const [horario, setHorario] = useState(edicao?.horario ?? horarioInicial ?? '')
   const [horarioFim, setHorarioFim] = useState(edicao?.horarioFim ?? horarioFimInicial ?? '')
   const [descricao, setDescricao] = useState(edicao?.descricao ?? '')
-  const [orcamento, setOrcamento] = useState<{ id: string; identificador: string } | null>(
-    edicao?.orcamento ? { id: edicao.orcamento.id, identificador: edicao.orcamento.identificador } : vinculoInicial?.orcamento ?? null)
-  const [insumo, setInsumo] = useState<{ id: string; nome: string } | null>(
-    edicao?.insumo && !edicao.insumo.removido ? { id: edicao.insumo.id, nome: edicao.insumo.nome } : vinculoInicial?.insumo ?? null)
+  // RN-NOVA-36: o formulário não oferece Orçamento nem Insumo; o vínculo de evento antigo (ou do orçamento de onde o evento foi aberto) é só preservado.
+  const orcamentoId = edicao?.orcamento?.id ?? vinculoInicial?.orcamento?.id ?? null
+  const insumoId = edicao?.insumo && !edicao.insumo.removido ? edicao.insumo.id : vinculoInicial?.insumo?.id ?? null
   const [recorrencia, setRecorrencia] = useState<RecorrenciaCompromisso>('NENHUMA')
   const [dias, setDias] = useState<DiaSemanaApi[]>([])
   const [indefinida, setIndefinida] = useState(true)
@@ -83,12 +79,12 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
         await agendaService.editarCompromisso(edicao.id, edicao.dataOriginal, {
           escopo, titulo: titulo.trim(), data: serieInteira ? undefined : data, horario: horario || null,
           horarioFim: horario && horarioFim ? horarioFim : null, descricao: descricao.trim() || null,
-          orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
+          orcamentoId, insumoId,
         })
       } else {
         await agendaService.criarCompromisso({
           titulo: titulo.trim(), data, horario: horario || null, horarioFim: horario && horarioFim ? horarioFim : null, descricao: descricao.trim() || null,
-          orcamentoId: orcamento?.id ?? null, insumoId: insumo?.id ?? null,
+          orcamentoId, insumoId,
           recorrencia, diasSemana: recorrencia === 'SEMANAL' ? dias : undefined,
           quantidadeOcorrencias: recorrencia !== 'NENHUMA' && !indefinida ? n : undefined,
         })
@@ -96,7 +92,7 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
       onSalvo()
     } catch (err) {
       const fe = (err as { response?: { data?: { fieldErrors?: Record<string, string> } } })?.response?.data?.fieldErrors
-      if (fe && Object.keys(fe).length > 0) setErros({ titulo: fe.titulo, descricao: fe.descricao, data: fe.data, horarioFim: fe.horarioFim, diasSemana: fe.diasSemana, quantidade: fe.quantidadeOcorrencias, insumo: fe.insumoId } as Record<string, string>)
+      if (fe && Object.keys(fe).length > 0) setErros({ titulo: fe.titulo, descricao: fe.descricao, data: fe.data, horarioFim: fe.horarioFim, diasSemana: fe.diasSemana, quantidade: fe.quantidadeOcorrencias } as Record<string, string>)
       setErroGeral(extractApiError(err, 'Não foi possível salvar o evento.'))
     } finally {
       setSalvando(false)
@@ -130,28 +126,6 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
         </div>
         <Field label="Descrição" opt erro={erros.descricao}>
           <TextArea value={descricao} onChange={setDescricao} ariaLabel="Descrição" rows={3} placeholder="Detalhes do evento (opcional)" />
-        </Field>
-        <Field label="Orçamento" opt>
-          {orcamento ? (
-            <Escolhido rotulo={orcamento.identificador} onRemover={() => setOrcamento(null)} />
-          ) : (
-            <ComboBusca<{ id: string; identificador: string; nomeCliente: string }>
-              ariaLabel="Buscar orçamento" placeholder="Buscar orçamento por cliente ou número" vazio="Nenhum orçamento encontrado" size="sm"
-              buscar={async termo => (await orcamentoService.listar(0, 8, undefined, termo || undefined)).content}
-              getKey={o => o.id} renderItem={o => <span>{o.identificador} — {o.nomeCliente}</span>}
-              onSelect={o => setOrcamento({ id: o.id, identificador: o.identificador })} />
-          )}
-        </Field>
-        <Field label="Insumo (para registrar um &quot;comprar até&quot;)" opt erro={erros.insumo}>
-          {insumo ? (
-            <Escolhido rotulo={insumo.nome} onRemover={() => setInsumo(null)} />
-          ) : (
-            <ComboBusca<{ id: string; nome: string; marca?: string }>
-              ariaLabel="Buscar insumo" placeholder="Buscar insumo" vazio="Nenhum insumo encontrado" size="sm"
-              buscar={async termo => (await insumoService.listar(0, 8, termo || undefined, true)).content}
-              getKey={i => i.id} renderItem={i => <span>{i.nome}{i.marca ? ` — ${i.marca}` : ''}</span>}
-              onSelect={i => setInsumo({ id: i.id, nome: i.nome })} />
-          )}
         </Field>
         {!edicao && (
           <Field label="Repetição" group>
@@ -189,14 +163,5 @@ export default function ModalEvento({ edicao, escopo, vinculoInicial, dataInicia
         {erroGeral && <p className="rounded-card border border-danger-line bg-danger-bg px-3 py-2 text-[13px] text-danger-deep" role="alert">{erroGeral}</p>}
       </div>
     </ModalShell>
-  )
-}
-
-function Escolhido({ rotulo, onRemover }: { rotulo: string; onRemover: () => void }) {
-  return (
-    <div className="flex h-11 items-center justify-between rounded-input border-[1.5px] border-teal/40 bg-teal/6 px-3.5 text-sm font-semibold text-teal-deep">
-      <span className="truncate">{rotulo}</span>
-      <button type="button" onClick={onRemover} aria-label={`Remover ${rotulo}`} className="ml-2 grid h-6 w-6 shrink-0 place-items-center rounded-full text-teal hover:bg-teal/15"><X size={14} /></button>
-    </div>
   )
 }

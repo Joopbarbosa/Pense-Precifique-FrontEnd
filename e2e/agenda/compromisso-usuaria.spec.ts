@@ -169,4 +169,32 @@ test.describe('#1039 — Compromisso da usuária', () => {
     await abrirNoDia(page, titulo, 1)
     await expect(page.getByTestId('vinculo-insumo')).toHaveText('Insumo removido')
   })
+
+  test('CT-1163-01 / CEN-NOVO-129 — o formulário de Novo evento não tem os campos Orçamento e Insumo', async ({ page }) => {
+    await login(page)
+    await page.goto('/agenda')
+    await page.getByRole('button', { name: 'Novo evento' }).click()
+    await expect(page.getByTestId('modal-evento')).toBeVisible()
+    await expect(page.getByLabel('Título')).toBeVisible()
+    await expect(page.getByLabel('Buscar orçamento')).toHaveCount(0)
+    await expect(page.getByLabel('Buscar insumo')).toHaveCount(0)
+    await expect(page.getByTestId('modal-evento').getByText('Orçamento', { exact: true })).toHaveCount(0)
+  })
+
+  test('CT-1163-02 / CEN-NOVO-130 — evento antigo com insumo vinculado mantém o link e o vínculo ao editar o título', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const insumo = await criarInsumo(request, token, `QA1163-Linha-${Date.now()}`)
+    const titulo = `Comprar linha 25 ${Date.now()}`
+    await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(1), insumoId: insumo.id })
+    await login(page)
+    await abrirNoDia(page, titulo, 1)
+    await expect(page.getByTestId('vinculo-insumo').getByRole('button', { name: insumo.nome })).toBeVisible()
+    await page.getByRole('button', { name: 'Editar' }).click()
+    await expect(page.getByLabel('Buscar insumo')).toHaveCount(0)
+    await page.getByLabel('Título').fill(`${titulo} (editado)`)
+    await page.getByRole('dialog').getByRole('button', { name: 'Salvar' }).click()
+    await expect(page.getByTestId('modal-evento')).toHaveCount(0)
+    await abrirNoDia(page, `${titulo} (editado)`, 1)
+    await expect(page.getByTestId('vinculo-insumo').getByRole('button', { name: insumo.nome })).toBeVisible()
+  })
 })
