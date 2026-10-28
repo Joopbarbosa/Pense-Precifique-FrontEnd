@@ -19,14 +19,13 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
    *  único (RN-NOVA-2: sem fallback pro preço cadastrado). */
   carregar: () => Promise<DadosCalculadoraItem>
   onClose: () => void
-  /** `precoFinal` é o total da quantidade informada (#1104); o chamador divide por `quantidade` para o preço unitário. */
+  /** `precoFinal` é o preço de 1 unidade; a quantidade é sempre 1 (RN-NOVA-34, #1161). */
   onConfirm: (precoFinal: number, quantidade: number) => void
   confirmLabel?: string
 }) {
   const [estado, setEstado] = useState<'carregando' | 'erro' | 'ok'>('carregando')
   const [dados, setDados] = useState<DadosCalculadoraItem | null>(null)
   const [precoFinal, setPrecoFinal] = useState('')
-  const [quantidade, setQuantidade] = useState('1')
 
   useEffect(() => {
     let cancelado = false
@@ -45,19 +44,8 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
 
   const numLocal = (v: string) => parseFloat(v.replace(',', '.')) || 0
   const pf = numLocal(precoFinal)
-  // #1104 — Quantidade é o primeiro campo; custo, mão de obra, margem e sugerido acompanham. Quantidade vazia
-  // ou inválida conta como 1 nos cálculos, e o botão só confirma com número inteiro ≥ 1.
-  const qtdNum = Math.floor(numLocal(quantidade))
-  const qtdValida = qtdNum >= 1
-  const qtd = qtdValida ? qtdNum : 1
-  const sugeridoTotal = dados ? Math.round(dados.sugerido * qtd * 100) / 100 : 0
-  const mudarQuantidade = (v: string) => {
-    const limpo = v.replace(/\D/g, '').slice(0, 5)
-    const nova = Math.max(1, parseInt(limpo || '1', 10))
-    // mantém o preço por unidade que a usuária já definiu: o total acompanha a nova quantidade
-    setPrecoFinal(((pf / qtd) * nova).toFixed(2).replace('.', ','))
-    setQuantidade(limpo)
-  }
+  // RN-NOVA-34 (#1161) — sem campo de quantidade: o item entra com 1 e a quantidade muda só na linha do item.
+  const sugeridoTotal = dados ? Math.round(dados.sugerido * 100) / 100 : 0
   // RN-NOVA-22 (REVISÃO) — comparação exata sobre o valor exibido (2 casas), sem
   // tolerância — diferente do overrideAtivo de Produto/Catálogo (0.005/0.001).
   const diff = dados ? Math.round((pf - sugeridoTotal) * 100) / 100 : 0
@@ -72,8 +60,19 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
       icon={<Calculator size={20} />}
       footer={estado === 'ok' ? (
         <>
+          {dados?.linkProduto && (
+            <a
+              href={dados.linkProduto}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="calculadora-ver-produto"
+              className="mr-auto inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
+            >
+              <ExternalLink size={14} /> Ver produto
+            </a>
+          )}
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" disabled={!qtdValida} onClick={() => onConfirm(pf, qtd)}>{confirmLabel}</Button>
+          <Button variant="primary" onClick={() => onConfirm(pf, 1)}>{confirmLabel}</Button>
         </>
       ) : undefined}
     >
@@ -93,30 +92,8 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
       )}
       {estado === 'ok' && dados && (
         <>
-        {dados.linkProduto && (
-          <a
-            href={dados.linkProduto}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="calculadora-ver-produto"
-            className="mb-3 inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
-          >
-            <ExternalLink size={14} /> Ver produto
-          </a>
-        )}
-        <label className="mb-3 block">
-          <span className="mb-1 block text-[13px] font-semibold">Quantidade</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            data-testid="calculadora-quantidade"
-            aria-label="Quantidade"
-            value={quantidade}
-            onChange={e => mudarQuantidade(e.target.value)}
-            className="h-10 w-28 rounded-lg border border-line px-3 text-sm"
-          />
-        </label>
         <CalculadoraPreco
+          compacto
           titulo={dados.titulo}
           sugerido={sugeridoTotal}
           precoFinal={precoFinal}
@@ -125,14 +102,9 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
           diffOverride={overrideAtivo ? diff : null}
         >
           {dados.breakdown.map(({ unitario, ...linha }, i) => (
-            <LinhaCalculadora key={i} {...linha} value={unitario !== undefined ? BRL(unitario * qtd) : linha.value} />
+            <LinhaCalculadora key={i} {...linha} value={unitario !== undefined ? BRL(unitario) : linha.value} />
           ))}
         </CalculadoraPreco>
-        {/* #1154 — o preço unitário (preço final ÷ quantidade) fica sempre à vista, inclusive com Quantidade 1. */}
-        <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-alt px-3 py-2 text-sm" data-testid="calculadora-preco-unitario">
-          <span className="font-semibold">Preço unitário</span>
-          <span className="font-bold">{BRL(pf / qtd)}</span>
-        </div>
         </>
       )}
     </ModalShell>
