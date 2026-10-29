@@ -10,7 +10,8 @@ import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { extractApiError } from '../../utils/apiError'
 import type { ProducaoResumo, AlertaInsumo } from '../../types/producao'
-import type { CriarProducaoVinculadaRequest } from '../../types/orcamento'
+import type { CriarProducaoVinculadaRequest, QuantidadeProducao } from '../../types/orcamento'
+import QuantidadesProducaoNaoFracionavel from './QuantidadesProducaoNaoFracionavel'
 import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 // P-F004/#320 (RN-ORC-VINC-02/RN-PROD-VINC-02/03) — compartilhado entre CriarOrcamentoPage (ponto
@@ -30,6 +31,8 @@ interface ModalVincularProducaoProps {
   onConfirmar: (producaoId: string) => Promise<void>
   confirmando: boolean
   onCriarNova?: (dados: CriarProducaoVinculadaRequest) => Promise<void>
+  // RN-NOVA-39 (#1166) — orçamento já salvo, para sugerir a quantidade dos não fracionáveis.
+  orcamentoId?: string
   // Achado do teste manual (V0.10.0) — quando a modal foi aberta interceptando o clique em
   // "avançar status" (DetalheOrcamentoPage, ponto 2), fechar/cancelar não avança mais o status
   // sozinho (reverte RN-ORC-VINC-02 ponto 2): avançar sem vincular passa a ser uma ação explícita
@@ -44,6 +47,7 @@ export default function ModalVincularProducao({
   onConfirmar,
   confirmando,
   onCriarNova,
+  orcamentoId,
   onAvancarSemVincular,
 }: ModalVincularProducaoProps) {
   const [busca, setBusca] = useState('')
@@ -65,6 +69,8 @@ export default function ModalVincularProducao({
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formErro, setFormErro] = useState<string | null>(null)
   const [criandoNova, setCriandoNova] = useState(false)
+  const [quantidadesProducao, setQuantidadesProducao] = useState<QuantidadeProducao[]>([])
+  const [quantidadesValidas, setQuantidadesValidas] = useState(true)
 
   useEffect(() => {
     if (selecionada) return
@@ -117,6 +123,10 @@ export default function ModalVincularProducao({
       setFormErro('Informe o prazo de término previsto.')
       return
     }
+    if (!quantidadesValidas) {
+      setFormErro('Corrija a quantidade a produzir dos produtos indicados.')
+      return
+    }
     setCriandoNova(true)
     setFormErro(null)
     try {
@@ -124,6 +134,7 @@ export default function ModalVincularProducao({
         dataInicio: formDataInicio || undefined,
         dataTerminoPrevista: formDataTermino,
         observacoes: formObservacoes || undefined,
+        quantidadesProducao: quantidadesProducao.length ? quantidadesProducao : undefined,
       })
     } catch (err) {
       setFormErro(extractApiError(err, 'Não foi possível criar a produção. Tente novamente.'))
@@ -203,6 +214,17 @@ export default function ModalVincularProducao({
               placeholder="Ex: separar embalagem especial para este pedido"
             />
           </label>
+
+          {orcamentoId && (
+            <QuantidadesProducaoNaoFracionavel
+              orcamentoId={orcamentoId}
+              disabled={criandoNova}
+              onChange={(q, valido) => {
+                setQuantidadesProducao(q)
+                setQuantidadesValidas(valido)
+              }}
+            />
+          )}
 
           {formErro && (
             <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">

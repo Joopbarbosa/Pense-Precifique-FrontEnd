@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, ComentarioOrcamento } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, SugestaoQuantidadeProducao, ComentarioOrcamento } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -136,6 +136,14 @@ export const orcamentoService = {
   // consumidor (desabilitar o botão de confirmação enquanto a Promise não resolve).
   criarProducaoVinculada: async (id: string, data: CriarProducaoVinculadaRequest): Promise<OrcamentoProducaoResponse[]> => {
     const response = await api.post(`/orcamentos/${id}/criar-producao-vinculada`, data);
+    return response.data;
+  },
+
+  // RN-NOVA-39 (V0.18.0, #1166) — sugestão de quantidade por produto não fracionável do orçamento.
+  sugerirQuantidadesProducao: async (id: string, produtoIds?: string[]): Promise<SugestaoQuantidadeProducao[]> => {
+    const response = await api.get(`/orcamentos/${id}/sugestao-quantidade-producao`, {
+      params: produtoIds && produtoIds.length ? { produtoIds: produtoIds.join(',') } : undefined,
+    });
     return response.data;
   },
 

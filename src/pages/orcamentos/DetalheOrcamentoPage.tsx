@@ -20,9 +20,11 @@ import type {
   AvancaStatusRequest,
   ItemSemEstoque,
   OrcamentoProducaoResponse,
+  QuantidadeProducao,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
 import ModaisAvancarStatus from "../../components/orcamento/ModaisAvancarStatus";
+import QuantidadesProducaoNaoFracionavel from "../../components/orcamento/QuantidadesProducaoNaoFracionavel";
 import ComentariosOrcamento from "../../components/orcamento/ComentariosOrcamento";
 import { rotuloAcaoAvancar } from "../../components/orcamento/acaoAvancarStatus";
 import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento";
@@ -865,6 +867,8 @@ export default function DetalheOrcamentoPage() {
   const [formObsProducaoDetalhe, setFormObsProducaoDetalhe] = useState("");
   const [formErroProducaoDetalhe, setFormErroProducaoDetalhe] = useState<string | null>(null);
   const [criandoProducaoDetalhe, setCriandoProducaoDetalhe] = useState(false);
+  const [quantidadesProducaoDetalhe, setQuantidadesProducaoDetalhe] = useState<QuantidadeProducao[]>([]);
+  const [quantidadesValidasDetalhe, setQuantidadesValidasDetalhe] = useState(true);
   // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — fila de vínculos (produções) pendentes de confirmação
   // "desfazer vínculo?" exibida logo após o cancelamento ser confirmado com sucesso, um por vez.
   const [filaVinculos, setFilaVinculos] = useState<VinculoPendente[] | null>(null);
@@ -949,6 +953,10 @@ export default function DetalheOrcamentoPage() {
       setFormErroProducaoDetalhe("Informe o prazo de término previsto.");
       return;
     }
+    if (!quantidadesValidasDetalhe) {
+      setFormErroProducaoDetalhe("Corrija a quantidade a produzir dos produtos indicados.");
+      return;
+    }
     setCriandoProducaoDetalhe(true);
     setFormErroProducaoDetalhe(null);
     try {
@@ -957,6 +965,7 @@ export default function DetalheOrcamentoPage() {
         dataTerminoPrevista: formDataTerminoProducaoDetalhe,
         observacoes: formObsProducaoDetalhe || undefined,
         produtoIds: Array.from(selecionadosProducaoDetalhe),
+        quantidadesProducao: quantidadesProducaoDetalhe.length ? quantidadesProducaoDetalhe : undefined,
       });
       setOrcamento((prev) => (prev ? { ...prev, producoesVinculadas: vinculos } : prev));
       setSelecionadosProducaoDetalhe(new Set());
@@ -1818,6 +1827,18 @@ export default function DetalheOrcamentoPage() {
                 placeholder="Ex: separar embalagem especial para este pedido"
               />
             </label>
+
+            {id && (
+              <QuantidadesProducaoNaoFracionavel
+                orcamentoId={id}
+                produtoIds={Array.from(selecionadosProducaoDetalhe)}
+                disabled={criandoProducaoDetalhe}
+                onChange={(q, valido) => {
+                  setQuantidadesProducaoDetalhe(q);
+                  setQuantidadesValidasDetalhe(valido);
+                }}
+              />
+            )}
 
             {formErroProducaoDetalhe && (
               <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
