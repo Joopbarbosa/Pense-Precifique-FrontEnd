@@ -266,6 +266,8 @@ export interface AvancaStatusRequest {
   // RN-NOVA-2 (revisada, P-B012) — true força o case ENVIADO a ignorar o atalho de aprovação
   // direta mesmo elegível, seguindo o fluxo normal (status vai para APROVADO).
   ignorarAtalhoAprovacaoDireta?: boolean;
+  // RN-NOVA-40 (#1167) — decisão por produção vinculada ao cancelar: cancelar=true cancela a produção.
+  decisoesProducao?: { producaoId: string; cancelar: boolean }[];
 }
 
 // RN-NOVA-2 (revisada, P-B012) — resultado de simular POST /orcamentos/{id}/avancar-status sem
