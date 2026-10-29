@@ -37,6 +37,7 @@ export default function ModalCancelarProducaoJunto({ fila, onConcluir }: Props) 
     setIndice(i => i + 1)
   }
 
+  const lote = (item.outrosOrcamentos?.length ?? 0) > 0
   const comInsumoConsumido = ESTADOS_COM_INSUMO_CONSUMIDO.includes(item.estadoProducao)
   const progresso = fila.length > 1 ? `Produção ${indice + 1} de ${fila.length}` : undefined
 
@@ -60,8 +61,19 @@ export default function ModalCancelarProducaoJunto({ fila, onConcluir }: Props) 
       <p className="m-0 text-[13.5px] leading-[1.6] text-body">
         Este orçamento será cancelado e deixa de estar vinculado à produção{' '}
         <strong>{item.rotuloOutroLado}</strong> ({getBadgeEstado(item.estadoProducao).label.toLowerCase()}).
-        Se mantiver a produção, ela continua sem orçamento vinculado.
+        {lote
+          ? 'Se mantiver a produção, ela segue para os outros pedidos do lote.'
+          : 'Se mantiver a produção, ela continua sem orçamento vinculado.'}
       </p>
+      {lote && (
+        <div data-testid="aviso-cancelar-lote" className="mt-3 flex items-start gap-2.5 rounded-input border border-orange/40 bg-orange/10 px-3.5 py-3 text-[13px] leading-normal text-body">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-orange" />
+          <span>
+            Esta produção é um lote junto com {item.outrosOrcamentos?.join(', ')}. Se cancelar a produção, os outros
+            pedidos mantêm a situação e ficam sem produção vinculada.
+          </span>
+        </div>
+      )}
       {comInsumoConsumido && (
         <div className="mt-3 flex items-start gap-2.5 rounded-input border border-danger/40 bg-danger-bg px-3.5 py-3 text-[13px] leading-normal text-danger">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" />

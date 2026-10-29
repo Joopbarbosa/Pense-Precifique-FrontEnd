@@ -391,6 +391,28 @@ export default function DetalheProducaoPage() {
           </Section>
         )}
 
+        {(producao.pedidosAtendidos?.length ?? 0) > 0 && (
+          <Section icon={<Link2 size={18} />} title="Pedidos atendidos">
+            <div data-testid="pedidos-atendidos" className="flex flex-col gap-2">
+              {producao.pedidosAtendidos!.map(p => (
+                <button
+                  key={`${p.orcamentoId}-${p.produtoId}`}
+                  onClick={() => window.open(`/orcamentos/${p.orcamentoId}`, '_blank', 'noopener')}
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3 text-left font-[inherit] transition-colors duration-100 hover:bg-line-soft"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-dark">{p.identificadorOrcamento}</div>
+                    <div className="mt-0.5 truncate text-[12.5px] text-muted">{p.nomeCliente}</div>
+                  </div>
+                  <span className="shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                    {Number(p.quantidade)} × {p.nomeProduto}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
         {producao.orcamentosVinculados.length > 0 && (
           <Section icon={<Link2 size={18} />} title="Orçamentos vinculados">
             <div className="flex flex-col gap-2">

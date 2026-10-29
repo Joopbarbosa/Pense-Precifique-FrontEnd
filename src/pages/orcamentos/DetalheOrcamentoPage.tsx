@@ -31,6 +31,9 @@ import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
 import { VinculoAtivoBadge, Toast } from "../../components/shared";
 import ModalCancelarProducaoJunto from "../../components/shared/ModalCancelarProducaoJunto";
+import JuntarProducaoModal from "../../components/producao/JuntarProducaoModal";
+import { producaoService } from "../../services/producaoService";
+import type { ExcedenteLote } from "../../types/producao";
 import { construirFilaVinculosOrcamento, type VinculoPendente } from "../../utils/vinculoCancelamento";
 import { ORDEM_CICLO_VIDA_ORCAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
@@ -887,6 +890,9 @@ export default function DetalheOrcamentoPage() {
   // #401 (DT-NOVA-3) — confirmação antes de desvincular uma produção específica (reaproveita
   // ConfirmacaoModal genérico, mesmo componente já usado por outras ações destrutivas do sistema).
   const [confirmandoDesvincular, setConfirmandoDesvincular] = useState<OrcamentoProducaoResponse | null>(null);
+  // RN-NOVA-42 (#1169) — juntar com outra produção e aviso de quantidade acima do lote.
+  const [juntando, setJuntando] = useState<OrcamentoProducaoResponse | null>(null);
+  const [excedentes, setExcedentes] = useState<Record<string, ExcedenteLote[]>>({});
   const [desvinculando, setDesvinculando] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
@@ -928,6 +934,28 @@ export default function DetalheOrcamentoPage() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  const carregarExcedentes = useCallback(async (vinculos: OrcamentoProducaoResponse[]) => {
+    const lotes = vinculos.filter((v) => (v.outrosOrcamentos?.length ?? 0) > 0 && v.estado === "AGUARDANDO_INICIO");
+    const pares = await Promise.all(
+      lotes.map((v) => producaoService.excedentes(v.producaoId).then((e) => [v.producaoId, e] as const).catch(() => [v.producaoId, []] as const)),
+    );
+    setExcedentes(Object.fromEntries(pares));
+  }, []);
+
+  useEffect(() => {
+    if (orcamento) void carregarExcedentes(orcamento.producoesVinculadas);
+  }, [orcamento, carregarExcedentes]);
+
+  const resolverExcedente = async (producaoId: string, cancelarLote: boolean) => {
+    try {
+      await producaoService.resolverExcedente(producaoId, cancelarLote);
+      setToast(cancelarLote ? "Lote cancelado." : "Lote mantido; as unidades sem cobertura ficam no histórico.");
+      await carregar();
+    } catch (err) {
+      setToast(extractApiError(err, "Não foi possível resolver o aviso do lote."));
+    }
+  };
 
   const fluxo = useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToast });
 
@@ -1654,6 +1682,14 @@ export default function DetalheOrcamentoPage() {
                           Iniciar produção
                         </a>
                       )}
+                      {!finalizado && v.estado === "AGUARDANDO_INICIO" && (
+                        <button
+                          onClick={() => setJuntando(v)}
+                          className="border-none bg-transparent p-0 font-[inherit] text-[12.5px] font-semibold text-teal transition-colors duration-150 hover:text-teal/80"
+                        >
+                          Juntar com outra produção
+                        </button>
+                      )}
                       <a
                         href={`/producao/${v.producaoId}`}
                         target="_blank"
@@ -1681,6 +1717,30 @@ export default function DetalheOrcamentoPage() {
                       {v.produtos.map((p) => `${p.nomeProduto} × ${Number(p.quantidade)}`).join(", ")}
                     </div>
                   )}
+                  {(v.outrosOrcamentos?.length ?? 0) > 0 && (
+                    <div data-testid="linha-lote" className="text-[12.5px] text-body">
+                      Lote {v.identificadorProducao}:{" "}
+                      {v.produtos
+                        .map((p) => `${Number(p.quantidadePedido ?? p.quantidade)} de ${Number(p.quantidade)} ${p.nomeProduto}`)
+                        .join(", ")}
+                      , junto com {v.outrosOrcamentos!.join(", ")}
+                    </div>
+                  )}
+                  {(excedentes[v.producaoId] ?? []).map((e) => (
+                    <div key={e.produtoId} data-testid="aviso-excedente-lote" className="flex flex-col gap-2 rounded-input border border-orange/40 bg-orange/10 px-3 py-2.5 text-[12.5px] text-body">
+                      <span className="flex items-start gap-2">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-orange" />
+                        <span>
+                          Os pedidos do lote {e.identificadorProducao} somam {Number(e.quantidadePedidos)} de {e.nomeProduto}, mais que as {Number(e.quantidadeLote)} do lote
+                          ({Number(e.naoCobertas)} sem cobertura). Manter o lote ou cancelá-lo?
+                        </span>
+                      </span>
+                      <span className="flex gap-3">
+                        <Button size="sm" variant="secondary" onClick={() => resolverExcedente(v.producaoId, false)}>Manter o lote</Button>
+                        <Button size="sm" variant="danger" onClick={() => resolverExcedente(v.producaoId, true)}>Cancelar o lote</Button>
+                      </span>
+                    </div>
+                  ))}
                   {v.estouroPrazo && (
                     <div className="flex items-start gap-2 text-[12.5px] text-warning-alt">
                       <AlertTriangle size={14} className="mt-0.5 shrink-0 text-orange" />
@@ -1706,6 +1766,15 @@ export default function DetalheOrcamentoPage() {
           )}
         </section>
       </div>
+
+      {juntando && (
+        <JuntarProducaoModal
+          producaoId={juntando.producaoId}
+          identificador={juntando.identificadorProducao}
+          onClose={() => setJuntando(null)}
+          onJuntado={() => { setJuntando(null); void carregar(); }}
+        />
+      )}
 
       {/* SEÇÃO 3 — DOCUMENTOS */}
       <DownloadsCard

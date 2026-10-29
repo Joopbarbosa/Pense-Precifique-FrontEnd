@@ -118,6 +118,48 @@ export interface ProducaoDetalhe extends ProducaoResumo {
     tipoExibicaoQuantidade?: TipoExibicaoQuantidade | null
   }[]
   producoesFilhas: { id: string; identificador: string; estado: EstadoProducao }[]
+  // RN-NOVA-42 (V0.18.0, #1169) — pedidos atendidos pelo lote; vazio quando a produção atende 0 ou 1 pedido.
+  pedidosAtendidos?: PedidoAtendido[]
+}
+
+export interface PedidoAtendido {
+  orcamentoId: string
+  identificadorOrcamento: string
+  nomeCliente: string
+  produtoId: string
+  nomeProduto: string
+  quantidade: number
+}
+
+export interface CandidataJuntar {
+  id: string
+  identificador: string
+  dataInicio: string | null
+  dataTerminoPrevista: string | null
+  produtos: { produtoId: string; nomeProduto: string; quantidade: number }[]
+  orcamentos: string[]
+}
+
+export interface JuntarProducoesRequest {
+  producaoOutraId: string
+  dataInicio?: string
+  dataTerminoPrevista?: string
+}
+
+export interface JuntarProducoesResponse {
+  producaoNova: ProducaoDetalhe
+  producoesOriginais: ProducaoDetalhe[]
+  avisos: string[]
+}
+
+export interface ExcedenteLote {
+  producaoId: string
+  identificadorProducao: string
+  produtoId: string
+  nomeProduto: string
+  quantidadeLote: number
+  quantidadePedidos: number
+  naoCobertas: number
 }
 
 export interface CriarProducaoRequest {
