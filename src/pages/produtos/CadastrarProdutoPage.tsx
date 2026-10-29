@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
 import ModalErro from '../../components/ui/ModalErro'
 import type { ErroExplicado } from '../../utils/apiError'
@@ -266,6 +267,13 @@ function DadosBasicos({ st, set, onNext, nomeErro, marcaErro, permitirEstoqueNeg
         <div className="col-span-2">
           <Field label="Descrição" opt size="md">
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
+            {/* #1179 (RN-NOVA-47) — pré-visualização só de leitura, com os nomes cadastrados como links para nova aba. */}
+            {st.descricao.trim() && (
+              <div className="mt-2 rounded-lg bg-cream px-3 py-2 text-xs text-muted">
+                <div className="mb-0.5 font-semibold uppercase tracking-wide">Pré-visualização com links</div>
+                <DescricaoComLinks texto={st.descricao} className="whitespace-pre-wrap break-words" testId="previa-descricao-links" />
+              </div>
+            )}
           </Field>
         </div>
         {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518). #440: também na

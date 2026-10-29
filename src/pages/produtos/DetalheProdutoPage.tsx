@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -412,6 +413,9 @@ export default function DetalheProdutoPage() {
                 <FracionavelBadge fracionavel={false} labelNaoFracionavel="Receita não fracionável" />
               )}
             </div>
+            {produto.descricao && (
+              <DescricaoComLinks texto={produto.descricao} className="mt-1 whitespace-pre-wrap break-words text-sm text-muted" />
+            )}
             <div className="mt-1 text-sm text-muted">
               Atualizado em <strong className="font-semibold text-body">{fmtData(produto.updatedAt)}</strong>
             </div>
