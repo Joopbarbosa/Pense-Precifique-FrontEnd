@@ -140,7 +140,11 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
 
   if (etapa === 'travada') {
     // RN-NOVA-42 (#1169) — insumo faltando trava o lote inteiro; lote com mais de um pedido não se divide.
-    const ehLote = new Set((producao?.pedidosAtendidos ?? []).map(p => p.orcamentoId)).size > 1
+    const pedidosPorProduto = new Map<string, Set<string>>()
+    for (const p of producao?.pedidosAtendidos ?? []) {
+      pedidosPorProduto.set(p.produtoId, (pedidosPorProduto.get(p.produtoId) ?? new Set()).add(p.orcamentoId))
+    }
+    const ehLote = [...pedidosPorProduto.values()].some(pedidos => pedidos.size > 1)
     return (
       <ModalShell
         open
