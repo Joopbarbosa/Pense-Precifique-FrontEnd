@@ -139,6 +139,8 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
   }
 
   if (etapa === 'travada') {
+    // RN-NOVA-42 (#1169) — insumo faltando trava o lote inteiro; lote com mais de um pedido não se divide.
+    const ehLote = new Set((producao?.pedidosAtendidos ?? []).map(p => p.orcamentoId)).size > 1
     return (
       <ModalShell
         open
@@ -152,9 +154,11 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
             <Button variant="ghost" onClick={() => onSuccess('Produção travada automaticamente — insumos insuficientes.')}>
               Fechar
             </Button>
-            <Button variant="primary" disabled={salvando} onClick={handleDividir}>
-              {salvando ? 'Dividindo...' : 'Dividir produção'}
-            </Button>
+            {!ehLote && (
+              <Button variant="primary" disabled={salvando} onClick={handleDividir}>
+                {salvando ? 'Dividindo...' : 'Dividir produção'}
+              </Button>
+            )}
           </>
         }
       >
@@ -163,6 +167,11 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <span>{justificativaTrava || 'Insumo(s) bloqueante(s) impediram o início da produção.'}</span>
           </div>
+          {ehLote && (
+            <div data-testid="lote-sem-dividir" className="text-[13px] text-muted">
+              Esta produção é um lote de mais de um pedido: o insumo que falta trava o lote inteiro e ele não pode ser dividido.
+            </div>
+          )}
           {erro && <div className="text-[13px] text-danger">{erro}</div>}
         </div>
       </ModalShell>

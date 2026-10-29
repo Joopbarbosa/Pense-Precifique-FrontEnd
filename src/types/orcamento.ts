@@ -186,7 +186,9 @@ export interface OrcamentoProducaoResponse {
   // RN-NOVA-41 (V0.18.0, #1168) — situação, início e produtos da produção, para a seção Produção.
   estado: string;
   dataInicio: string | null;
-  produtos: { produtoId: string; nomeProduto: string; quantidade: number }[];
+  produtos: { produtoId: string; nomeProduto: string; quantidade: number; quantidadePedido?: number | null }[];
+  // RN-NOVA-42 (#1169) — identificadores dos outros pedidos quando a produção é um lote.
+  outrosOrcamentos?: string[];
 }
 
 // P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Produtos vêm sempre do

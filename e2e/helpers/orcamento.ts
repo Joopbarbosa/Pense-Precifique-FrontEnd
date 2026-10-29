@@ -320,7 +320,7 @@ export async function criarProducaoVinculadaViaApi(
   request: APIRequestContext,
   token: string,
   orcamentoId: string,
-  data: { dataInicio?: string; dataTerminoPrevista: string; observacoes?: string; produtoIds?: string[] }
+  data: { dataInicio?: string; dataTerminoPrevista: string; observacoes?: string; produtoIds?: string[]; quantidadesProducao?: { produtoId: string; quantidade: number }[] }
 ) {
   const res = await request.post(`${API_URL}/orcamentos/${orcamentoId}/criar-producao-vinculada`, {
     headers: { Authorization: `Bearer ${token}` },
