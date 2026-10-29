@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -69,7 +70,7 @@ function ItemRow({ item, onClick, onEditar, onRemover, onHistorico }: {
           {item.componentes.length} componente{item.componentes.length !== 1 ? 's' : ''}
         </div>
         {item.descricao && (
-          <div className="mt-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[12.5px] text-muted">{item.descricao}</div>
+          <DescricaoComLinks texto={item.descricao} className="mt-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[12.5px] text-muted" />
         )}
         <div className="mt-2 flex flex-wrap gap-1.5">
           {item.componentes.map(c => (
