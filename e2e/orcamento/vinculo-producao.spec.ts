@@ -109,7 +109,7 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     await expect(page.getByText('Confirmar vínculo').first()).toBeVisible()
     await page.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click()
 
-    await expect(page.getByText(new RegExp(`Vinculado a produção:.*${producaoExistente.identificador}`))).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('producao-vinculada').filter({ hasText: producaoExistente.identificador })).toBeVisible({ timeout: 10000 })
     expect(orcamentoId).toBeTruthy()
 
     const producaoDepois = await buscarProducao(request, token, producaoExistente.id)

@@ -61,7 +61,7 @@ test.describe('#401 — Desvincular produção via UI (CEN-NOVO-1/2)', () => {
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
 
-    await expect(page.getByText('Vinculado a produção:')).toBeVisible()
+    await expect(page.getByTestId('producao-vinculada').first()).toBeVisible()
     await expect(page.getByText(producao.identificador, { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Desvincular', exact: true }).click()
@@ -80,7 +80,7 @@ test.describe('#401 — Desvincular produção via UI (CEN-NOVO-1/2)', () => {
     ])
 
     await expect(page.getByText('Produção desvinculada.')).toBeVisible()
-    await expect(page.getByText('Vinculado a produção:')).not.toBeVisible()
+    await expect(page.getByTestId('producao-vinculada')).toHaveCount(0)
     await expect(page.getByText(producao.identificador, { exact: true })).not.toBeVisible()
 
     const orcamentoDepois = await buscarOrcamento(request, token, orcamento.id)
@@ -107,7 +107,7 @@ test.describe('#401 — Desvincular produção via UI (CEN-NOVO-1/2)', () => {
     await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click()
 
     await expect(dialog).not.toBeVisible()
-    await expect(page.getByText('Vinculado a produção:')).toBeVisible()
+    await expect(page.getByTestId('producao-vinculada').first()).toBeVisible()
     await expect(page.getByText(producao.identificador, { exact: true })).toBeVisible()
     expect(chamadasDelete).toBe(0)
 

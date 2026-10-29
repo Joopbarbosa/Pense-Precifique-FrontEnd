@@ -40,6 +40,16 @@ import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
 import { dataLocalIso, formatarData, formatarDataHora } from "../../utils/data";
 
+// RN-NOVA-41 (#1168) — rótulos da situação da produção na seção Produção do Detalhe.
+const ROTULO_ESTADO_PRODUCAO: Record<string, string> = {
+  AGUARDANDO_INICIO: "Aguardando início",
+  EM_ANDAMENTO: "Em andamento",
+  TRAVADA: "Travada",
+  FINALIZADA: "Finalizada",
+  CANCELADA: "Cancelada",
+  NAO_REALIZADA: "Não realizada",
+};
+
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
 type ApiStatus =
@@ -1341,81 +1351,6 @@ export default function DetalheOrcamentoPage() {
             </div>
           )}
 
-          {precisaVincularProducao && producoesVinculadas.length === 0 && (
-            <div className="mt-section flex flex-wrap items-center justify-between gap-3 rounded-input border border-[#CFE0F2] bg-[#EAF1FB] px-3.5 py-3">
-              <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex shrink-0 text-[#2A6FB0]">
-                  <Factory size={16} />
-                </span>
-                <p className="m-0 text-[13px] leading-normal text-[#2A6FB0]">
-                  Antes de seguir pra produção, vincule este orçamento a uma produção real — assim
-                  dá pra saber o que está sendo feito pra esse pedido.
-                </p>
-              </div>
-              {/* #1110 — no APROVADO o botão principal já é "Vincular produção"; o atalho do card só vale nos demais passos */}
-              {status !== "APROVADO" && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={fluxo.abrirVincularProducao}
-                >
-                  Vincular produção
-                </Button>
-              )}
-            </div>
-          )}
-
-          {producoesVinculadas.length > 0 && (
-            <div className="mt-section flex flex-col gap-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-teal/30 bg-teal/6 px-3.5 py-3">
-                <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex shrink-0 text-teal">
-                    <Check size={16} />
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <p className="m-0 text-[13px] leading-normal text-body">
-                      Vinculado a {producoesVinculadas.length === 1 ? "produção" : "produções"}:
-                    </p>
-                    <div className="flex flex-col gap-1">
-                      {producoesVinculadas.map((v) => (
-                        <div key={v.id} className="flex items-center gap-2">
-                          <strong className="text-[13px] text-body">{v.identificadorProducao}</strong>
-                          <button
-                            onClick={() => setConfirmandoDesvincular(v)}
-                            className="inline-flex items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[12px] font-semibold text-danger/80 transition-colors duration-150 hover:text-danger"
-                          >
-                            <Unlink size={12} /> Desvincular
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={fluxo.abrirVincularProducao}
-                  className="border-none bg-transparent p-0 font-[inherit] text-[12.5px] font-semibold text-teal transition-colors duration-150 hover:text-teal/80"
-                >
-                  Vincular outra
-                </button>
-              </div>
-
-              {/* RN-ORC-VINC-04 (P-F005) — aviso de estouro é por vínculo, não agregado: uma
-                  produção pode passar do prazo prometido ao cliente enquanto outra não. */}
-              {producoesVinculadas.filter((v) => v.estouroPrazo).map((v) => (
-                <div
-                  key={v.id}
-                  className="flex items-start gap-2.5 rounded-input border border-orange/30 bg-orange/8 px-3.5 py-3"
-                >
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0 text-orange" />
-                  <p className="m-0 text-[13px] leading-normal text-warning-alt">
-                    <strong>{v.identificadorProducao}</strong> deve terminar depois do prazo
-                    prometido ao cliente — vale avisar ou ajustar a data combinada.
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
           {fluxo.erroAvanco && (
             <div className="mt-section flex gap-2 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3">
               <span className="mt-px flex shrink-0 text-danger">
@@ -1668,30 +1603,108 @@ export default function DetalheOrcamentoPage() {
           </div>
         </section>
 
-        {/* Card próximo passo */}
-        {!finalizado && nextHint && (
-          <section
-            className="animate-[fadeUp_.55s_ease_both] rounded-card border border-teal/18 px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
-            style={{ background: "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)" }}
-          >
-            <div className="mb-3 flex items-center gap-[11px]">
-              <span className="grid h-[38px] w-[38px] place-items-center rounded-[11px] border border-teal/20 bg-white text-teal">
-                <Layers size={18} />
-              </span>
-              <div>
-                <div className="text-[15px] font-bold text-dark">
-                  Próximo passo
-                </div>
-                <div className="mt-px text-[12.5px] font-semibold text-teal">
-                  {actionLabel}
-                </div>
-              </div>
-            </div>
-            <p className="m-0 text-[13.5px] leading-[1.6] text-body">
-              {nextHint}
+        {/* RN-NOVA-41 (V0.18.0, #1168) — seção Produção no lugar do card "Próximo passo".
+            Continua visível com o orçamento finalizado, só leitura. */}
+        <section
+          data-testid="secao-producao"
+          className="animate-[fadeUp_.55s_ease_both] rounded-card border border-teal/18 px-6 py-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+          style={{ background: "linear-gradient(150deg, rgba(42,157,143,0.08) 0%, #fff 55%, rgba(249,115,22,0.05) 100%)" }}
+        >
+          <div className="mb-3 flex items-center gap-[11px]">
+            <span className="grid h-[38px] w-[38px] place-items-center rounded-[11px] border border-teal/20 bg-white text-teal">
+              <Factory size={18} />
+            </span>
+            <div className="text-[15px] font-bold text-dark">Produção</div>
+          </div>
+          {!finalizado && nextHint && (
+            <p className="m-0 mb-3 text-[13px] leading-[1.5] text-body">
+              <strong className="text-teal">Próximo passo:</strong> {nextHint}
             </p>
-          </section>
-        )}
+          )}
+
+          {producoesVinculadas.length === 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="m-0 text-[13px] text-muted">Nenhuma produção vinculada</p>
+              {/* #1110 — no APROVADO o botão principal já é "Vincular produção"; o da seção só vale nos demais passos */}
+              {!finalizado && precisaVincularProducao && status !== "APROVADO" && (
+                <Button variant="secondary" size="sm" onClick={fluxo.abrirVincularProducao}>
+                  Vincular produção
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {producoesVinculadas.map((v) => (
+                <div key={v.id} data-testid="producao-vinculada" className="flex flex-col gap-2 rounded-input border border-line bg-white px-3.5 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <strong className="text-[13px] text-body">{v.identificadorProducao}</strong>
+                      <span className="rounded-full bg-teal/10 px-2 py-0.5 text-[11.5px] font-semibold text-teal">
+                        {ROTULO_ESTADO_PRODUCAO[v.estado] ?? v.estado}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {!finalizado && v.estado === "AGUARDANDO_INICIO" && (
+                        <a
+                          href={`/producao/${v.producaoId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[12.5px] font-semibold text-teal no-underline hover:text-teal/80"
+                        >
+                          Iniciar produção
+                        </a>
+                      )}
+                      <a
+                        href={`/producao/${v.producaoId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12.5px] font-semibold text-teal no-underline hover:text-teal/80"
+                      >
+                        Abrir produção
+                      </a>
+                      {!finalizado && (
+                        <button
+                          onClick={() => setConfirmandoDesvincular(v)}
+                          className="inline-flex items-center gap-1 border-none bg-transparent p-0 font-[inherit] text-[12px] font-semibold text-danger/80 transition-colors duration-150 hover:text-danger"
+                        >
+                          <Unlink size={12} /> Desvincular
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-[12.5px] text-muted">
+                    Início: {v.dataInicio ? formatarData(v.dataInicio) : "não iniciada"} · Término previsto:{" "}
+                    {v.dataTerminoPrevista ? formatarData(v.dataTerminoPrevista) : "a definir"}
+                  </div>
+                  {v.produtos.length > 0 && (
+                    <div className="text-[12.5px] text-body">
+                      {v.produtos.map((p) => `${p.nomeProduto} × ${Number(p.quantidade)}`).join(", ")}
+                    </div>
+                  )}
+                  {v.estouroPrazo && (
+                    <div className="flex items-start gap-2 text-[12.5px] text-warning-alt">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-orange" />
+                      <span>
+                        <strong>{v.identificadorProducao}</strong> deve terminar depois do prazo
+                        prometido ao cliente — vale avisar ou ajustar a data combinada.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!finalizado && (
+                <div>
+                  <button
+                    onClick={fluxo.abrirVincularProducao}
+                    className="border-none bg-transparent p-0 font-[inherit] text-[12.5px] font-semibold text-teal transition-colors duration-150 hover:text-teal/80"
+                  >
+                    Vincular outra
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* SEÇÃO 3 — DOCUMENTOS */}
