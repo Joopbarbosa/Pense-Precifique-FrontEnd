@@ -50,6 +50,7 @@ export default function ModaisAvancarStatus({
           onSimular={fluxo.handleSimularVincularProducao}
           onConfirmar={fluxo.handleVincularProducao}
           onCriarNova={fluxo.handleCriarProducaoNova}
+          orcamentoId={orcamento.id}
           confirmando={fluxo.vinculandoProducao}
           jaVinculadasIds={orcamento.producoesVinculadas.map((v) => v.producaoId)}
           onAvancarSemVincular={fluxo.vinculoViaTransicao ? fluxo.avancarSemVincular : undefined}

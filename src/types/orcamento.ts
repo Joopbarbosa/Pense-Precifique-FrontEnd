@@ -196,6 +196,22 @@ export interface CriarProducaoVinculadaRequest {
   dataTerminoPrevista: string;
   observacoes?: string;
   produtoIds?: string[];
+  // RN-NOVA-39 (V0.18.0, #1166) — quantidade a produzir por produto com insumo não fracionável.
+  quantidadesProducao?: QuantidadeProducao[];
+}
+
+export interface QuantidadeProducao {
+  produtoId: string;
+  quantidade: number;
+}
+
+export interface SugestaoQuantidadeProducao {
+  produtoId: string;
+  nomeProduto: string;
+  quantidadePedida: number;
+  rendimento: number;
+  quantidadeSugerida: number;
+  sobra: number;
 }
 
 export interface OrcamentoDetalheResponse {
