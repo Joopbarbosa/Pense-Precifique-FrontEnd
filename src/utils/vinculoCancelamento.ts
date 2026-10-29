@@ -83,7 +83,8 @@ export async function construirFilaVinculosOrcamento(
       produtosContribuidos: agregarProdutosPorOrcamento(detalhe.historicoStatus, orcamento.id),
     })
   }
-  return fila
+  // Ordem de criação das produções (PRD-N crescente), para a sequência de perguntas ser previsível.
+  return fila.sort((a, b) => a.rotuloOutroLado.localeCompare(b.rotuloOutroLado, 'pt-BR', { numeric: true }))
 }
 
 /** Lado Produção (espelhado): sem fetch extra — orcamentosVinculados já traz statusOrcamento, e

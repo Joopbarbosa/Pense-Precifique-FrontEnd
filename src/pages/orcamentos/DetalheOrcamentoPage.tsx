@@ -28,7 +28,7 @@ import { rotuloAcaoAvancar } from "../../components/orcamento/acaoAvancarStatus"
 import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento";
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
 import { VinculoAtivoBadge, Toast } from "../../components/shared";
-import ModalConfirmacaoVinculoSequencial from "../../components/shared/ModalConfirmacaoVinculoSequencial";
+import ModalCancelarProducaoJunto from "../../components/shared/ModalCancelarProducaoJunto";
 import { construirFilaVinculosOrcamento, type VinculoPendente } from "../../utils/vinculoCancelamento";
 import { ORDEM_CICLO_VIDA_ORCAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
@@ -868,6 +868,8 @@ export default function DetalheOrcamentoPage() {
   // RN-NOVA-17 (V0.8.3, #375+308, P-F003) — fila de vínculos (produções) pendentes de confirmação
   // "desfazer vínculo?" exibida logo após o cancelamento ser confirmado com sucesso, um por vez.
   const [filaVinculos, setFilaVinculos] = useState<VinculoPendente[] | null>(null);
+  // RN-NOVA-40 (#1167) — respostas "Cancelar também a produção?", enviadas junto com o cancelamento.
+  const [decisoesCancelamento, setDecisoesCancelamento] = useState<Record<string, boolean>>({});
   // #401 (DT-NOVA-3) — confirmação antes de desvincular uma produção específica (reaproveita
   // ConfirmacaoModal genérico, mesmo componente já usado por outras ações destrutivas do sistema).
   const [confirmandoDesvincular, setConfirmandoDesvincular] = useState<OrcamentoProducaoResponse | null>(null);
@@ -1041,7 +1043,8 @@ export default function DetalheOrcamentoPage() {
     if (!id) return;
     setSaving(true);
     try {
-      const updated = await orcamentoService.cancelar(id, data);
+      const decisoesProducao = Object.entries(decisoesCancelamento).map(([producaoId, cancelar]) => ({ producaoId, cancelar }));
+      const updated = await orcamentoService.cancelar(id, { ...data, ...(decisoesProducao.length > 0 ? { decisoesProducao } : {}) });
       setOrcamento(updated);
       setModal(null);
     } catch (err) {
@@ -1064,6 +1067,7 @@ export default function DetalheOrcamentoPage() {
     setVerificandoVinculos(true);
     try {
       const fila = await construirFilaVinculosOrcamento(orcamento);
+      setDecisoesCancelamento({});
       if (fila.length > 0) setFilaVinculos(fila);
       else setModal("cancel");
     } finally {
@@ -1071,7 +1075,8 @@ export default function DetalheOrcamentoPage() {
     }
   };
 
-  const handleConcluirFilaVinculos = () => {
+  const handleConcluirFilaVinculos = (decisoes: Record<string, boolean>) => {
+    setDecisoesCancelamento(decisoes);
     setFilaVinculos(null);
     setModal("cancel");
   };
@@ -1856,7 +1861,7 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {filaVinculos && filaVinculos.length > 0 && (
-        <ModalConfirmacaoVinculoSequencial fila={filaVinculos} onConcluir={handleConcluirFilaVinculos} direcao="orcamento" />
+        <ModalCancelarProducaoJunto fila={filaVinculos} onConcluir={handleConcluirFilaVinculos} />
       )}
 
       <ConfirmacaoModal
