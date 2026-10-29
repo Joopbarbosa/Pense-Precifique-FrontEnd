@@ -1,1 +1,1 @@
-export const LINHAS_BUSCA_VISIVEIS = 8
+export const LINHAS_BUSCA_VISIVEIS = 6
