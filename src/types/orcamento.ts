@@ -183,6 +183,10 @@ export interface OrcamentoProducaoResponse {
   dataTerminoPrevista: string | null;
   estouroPrazo: boolean;
   createdAt: string;
+  // RN-NOVA-41 (V0.18.0, #1168) — situação, início e produtos da produção, para a seção Produção.
+  estado: string;
+  dataInicio: string | null;
+  produtos: { produtoId: string; nomeProduto: string; quantidade: number }[];
 }
 
 // P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Produtos vêm sempre do
