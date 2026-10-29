@@ -87,4 +87,14 @@ test.describe('#1165 — Busca na Agenda', () => {
     await page.getByLabel('Buscar na agenda').fill('a'.repeat(150))
     await expect(page.getByLabel('Buscar na agenda')).toHaveValue('a'.repeat(100))
   })
+
+  test('CT-1190-01 — o campo de busca fica embaixo do botão Resumo do dia, alinhado à esquerda', async ({ page }) => {
+    await login(page)
+    await page.goto('/agenda')
+    const resumo = await page.getByRole('button', { name: 'Resumo do dia' }).boundingBox()
+    const busca = await page.getByLabel('Buscar na agenda').boundingBox()
+    expect(resumo && busca).toBeTruthy()
+    expect(busca!.y).toBeGreaterThanOrEqual(resumo!.y + resumo!.height - 1)
+    expect(Math.abs(busca!.x - resumo!.x)).toBeLessThan(4)
+  })
 })
