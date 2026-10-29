@@ -79,6 +79,8 @@ test('CEN-NOVO-70 — Registrar compra, Nova produção e vínculo exibem 8 regi
     await avancarStatusViaApi(request, token, orcamento.id)
     await page.goto(`/orcamentos/${orcamento.id}`)
     await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
+    // Estoque insuficiente (precisa 5, tem 3): o aviso vem antes da escolha da produção.
+    await page.getByRole('button', { name: 'OK, vincular produção', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
     await conferirOitoLinhasVisiveis(page.getByTestId('producoes-disponiveis'))
   } finally {
