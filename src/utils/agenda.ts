@@ -126,8 +126,10 @@ const MESES_EXTENSO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho
 export const DIAS_SEMANA_CURTO = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 const DIAS_SEMANA_EXTENSO = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
 
+/** "Outubro de 2026" (RN-NOVA-50): só a primeira letra em maiúscula. */
 export function nomeDoMes(iso: string): string {
-  return `${MESES_EXTENSO[Number(iso.slice(5, 7)) - 1]} de ${iso.slice(0, 4)}`
+  const mes = MESES_EXTENSO[Number(iso.slice(5, 7)) - 1]
+  return `${mes.charAt(0).toUpperCase()}${mes.slice(1)} de ${iso.slice(0, 4)}`
 }
 
 export function diaDoMes(iso: string): number {
@@ -245,7 +247,12 @@ export function posicionarBlocos(compromissos: Compromisso[]): BlocoNaGrade[] {
   return itens
 }
 
-/** O compromisso que a usuária pode mover e esticar na Agenda: só o avulso pendente (orçamento, produção e compra vêm da origem). */
+/** V0.18.0 (#1181, RN-NOVA-43) — qualquer card pendente pode ser movido de dia, menos o Saldo a receber (acompanha a entrega); concluído e cancelado não movem. */
 export function ehMovel(c: Compromisso): boolean {
-  return c.origem === 'AVULSO' && c.situacao === 'PENDENTE'
+  return c.situacao === 'PENDENTE' && c.tipo !== 'SALDO_A_RECEBER'
+}
+
+/** RN-NOVA-44 — só o avulso com horário muda de hora e estica na grade; os demais cards são de dia inteiro. */
+export function ehEsticavel(c: Compromisso): boolean {
+  return c.origem === 'AVULSO' && c.situacao === 'PENDENTE' && !c.diaInteiro && !!c.horario
 }

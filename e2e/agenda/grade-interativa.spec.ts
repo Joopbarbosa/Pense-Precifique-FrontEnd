@@ -81,6 +81,7 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     await page.mouse.move(c.x + c.width / 2, c.y + 20 + 56, { steps: 6 }) // +1 hora
     await page.mouse.move(c.x + c.width / 2, c.y + 20 + 112, { steps: 6 }) // +2 horas
     await page.mouse.up()
+    await page.getByTestId('confirmar-movimento').click() // RN-NOVA-43 — a mudança só grava depois de confirmada
     await expect.poll(async () => (await doDia(request, titulo, hojeLocal(1)))[0]?.horario).toBe('11:00')
     expect((await doDia(request, titulo, hojeLocal(1)))[0].horarioFim).toBe('12:00')
   })
@@ -96,6 +97,7 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     await page.mouse.down()
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 56, { steps: 6 }) // +1 hora
     await page.mouse.up()
+    await page.getByTestId('confirmar-movimento').click() // RN-NOVA-43 — a mudança só grava depois de confirmada
     await expect.poll(async () => (await doDia(request, titulo, hojeLocal(1)))[0]?.horarioFim).toBe('11:00')
     expect((await doDia(request, titulo, hojeLocal(1)))[0].horario).toBe('09:00')
   })
@@ -130,6 +132,7 @@ test.describe('Agenda — término, criar clicando, arrastar e esticar', () => {
     await page.mouse.move(de.x + de.width / 2 + 10, de.y + de.height / 2 + 10, { steps: 4 })
     await page.mouse.move(para.x + 40, para.y + 40, { steps: 8 })
     await page.mouse.up()
+    await page.getByTestId('confirmar-movimento').click() // RN-NOVA-43 — a mudança só grava depois de confirmada
     await expect.poll(async () => (await doDia(request, titulo, destino)).length).toBe(1)
     expect((await doDia(request, titulo, origem)).length).toBe(0)
   })

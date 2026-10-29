@@ -1,6 +1,6 @@
 import api from './api'
 import type {
-  AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, CompromissoUsuariaRequest, EditarCompromissoRequest, EscopoEdicao, PaginaCompromissos, ResumoDoDia,
+  AgendaResumo, Compromisso, MovimentoCompromisso, TipoCompromisso, CompromissoUsuariaDetalhe, CompromissoUsuariaRequest, EditarCompromissoRequest, EscopoEdicao, PaginaCompromissos, ResumoDoDia,
 } from '../types/agenda'
 
 // V0.18.0 — #1034 (DT-NOVA-2). Contrato: modulos/AGENDA/contrato-agenda.md.
@@ -48,6 +48,17 @@ export const agendaService = {
 
   editarCompromisso: async (id: string, dataOriginal: string, data: EditarCompromissoRequest): Promise<CompromissoUsuariaDetalhe> => {
     const response = await api.put(`/agenda/compromissos-usuaria/${id}/ocorrencias/${dataOriginal}`, data)
+    return response.data
+  },
+
+  // ---- mover card derivado (#1181) ----
+  simularMovimento: async (tipo: TipoCompromisso, referenciaId: string, novaData: string): Promise<MovimentoCompromisso> => {
+    const response = await api.post('/agenda/movimentos/simular', { tipo, referenciaId, novaData })
+    return response.data
+  },
+
+  moverCompromisso: async (tipo: TipoCompromisso, referenciaId: string, novaData: string): Promise<MovimentoCompromisso> => {
+    const response = await api.post('/agenda/movimentos', { tipo, referenciaId, novaData })
     return response.data
   },
 }

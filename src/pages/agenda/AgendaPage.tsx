@@ -10,6 +10,7 @@ import GradeHoras from '../../components/agenda/GradeHoras'
 import ModalDiaInteiro from '../../components/agenda/ModalDiaInteiro'
 import ModalAtrasados from '../../components/agenda/ModalAtrasados'
 import ModalResumoDoDia from '../../components/agenda/ModalResumoDoDia'
+import ModalConfirmarMovimento from '../../components/agenda/ModalConfirmarMovimento'
 import ModalDia from '../../components/agenda/ModalDia'
 import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
 import ModalEvento from '../../components/agenda/ModalEvento'
@@ -17,8 +18,8 @@ import FiltrosAgenda from '../../components/agenda/FiltrosAgenda'
 import ModalShell from '../../components/ui/ModalShell'
 import { agendaService } from '../../services/agendaService'
 import { extractApiError } from '../../utils/apiError'
-import type { AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, EscopoEdicao, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
-import { dataLocalIso } from '../../utils/data'
+import type { AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, EscopoEdicao, MovimentoCompromisso, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
+import { dataLocalIso, formatarData } from '../../utils/data'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
 import { distribuirPorDia, ehMovel, buscarCompromissos, filtrarCompromissos, horarioDeMinutos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
 
@@ -56,6 +57,7 @@ export default function AgendaPage() {
   // Novo evento: a data e, quando o clique foi num horário vazio da grade, o início e o término (#1064)
   const [novoEvento, setNovoEvento] = useState<{ data: string; horario?: string; horarioFim?: string } | null>(null)
   // arrastar ou esticar um compromisso de série pergunta se vale só para a ocorrência ou para a série (#1065)
+  const [proposta, setProposta] = useState<{ movimento: MovimentoCompromisso; confirmar: () => Promise<void> } | null>(null)
   const [escolhaEscopo, setEscolhaEscopo] = useState<{ d: CompromissoUsuariaDetalhe; mudanca: Mudanca; escopo: EscopoEdicao } | null>(null)
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<FiltrosAgendaValue>({ mostrar: 'TODOS', origens: [] })
@@ -106,9 +108,9 @@ export default function AgendaPage() {
     }
   }
 
-  /** #1065 — mover e esticar valem só para o compromisso avulso; a série pergunta o escopo, salvo quando muda o dia (só por ocorrência). */
+  /** #1065 — mover e esticar o avulso; a série pergunta o escopo, salvo quando muda o dia (só por ocorrência). */
   const alterar = async (c: Compromisso, mudanca: Mudanca) => {
-    if (!ehMovel(c) || !c.dataOriginalOcorrencia) return
+    if (!ehMovel(c) || c.origem !== 'AVULSO' || !c.dataOriginalOcorrencia) return
     try {
       const d = await agendaService.detalheCompromisso(c.referenciaId, c.dataOriginalOcorrencia)
       const mudaDia = mudanca.data !== undefined && mudanca.data !== d.data
@@ -118,12 +120,37 @@ export default function AgendaPage() {
       setErro(extractApiError(err, 'Não foi possível alterar o compromisso.'))
     }
   }
+  /** RN-NOVA-43 — toda mudança passa pela janela de confirmação; cancelar não grava nada. */
+  const proporMudanca = async (c: Compromisso, mudanca: Mudanca) => {
+    if (!ehMovel(c)) return
+    const novaData = mudanca.data ?? c.dataExibicao
+    try {
+      if (c.origem === 'AVULSO') {
+        const partes: string[] = []
+        if (novaData !== c.dataExibicao) partes.push(`Data: ${formatarData(c.dataExibicao)} → ${formatarData(novaData)}`)
+        if (mudanca.horario !== undefined && mudanca.horario !== c.horario) partes.push(`Horário: ${c.horario ?? 'dia inteiro'} → ${mudanca.horario ?? 'dia inteiro'}`)
+        if (mudanca.horarioFim !== undefined && mudanca.horarioFim !== (c.horarioFim ?? null)) partes.push(`Término: ${c.horarioFim ?? '—'} → ${mudanca.horarioFim ?? '—'}`)
+        if (partes.length === 0) return
+        setProposta({ movimento: { titulo: c.titulo, dataAntes: c.dataExibicao, dataDepois: novaData, efeito: partes.join(' · '),
+          avisos: novaData < hoje ? ['A data já passou.'] : [] }, confirmar: () => alterar(c, mudanca) })
+        return
+      }
+      if (novaData === c.dataExibicao) return
+      const movimento = await agendaService.simularMovimento(c.tipo, c.referenciaId, novaData)
+      setProposta({ movimento, confirmar: async () => {
+        try { await agendaService.moverCompromisso(c.tipo, c.referenciaId, novaData); await carregar() }
+        catch (err) { setErro(extractApiError(err, 'Não foi possível mover o compromisso.')) }
+      } })
+    } catch (err) {
+      setErro(extractApiError(err, 'Não foi possível mover o compromisso.'))
+    }
+  }
   const moverNaGrade = (c: Compromisso, dia: string, inicio: number, fim: number | null) =>
-    void alterar(c, { data: dia, horario: horarioDeMinutos(inicio), horarioFim: fim != null ? horarioDeMinutos(fim) : null })
-  const esticarNaGrade = (c: Compromisso, fim: number) => void alterar(c, { horarioFim: horarioDeMinutos(fim) })
+    void proporMudanca(c, { data: dia, horario: horarioDeMinutos(inicio), horarioFim: fim != null ? horarioDeMinutos(fim) : null })
+  const esticarNaGrade = (c: Compromisso, fim: number) => void proporMudanca(c, { horarioFim: horarioDeMinutos(fim) })
   const moverParaDia = (chave: string, dia: string) => {
     const c = compromissos.find(x => x.chave === chave)
-    if (c && dia !== c.dataExibicao) void alterar(c, { data: dia })
+    if (c && dia !== c.dataExibicao) void proporMudanca(c, { data: dia })
   }
 
   // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
@@ -143,7 +170,7 @@ export default function AgendaPage() {
           <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
         </div>
-        <span className={visao === 'MES' ? 'text-[15px] font-semibold capitalize text-dark' : 'sr-only'} data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
+        <span className={visao === 'MES' ? 'text-[15px] font-semibold text-dark' : 'sr-only'} data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
         <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
         <div className="ml-auto"><Button icon={<CalendarPlus size={16} />} onClick={() => abrirNovoEvento()}>Novo evento</Button></div>
       </div>
@@ -178,6 +205,10 @@ export default function AgendaPage() {
       {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
       {novoEvento && <ModalEvento dataInicial={novoEvento.data} horarioInicial={novoEvento.horario} horarioFimInicial={novoEvento.horarioFim}
         onClose={() => setNovoEvento(null)} onSalvo={() => { setNovoEvento(null); void carregar() }} />}
+      {proposta && (
+        <ModalConfirmarMovimento movimento={proposta.movimento} onCancelar={() => setProposta(null)}
+          onConfirmar={async () => { const p = proposta; setProposta(null); await p.confirmar() }} />
+      )}
       {escolhaEscopo && (
         <ModalShell open onClose={() => setEscolhaEscopo(null)} width={420} title="Alterar compromisso" subtitle="Este compromisso se repete."
           footer={<><Button variant="ghost" onClick={() => setEscolhaEscopo(null)}>Fechar</Button>
