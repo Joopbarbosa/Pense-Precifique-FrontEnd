@@ -1,11 +1,16 @@
 import api from './api'
-import type { ProducaoDetalhe, ProducaoResumo, ProducaoContagensResponse, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse, FinalizarProducaoRequest, DesagruparProducaoRequest, DesagruparProducaoResponse, CandidataJuntar, JuntarProducoesRequest, JuntarProducoesResponse, ExcedenteLote } from '../types/producao'
+import type { ProducaoDetalhe, ProducaoResumo, ProducaoContagensResponse, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse, FinalizarProducaoRequest, DesagruparProducaoRequest, DesagruparProducaoResponse, CandidataJuntar, ProducoesPeriodo, JuntarProducoesRequest, JuntarProducoesResponse, ExcedenteLote } from '../types/producao'
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
   // RN-NOVA-42 (V0.18.0, #1169) — juntar produções de pedidos diferentes em um lote.
   candidatasJuntar: async (id: string): Promise<CandidataJuntar[]> => {
     const response = await api.get(`/producoes/${id}/candidatas-juntar`)
+    return response.data
+  },
+
+  producoesDoPeriodo: async (orcamentoId: string): Promise<ProducoesPeriodo> => {
+    const response = await api.get('/producoes/do-periodo', { params: { orcamentoId } })
     return response.data
   },
 

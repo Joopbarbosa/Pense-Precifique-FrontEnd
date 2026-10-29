@@ -8,9 +8,19 @@ import { extractApiError } from '../../utils/apiError'
 import { formatarData } from '../../utils/data'
 import type { CandidataJuntar, JuntarProducoesResponse } from '../../types/producao'
 
-// RN-NOVA-42 (V0.18.0, #1169) — "Juntar com outra produção": lista as produções do mesmo produto,
-// Aguardando início, de outros pedidos. A data é editável e só AVISA (nunca bloqueia) quando passa do
+// RN-NOVA-42/48 (V0.18.0, #1169/#1184) — "Juntar com outra produção": lista as produções de qualquer
+// produto de outros pedidos; só Aguardando início pode ser escolhida (Em andamento aparece marcada). A data é editável e só AVISA (nunca bloqueia) quando passa do
 // prazo de algum pedido; o aviso vem na resposta e aparece depois de juntar.
+
+// RN-NOVA-41 (#1168) — rótulos da situação da produção (Detalhe do orçamento e lista de candidatas).
+export const ROTULO_ESTADO_PRODUCAO: Record<string, string> = {
+  AGUARDANDO_INICIO: 'Aguardando início',
+  EM_ANDAMENTO: 'Em andamento',
+  TRAVADA: 'Travada',
+  FINALIZADA: 'Finalizada',
+  CANCELADA: 'Cancelada',
+  NAO_REALIZADA: 'Não realizada',
+}
 
 interface Props {
   producaoId: string
@@ -100,7 +110,7 @@ export default function JuntarProducaoModal({ producaoId, identificador, onClose
         <div className="flex justify-center py-4"><Spinner /></div>
       ) : candidatas.length === 0 ? (
         <p data-testid="sem-candidatas" className="m-0 text-[13.5px] text-muted">
-          Nenhuma outra produção do mesmo produto, aguardando início, de outro pedido.
+          Nenhuma outra produção, de outro pedido, para juntar.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
@@ -109,11 +119,16 @@ export default function JuntarProducaoModal({ producaoId, identificador, onClose
               <label
                 key={c.id}
                 data-testid="candidata-juntar"
-                className="flex cursor-pointer items-start gap-3 rounded-input border border-line bg-white px-3.5 py-3"
+                className={`flex items-start gap-3 rounded-input border border-line bg-white px-3.5 py-3 ${c.selecionavel ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
               >
-                <input type="radio" name="candidata" checked={escolhida === c.id} onChange={() => setEscolhida(c.id)} className="mt-1" />
+                <input type="radio" name="candidata" disabled={!c.selecionavel} checked={escolhida === c.id} onChange={() => setEscolhida(c.id)} className="mt-1" />
                 <span className="min-w-0 text-[13px] text-body">
                   <strong className="text-dark">{c.identificador}</strong> · {c.orcamentos.join(', ')}
+                  {!c.selecionavel && (
+                    <span data-testid="candidata-situacao" className="ml-2 rounded-full bg-orange/10 px-2 py-0.5 text-[11.5px] font-semibold text-orange">
+                      {ROTULO_ESTADO_PRODUCAO[c.situacao] ?? c.situacao} — não pode ser juntada
+                    </span>
+                  )}
                   <span className="block text-muted">
                     {c.produtos.map(p => `${p.nomeProduto} × ${Number(p.quantidade)}`).join(', ')} · Término previsto:{' '}
                     {c.dataTerminoPrevista ? formatarData(c.dataTerminoPrevista) : 'a definir'}

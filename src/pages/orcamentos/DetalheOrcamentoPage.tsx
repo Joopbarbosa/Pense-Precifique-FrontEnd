@@ -31,9 +31,9 @@ import { useAvancarStatusOrcamento } from "../../hooks/useAvancarStatusOrcamento
 import SelecaoProducaoEstoque from "../../components/orcamento/SelecaoProducaoEstoque";
 import { VinculoAtivoBadge, Toast } from "../../components/shared";
 import ModalCancelarProducaoJunto from "../../components/shared/ModalCancelarProducaoJunto";
-import JuntarProducaoModal from "../../components/producao/JuntarProducaoModal";
+import JuntarProducaoModal, { ROTULO_ESTADO_PRODUCAO } from "../../components/producao/JuntarProducaoModal";
 import { producaoService } from "../../services/producaoService";
-import type { ExcedenteLote } from "../../types/producao";
+import type { ExcedenteLote, ProducoesPeriodo } from "../../types/producao";
 import { construirFilaVinculosOrcamento, type VinculoPendente } from "../../utils/vinculoCancelamento";
 import { ORDEM_CICLO_VIDA_ORCAMENTO, STATUS_LABEL } from "../../constants";
 import { useToast } from "../../hooks/useToast";
@@ -42,16 +42,6 @@ import { extractApiError } from "../../utils/apiError";
 import { dispararDownloadBlob } from "../../utils/download";
 import { EstoqueTags } from "../../components/ui/Badge";
 import { dataLocalIso, formatarData, formatarDataHora } from "../../utils/data";
-
-// RN-NOVA-41 (#1168) — rótulos da situação da produção na seção Produção do Detalhe.
-const ROTULO_ESTADO_PRODUCAO: Record<string, string> = {
-  AGUARDANDO_INICIO: "Aguardando início",
-  EM_ANDAMENTO: "Em andamento",
-  TRAVADA: "Travada",
-  FINALIZADA: "Finalizada",
-  CANCELADA: "Cancelada",
-  NAO_REALIZADA: "Não realizada",
-};
 
 // ─── Status / fluxo ────────────────────────────────────────────────────────
 
@@ -893,6 +883,11 @@ export default function DetalheOrcamentoPage() {
   // RN-NOVA-42 (#1169) — juntar com outra produção e aviso de quantidade acima do lote.
   const [juntando, setJuntando] = useState<OrcamentoProducaoResponse | null>(null);
   const [excedentes, setExcedentes] = useState<Record<string, ExcedenteLote[]>>({});
+  // RN-NOVA-49 (#1184) — produções entre a aprovação e a entrega estimada, com "Juntar com esta".
+  const [periodo, setPeriodo] = useState<ProducoesPeriodo | null>(null);
+  const [juntandoPeriodo, setJuntandoPeriodo] = useState<string | null>(null);
+  const [erroPeriodo, setErroPeriodo] = useState<string | null>(null);
+  const [avisosPeriodo, setAvisosPeriodo] = useState<string[]>([]);
   const [desvinculando, setDesvinculando] = useState(false);
   const { toast, setToast } = useToast();
   const pdfRetry = useRetryCooldown();
@@ -946,6 +941,25 @@ export default function DetalheOrcamentoPage() {
   useEffect(() => {
     if (orcamento) void carregarExcedentes(orcamento.producoesVinculadas);
   }, [orcamento, carregarExcedentes]);
+
+  useEffect(() => {
+    if (!orcamento) return;
+    producaoService.producoesDoPeriodo(orcamento.id).then(setPeriodo).catch(() => setPeriodo(null));
+  }, [orcamento]);
+
+  const juntarComDoPeriodo = async (origemId: string, outraId: string) => {
+    setJuntandoPeriodo(outraId);
+    setErroPeriodo(null);
+    try {
+      const r = await producaoService.juntar(origemId, { producaoOutraId: outraId });
+      setAvisosPeriodo(r.avisos);
+      await carregar();
+    } catch (err) {
+      setErroPeriodo(extractApiError(err, "Não foi possível juntar as produções."));
+    } finally {
+      setJuntandoPeriodo(null);
+    }
+  };
 
   const resolverExcedente = async (producaoId: string, cancelarLote: boolean) => {
     try {
@@ -1764,6 +1778,60 @@ export default function DetalheOrcamentoPage() {
               )}
             </div>
           )}
+
+          {/* RN-NOVA-49 (#1184) — produções do período do orçamento */}
+          <div data-testid="producoes-periodo" className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
+            <div className="text-[13px] font-bold text-dark">
+              Produções no período
+              {periodo?.periodoDisponivel && periodo.dataInicio && periodo.dataFim && (
+                <span className="ml-2 font-normal text-muted">
+                  {formatarData(periodo.dataInicio)} a {formatarData(periodo.dataFim)}
+                </span>
+              )}
+            </div>
+            {!periodo || !periodo.periodoDisponivel ? (
+              <p data-testid="periodo-indisponivel" className="m-0 text-[12.5px] text-muted">
+                O período aparece depois que o orçamento for aprovado e tiver entrega estimada.
+              </p>
+            ) : periodo.producoes.length === 0 ? (
+              <p data-testid="periodo-vazio" className="m-0 text-[12.5px] text-muted">Nenhuma outra produção no período.</p>
+            ) : (
+              periodo.producoes.map((p) => {
+                const origem = producoesVinculadas.find((v) => v.estado === "AGUARDANDO_INICIO");
+                return (
+                  <div key={p.id} data-testid="producao-periodo" className="flex flex-wrap items-center justify-between gap-2 rounded-input border border-line bg-white px-3.5 py-2.5">
+                    <div className="min-w-0 text-[12.5px] text-body">
+                      <strong className="text-dark">{p.identificador}</strong>
+                      <span className="ml-2 rounded-full bg-teal/10 px-2 py-0.5 text-[11.5px] font-semibold text-teal">
+                        {ROTULO_ESTADO_PRODUCAO[p.situacao] ?? p.situacao}
+                      </span>
+                      <span className="block text-muted">
+                        {p.produtos.map((x) => `${x.nomeProduto} × ${Number(x.quantidade)}`).join(", ")} · {p.orcamentos.join(", ")}
+                      </span>
+                    </div>
+                    {!finalizado && p.selecionavel && origem && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        data-testid="juntar-com-esta"
+                        disabled={juntandoPeriodo !== null}
+                        onClick={() => void juntarComDoPeriodo(origem.producaoId, p.id)}
+                      >
+                        {juntandoPeriodo === p.id ? "Juntando..." : "Juntar com esta"}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+            {avisosPeriodo.map((a) => (
+              <div key={a} data-testid="aviso-periodo" className="flex items-start gap-2 text-[12.5px] text-warning-alt">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0 text-orange" />
+                <span>{a}</span>
+              </div>
+            ))}
+            {erroPeriodo && <div className="text-[12.5px] text-danger">{erroPeriodo}</div>}
+          </div>
         </section>
       </div>
 
