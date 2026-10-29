@@ -40,7 +40,7 @@ interface Arrasto { chave: string; dia: string; inicio: number; fim: number }
  * arrasta para outro dia e hora e se estica pela borda de baixo (#1065).
  */
 /** RN-NOVA-45 (#1183) — máximo de compromissos de dia inteiro por dia na Semana; o resto vira "+N". */
-const LIMITE_DIA_INTEIRO = 3
+const LIMITE_DIA_INTEIRO = 2
 
 export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onCriar, onMover, onEsticar, onMoverDia, onVerDiaInteiro }: {
   dias: string[]
