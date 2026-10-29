@@ -111,3 +111,15 @@ export interface ResumoDoDia {
 }
 export interface ValoresDoDia { disponivel: boolean; total: number | null; totalAtrasado: number | null; itens: Compromisso[] }
 export interface InsumoFaltante { nome: string; siglaUnidade: string | null; necessario: number; emEstoque: number; falta: number }
+
+// ---- mover cards (#1181, RN-NOVA-43 e RN-NOVA-44) ---------------------------------------------------
+
+/** O que a janela de confirmação mostra; o bloqueio impede a confirmação e os avisos só informam. */
+export interface MovimentoCompromisso {
+  titulo: string
+  dataAntes: string
+  dataDepois: string
+  efeito: string
+  avisos: string[]
+  bloqueio?: string | null
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { Compromisso } from '../../types/agenda'
 import {
-  DIAS_SEMANA_CURTO, diaDaSemana, diaDoMes, ehMovel, horarioDeMinutos, minutosAgoraBrasilia, minutosDoHorario, numeroDaSemana, posicionarBlocos,
+  DIAS_SEMANA_CURTO, diaDaSemana, diaDoMes, ehMovel, ehEsticavel, horarioDeMinutos, minutosAgoraBrasilia, minutosDoHorario, numeroDaSemana, posicionarBlocos,
 } from '../../utils/agenda'
 import ChipCompromisso from './ChipCompromisso'
 
@@ -214,7 +214,7 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
               className={clsx('relative border-l border-line bg-[linear-gradient(to_bottom,var(--color-line)_1px,transparent_1px)] bg-[length:100%_56px]',
                 d === hoje && 'bg-orange/5', onCriar && 'cursor-cell')}>
               {posicionarBlocos(porDia.get(d) ?? []).map(b => {
-                const movel = !!(onMover || onEsticar) && ehMovel(b.compromisso)
+                const movel = !!(onMover || onEsticar) && ehEsticavel(b.compromisso)
                 const emArrasto = arrasto?.chave === b.compromisso.chave
                 return (
                   <div key={b.compromisso.chave} data-testid={movel ? 'bloco-movel' : undefined}
