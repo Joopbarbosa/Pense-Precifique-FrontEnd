@@ -14,20 +14,20 @@ import {
 
 const API_URL = E2E_API_URL
 
-async function conferirOitoLinhasVisiveis(painel: Locator) {
+async function conferirSeisLinhasVisiveis(painel: Locator) {
   await expect(painel).toBeVisible()
-  await expect.poll(() => painel.locator('[data-search-row]').count()).toBeGreaterThanOrEqual(8)
+  await expect.poll(() => painel.locator('[data-search-row]').count()).toBeGreaterThanOrEqual(6)
 
   await expect.poll(() => painel.evaluate(el => {
     const linhas = [...el.querySelectorAll<HTMLElement>('[data-search-row]')]
     const painelBox = el.getBoundingClientRect()
-    const primeirasOitoDentro = linhas.slice(0, 8).every(linha => linha.getBoundingClientRect().bottom <= painelBox.bottom + 1)
-    const nonaFora = linhas[8] ? linhas[8].getBoundingClientRect().top >= painelBox.bottom - 1 : false
-    return primeirasOitoDentro && nonaFora && el.scrollHeight > el.clientHeight && el.scrollTop === 0
+    const primeirasSeisDentro = linhas.slice(0, 6).every(linha => linha.getBoundingClientRect().bottom <= painelBox.bottom + 1)
+    const setimaFora = linhas[6] ? linhas[6].getBoundingClientRect().top >= painelBox.bottom - 1 : false
+    return primeirasSeisDentro && setimaFora && el.scrollHeight > el.clientHeight && el.scrollTop === 0
   })).toBe(true)
 }
 
-test('CEN-NOVO-70 — Registrar compra, Nova produção e vínculo exibem 8 registros sem rolar', async ({ page, request }) => {
+test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 registros sem rolar', async ({ page, request }) => {
   const token = await apiLogin(request)
   const sufixo = Date.now()
   const insumos: string[] = []
@@ -66,11 +66,11 @@ test('CEN-NOVO-70 — Registrar compra, Nova produção e vínculo exibem 8 regi
     await login(page)
     await page.goto('/compras/nova')
     await page.getByPlaceholder('Adicionar insumo à compra…').click()
-    await conferirOitoLinhasVisiveis(page.getByTestId('combo-busca-resultados'))
+    await conferirSeisLinhasVisiveis(page.getByTestId('combo-busca-resultados'))
 
     await page.goto('/producao/nova')
     await page.getByPlaceholder('Buscar produto...').click()
-    await conferirOitoLinhasVisiveis(page.getByTestId('busca-produtos-producao'))
+    await conferirSeisLinhasVisiveis(page.getByTestId('busca-produtos-producao'))
 
     // #1107 — o vínculo sai da criação; a modal abre pelo detalhe do orçamento aprovado.
     const orcamento = await criarOrcamentoViaApi(request, token, cliente.id,
@@ -82,7 +82,7 @@ test('CEN-NOVO-70 — Registrar compra, Nova produção e vínculo exibem 8 regi
     // Estoque insuficiente (precisa 5, tem 3): o aviso vem antes da escolha da produção.
     await page.getByRole('button', { name: 'OK, vincular produção', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
-    await conferirOitoLinhasVisiveis(page.getByTestId('producoes-disponiveis'))
+    await conferirSeisLinhasVisiveis(page.getByTestId('producoes-disponiveis'))
   } finally {
     const tokenLimpeza = await apiLogin(request)
     await teardownProducoes(request, tokenLimpeza, producoes)

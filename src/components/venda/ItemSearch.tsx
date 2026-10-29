@@ -239,7 +239,7 @@ export default function ItemSearch({
       </div>
       {total > 0 && (
         // RN-NOVA-18 / #994 — rodapé fixo, simétrico ao "sticky top-0" da barra de busca acima (mesmo container rolável
-        // `wrapRef`): fica sempre visível no rodapé do painel calibrado para 8 linhas. Sem `data-search-row`: não entra
+        // `wrapRef`): fica sempre visível no rodapé do painel calibrado para 6 linhas. Sem `data-search-row`: não entra
         // no cálculo de `maxHeight` (useLayoutEffect acima), que só mede linhas de item real.
         <div className="sticky bottom-0 z-10 border-t border-line bg-white px-1.5 pb-1.5">
           <Paginacao pagina={pagina} totalPaginas={totalPaginas} ultima={ultima} carregando={loading} onMudar={irParaPagina}
