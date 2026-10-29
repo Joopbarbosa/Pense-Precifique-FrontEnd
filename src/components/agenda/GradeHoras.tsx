@@ -39,6 +39,9 @@ interface Arrasto { chave: string; dia: string; inicio: number; fim: number }
  * o minuto de agora com um traço laranja (#1052). A linha de dia inteiro tem altura máxima e rola por dentro, para muitos compromissos não cobrirem a grade. Clicar num espaço vazio cria um evento (#1064); o compromisso avulso pendente se
  * arrasta para outro dia e hora e se estica pela borda de baixo (#1065).
  */
+/** RN-NOVA-45 (#1183) — máximo de compromissos de dia inteiro por dia na Semana; o resto vira "+N". */
+const LIMITE_DIA_INTEIRO = 3
+
 export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onCriar, onMover, onEsticar, onMoverDia, onVerDiaInteiro }: {
   dias: string[]
   hoje: string
@@ -175,9 +178,23 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
               <div key={d} data-testid={`dia-${d}`} className={clsx('flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5', d === hoje && 'bg-orange/5')}
                 onDragOver={onMoverDia ? e => e.preventDefault() : undefined}
                 onDrop={onMoverDia ? e => { e.preventDefault(); const chave = e.dataTransfer.getData('text/plain'); if (chave) onMoverDia(chave, d) } : undefined}>
-                {(porDia.get(d) ?? []).filter(c => !c.horario).map(c => (
-                  <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} arrastavel={!!onMoverDia && ehMovel(c)} />
-                ))}
+                {(() => {
+                  const diaInteiro = (porDia.get(d) ?? []).filter(c => !c.horario)
+                  const restantes = diaInteiro.length - LIMITE_DIA_INTEIRO
+                  return (
+                    <>
+                      {diaInteiro.slice(0, LIMITE_DIA_INTEIRO).map(c => (
+                        <ChipCompromisso key={c.chave} compromisso={c} onAbrir={onAbrir} arrastavel={!!onMoverDia && ehMovel(c)} />
+                      ))}
+                      {restantes > 0 && (
+                        <button type="button" data-testid={`mais-${d}`} onClick={onVerDiaInteiro}
+                          className="rounded-lg px-2 py-0.5 text-left text-xs font-semibold text-teal hover:bg-teal/10">
+                          +{restantes}
+                        </button>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             ))}
           </div>
