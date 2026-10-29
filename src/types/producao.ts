@@ -138,6 +138,16 @@ export interface CandidataJuntar {
   dataTerminoPrevista: string | null
   produtos: { produtoId: string; nomeProduto: string; quantidade: number }[]
   orcamentos: string[]
+  situacao: string
+  selecionavel: boolean
+}
+
+// RN-NOVA-49 (V0.18.0, #1184) — produções que caem entre a aprovação e a entrega estimada do orçamento.
+export interface ProducoesPeriodo {
+  periodoDisponivel: boolean
+  dataInicio: string | null
+  dataFim: string | null
+  producoes: CandidataJuntar[]
 }
 
 export interface JuntarProducoesRequest {
