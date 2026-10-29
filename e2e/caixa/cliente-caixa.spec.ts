@@ -36,6 +36,8 @@ test.describe('#486 — Seleção de cliente no Caixa (CEN-NOVO-42)', () => {
 
     const modal = page.getByRole('dialog')
     await expect(modal.getByText('Selecionar cliente', { exact: true })).toBeVisible()
+    // A lista traz só 20 clientes: busca pelo nome para não depender de dados acumulados.
+    await modal.getByPlaceholder('Buscar por nome ou telefone...').fill(nome1)
     await modal.getByRole('button', { name: new RegExp(nome1) }).click()
 
     // Seleção única — clicar numa linha já fecha a modal
@@ -45,6 +47,7 @@ test.describe('#486 — Seleção de cliente no Caixa (CEN-NOVO-42)', () => {
 
     // "Trocar cliente" reabre a modal e permite trocar por outro
     await page.getByRole('button', { name: 'Trocar cliente' }).click()
+    await page.getByRole('dialog').getByPlaceholder('Buscar por nome ou telefone...').fill(nome2)
     await page.getByRole('dialog').getByRole('button', { name: new RegExp(nome2) }).click()
     await expect(page.getByText(nome2, { exact: true })).toBeVisible()
     await expect(page.getByText(nome1, { exact: true })).toHaveCount(0)
