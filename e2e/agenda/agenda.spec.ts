@@ -160,8 +160,13 @@ test.describe('#1034 — Agenda', () => {
     const hoje = Date.UTC(a, m - 1, d)
     const domingoAtual = hoje - new Date(hoje).getUTCDay() * 86_400_000
     const semanas = Math.round((domingoAtual - Date.UTC(2026, 9, 18)) / (7 * 86_400_000))
-    for (let i = 0; i < Math.abs(semanas); i++) await page.getByRole('button', { name: semanas > 0 ? 'Anterior' : 'Próximo' }).click()
-    await expect(page.getByTestId('numero-semana')).toHaveText('Sem 43')
+    const numero = page.getByTestId('numero-semana')
+    for (let i = 0; i < Math.abs(semanas); i++) {
+      const antes = await numero.textContent()
+      await page.getByRole('button', { name: semanas > 0 ? 'Anterior' : 'Próximo' }).click()
+      await expect(numero).not.toHaveText(antes ?? '') // um clique por vez, só segue quando a semana trocou (cliques em rajada se perdiam durante o carregamento)
+    }
+    await expect(numero).toHaveText('Sem 43')
   })
 
   test('CT-1069 / CEN-NOVO-95 — clicar no espaço vazio do Mês cria evento sem horário; o número abre a lista do dia', async ({ page }) => {
