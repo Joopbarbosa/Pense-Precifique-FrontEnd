@@ -12,7 +12,7 @@ export default function DescricaoComLinks({ texto, className, testId = 'descrica
   return (
     <div className={className} data-testid={testId}>
       {trechos.map((t, i) => t.to
-        ? <a key={i} href={t.to} target="_blank" rel="noopener noreferrer" data-testid="link-descricao"
+        ? <a key={i} href={t.to} target="_blank" rel="noopener noreferrer" data-testid="link-descricao" onClick={e => e.stopPropagation()}
             className="font-semibold text-teal underline-offset-2 hover:underline">{t.texto}</a>
         : <span key={i}>{t.texto}</span>)}
     </div>
