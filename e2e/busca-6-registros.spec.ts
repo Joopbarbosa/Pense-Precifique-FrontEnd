@@ -188,3 +188,47 @@ test('CEN-NOVO-160 — Insumo da ficha técnica exibe 6 registros sem rolar', as
     for (const id of insumos) await inativarInsumo(request, tokenLimpeza, id)
   }
 })
+
+// #1207 (A1, QA R2) — Compra e Produção não têm buscador de cliente (o único está no Orçamento, coberto acima); o "campo de busca com
+// 10 cadastros" dessas telas é o de insumo (Registrar compra) e o de produto (Nova produção). Mesma asserção do cliente: com 10 cadastros
+// filtrados pelo prefixo do teste, 6 linhas visíveis, a 7ª fora do painel e a rolagem alcança a 10ª.
+test('CEN-NOVO-160 — Compra e Produção com 10 cadastros na busca exibem 6 registros e rolam até o 10º', async ({ page, request }) => {
+  const token = await apiLogin(request)
+  const sufixo = Date.now()
+  const insumos: string[] = []
+  const produtos: string[] = []
+
+  try {
+    for (let i = 1; i <= 10; i++) {
+      const insumo = await criarInsumo(request, token, `QA1207-Insumo-${sufixo}-${String(i).padStart(2, '0')}`)
+      insumos.push(insumo.id)
+    }
+    for (let i = 1; i <= 10; i++) {
+      const produto = await criarProdutoComFicha(
+        request, token, `QA1207-Produto-${sufixo}-${String(i).padStart(2, '0')}`,
+        [{ insumoId: insumos[0], quantidade: 1 }],
+      )
+      produtos.push(produto.id)
+    }
+
+    await login(page)
+    await page.goto('/compras/nova')
+    const buscaInsumo = page.getByPlaceholder('Adicionar insumo à compra…')
+    await buscaInsumo.fill(`QA1207-Insumo-${sufixo}`)
+    const painelCompra = page.getByTestId('combo-busca-resultados')
+    await expect.poll(() => painelCompra.locator('[data-search-row]').count()).toBe(10)
+    await conferirSeisLinhasVisiveis(painelCompra)
+    await conferirRolagemAlcanca(painelCompra, `QA1207-Insumo-${sufixo}-10`)
+
+    await page.goto('/producao/nova')
+    await page.getByPlaceholder('Buscar produto...').fill(`QA1207-Produto-${sufixo}`)
+    const painelProducao = page.getByTestId('busca-produtos-producao')
+    await expect.poll(() => painelProducao.locator('[data-search-row]').count()).toBe(10)
+    await conferirSeisLinhasVisiveis(painelProducao)
+    await conferirRolagemAlcanca(painelProducao, `QA1207-Produto-${sufixo}-10`)
+  } finally {
+    const tokenLimpeza = await apiLogin(request)
+    for (const id of produtos) await inativarProduto(request, tokenLimpeza, id)
+    for (const id of insumos) await inativarInsumo(request, tokenLimpeza, id)
+  }
+})
