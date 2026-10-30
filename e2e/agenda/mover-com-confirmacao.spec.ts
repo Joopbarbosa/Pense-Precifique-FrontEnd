@@ -64,8 +64,9 @@ test.describe('#1181 — Mover card com confirmação', () => {
   test('CT-1181-02 (negativo) — compra pendente para antes de hoje: a janela bloqueia e não grava', async ({ page, request }) => {
     const token = await apiLogin(request)
     const insumo = await criarInsumoComEstoque(request, token, `QA1181-Insumo-${Date.now()}`, 0, true)
-    const compra = await registrarCompraPendente(request, token, [{ insumoId: insumo.id, quantidade: 5, precoTotal: 20 }], hojeLocal(0), hojeLocal(0))
-    const origem = hojeLocal(0), destino = hojeLocal(-1)
+    const compra = await registrarCompraPendente(request, token, [{ insumoId: insumo.id, quantidade: 5, precoTotal: 20 }], hojeLocal(1), hojeLocal(0))
+    // amanhã e não hoje: o dia de hoje acumula chips de outros specs e esconde o card atrás do "+N"
+    const origem = hojeLocal(1), destino = hojeLocal(-1)
     await abrirMes(page, origem)
     const chip = page.getByTestId(`dia-${origem}`).getByTestId('compromisso').filter({ hasText: compra.identificador })
     await arrastar(page, chip, destino)
