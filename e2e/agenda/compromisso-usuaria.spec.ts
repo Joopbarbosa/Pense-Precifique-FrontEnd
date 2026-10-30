@@ -3,7 +3,7 @@ import { E2E_API_URL } from '../helpers/target'
 import { login } from '../helpers/auth'
 import { apiLogin, criarInsumo, inativarInsumo } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
-import { criarCompromissoUsuaria } from '../helpers/agenda'
+import { criarCompromissoUsuaria, filtrarAgenda } from '../helpers/agenda'
 
 /**
  * #1039 (V0.18.0, RN-NOVA-19 a RN-NOVA-21) — o compromisso criado pela usuária: "Novo evento", recorrência semanal e mensal, concluir,
@@ -30,7 +30,7 @@ test.describe('#1039 — Compromisso da usuária', () => {
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < diasAFrente; i++) await page.getByRole('button', { name: 'Próximo' }).click()
     // a busca isola o chip: a linha de dia inteiro mostra só 2 e esconde o resto em +N (#1189)
-    await page.getByLabel('Buscar na agenda').fill(titulo)
+    await filtrarAgenda(page, titulo)
     await page.getByTestId('compromisso').filter({ hasText: titulo }).first().click()
   }
 
@@ -137,7 +137,8 @@ test.describe('#1039 — Compromisso da usuária', () => {
   test('CT-1039-06 — editar só a ocorrência (move a data) e depois a série inteira (muda o título)', async ({ page, request }) => {
     const token = await apiLogin(request)
     const titulo = `Revisar caixa ${Date.now()}`
-    await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(1), recorrencia: 'SEMANAL', diasSemana: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'], quantidadeOcorrencias: 3 })
+    // com horário, o card sai da linha de dia inteiro (limite de 2 + "+N", #1183) e não disputa lugar com o que a suíte acumulou (#1204)
+    await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(1), horario: '09:00', horarioFim: '10:00', recorrencia: 'SEMANAL', diasSemana: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'], quantidadeOcorrencias: 3 })
     await login(page)
     await abrirNoDia(page, titulo, 2)
     await page.getByRole('button', { name: 'Editar' }).click()
