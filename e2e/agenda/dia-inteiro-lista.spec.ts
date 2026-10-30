@@ -30,14 +30,14 @@ test.describe('#1158 — Lista de dia inteiro', () => {
 
   test('CT-1162-01 / CEN-NOVO-128 — 5 compromissos mostram 3 e "+2"; o "+2" abre os 5; sem rolagem', async ({ page, request }) => {
     const token = await apiLogin(request)
-    const data = hojeLocal(1)
+    const data = hojeLocal(20)
     const ts = Date.now()
     const titulos = [1, 2, 3, 4, 5].map(n => `Dia todo ${n} ${ts}`)
     for (const titulo of titulos) await criarCompromissoUsuaria(request, token, { titulo, data })
     await login(page)
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
-    await page.getByRole('button', { name: 'Próximo' }).click()
+    for (let i = 0; i < 20; i++) await page.getByRole('button', { name: 'Próximo' }).click()
     await page.getByTestId('ver-dia-inteiro').click()
     const lista = page.getByTestId('lista-dia-inteiro')
     await expect(lista.getByTestId('compromisso').filter({ hasText: String(ts) })).toHaveCount(3)
@@ -55,13 +55,13 @@ test.describe('#1158 — Lista de dia inteiro', () => {
 
   test('CT-1162-02 (negativo) — dia com exatamente 3 compromissos não mostra "+N"', async ({ page, request }) => {
     const token = await apiLogin(request)
-    const data = hojeLocal(2)
+    const data = hojeLocal(25)
     const ts = Date.now()
     for (const n of [1, 2, 3]) await criarCompromissoUsuaria(request, token, { titulo: `Tres ${n} ${ts}`, data })
     await login(page)
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
-    for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    for (let i = 0; i < 25; i++) await page.getByRole('button', { name: 'Próximo' }).click()
     await page.getByTestId('ver-dia-inteiro').click()
     await expect(page.getByTestId('lista-dia-inteiro').getByTestId('compromisso').filter({ hasText: String(ts) })).toHaveCount(3)
     await expect(page.getByTestId(`mais-dia-inteiro-${data}`)).toHaveCount(0)
