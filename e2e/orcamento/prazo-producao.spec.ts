@@ -34,7 +34,7 @@ test.describe('#386 — Prazo de produção', () => {
     const prazo = page.locator('input[type="number"][placeholder="10"]')
     // #1111 — "Vai ter prazo de produção?" nasce em Não (sem campo de prazo); Sim abre o campo com 1 dia.
     await expect(prazo).toHaveCount(0)
-    await page.getByRole('button', { name: 'Sim', exact: true }).first().click()
+    await page.getByText('Vai ter prazo de produção?').locator('..').getByRole('button', { name: 'Sim', exact: true }).click()
     await expect(prazo).toHaveValue('1')
     await prazo.fill('3')
     await expect(prazo).toHaveAttribute('min', '1')
@@ -58,7 +58,7 @@ test.describe('#386 — Prazo de produção', () => {
     await page.goto('/orcamentos/novo')
     await selecionarCliente(page, cliente.nome)
     await adicionarItemAvulso(page, produto.nome, 1)
-    await page.getByRole('button', { name: 'Sim', exact: true }).first().click()
+    await page.getByText('Vai ter prazo de produção?').locator('..').getByRole('button', { name: 'Sim', exact: true }).click()
     await page.locator('input[type="number"][placeholder="10"]').fill('')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
     await expect(page.getByText('Prazo obrigatório, mínimo 1 dia', { exact: true })).toBeVisible()

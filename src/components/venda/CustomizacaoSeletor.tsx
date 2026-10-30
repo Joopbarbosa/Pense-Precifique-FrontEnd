@@ -81,7 +81,7 @@ export default function CustomizacaoSeletor({ selecionadas, onToggle, onQtd, mos
         />
       </div>
 
-      {/* Lista de customizações — RN-NOVA-26: até 8 itens visíveis por vez, resto via rolagem.
+      {/* Lista de customizações — RN-NOVA-46: até 6 itens visíveis por vez, resto via rolagem.
           `shrink-0` em cada linha é obrigatório: sem ele, um flex-col com max-height/overflow-y-auto
           encolhe os itens para caber em vez de habilitar rolagem (gotcha clássico de flexbox). */}
       <div ref={listaRef} style={maxHeight != null ? { maxHeight } : undefined}

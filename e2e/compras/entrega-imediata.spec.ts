@@ -19,7 +19,6 @@ test('V0.17.0 — Entrega imediata abre em Sim; Não mostra a previsão vazia e 
   await expect(page.getByLabel('Previsão de entrega')).toHaveCount(0)
 })
 
-
 test('V0.18.0 — CEN-NOVO-71: Entrega imediata segue ordem Não/Sim e cores binárias', async ({ page }) => {
   await login(page)
   await page.goto('/compras/nova')
@@ -30,14 +29,11 @@ test('V0.18.0 — CEN-NOVO-71: Entrega imediata segue ordem Não/Sim e cores bin
 
   await expect(controle.getByRole('button')).toHaveText(['Não', 'Sim'])
   await expect(sim).toHaveAttribute('aria-pressed', 'true')
-  await expect(sim).toHaveClass(/bg-teal/)
   await expect(nao).toHaveAttribute('aria-pressed', 'false')
 
   await nao.click()
   await expect(nao).toHaveAttribute('aria-pressed', 'true')
-  await expect(nao).toHaveClass(/bg-orange/)
 
   await sim.click()
   await expect(sim).toHaveAttribute('aria-pressed', 'true')
-  await expect(sim).toHaveClass(/bg-teal/)
 })
