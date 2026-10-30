@@ -34,6 +34,8 @@ export interface VinculoPendente {
    *  historicoStatus (ITEM_ADICIONADO), não existe DTO de vínculo granular por produto hoje
    *  (achado do Passo 0, P-F003). Só relevante/usado quando estadoProducao é EM_ANDAMENTO/TRAVADA. */
   produtosContribuidos: ProdutoContribuido[]
+  /** RN-NOVA-42 (#1169) — outros pedidos do lote; vazio quando a produção atende só este pedido. */
+  outrosOrcamentos?: string[]
 }
 
 /** Agrega o histórico ITEM_ADICIONADO de uma produção pelos produtos que um orçamento específico
@@ -81,9 +83,11 @@ export async function construirFilaVinculosOrcamento(
       rotuloOutroLado: vinculo.identificadorProducao,
       estadoProducao: detalhe.estado,
       produtosContribuidos: agregarProdutosPorOrcamento(detalhe.historicoStatus, orcamento.id),
+      outrosOrcamentos: vinculo.outrosOrcamentos ?? [],
     })
   }
-  return fila
+  // Ordem de criação das produções (PRD-N crescente), para a sequência de perguntas ser previsível.
+  return fila.sort((a, b) => a.rotuloOutroLado.localeCompare(b.rotuloOutroLado, 'pt-BR', { numeric: true }))
 }
 
 /** Lado Produção (espelhado): sem fetch extra — orcamentosVinculados já traz statusOrcamento, e

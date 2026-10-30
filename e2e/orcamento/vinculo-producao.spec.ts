@@ -5,8 +5,6 @@ import { apiLogin } from '../helpers/api'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 import {
   criarCliente,
-  selecionarCliente,
-  adicionarItemAvulso,
   criarOrcamentoViaApi,
   avancarStatusViaApi,
   buscarOrcamento,
@@ -38,6 +36,35 @@ const INSUMO_URL = `${E2E_API_URL}/insumos`
  */
 function dataFutura(diasAFrente: number): string {
   return hojeLocal(diasAFrente)
+}
+
+/**
+ * #1107 — a criação do orçamento não oferece mais vincular produção (só avisa o estoque negativo);
+ * o vínculo acontece depois da aprovação, pelo detalhe. Atalho: cria o orçamento via API, aprova e abre
+ * a modal "Vincular produção".
+ */
+async function abrirVinculoNoAprovado(
+  page: import('@playwright/test').Page,
+  request: import('@playwright/test').APIRequestContext,
+  token: string,
+  clienteId: string,
+  produtoId: string,
+  quantidade: number,
+) {
+  const orcamento = await criarOrcamentoViaApi(request, token, clienteId,
+    [{ produtoId, precoUnitario: 20, margemAplicada: 50, quantidade }], { sinalAtivo: false })
+  await avancarStatusViaApi(request, token, orcamento.id) // ENVIADO
+  await avancarStatusViaApi(request, token, orcamento.id) // APROVADO
+  await login(page)
+  await page.goto(`/orcamentos/${orcamento.id}`)
+  await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
+  // #1156 — com falta de estoque, o aviso vem antes do vínculo; o OK segue para a escolha da produção.
+  const escolha = page.getByText('Escolha uma produção aguardando início')
+  const ok = page.getByRole('button', { name: 'OK, vincular produção', exact: true })
+  await expect(ok.or(escolha)).toBeVisible()
+  if (await ok.isVisible()) await ok.click()
+  await expect(escolha).toBeVisible()
+  return orcamento.id as string
 }
 
 test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)', () => {
@@ -74,31 +101,16 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     const nomeCliente = `QA320H-Cliente-${Date.now()}`
     await criarCliente(request, token, nomeCliente)
 
-    await login(page)
-    await page.goto('/orcamentos/novo')
-    await selecionarCliente(page, nomeCliente)
-
-    const quantidadeItem = 5 // > estoqueAtual (3) — dispara o checkpoint de estoque insuficiente
-    await adicionarItemAvulso(page, nomeProduto, quantidadeItem)
-    // temPrazoProducao=true é o default do formulário — sem desligar, handleSubmit trava em
-    // validação de prazoDias antes de chegar no checkpoint de estoque (mesma técnica do script
-    // avulso já validado, scripts-avulsos/validar-vincular-producao-criacao.mjs).
-    await page.getByRole('button', { name: 'Não', exact: true }).first().click()
-
-    await page.waitForResponse(res => res.url().includes('/orcamentos/simular-alertas') && res.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
-
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible()
-    await page.getByRole('button', { name: /Vincular produção existente/ }).click()
-
-    await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
-    await page.getByText(producaoExistente.identificador, { exact: true }).click()
+    const quantidadeItem = 5 // > estoqueAtual (3)
+    const clienteH = await criarCliente(request, token, `${nomeCliente}-b`)
+    const orcamentoId = await abrirVinculoNoAprovado(page, request, token, clienteH.id, produto.id, quantidadeItem)
+    await page.getByRole('dialog').getByRole('button').filter({ hasText: producaoExistente.identificador }).getByText('Vincular', { exact: true }).click()
 
     await expect(page.getByText('Confirmar vínculo').first()).toBeVisible()
     await page.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click()
 
-    await page.waitForURL(/\/orcamentos\/[0-9a-f-]+$/, { timeout: 10000 })
-    await expect(page.getByText(new RegExp(`Vinculado a produção:.*${producaoExistente.identificador}`))).toBeVisible()
+    await expect(page.getByTestId('producao-vinculada').filter({ hasText: producaoExistente.identificador })).toBeVisible({ timeout: 10000 })
+    expect(orcamentoId).toBeTruthy()
 
     const producaoDepois = await buscarProducao(request, token, producaoExistente.id)
     const produtoNaProducao = producaoDepois.produtos.find((p: { produtoId: string }) => p.produtoId === produto.id)
@@ -116,19 +128,9 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     const nomeCliente = `QA320I-Cliente-${Date.now()}`
     await criarCliente(request, token, nomeCliente)
 
-    await login(page)
-    await page.goto('/orcamentos/novo')
-    await selecionarCliente(page, nomeCliente)
-
     const quantidadeItem = 6 // > estoqueAtual (2)
-    await adicionarItemAvulso(page, nomeProduto, quantidadeItem)
-    await page.getByRole('button', { name: 'Não', exact: true }).first().click()
-    await page.waitForResponse(res => res.url().includes('/orcamentos/simular-alertas') && res.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
-
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible()
-    await page.getByRole('button', { name: /Vincular produção existente/ }).click()
-    await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
+    const clienteI = await criarCliente(request, token, `${nomeCliente}-b`)
+    await abrirVinculoNoAprovado(page, request, token, clienteI.id, produto.id, quantidadeItem)
 
     await page.getByRole('button', { name: 'Criar produção nova' }).click()
     await expect(page.getByText('Fica vinculada a este orçamento automaticamente')).toBeVisible()
@@ -136,12 +138,12 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     const terminoInput = page.locator('label', { hasText: 'Término previsto' }).locator('input[type="date"]')
     await terminoInput.fill(dataFutura(1))
 
-    await page.getByRole('button', { name: 'Criar produção', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Criar produção', exact: true }).click()
     await page.waitForURL(/\/orcamentos\/[0-9a-f-]+$/, { timeout: 10000 })
 
     const orcamentoId = page.url().match(/\/orcamentos\/([0-9a-f-]+)$/)![1]
+    await expect.poll(async () => (await buscarOrcamento(request, token, orcamentoId)).producoesVinculadas.length, { timeout: 10000 }).toBe(1)
     const orcamentoFinal = await buscarOrcamento(request, token, orcamentoId)
-    expect(orcamentoFinal.producoesVinculadas).toHaveLength(1)
     const vinculo = orcamentoFinal.producoesVinculadas[0]
     criadasProducaoIds.push(vinculo.producaoId)
 
@@ -184,7 +186,7 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     await login(page)
     await page.goto(`/orcamentos/${orcamento.id}`)
 
-    await page.getByRole('button', { name: 'Confirmar início', exact: true }).click()
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
 
     // RN-NOVA-13 (V0.10.0, #474) reverteu RN-ORC-VINC-02 ponto 2: fechar a modal sem vincular NÃO
@@ -302,8 +304,8 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
       page.getByText(new RegExp(`${producao.identificador}.*deve terminar depois do prazo prometido ao cliente`))
     ).toBeVisible()
 
-    // vínculo já existe -> "Confirmar início" avança direto, sem a modal de oferta — estouro é só aviso
-    await page.getByRole('button', { name: 'Confirmar início', exact: true }).click()
+    // vínculo já existe -> "Iniciar produção" avança direto, sem a modal de oferta — estouro é só aviso
+    await page.getByRole('button', { name: 'Iniciar produção', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Marcar como finalizado', exact: true })).toBeVisible({ timeout: 10000 })
 
     const orcamentoFinal = await buscarOrcamento(request, token, orcamento.id)
@@ -320,16 +322,8 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     const nomeCliente = `QA320N-Cliente-${Date.now()}`
     await criarCliente(request, token, nomeCliente)
 
-    await login(page)
-    await page.goto('/orcamentos/novo')
-    await selecionarCliente(page, nomeCliente)
-    await adicionarItemAvulso(page, nomeProduto, 5)
-    await page.getByRole('button', { name: 'Não', exact: true }).first().click()
-    await page.waitForResponse(res => res.url().includes('/orcamentos/simular-alertas') && res.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible()
-    await page.getByRole('button', { name: /Vincular produção existente/ }).click()
-    await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
+    const clienteN = await criarCliente(request, token, `${nomeCliente}-b`)
+    await abrirVinculoNoAprovado(page, request, token, clienteN.id, produto.id, 5)
     await page.getByRole('button', { name: 'Criar produção nova' }).click()
     await expect(page.getByText('Fica vinculada a este orçamento automaticamente')).toBeVisible()
 
@@ -361,5 +355,33 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     // única prova que importa: apenas 1 produção nasceu vinculada, apesar dos N cliques
     expect(orcamentoFinal.producoesVinculadas).toHaveLength(1)
     criadasProducaoIds.push(orcamentoFinal.producoesVinculadas[0].producaoId)
+  })
+
+  test('CT-1156-01 — falta de estoque avisa antes do vínculo; OK segue; Cancelar não abre o vínculo', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const ts = Date.now()
+    const insumo = await criarInsumoComEstoque(request, token, `QA-1156-Insumo-${ts}`, 100)
+    criadosInsumoIds.push(insumo.id)
+    const produto = await criarProdutoComFicha(request, token, `QA-1156-Produto-${ts}`, [{ insumoId: insumo.id, quantidade: 1 }])
+    criadosProdutoIds.push(produto.id)
+    const cliente = await criarCliente(request, token, `QA-1156-Cliente-${ts}`)
+    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id,
+      [{ produtoId: produto.id, precoUnitario: 20, margemAplicada: 50, quantidade: 3 }], { sinalAtivo: false })
+    await avancarStatusViaApi(request, token, orcamento.id)
+    await avancarStatusViaApi(request, token, orcamento.id)
+
+    await login(page)
+    await page.goto(`/orcamentos/${orcamento.id}`)
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
+    const aviso = page.getByTestId('aviso-falta-estoque')
+    await expect(aviso).toContainText(produto.nome)
+    await expect(aviso).toContainText('precisa 3')
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
+    await expect(aviso).toBeHidden()
+    await expect(page.getByText('Escolha uma produção aguardando início')).toBeHidden()
+
+    await page.getByRole('button', { name: 'Vincular produção', exact: true }).click()
+    await page.getByRole('button', { name: 'OK, vincular produção', exact: true }).click()
+    await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
   })
 })

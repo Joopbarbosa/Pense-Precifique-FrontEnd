@@ -8,6 +8,7 @@ import Paginacao from '../shared/Paginacao'
 import { insumoService } from '../../services/insumoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { extractApiError } from '../../utils/apiError'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 import { moeda, qtd } from './formato'
 import type { InsumoResponse } from '../../types/insumo'
 
@@ -33,6 +34,9 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
   const [erro, setErro] = useState<string | null>(null)
   const [marcados, setMarcados] = useState<Set<string>>(new Set())
   const seq = useRef(0)
+  const painelRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = insumos.map(insumo => insumo.id).join(',')
+  const maxHeight = useAlturaListaBusca(painelRef, versaoLinhas)
 
   const carregar = (pagina: number, termo: string) => {
     const minha = ++seq.current
@@ -80,7 +84,8 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
             className="h-10 w-full rounded-input border-[1.5px] border-line bg-white pl-9 pr-3 font-[inherit] text-sm text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
         </label>
 
-        <div className="max-h-[420px] overflow-y-auto rounded-input border border-line" data-testid="modal-adicionar-insumos">
+        <div ref={painelRef} style={maxHeight != null ? { maxHeight } : undefined}
+          className="overflow-y-auto rounded-input border border-line" data-testid="modal-adicionar-insumos">
           <div className="sticky top-0 z-1 hidden grid-cols-[32px_0.7fr_2fr_1.2fr_0.9fr] gap-3 bg-cream px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim sm:grid">
             <span /><span>Código</span><span>Insumo</span><span>Estoque / mínimo</span><span>Custo atual</span>
           </div>
@@ -102,7 +107,7 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
             const naLista = jaNaLista.includes(i.id)
             const marcado = naLista || marcados.has(i.id)
             return (
-              <label key={i.id} data-testid="opcao-insumo"
+              <label key={i.id} data-testid="opcao-insumo" data-search-row
                 className={clsx('grid grid-cols-[32px_1fr] items-center gap-x-3 gap-y-0.5 border-t border-line px-3.5 py-2.5 text-[13.5px] first-of-type:border-t-0 sm:grid-cols-[32px_0.7fr_2fr_1.2fr_0.9fr]',
                   naLista ? 'cursor-not-allowed bg-cream/60' : 'cursor-pointer hover:bg-cream')}>
                 <input type="checkbox" checked={marcado} disabled={naLista} onChange={() => alternar(i.id)}

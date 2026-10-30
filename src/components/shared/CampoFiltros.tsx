@@ -115,6 +115,9 @@ function BuscaGrupo({ grupo, marcado, alternar }: {
   useEffect(() => {
     let vivo = true
     setOpcoes(null)
+    // #1212 (QA R2, F1): o corte em 8 é intencional. Este é o filtro de uma modal (Insumo, Fornecedor), fora da lista de buscadores da
+    // RN-NOVA-46 / CEN-NOVO-160 (que fixa 6 linhas visíveis nos campos de escolha); a lista é curta e quem quer outro valor digita para
+    // estreitar a busca, que é feita no servidor.
     grupo.buscar!(q.trim()).then(r => { if (vivo) setOpcoes(r.slice(0, 8)) }).catch(() => { if (vivo) setOpcoes([]) })
     return () => { vivo = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps

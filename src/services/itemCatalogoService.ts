@@ -1,9 +1,16 @@
 import api from './api'
-import type { ItemCatalogoRequest, ItemCatalogoResponse, PreviewPrecoRequest, PreviewPrecoResponse } from '../types/itemCatalogo'
+import type { HistoricoPrecoItem, ItemCatalogoRequest, ItemCatalogoResponse, PreviewPrecoRequest, PreviewPrecoResponse } from '../types/itemCatalogo'
+import type { PageResponse } from '../types/shared'
 
 export const itemCatalogoService = {
   listar: async (catalogoId: string): Promise<ItemCatalogoResponse[]> => {
     const response = await api.get(`/catalogos/${catalogoId}/itens`)
+    return response.data
+  },
+
+  /** V0.18.0 (#961, RN-NOVA-28) — mudanças do preço sugerido do item, da mais recente para a mais antiga, paginado (RN-086). */
+  historicoPreco: async (catalogoId: string, itemId: string, page: number, size = 20): Promise<PageResponse<HistoricoPrecoItem>> => {
+    const response = await api.get(`/catalogos/${catalogoId}/itens/${itemId}/historico-preco`, { params: { page, size } })
     return response.data
   },
 

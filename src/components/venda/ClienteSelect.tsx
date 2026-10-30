@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AlertCircle, Phone, RotateCw, Search } from 'lucide-react'
 import Spinner from '../ui/Spinner'
 import { InativoBadge } from '../cliente/PapelTags'
@@ -6,6 +6,7 @@ import OpcaoInativa from '../shared/OpcaoInativa'
 import { clienteService } from '../../services/clienteService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import type { ClienteResponse } from '../../types/cliente'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 /**
  * Busca + seleção de cliente — usado por Orçamento e Caixa (#502, V0.12.0). Extraído de
@@ -28,9 +29,10 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
   const [results, setResults] = useState<ClienteResponse[]>([])
   const [estado, setEstado] = useState<'carregando' | 'pronto' | 'erro'>('carregando')
   const [tentativa, setTentativa] = useState(0)
-  const [maxHeight, setMaxHeight] = useState<number>()
   const wrapRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = open ? results.map(cliente => cliente.id).join(',') : ''
+  const maxHeight = useAlturaListaBusca(panelRef, versaoLinhas)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -54,21 +56,6 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
       })
     return () => { cancelado = true }
   }, [debouncedQ, open, q, tentativa])
-
-  // Altura do painel calculada a partir da posição real da 8ª linha (ver ItemSearch) — imune ao
-  // scale(0.92→1) do animate-pop.
-  useLayoutEffect(() => {
-    const el = panelRef.current
-    if (!el) return
-    el.scrollTop = 0
-    const linhas = el.querySelectorAll<HTMLElement>('[data-search-row]')
-    if (linhas.length <= 8) {
-      setMaxHeight(undefined)
-      return
-    }
-    const oitava = linhas[7]
-    setMaxHeight(Math.ceil(oitava.offsetTop + oitava.offsetHeight + 6))
-  }, [results])
 
   if (cliente) {
     return (

@@ -1,3 +1,4 @@
+import { formatarData, dataLocalIso } from '../../utils/data'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
@@ -16,7 +17,7 @@ import { useModalErro } from '../../hooks/useModalErro'
 import { useDuplicarCompra } from '../../components/compra/useDuplicarCompra'
 import { FornecedorSelect } from '../../components/compra/Pickers'
 import { NaoPagaBadge, StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
-import { formatarData, hojeIso } from '../../components/compra/formato'
+
 import { PrevisaoTag } from '../../components/compra/PrevisaoTag'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
@@ -221,11 +222,11 @@ export default function ComprasPage() {
           </div>
           <label className="block">
             <span className="mb-1.5 block text-[12.5px] font-semibold text-body">De</span>
-            <input type="date" aria-label="Data inicial" value={de} max={ate || hojeIso()} onChange={e => setDe(e.target.value)} className={dateInput} />
+            <input type="date" aria-label="Data inicial" value={de} max={ate || dataLocalIso()} onChange={e => setDe(e.target.value)} className={dateInput} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[12.5px] font-semibold text-body">Até</span>
-            <input type="date" aria-label="Data final" value={ate} min={de || undefined} max={hojeIso()} onChange={e => setAte(e.target.value)} className={dateInput} />
+            <input type="date" aria-label="Data final" value={ate} min={de || undefined} max={dataLocalIso()} onChange={e => setAte(e.target.value)} className={dateInput} />
           </label>
           {temFiltro && (
             <Button variant="ghost" size="sm" onClick={() => { setStatus('TODAS'); setFornecedor(null); setDe(''); setAte('') }}>Limpar filtros</Button>

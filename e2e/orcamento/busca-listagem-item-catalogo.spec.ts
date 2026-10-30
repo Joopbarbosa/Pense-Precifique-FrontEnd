@@ -16,7 +16,7 @@ const API_URL = E2E_API_URL
 
 /**
  * OpenProject #217 — RN-NOVA-6 (busca de item de catálogo server-side) e RN-NOVA-7 (listagem
- * completa com rolagem, até 8 itens visíveis por vez) em `ItemSearch`/`ModalCustomizacoes`
+ * completa com rolagem, até 6 itens visíveis por vez) em `ItemSearch`/`ModalCustomizacoes`
  * (`CriarOrcamentoPage.tsx`). Backend ganhou `busca` em `GET /orcamentos/itens-catalogo`
  * (achado da Análise — o endpoint não tinha esse parâmetro, ver `ItemCatalogoRepository`).
  */
@@ -145,7 +145,7 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
     await expect(page.getByText(`QA-217c-Item-${ts}-15`).first()).toBeVisible()
   })
 
-  test('RN-NOVA-7/CEN-NOVO-10 — listagem completa + no máximo 8 customizações visíveis, resto via rolagem', async ({ page, request }) => {
+  test('RN-NOVA-7/CEN-NOVO-10 + CEN-NOVO-160 (RN-NOVA-46) — listagem completa + no máximo 6 customizações visíveis, resto via rolagem', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
     const nomeProdutoAvulso = `QA-217e-ProdutoAvulso-${ts}`
@@ -197,7 +197,7 @@ test.describe('#217 — RN-NOVA-6/RN-NOVA-7 — busca e listagem em Novo Orçame
       const dentro = box.y >= listBox!.y - 1 && box.y + box.height <= listBox!.y + listBox!.height + 1
       if (dentro) visiveis++
     }
-    expect(visiveis).toBe(8)
+    expect(visiveis).toBe(6) // CEN-NOVO-160 (#1180, RN-NOVA-46): customização também exibe 6 registros; padronizou 6 registros visíveis (antes eram 8)
 
     const scrollInfo = await listWrap.evaluate(el => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }))
     expect(scrollInfo.scrollHeight).toBeGreaterThan(scrollInfo.clientHeight)

@@ -32,7 +32,7 @@ async function salvarComAviso(page: import('@playwright/test').Page, orcamentoId
   await page.getByRole('button', { name: 'Salvar alterações' }).click()
   const aviso = page.getByRole('dialog').filter({ hasText: 'Aviso antes de salvar as alterações' })
   await expect(aviso).toBeVisible()
-  await aviso.getByRole('button', { name: 'Salvar mesmo assim' }).click()
+  await aviso.getByRole('button', { name: 'OK', exact: true }).click()
   const resposta = await salvamento
   expect(resposta.ok()).toBe(true)
   await resposta.finished()

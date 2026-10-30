@@ -4,7 +4,7 @@
 > achado seguranca-resiliencia, GHSA-337j-9hxr-rhxg/GHSA-wrjc-x8rr-h8h6 só corrigiam
 > em v7+) · Zustand · Axios · Tailwind CSS
 > Projeto pré-produção. Primeiro deploy estável com usuários reais = v1.
-> Última revisão de padrões: 02/10/2026 (Retomada V0.15.0). Antes de agir,
+> Última revisão de padrões: 30/10/2026 (Retomada V0.18.0). Antes de agir,
 > confirmar a branch com `git branch --show-current` e a versão ativa no
 > `POCKET_V[X.Y].md`; não usar uma branch de versão gravada neste arquivo.
 > Se uma instrução técnica deste arquivo e o prompt da sessão divergirem,
@@ -57,10 +57,10 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 | Categoria | Local |
 |---|---|
 | Componentes base (`Button`, `Input`, `Badge`, `Card`, `ModalShell`, `Field`, `ConfirmacaoModal`, `EmptyState`, `Spinner`, `ActionMenu`, `SortableHeader`, `Toast`, `Toggle`, `SegmentedControl`, `Tag`; V0.15.0: `TextArea`, `MoneyInput`, `ModalErro`, `BigNumber`/`BigNumberGroup`, `CampoFiltros`, `OpcaoInativa`, `ModalListagemRegistros`, `PreviewPdfDocumento`) | `components/ui/`, `components/shared/` |
-| Domínio de Compras (`formato.ts` — `formatarData`, `moeda`, `qtd`, `parseDecimal`, `erroDesconto`, `rotuloPagamento`; `DescontoInput`, `useDuplicarCompra`, `DashboardCompras`, `GraficoPrecoInsumos`, modais de impacto/cancelar/pagamento/vínculo; V0.16.0/#748: `ORIGENS_VINCULO_NOTA`, rótulos da origem do vínculo de nota) | `components/compra/` (novo, V0.15.0) |
+| Domínio de Compras (`formato.ts` — `moeda`, `qtd`, `parseDecimal`, `erroDesconto`, `rotuloPagamento`; `DescontoInput`, `useDuplicarCompra`, `DashboardCompras`, `GraficoPrecoInsumos`, modais de impacto/cancelar/pagamento/vínculo; V0.16.0/#748: `ORIGENS_VINCULO_NOTA`, rótulos da origem do vínculo de nota) | `components/compra/` (novo, V0.15.0) |
 | Compra por nota fiscal (V0.16.0): `ModalConciliacaoNota`, `ModalCadastrarInsumoNota`, `ModalCadastrarFornecedorNota`, `DecisaoFornecedorNota`, `ModalDestinoVinculoNota`, `ModalNotaJaRegistrada`, `CameraNota` (QR pela câmera; `jsQR` num chunk à parte), `HistoricoNotaInsumo` (aba do insumo), `prepararArquivoNota.ts`; services `notaCompraService` e `vinculoNotaService`; tipos `types/compraNota.ts` e `types/vinculoNota.ts`; tela `pages/compras/HistoricoVinculosNotaPage.tsx` | `components/compra/nota/`, `services/`, `types/`, `pages/compras/` |
 | Domínio de Cliente/Fornecedor (`ModalRegistro` — registro do histórico aberto em modal) | `components/cliente/` |
-| Utilitários (`apiError.ts` — `extrairErroExplicado`, `normalizarErroBlob`; `fotoPendente.ts` — foto escolhida na criação) | `src/utils/` |
+| Utilitários (`apiError.ts` — `extrairErroExplicado`, `normalizarErroBlob`; `fotoPendente.ts` — foto escolhida na criação; `data.ts` — formatação ISO, data local ISO, meses e rótulo mês/ano) | `src/utils/` |
 | Domínio compartilhado de venda (`ItemSearch`, `ItemLinha`, `ModalCustomizacoes`, `ModalCalculadoraItem`, `CustomizacaoSeletor`, `DescontoBlock`, `ClienteSelect`, `SectionCard`, `ModoToggle`) — consumido por Orçamento, Caixa e Catálogo | `components/venda/` (novo, V0.12.0) |
 | Hooks (`usePaginatedList`, `useDebounceSearch`, `useDebouncedValue`, `useAuth`, `useToast`, `useRetryCooldown`, `useIsMobile`, `useModalErro`/`primeiroCampoInvalido`) | `src/hooks/` |
 | Constants (`METODOS_PAGAMENTO`, `MOTIVOS_BAIXA_INSUMO`, `MOTIVOS_BAIXA_PRODUTO`, `STATUS_LABEL`) | `src/constants/` |
@@ -73,7 +73,7 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 ## 3. Verificar antes de criar
 
 - **Service novo?** Conferir `src/services/` primeiro — todo módulo já tem o seu (`authService`,
-  `caixaService` (V0.12.0), `catalogoService`, `clienteService`, `dashboardService`,
+  `caixaService` (V0.12.0), `catalogoService`, `clienteService`, `agendaService` (V0.18.0), `dashboardCadastrosService`, `dashboardVendasService`,
   `compraService` (V0.15.0 — compras, lista de compras e vínculo fornecedor↔insumo),
   `empresaService`, `insumoService`, `itemCatalogoService`, `notaCompraService` (V0.16.0 — leitura da nota
   e rascunho de compra), `vinculoNotaService` (V0.16.0 — histórico de vínculos da nota), `orcamentoService`,
@@ -271,8 +271,19 @@ helper que cria insumo resolve o id via `resolverUnidadeMedidaId` (`e2e/helpers/
 - **Produto sempre com a marca** (V0.17.0, #1017/#1018): lista, detalhe e modais que citam produto usam
   `rotuloProduto(nome, marca)`; dois produtos com o mesmo nome só coexistem com marcas diferentes, então
   specs que criam "Caderno" duas vezes passam marcas distintas.
-- **Faturamento do mês** (V0.17.0, #1022): o "?" `inicio-faturamento` vive em `constants/ajudaDashboards.ts`
-  e explica a conta (vendas do mês); mudar a regra no backend exige mudar o texto junto.
+- **Faturamento do mês** (V0.17.0, #1022): o Dashboard geral foi removido na V0.18.0 (#1040); o faturamento vive
+  no Dashboard de Vendas e o Início é a Agenda. O "?" `inicio-faturamento` deixou de existir.
+- **Agenda** (V0.18.0): `pages/agenda/AgendaPage`, `components/agenda/*` (`GradeHoras`, `GradeMes`,
+  `ChipCompromisso`, `DetalheCompromisso`, `Painel*` por origem, `ModalConfirmarMovimento`), `utils/agenda.ts`,
+  `services/agendaService.ts`, `types/agenda.ts`. A Agenda reaproveita as ações do módulo de origem: avançar
+  status vem de `useAvancarStatusOrcamento` (#1050); ela não reimplementa regra de orçamento, produção ou compra.
+- **Cor semântica por `data-tom`** (V0.18.0, #1206): componente que muda de cor por estado expõe `data-tom`
+  (`perigo`, `sucesso`, `laranja`...); E2E afirma o `data-tom`, nunca o valor da cor nem classe CSS (#1203).
+- **Busca com 6 linhas visíveis** (V0.18.0, #1180/#1195): `useAlturaListaBusca` calcula a altura; o corte em 8 do
+  `CampoFiltros` é intencional (#1212). Outros hooks novos: `useCadastrosLinkaveis`; `utils/linksDescricao.ts`.
+- **Preferência local por pessoa** (V0.18.0, RN-NOVA-23, #671): nunca `localStorage.getItem` direto; usar
+  `lerPreferencia/gravarPreferencia` de `utils/preferenciaLocal.ts`.
+- **Spinner**: o hex `#2A9D8F` repetido em 64 usos é débito (#1214); em código novo preferir o token `teal`.
 - **Ambiente do E2E completo** (V0.17.0): exige `--workers=1`, API com `NOTA_ASSINATURA_SEGREDO`,
   `LEITOR_FISCAL_CHAVE` de 64 letras "a" e `R2_PUBLIC_URL` igual a `<S3 falso>/<bucket>`, PDF com
   `PUPPETEER_EXECUTABLE_PATH` e conta `penseprecifique@admin.com` com configuração de precificação (o
@@ -337,6 +348,7 @@ Mapeamento de gravidade entre a escala do Codex e a do pipeline
 | P1 | Alta | Bloqueia, corrigir sempre |
 | P2 | Normal | Gestor decide |
 | P3 | Baixa | Gestor decide |
+| E2E que depende da data/hora de execução ou assume banco limpo | CT-1067 (#1160/#1210) e o limite de 2 de dia inteiro da Agenda (#1204): usar data relativa a hoje ou fixar, e criar os próprios dados |
 
 ### AI slop — o que sempre vale achado de qualidade
 

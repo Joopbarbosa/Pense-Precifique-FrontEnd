@@ -14,8 +14,9 @@ import type { ProdutoResponse } from '../../types/produto'
 import type { AlertaInsumo } from '../../types/producao'
 import { useToast } from '../../hooks/useToast'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 import { extractApiError } from '../../utils/apiError'
-import { dataLocalISO } from '../../utils/dataLocal'
+import { dataLocalIso } from '../../utils/data'
 
 interface ProdutoSelecionado {
   produtoId: string
@@ -56,6 +57,9 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
   const [results, setResults] = useState<ProdutoResponse[]>([])
   const [loading, setLoading] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = open ? results.map(produto => produto.id).join(',') : ''
+  const maxHeight = useAlturaListaBusca(panelRef, versaoLinhas)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -93,7 +97,8 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
         className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
       />
       {open && (
-        <div className="absolute inset-x-0 top-[54px] z-30 max-h-[280px] min-h-[60px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
+        <div ref={panelRef} data-testid="busca-produtos-producao" style={maxHeight != null ? { maxHeight } : undefined}
+          className="absolute inset-x-0 top-[54px] z-30 min-h-[60px] animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
           {loading ? (
             <div className="p-5 text-center text-sm text-muted">Buscando...</div>
           ) : results.length === 0 ? (
@@ -106,6 +111,7 @@ function ProdutoSearch({ onSelect }: { onSelect: (produto: ProdutoResponse) => v
           ) : (
             <button
               key={p.id}
+              data-search-row
               onClick={() => { onSelect(p); setOpen(false); setQ('') }}
               className="flex w-full items-center gap-3 rounded-lg border-none bg-transparent px-3 py-2.5 text-left font-[inherit] transition-colors duration-100 hover:bg-cream"
             >
@@ -202,7 +208,7 @@ export default function NovaProducaoPage() {
   const produtoIdParam = searchParams.get('produtoId')
   const quantidadeParam = searchParams.get('quantidade')
   const { toast, setToast } = useToast()
-  const [dataInicio, setDataInicio] = useState(() => dataLocalISO())
+  const [dataInicio, setDataInicio] = useState(() => dataLocalIso())
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [produtos, setProdutos] = useState<ProdutoSelecionado[]>([])

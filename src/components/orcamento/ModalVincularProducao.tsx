@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { Search, X, Factory, Check, AlertCircle, AlertTriangle, ArrowLeft, Calendar, StickyNote, Plus } from 'lucide-react'
 import ModalShell from '../ui/ModalShell'
@@ -10,7 +10,9 @@ import { producaoService } from '../../services/producaoService'
 import { getBadgeEstado } from '../../utils/badges'
 import { extractApiError } from '../../utils/apiError'
 import type { ProducaoResumo, AlertaInsumo } from '../../types/producao'
-import type { CriarProducaoVinculadaRequest } from '../../types/orcamento'
+import type { CriarProducaoVinculadaRequest, QuantidadeProducao } from '../../types/orcamento'
+import QuantidadesProducaoNaoFracionavel from './QuantidadesProducaoNaoFracionavel'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 // P-F004/#320 (RN-ORC-VINC-02/RN-PROD-VINC-02/03) — compartilhado entre CriarOrcamentoPage (ponto
 // 1, orçamento pode ainda não existir — `onSimular`/`onConfirmar` resolvem isso do lado de fora) e
@@ -29,6 +31,8 @@ interface ModalVincularProducaoProps {
   onConfirmar: (producaoId: string) => Promise<void>
   confirmando: boolean
   onCriarNova?: (dados: CriarProducaoVinculadaRequest) => Promise<void>
+  // RN-NOVA-39 (#1166) — orçamento já salvo, para sugerir a quantidade dos não fracionáveis.
+  orcamentoId?: string
   // Achado do teste manual (V0.10.0) — quando a modal foi aberta interceptando o clique em
   // "avançar status" (DetalheOrcamentoPage, ponto 2), fechar/cancelar não avança mais o status
   // sozinho (reverte RN-ORC-VINC-02 ponto 2): avançar sem vincular passa a ser uma ação explícita
@@ -43,12 +47,16 @@ export default function ModalVincularProducao({
   onConfirmar,
   confirmando,
   onCriarNova,
+  orcamentoId,
   onAvancarSemVincular,
 }: ModalVincularProducaoProps) {
   const [busca, setBusca] = useState('')
   const [producoes, setProducoes] = useState<ProducaoResumo[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const listaRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = !loading && !erro ? producoes.map(producao => producao.id).join(',') : ''
+  const maxHeight = useAlturaListaBusca(listaRef, versaoLinhas)
 
   const [selecionada, setSelecionada] = useState<ProducaoResumo | null>(null)
   const [simulando, setSimulando] = useState(false)
@@ -61,6 +69,8 @@ export default function ModalVincularProducao({
   const [formObservacoes, setFormObservacoes] = useState('')
   const [formErro, setFormErro] = useState<string | null>(null)
   const [criandoNova, setCriandoNova] = useState(false)
+  const [quantidadesProducao, setQuantidadesProducao] = useState<QuantidadeProducao[]>([])
+  const [quantidadesValidas, setQuantidadesValidas] = useState(true)
 
   useEffect(() => {
     if (selecionada) return
@@ -113,6 +123,10 @@ export default function ModalVincularProducao({
       setFormErro('Informe o prazo de término previsto.')
       return
     }
+    if (!quantidadesValidas) {
+      setFormErro('Corrija a quantidade a produzir dos produtos indicados.')
+      return
+    }
     setCriandoNova(true)
     setFormErro(null)
     try {
@@ -120,6 +134,7 @@ export default function ModalVincularProducao({
         dataInicio: formDataInicio || undefined,
         dataTerminoPrevista: formDataTermino,
         observacoes: formObservacoes || undefined,
+        quantidadesProducao: quantidadesProducao.length ? quantidadesProducao : undefined,
       })
     } catch (err) {
       setFormErro(extractApiError(err, 'Não foi possível criar a produção. Tente novamente.'))
@@ -199,6 +214,17 @@ export default function ModalVincularProducao({
               placeholder="Ex: separar embalagem especial para este pedido"
             />
           </label>
+
+          {orcamentoId && (
+            <QuantidadesProducaoNaoFracionavel
+              orcamentoId={orcamentoId}
+              disabled={criandoNova}
+              onChange={(q, valido) => {
+                setQuantidadesProducao(q)
+                setQuantidadesValidas(valido)
+              }}
+            />
+          )}
 
           {formErro && (
             <div className="flex items-start gap-2.5 rounded-input border border-[#F2D8CF] bg-danger-bg px-3.5 py-3 text-[13px] text-danger">
@@ -367,13 +393,15 @@ export default function ModalVincularProducao({
       )}
 
       {!loading && !erro && producoes.length > 0 && (
-        <div className="-mx-1 flex max-h-[320px] flex-col gap-1.5 overflow-y-auto px-1 py-0.5">
+        <div ref={listaRef} data-testid="producoes-disponiveis" style={maxHeight != null ? { maxHeight } : undefined}
+          className="-mx-1 flex flex-col gap-1.5 overflow-y-auto px-1 py-0.5">
           {producoes.map((p) => {
             const jaVinculada = jaVinculadasIds.includes(p.id)
             const badge = getBadgeEstado(p.estado, p.historicoStatus)
             return (
               <button
                 key={p.id}
+                data-search-row
                 onClick={() => handleSelecionar(p)}
                 disabled={jaVinculada}
                 className={clsx(

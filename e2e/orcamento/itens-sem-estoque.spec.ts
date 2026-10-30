@@ -163,7 +163,7 @@ test.describe('RN-NOVA-5 (#194) — GET /orcamentos/{id}/itens-sem-estoque', () 
 
     await expect(page.getByText('Produção criada e vinculada a este orçamento.')).toBeVisible({ timeout: 5000 })
     // Banner de topo (agregado por orçamento) confirma o vínculo.
-    await expect(page.getByText(/Vinculado a produção:/)).toBeVisible()
+    await expect(page.getByTestId('producao-vinculada').first()).toBeVisible()
 
     // Card do item: checkbox some, vira "Visualizar produção" — clicar navega pra produção CERTA
     // (a que a própria ação acabou de criar), não uma navegação genérica.

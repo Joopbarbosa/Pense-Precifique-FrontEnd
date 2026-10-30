@@ -22,7 +22,7 @@ test('V0.17.0 — Dashboard de Vendas: números batem com a lista aberta pela lu
     expect(painel.faturamento.valor).toBeGreaterThanOrEqual(120)
 
     await login(page)
-    await page.goto('/dashboard')
+    await page.goto('/agenda')
     // V0.17.0 #963: grupos recolhidos ao entrar — abre Vendas e clica no link pelo destino
     await page.getByRole('button', { name: 'Vendas', exact: true }).click()
     await page.locator('a[href="/vendas/dashboard"]').click()

@@ -36,7 +36,7 @@ export default function ProtectedRoute() {
   }
 
   if (onboardingCompleto && location.pathname === '/onboarding') {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/agenda" replace />
   }
 
   return <Outlet />

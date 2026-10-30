@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Calculator } from 'lucide-react'
+import { Calculator, ExternalLink } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import CalculadoraPreco, { LinhaCalculadora } from '../shared/CalculadoraPreco'
 import type { DadosCalculadoraItem } from './types'
+import { BRL } from './formato'
 
 // RN-NOVA-22 (REVISÃO)/RN-NOVA-23/RN-NOVA-1/RN-NOVA-2 (V0.8.4/#399, DECISOES_V0.8.4.md) —
 // calculadora de preço ao adicionar produto avulso, customização ou item de catálogo ao
@@ -18,7 +19,8 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
    *  único (RN-NOVA-2: sem fallback pro preço cadastrado). */
   carregar: () => Promise<DadosCalculadoraItem>
   onClose: () => void
-  onConfirm: (precoFinal: number) => void
+  /** `precoFinal` é o preço de 1 unidade; a quantidade é sempre 1 (RN-NOVA-34, #1161). */
+  onConfirm: (precoFinal: number, quantidade: number) => void
   confirmLabel?: string
 }) {
   const [estado, setEstado] = useState<'carregando' | 'erro' | 'ok'>('carregando')
@@ -42,9 +44,11 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
 
   const numLocal = (v: string) => parseFloat(v.replace(',', '.')) || 0
   const pf = numLocal(precoFinal)
+  // RN-NOVA-34 (#1161) — sem campo de quantidade: o item entra com 1 e a quantidade muda só na linha do item.
+  const sugeridoTotal = dados ? Math.round(dados.sugerido * 100) / 100 : 0
   // RN-NOVA-22 (REVISÃO) — comparação exata sobre o valor exibido (2 casas), sem
   // tolerância — diferente do overrideAtivo de Produto/Catálogo (0.005/0.001).
-  const diff = dados ? Math.round((pf - dados.sugerido) * 100) / 100 : 0
+  const diff = dados ? Math.round((pf - sugeridoTotal) * 100) / 100 : 0
   const overrideAtivo = diff !== 0
 
   return (
@@ -56,8 +60,19 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
       icon={<Calculator size={20} />}
       footer={estado === 'ok' ? (
         <>
+          {dados?.linkProduto && (
+            <a
+              href={dados.linkProduto}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="calculadora-ver-produto"
+              className="mr-auto inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
+            >
+              <ExternalLink size={14} /> Ver produto
+            </a>
+          )}
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={() => onConfirm(pf)}>{confirmLabel}</Button>
+          <Button variant="primary" onClick={() => onConfirm(pf, 1)}>{confirmLabel}</Button>
         </>
       ) : undefined}
     >
@@ -76,16 +91,21 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
         </div>
       )}
       {estado === 'ok' && dados && (
+        <>
         <CalculadoraPreco
+          compacto
           titulo={dados.titulo}
-          sugerido={dados.sugerido}
+          sugerido={sugeridoTotal}
           precoFinal={precoFinal}
           onPrecoFinalChange={setPrecoFinal}
           overrideAtivo={overrideAtivo}
           diffOverride={overrideAtivo ? diff : null}
         >
-          {dados.breakdown.map((linha, i) => <LinhaCalculadora key={i} {...linha} />)}
+          {dados.breakdown.map(({ unitario, ...linha }, i) => (
+            <LinhaCalculadora key={i} {...linha} value={unitario !== undefined ? BRL(unitario) : linha.value} />
+          ))}
         </CalculadoraPreco>
+        </>
       )}
     </ModalShell>
   )

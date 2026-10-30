@@ -25,59 +25,6 @@ export interface TextoAjuda {
 const venda = 'Só entram vendas que contam: as do Caixa concluídas e os orçamentos já entregues (cancelada ou em andamento não conta).'
 
 const CATALOGO = {
-  // ── Início ──────────────────────────────────────────────────────────────
-  'inicio-faturamento': {
-    titulo: 'Faturamento do mês',
-    partes: [{
-      mostra: 'Quanto você vendeu neste mês.',
-      origem: 'Soma do valor das vendas do mês atual: orçamentos entregues (pela data da entrega) e vendas do Caixa concluídas (pela data da venda). Orçamento só pago, mas ainda não entregue, não entra.',
-      conta: 'Valor da venda 1 + valor da venda 2 + … (só as vendas deste mês).',
-      exemplo: 'Um orçamento entregue de R$ 300,00 e uma venda do Caixa de R$ 150,00 dão R$ 450,00.',
-    }],
-  },
-  'inicio-produtos': {
-    titulo: 'Produtos cadastrados',
-    partes: [{
-      mostra: 'Quantos produtos você tem cadastrados.',
-      origem: 'Contagem dos produtos da sua conta, na lista de Produtos.',
-      exemplo: 'Se você cadastrou o Laço pequeno, o Laço grande e o Caderno, o número é 3.',
-    }],
-  },
-  'inicio-orcamentos-pendentes': {
-    titulo: 'Orçamentos pendentes',
-    partes: [{
-      mostra: 'Quantos orçamentos ainda estão andando e não foram concluídos.',
-      origem: 'Contagem dos orçamentos nos status Enviado, Aprovado, Aguardando sinal, Sinal pago e Em produção.',
-      exemplo: 'Dois orçamentos enviados e um em produção dão 3 pendentes.',
-    }],
-  },
-  'inicio-orcamentos-recentes': {
-    titulo: 'Orçamentos recentes',
-    partes: [{
-      mostra: 'Os últimos orçamentos que você mexeu, do mais novo para o mais antigo.',
-      origem: 'Lista dos orçamentos mais recentes da sua conta, com cliente, valor e status.',
-    }],
-    clique: 'Clicar em um orçamento abre o orçamento.',
-  },
-  'inicio-mais-vendidos': {
-    titulo: 'Mais vendidos',
-    partes: [{
-      mostra: 'Os 5 produtos mais vendidos no mês atual, vindos das suas vendas: orçamentos entregues e vendas do Caixa concluídas.',
-      origem: 'Soma das quantidades de cada produto nas vendas do mês, de 1º ao último dia, no horário de Brasília. Rascunho, orçamento excluído e venda cancelada não entram.',
-      conta: 'Quantidade do produto na venda 1 + na venda 2 + …; o produto com a maior soma fica no topo.',
-      exemplo: 'Em outubro, o Laço pequeno vendeu 3 num orçamento entregue e 2 numa venda do Caixa, e o Caderno vendeu 1: o Laço pequeno soma 3 + 2 = 5 unidades e fica em primeiro; o Caderno soma 1.',
-    }],
-  },
-  'inicio-estoque-baixo': {
-    titulo: 'Insumos com estoque baixo',
-    partes: [{
-      mostra: 'Os insumos que estão acabando e merecem compra.',
-      origem: 'Insumos cujo estoque está abaixo do mínimo que você cadastrou. O aviso só aparece quando existe algum.',
-      exemplo: 'Fita de cetim com mínimo de 5 metros e estoque de 2 metros aparece aqui.',
-    }],
-    clique: 'Clicar abre a lista de Insumos.',
-  },
-
   // ── Dashboard de Vendas ─────────────────────────────────────────────────
   'vendas-faturamento': {
     titulo: 'Faturamento',

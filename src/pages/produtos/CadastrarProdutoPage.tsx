@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
 import ModalErro from '../../components/ui/ModalErro'
 import type { ErroExplicado } from '../../utils/apiError'
@@ -10,10 +11,11 @@ import { Button, Field, TextArea } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
-  Check, AlertTriangle, ChevronRight, Pencil, FileText, ImagePlus, X,
+  Check, AlertTriangle, ChevronRight, Pencil, FileText, ImagePlus, X, ExternalLink,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 import { empresaService } from '../../services/empresaService'
 import { tipoProdutoBadge } from '../../utils/badges'
 import { tentarConverterFracao } from '../../utils/quantidade'
@@ -265,6 +267,13 @@ function DadosBasicos({ st, set, onNext, nomeErro, marcaErro, permitirEstoqueNeg
         <div className="col-span-2">
           <Field label="Descrição" opt size="md">
             <DescTextarea value={st.descricao} onChange={v => set('descricao', v)} />
+            {/* #1179 (RN-NOVA-47) — pré-visualização só de leitura, com os nomes cadastrados como links para nova aba. */}
+            {st.descricao.trim() && (
+              <div className="mt-2 rounded-lg bg-cream px-3 py-2 text-xs text-muted">
+                <div className="mb-0.5 font-semibold uppercase tracking-wide">Pré-visualização com links</div>
+                <DescricaoComLinks texto={st.descricao} className="whitespace-pre-wrap break-words" testId="previa-descricao-links" />
+              </div>
+            )}
           </Field>
         </div>
         {/* #531 (V0.14.0) — mesmo padrão de foto do Item de Catálogo (RN-NOVA-6/#518). #440: também na
@@ -314,6 +323,11 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
   const [loadingBusca, setLoadingBusca] = useState(false)
   const [erroBusca, setErroBusca] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const painelRef = useRef<HTMLDivElement>(null)
+  const versaoLinhas = open
+    ? [...insumos, ...produtos, ...customizacoes].map(item => `${item.tipo}:${item.id}`).join('|')
+    : ''
+  const maxHeight = useAlturaListaBusca(painelRef, versaoLinhas)
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
@@ -378,6 +392,7 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
       ) : (
         <button
           key={i.id}
+          data-search-row
           onClick={() => { onAdd(i); setQ(''); setOpen(false); setInsumos([]); setProdutos([]); setCustomizacoes([]) }}
           className="flex w-full items-center gap-[11px] rounded-[9px] border-none bg-transparent px-[11px] py-2.5 text-left font-[inherit] hover:bg-cream"
         >
@@ -415,7 +430,8 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
         className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white pl-[42px] pr-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
       />
       {open && (
-        <div className="absolute inset-x-0 top-[50px] z-30 max-h-80 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
+        <div ref={painelRef} style={maxHeight != null ? { maxHeight } : undefined}
+          className="absolute inset-x-0 top-[50px] z-30 animate-pop overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(0,0,0,0.2)]">
           {loadingBusca ? (
             <div className="px-2.5 py-3 text-center text-[13px] text-muted">Buscando...</div>
           ) : erroBusca ? (
@@ -518,7 +534,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>
-        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
+        <div className="grid grid-cols-[1fr_132px_96px_80px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
           <span>Componente</span><span>Quantidade</span><span className="text-right">Custo</span><span></span>
         </div>
         {ficha.length === 0 ? (
@@ -526,7 +542,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             Nenhum componente ainda. Use a busca acima para adicionar.
           </div>
         ) : ficha.map((row, idx) => (
-          <div key={`${row.id}-${idx}`} className="grid animate-row-in grid-cols-[1fr_132px_96px_44px] items-center gap-3 border-t border-line px-[22px] py-[13px]">
+          <div key={`${row.id}-${idx}`} className="grid animate-row-in grid-cols-[1fr_132px_96px_80px] items-center gap-3 border-t border-line px-[22px] py-[13px]">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-[7px]">
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{row.nome}</span>
@@ -539,13 +555,27 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             </div>
             <QtyInput value={row.qtd} un={row.un} fracionavel={row.fracionavel} onChange={v => setQtd(idx, v)} />
             <div className="text-right text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(row.qtd * row.custo)}</div>
-            <button
-              onClick={() => remove(idx)}
-              aria-label="Remover componente"
-              className="grid h-[34px] w-[34px] place-items-center justify-self-end rounded-[9px] border-none bg-transparent text-[#BDB9B1] hover:bg-danger-bg hover:text-danger-deep"
-            >
-              <Trash2 size={16} />
-            </button>
+            <div className="flex items-center justify-end gap-1">
+              {row.tipo !== 'customizacao' && (
+                <a
+                  href={row.tipo === 'produto' ? `/produtos/${row.id}` : `/insumos/${row.id}`}
+                  target="_blank" rel="noopener noreferrer"
+                  aria-label={`Abrir ${row.tipo === 'produto' ? 'produto' : 'insumo'} em outra aba`}
+                  title="Abrir o detalhe em outra aba"
+                  data-testid="abrir-componente"
+                  className="grid h-[34px] w-[34px] place-items-center rounded-[9px] text-teal hover:bg-teal/10"
+                >
+                  <ExternalLink size={16} />
+                </a>
+              )}
+              <button
+                onClick={() => remove(idx)}
+                aria-label="Remover componente"
+                className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border-none bg-transparent text-[#BDB9B1] hover:bg-danger-bg hover:text-danger-deep"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         ))}
         <div className="border-t border-line px-[22px] py-section">
@@ -614,7 +644,7 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
         mostrarSugerido={mostrarPrecoMargem}
         mensagemSemPreco={mensagemSemPreco}
         sugerido={sugerido}
-        precoFinalLabel="Preço final de venda"
+        precoFinalLabel="Preço de venda (unitário)"
         precoFinal={precoFinal}
         onPrecoFinalChange={setPrecoFinal}
         overrideAtivo={manual}
@@ -679,6 +709,14 @@ function Calculadora({ ficha, tempo, rendimento, margem, setMargem, modoMargem, 
             <div className="flex items-baseline justify-between gap-2.5 pb-1 pt-3">
               <span className="text-[13px] text-body">Lucro ({num(margem)}%)</span>
               <span className="text-sm font-bold text-success [font-variant-numeric:tabular-nums]">+ {moeda(lucro)}</span>
+            </div>
+            {/* #1155 — o preço de venda é por unidade; o total da receita é unitário × rendimento. */}
+            <div className="flex items-baseline justify-between gap-2.5 py-2.5" data-testid="preco-venda-total-receita">
+              <span className="text-[13.5px] font-semibold text-dark">
+                Preço de venda total da receita
+                {rendimentoNum > 0 && <span className="block text-[11.5px] font-normal text-dim">para {rendimentoNum} unidades</span>}
+              </span>
+              <span className="text-[15px] font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(pf * (rendimentoNum > 0 ? rendimentoNum : 1))}</span>
             </div>
           </>
         )}

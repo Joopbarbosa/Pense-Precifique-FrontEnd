@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
@@ -360,7 +361,11 @@ export default function DetalheProdutoPage() {
       hint: produto.rendimento != null ? `para ${produto.rendimento} unidades` : undefined,
     }] : []),
     ...(produto.precoSugerido != null ? [{ k: 'Preço sugerido', v: moeda(produto.precoSugerido), accent: true, hint: 'editável ao editar o produto' }] : []),
-    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+    ...(produto.precoVenda != null ? [{ k: isCustom ? 'Valor adicional' : 'Preço de venda (unitário)', v: isCustom ? '+ ' + moeda(produto.precoVenda) : moeda(produto.precoVenda), price: true }] : []),
+    ...(produto.precoVenda != null && !isCustom && produto.rendimento != null && produto.rendimento > 0 ? [{
+      k: 'Preço de venda total da receita', v: moeda(produto.precoVenda * produto.rendimento), blue: true,
+      hint: `para ${produto.rendimento} unidades`,
+    }] : []),
   ]
 
   const ABAS = [
@@ -408,6 +413,9 @@ export default function DetalheProdutoPage() {
                 <FracionavelBadge fracionavel={false} labelNaoFracionavel="Receita não fracionável" />
               )}
             </div>
+            {produto.descricao && (
+              <DescricaoComLinks texto={produto.descricao} className="mt-1 whitespace-pre-wrap break-words text-sm text-muted" />
+            )}
             <div className="mt-1 text-sm text-muted">
               Atualizado em <strong className="font-semibold text-body">{fmtData(produto.updatedAt)}</strong>
             </div>
@@ -543,7 +551,8 @@ export default function DetalheProdutoPage() {
               {produto.fichaTecnica.map((item, idx) => (
                 <div
                   key={item.id}
-                  onClick={() => navigate(item.produtoBaseId ? `/produtos/${item.produtoBaseId}` : `/insumos/${item.insumoId}`)}
+                  data-testid="item-ficha"
+                  onClick={() => window.open(item.produtoBaseId ? `/produtos/${item.produtoBaseId}` : `/insumos/${item.insumoId}`, '_blank', 'noopener,noreferrer')}
                   className={clsx(
                     'flex animate-fade-up cursor-pointer items-center gap-3.5 px-5 py-4 transition-colors duration-100 hover:bg-line',
                     idx > 0 && 'border-t border-line'

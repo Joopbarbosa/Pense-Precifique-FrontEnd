@@ -1,0 +1,224 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CalendarPlus, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react'
+import AppLayout from '../../components/layout/AppLayout'
+import Button from '../../components/ui/Button'
+import Spinner from '../../components/ui/Spinner'
+import SegmentedControl from '../../components/ui/SegmentedControl'
+import FaixaResumo from '../../components/agenda/FaixaResumo'
+import GradeMes from '../../components/agenda/GradeMes'
+import GradeHoras from '../../components/agenda/GradeHoras'
+import ModalDiaInteiro from '../../components/agenda/ModalDiaInteiro'
+import ModalAtrasados from '../../components/agenda/ModalAtrasados'
+import ModalResumoDoDia from '../../components/agenda/ModalResumoDoDia'
+import ModalConfirmarMovimento from '../../components/agenda/ModalConfirmarMovimento'
+import ModalDia from '../../components/agenda/ModalDia'
+import DetalheCompromisso from '../../components/agenda/DetalheCompromisso'
+import ModalEvento from '../../components/agenda/ModalEvento'
+import FiltrosAgenda from '../../components/agenda/FiltrosAgenda'
+import ModalShell from '../../components/ui/ModalShell'
+import { agendaService } from '../../services/agendaService'
+import { extractApiError } from '../../utils/apiError'
+import type { AgendaResumo, Compromisso, CompromissoUsuariaDetalhe, EscopoEdicao, MovimentoCompromisso, OrigemCompromisso, VisaoAgenda } from '../../types/agenda'
+import { dataLocalIso, formatarData } from '../../utils/data'
+import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
+import { distribuirPorDia, ehMovel, buscarCompromissos, filtrarCompromissos, horarioDeMinutos, navegar, periodoDaVisao, tituloDoPeriodo, type FiltrosAgenda as FiltrosAgendaValue, type MostrarAgenda } from '../../utils/agenda'
+
+const OPCOES_VISAO = [
+  { value: 'DIA' as VisaoAgenda, label: 'Dia' },
+  { value: 'SEMANA' as VisaoAgenda, label: 'Semana' },
+  { value: 'MES' as VisaoAgenda, label: 'Mês' },
+]
+
+interface Mudanca { data?: string; horario?: string | null; horarioFim?: string | null }
+
+/**
+ * V0.18.0 (#1034, RN-NOVA-1 a RN-NOVA-7) — a Agenda: visões Dia, Semana (a que abre) e Mês, faixa de atrasados e de hoje,
+ * "+N" no mês e detalhe do compromisso. Os compromissos são calculados no servidor a cada consulta; a tela só os exibe.
+ */
+export default function AgendaPage() {
+  const [hoje, setHoje] = useState(() => dataLocalIso())
+  const [sinalHoje, setSinalHoje] = useState(0)
+  // RN-NOVA-2/RN-NOVA-23: a última visão escolhida é lembrada por pessoa; a Semana é a que abre quando não há escolha
+  const [visao, setVisaoEstado] = useState<VisaoAgenda>(() => {
+    const salva = lerPreferencia('agenda:visao')
+    return salva === 'DIA' || salva === 'MES' || salva === 'SEMANA' ? salva : 'SEMANA'
+  })
+  const setVisao = (v: VisaoAgenda) => { setVisaoEstado(v); gravarPreferencia('agenda:visao', v) }
+  const [referencia, setReferencia] = useState(hoje)
+  const [compromissos, setCompromissos] = useState<Compromisso[]>([])
+  const [resumo, setResumo] = useState<AgendaResumo | null>(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [atrasadosAberto, setAtrasadosAberto] = useState(false)
+  const [diaInteiroAberto, setDiaInteiroAberto] = useState(false)
+  const [resumoDoDiaAberto, setResumoDoDiaAberto] = useState(false)
+  const [diaAberto, setDiaAberto] = useState<string | null>(null)
+  const [aberto, setAberto] = useState<Compromisso | null>(null)
+  // Novo evento: a data e, quando o clique foi num horário vazio da grade, o início e o término (#1064)
+  const [novoEvento, setNovoEvento] = useState<{ data: string; horario?: string; horarioFim?: string } | null>(null)
+  // arrastar ou esticar um compromisso de série pergunta se vale só para a ocorrência ou para a série (#1065)
+  const [proposta, setProposta] = useState<{ movimento: MovimentoCompromisso; confirmar: () => Promise<void> } | null>(null)
+  const [escolhaEscopo, setEscolhaEscopo] = useState<{ d: CompromissoUsuariaDetalhe; mudanca: Mudanca; escopo: EscopoEdicao } | null>(null)
+  const [busca, setBusca] = useState('')
+  const [filtros, setFiltros] = useState<FiltrosAgendaValue>({ mostrar: 'TODOS', origens: [] })
+
+  const periodo = useMemo(() => periodoDaVisao(visao, referencia), [visao, referencia])
+  const periodoContemHoje = periodo.de <= hoje && hoje <= periodo.ate
+
+  const carregar = useCallback(async () => {
+    setCarregando(true)
+    try {
+      const [lista, faixa] = await Promise.all([agendaService.compromissos(periodo.de, periodo.ate), agendaService.resumo()])
+      setCompromissos(lista)
+      setResumo(faixa)
+      setErro(null)
+    } catch {
+      setErro('Não foi possível carregar a agenda.')
+    } finally {
+      setCarregando(false)
+    }
+  }, [periodo.de, periodo.ate])
+
+  useEffect(() => { void carregar() }, [carregar])
+  // o atraso por horário muda com o relógio: reconsulta a cada minuto e ao voltar para a aba (RN-NOVA-2 v2)
+  useEffect(() => {
+    const atualizar = () => { setHoje(dataLocalIso()); void carregar() }
+    const id = window.setInterval(atualizar, 60_000)
+    const aoVoltar = () => { if (document.visibilityState === 'visible') atualizar() }
+    document.addEventListener('visibilitychange', aoVoltar)
+    return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', aoVoltar) }
+  }, [carregar])
+
+  const compromissosVisiveis = useMemo(() => buscarCompromissos(filtrarCompromissos(compromissos, filtros), busca), [compromissos, filtros, busca])
+  const porDia = useMemo(() => distribuirPorDia(compromissosVisiveis), [compromissosVisiveis])
+
+  const aplicarMudanca = async (d: CompromissoUsuariaDetalhe, mudanca: Mudanca, escopo?: EscopoEdicao) => {
+    try {
+      await agendaService.editarCompromisso(d.id, d.dataOriginal, {
+        escopo, titulo: d.titulo, data: mudanca.data ?? d.data,
+        horario: mudanca.horario !== undefined ? mudanca.horario : d.horario ?? null,
+        horarioFim: mudanca.horarioFim !== undefined ? mudanca.horarioFim : d.horarioFim ?? null,
+        descricao: d.descricao ?? null, orcamentoId: d.orcamento?.id ?? null, insumoId: d.insumo && !d.insumo.removido ? d.insumo.id : null,
+      })
+      setEscolhaEscopo(null)
+      await carregar()
+    } catch (err) {
+      setEscolhaEscopo(null)
+      setErro(extractApiError(err, 'Não foi possível alterar o compromisso.'))
+    }
+  }
+
+  /** #1065 — mover e esticar o avulso; a série pergunta o escopo, salvo quando muda o dia (só por ocorrência). */
+  const alterar = async (c: Compromisso, mudanca: Mudanca) => {
+    if (!ehMovel(c) || c.origem !== 'AVULSO' || !c.dataOriginalOcorrencia) return
+    try {
+      const d = await agendaService.detalheCompromisso(c.referenciaId, c.dataOriginalOcorrencia)
+      const mudaDia = mudanca.data !== undefined && mudanca.data !== d.data
+      if (d.serie && !mudaDia) { setEscolhaEscopo({ d, mudanca, escopo: 'OCORRENCIA' }); return }
+      await aplicarMudanca(d, mudanca, d.serie ? 'OCORRENCIA' : undefined)
+    } catch (err) {
+      setErro(extractApiError(err, 'Não foi possível alterar o compromisso.'))
+    }
+  }
+  /** RN-NOVA-43 — toda mudança passa pela janela de confirmação; cancelar não grava nada. */
+  const proporMudanca = async (c: Compromisso, mudanca: Mudanca) => {
+    if (!ehMovel(c)) return
+    const novaData = mudanca.data ?? c.dataExibicao
+    try {
+      if (c.origem === 'AVULSO') {
+        const partes: string[] = []
+        if (novaData !== c.dataExibicao) partes.push(`Data: ${formatarData(c.dataExibicao)} → ${formatarData(novaData)}`)
+        if (mudanca.horario !== undefined && mudanca.horario !== c.horario) partes.push(`Horário: ${c.horario ?? 'dia inteiro'} → ${mudanca.horario ?? 'dia inteiro'}`)
+        if (mudanca.horarioFim !== undefined && mudanca.horarioFim !== (c.horarioFim ?? null)) partes.push(`Término: ${c.horarioFim ?? '—'} → ${mudanca.horarioFim ?? '—'}`)
+        if (partes.length === 0) return
+        setProposta({ movimento: { titulo: c.titulo, dataAntes: c.dataExibicao, dataDepois: novaData, efeito: partes.join(' · '),
+          avisos: novaData < hoje ? ['A data já passou.'] : [] }, confirmar: () => alterar(c, mudanca) })
+        return
+      }
+      if (novaData === c.dataExibicao) return
+      const movimento = await agendaService.simularMovimento(c.tipo, c.referenciaId, novaData)
+      setProposta({ movimento, confirmar: async () => {
+        try { await agendaService.moverCompromisso(c.tipo, c.referenciaId, novaData); await carregar() }
+        catch (err) { setErro(extractApiError(err, 'Não foi possível mover o compromisso.')) }
+      } })
+    } catch (err) {
+      setErro(extractApiError(err, 'Não foi possível mover o compromisso.'))
+    }
+  }
+  const moverNaGrade = (c: Compromisso, dia: string, inicio: number, fim: number | null) =>
+    void proporMudanca(c, { data: dia, horario: horarioDeMinutos(inicio), horarioFim: fim != null ? horarioDeMinutos(fim) : null })
+  const esticarNaGrade = (c: Compromisso, fim: number) => void proporMudanca(c, { horarioFim: horarioDeMinutos(fim) })
+  const moverParaDia = (chave: string, dia: string) => {
+    const c = compromissos.find(x => x.chave === chave)
+    if (c && dia !== c.dataExibicao) void proporMudanca(c, { data: dia })
+  }
+
+  // o atalho "para hoje" abre o dia, mas não troca a visão lembrada da pessoa
+  const irParaHoje = () => { setVisaoEstado('DIA'); setReferencia(hoje); setSinalHoje(n => n + 1) }
+  const abrir = (c: Compromisso) => { setDiaAberto(null); setAtrasadosAberto(false); setResumoDoDiaAberto(false); setAberto(c) }
+  const abrirNovoEvento = (data: string = referencia) => setNovoEvento({ data })
+  const filtrosAtivos = filtros.mostrar !== 'TODOS' || filtros.origens.length > 0
+  const buscaAtiva = busca.trim().length > 0
+  const vazio = !carregando && !erro && compromissosVisiveis.length === 0
+
+  return (
+    <AppLayout active="agenda" compact>
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Agenda</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" icon={<ChevronLeft size={16} />} onClick={() => setReferencia(navegar(visao, referencia, -1))}>Anterior</Button>
+          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" data-tom={periodoContemHoje ? 'laranja' : 'neutro'} onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
+          <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
+        </div>
+        <span className={visao === 'MES' ? 'text-[15px] font-semibold text-dark' : 'sr-only'} data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>
+        <FaixaResumo resumo={resumo} onAtrasados={() => setAtrasadosAberto(true)} onHoje={irParaHoje} />
+        <div className="ml-auto"><Button icon={<CalendarPlus size={16} />} onClick={() => abrirNovoEvento()}>Novo evento</Button></div>
+      </div>
+
+      <FiltrosAgenda busca={busca} onMudarBusca={setBusca} resultados={buscaAtiva && !carregando ? compromissosVisiveis.length : null} filtros={filtros} ativo={filtrosAtivos}
+        onMudarMostrar={(mostrar: MostrarAgenda) => setFiltros(atual => ({ ...atual, mostrar }))}
+        onMudarOrigens={(origens: OrigemCompromisso[]) => setFiltros(atual => ({ ...atual, origens }))}
+        onLimpar={() => setFiltros({ mostrar: 'TODOS', origens: [] })}
+        esquerda={<Button variant="ghost" size="sm" icon={<ClipboardList size={16} />} onClick={() => setResumoDoDiaAberto(true)}>Resumo do dia</Button>}
+        direita={<SegmentedControl options={OPCOES_VISAO} value={visao} onChange={setVisao} height="h-9" display="inline-flex"
+          optionWidth="whitespace-nowrap px-4" textSize="text-[13.5px]" />} />
+
+      {erro && <p className="rounded-card border border-danger-line bg-danger-bg px-4 py-3 text-sm text-danger-deep">{erro}</p>}
+      {carregando && compromissos.length === 0 && !erro ? (
+        <div className="flex justify-center py-16"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={24} /></div>
+      ) : visao === 'MES' ? (
+        <GradeMes dias={periodo.dias} mesDeReferencia={referencia} hoje={hoje} porDia={porDia} onAbrir={abrir} onVerDia={setDiaAberto} onCriar={abrirNovoEvento} onMoverDia={moverParaDia} />
+      ) : (
+        <GradeHoras dias={periodo.dias} hoje={hoje} porDia={porDia} onAbrir={abrir} sinalHoje={sinalHoje}
+          onCriar={(dia, inicio, fim) => setNovoEvento({ data: dia, horario: inicio, horarioFim: fim })}
+          onMover={moverNaGrade} onEsticar={esticarNaGrade} onMoverDia={moverParaDia} onVerDiaInteiro={() => setDiaInteiroAberto(true)} />
+      )}
+      {vazio && (buscaAtiva
+        ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-busca">Nenhum compromisso encontrado neste período.</p>
+        : filtrosAtivos
+        ? <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia-filtros">Nenhum compromisso com esses filtros</p>
+        : <p className="mt-3 text-center text-sm text-subtle" data-testid="agenda-vazia">Nenhum compromisso neste período</p>)}
+
+      {resumoDoDiaAberto && <ModalResumoDoDia onClose={() => setResumoDoDiaAberto(false)} onAbrir={abrir} />}
+      {atrasadosAberto && <ModalAtrasados onClose={() => setAtrasadosAberto(false)} onAbrir={abrir} />}
+      {diaInteiroAberto && <ModalDiaInteiro dias={periodo.dias} porDia={porDia} onClose={() => setDiaInteiroAberto(false)} onAbrir={abrir} />}
+      {diaAberto && <ModalDia dia={diaAberto} compromissos={porDia.get(diaAberto) ?? []} onClose={() => setDiaAberto(null)} onAbrir={abrir} />}
+      {novoEvento && <ModalEvento dataInicial={novoEvento.data} horarioInicial={novoEvento.horario} horarioFimInicial={novoEvento.horarioFim}
+        onClose={() => setNovoEvento(null)} onSalvo={() => { setNovoEvento(null); void carregar() }} />}
+      {proposta && (
+        <ModalConfirmarMovimento movimento={proposta.movimento} onCancelar={() => setProposta(null)}
+          onConfirmar={async () => { const p = proposta; setProposta(null); await p.confirmar() }} />
+      )}
+      {escolhaEscopo && (
+        <ModalShell open onClose={() => setEscolhaEscopo(null)} width={420} title="Alterar compromisso" subtitle="Este compromisso se repete."
+          footer={<><Button variant="ghost" onClick={() => setEscolhaEscopo(null)}>Fechar</Button>
+            <Button onClick={() => void aplicarMudanca(escolhaEscopo.d, escolhaEscopo.mudanca, escolhaEscopo.escopo)}>Aplicar</Button></>}>
+          <SegmentedControl options={[{ value: 'OCORRENCIA' as EscopoEdicao, label: 'Só esta ocorrência' }, { value: 'SERIE' as EscopoEdicao, label: 'A série inteira' }]}
+            value={escolhaEscopo.escopo} onChange={escopo => setEscolhaEscopo({ ...escolhaEscopo, escopo })} height="h-11" textSize="text-sm"
+            activeColors={['bg-teal text-white', 'bg-teal text-white']} />
+        </ModalShell>
+      )}
+      {aberto && <DetalheCompromisso compromisso={aberto} onClose={() => setAberto(null)} onAlterado={() => { setAberto(null); void carregar() }} />}
+    </AppLayout>
+  )
+}

@@ -69,6 +69,13 @@ export interface SimulacaoEstoqueProdutoResponse {
   situacao: SituacaoAlertaInsumo;
 }
 
+/** V0.18.0 (#1038, RN-NOVA-22) — um comentário da conversa do orçamento (imutável, com data e hora). */
+export interface ComentarioOrcamento {
+  id: string;
+  texto: string;
+  criadoEm: string;
+}
+
 export interface OrcamentoRequest {
   clienteId: string;
   itens: OrcamentoItemRequest[];
@@ -81,6 +88,8 @@ export interface OrcamentoRequest {
   sinalAtivo: boolean;
   percentualSinal?: number;
   valorSinal?: number;
+  /** RN-NOVA-12 (V0.18.0) — "Sinal até": data limite combinada para o sinal; só com o sinal ativo. */
+  sinalAte?: string;
   tipoDesconto?: string;
   descontoValor?: number;
   observacoes?: string;
@@ -132,6 +141,8 @@ export interface OrcamentoResponse {
   status: StatusOrcamento;
   total: number;
   dataValidade?: string;
+  /** RN-NOVA-11 — RASCUNHO ou ENVIADO com a validade já passada; calculado no servidor. */
+  vencido: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -172,6 +183,12 @@ export interface OrcamentoProducaoResponse {
   dataTerminoPrevista: string | null;
   estouroPrazo: boolean;
   createdAt: string;
+  // RN-NOVA-41 (V0.18.0, #1168) — situação, início e produtos da produção, para a seção Produção.
+  estado: string;
+  dataInicio: string | null;
+  produtos: { produtoId: string; nomeProduto: string; quantidade: number; quantidadePedido?: number | null }[];
+  // RN-NOVA-42 (#1169) — identificadores dos outros pedidos quando a produção é um lote.
+  outrosOrcamentos?: string[];
 }
 
 // P-B020 (#320) — body de POST /orcamentos/{id}/criar-producao-vinculada. Produtos vêm sempre do
@@ -185,6 +202,22 @@ export interface CriarProducaoVinculadaRequest {
   dataTerminoPrevista: string;
   observacoes?: string;
   produtoIds?: string[];
+  // RN-NOVA-39 (V0.18.0, #1166) — quantidade a produzir por produto com insumo não fracionável.
+  quantidadesProducao?: QuantidadeProducao[];
+}
+
+export interface QuantidadeProducao {
+  produtoId: string;
+  quantidade: number;
+}
+
+export interface SugestaoQuantidadeProducao {
+  produtoId: string;
+  nomeProduto: string;
+  quantidadePedida: number;
+  rendimento: number;
+  quantidadeSugerida: number;
+  sobra: number;
 }
 
 export interface OrcamentoDetalheResponse {
@@ -199,6 +232,13 @@ export interface OrcamentoDetalheResponse {
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
   dataAprovacao?: string;
+  /** RN-NOVA-12 (V0.18.0) — "Sinal até". */
+  sinalAte?: string | null;
+  /** RN-NOVA-14 (V0.18.0) — passos do histórico; nulos nos orçamentos anteriores à V0.18.0. */
+  dataEnvio?: string | null;
+  dataFinalizacao?: string | null;
+  dataEntrega?: string | null;
+  dataCancelamento?: string | null;
   // RN-ORC-VINC-04 (P-F005) — dataAprovacao + prazoProducaoDias, dias corridos. Nula quando falta um
   // dos dois. Exposta isolada mesmo sem produção vinculada; usada para comparar com
   // OrcamentoProducaoResponse.dataTerminoPrevista no aviso de estouro de prazo.
@@ -217,6 +257,8 @@ export interface OrcamentoDetalheResponse {
   total: number;
   observacoes?: string;
   dataValidade?: string;
+  /** RN-NOVA-11 — RASCUNHO ou ENVIADO com a validade já passada; calculado no servidor. */
+  vencido: boolean;
   percentualMulta?: number;
   valorMulta?: number;
   // RN-NOVA-1/ORC-036 (V0.8.2, P-B002) — populado só quando o sinal pago excedeu o valor bruto da
@@ -241,9 +283,13 @@ export interface AvancaStatusRequest {
   dataEstornoSinal?: string;
   justificativa?: string;
   confirmarEstoqueNegativoProdutoIds?: string[];
+  // ORC-047 (#398) — true confirma finalizar mesmo com produção vinculada cancelada ou não realizada.
+  confirmarVinculosOrfaos?: boolean;
   // RN-NOVA-2 (revisada, P-B012) — true força o case ENVIADO a ignorar o atalho de aprovação
   // direta mesmo elegível, seguindo o fluxo normal (status vai para APROVADO).
   ignorarAtalhoAprovacaoDireta?: boolean;
+  // RN-NOVA-40 (#1167) — decisão por produção vinculada ao cancelar: cancelar=true cancela a produção.
+  decisoesProducao?: { producaoId: string; cancelar: boolean }[];
 }
 
 // RN-NOVA-2 (revisada, P-B012) — resultado de simular POST /orcamentos/{id}/avancar-status sem

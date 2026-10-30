@@ -10,7 +10,7 @@ import { criarInsumoFracionavel } from '../helpers/insumo'
  *
  * Ver docs/SCENARIOS.md para o Gherkin completo de cada um.
  */
-// O formulário tem dois Não/Sim ("Não validar marca" e fracionado): escopa pelo grupo rotulado.
+// O formulário tem dois Não/Sim ("Validar marca" e fracionado): escopa pelo grupo rotulado.
 const fracionado = (page: Page) => page.getByLabel('Este item pode ser fracionado?')
 
 test.describe('Cenário 227 — Rótulo e tipoExibicaoQuantidade no formulário de Insumo (#186)', () => {
@@ -94,7 +94,7 @@ test.describe('Cenário 231 — Acessibilidade dos toggles group do Field (Insum
   })
 
   test('cada botão dos dois toggles tem nome acessível igual ao próprio texto, não ao rótulo do campo', async ({ page }) => {
-    // toggle fracionavel: Não/Sim — nome acessível é só o texto do botão (o "Não validar marca" também é Não/Sim, #712)
+    // toggle fracionavel: Não/Sim — nome acessível é só o texto do botão (o "Validar marca" também é Não/Sim, #712)
     await expect(fracionado(page).getByRole('button', { name: 'Não', exact: true })).toHaveCount(1)
     await expect(fracionado(page).getByRole('button', { name: 'Sim', exact: true })).toHaveCount(1)
     // nenhum dos dois herda o texto do rótulo do campo como nome acessível

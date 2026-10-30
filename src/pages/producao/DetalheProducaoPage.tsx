@@ -1,3 +1,4 @@
+import { formatarData } from '../../utils/data'
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -48,11 +49,6 @@ const ESTADO_LABEL_SIMPLES: Record<string, string> = {
 const ORIGEM_LABEL: Record<string, string> = {
   USUARIO: 'Artesã',
   SISTEMA: 'Sistema',
-}
-
-function fmtData(iso: string | null): string {
-  if (!iso) return '—'
-  return iso.split('T')[0].split('-').reverse().join('/')
 }
 
 function fmtDataHora(iso: string): string {
@@ -248,16 +244,16 @@ export default function DetalheProducaoPage() {
           <div className="flex flex-wrap gap-x-8 gap-y-3">
             <div>
               <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Início</div>
-              <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataInicio)}</div>
+              <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataInicio)}</div>
             </div>
             <div>
               <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Término previsto</div>
-              <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataTerminoPrevista)}</div>
+              <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataTerminoPrevista)}</div>
             </div>
             {producao.dataTerminoReal && (
               <div>
                 <div className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-faint">Término real</div>
-                <div className="mt-0.5 text-sm font-semibold text-dark">{fmtData(producao.dataTerminoReal)}</div>
+                <div className="mt-0.5 text-sm font-semibold text-dark">{formatarData(producao.dataTerminoReal)}</div>
               </div>
             )}
           </div>
@@ -391,6 +387,28 @@ export default function DetalheProducaoPage() {
                   </button>
                 )
               })}
+            </div>
+          </Section>
+        )}
+
+        {(producao.pedidosAtendidos?.length ?? 0) > 0 && (
+          <Section icon={<Link2 size={18} />} title="Pedidos atendidos">
+            <div data-testid="pedidos-atendidos" className="flex flex-col gap-2">
+              {producao.pedidosAtendidos!.map(p => (
+                <button
+                  key={`${p.orcamentoId}-${p.produtoId}`}
+                  onClick={() => window.open(`/orcamentos/${p.orcamentoId}`, '_blank', 'noopener')}
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-cream px-3.5 py-3 text-left font-[inherit] transition-colors duration-100 hover:bg-line-soft"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-dark">{p.identificadorOrcamento}</div>
+                    <div className="mt-0.5 truncate text-[12.5px] text-muted">{p.nomeCliente}</div>
+                  </div>
+                  <span className="shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
+                    {Number(p.quantidade)} × {p.nomeProduto}
+                  </span>
+                </button>
+              ))}
             </div>
           </Section>
         )}

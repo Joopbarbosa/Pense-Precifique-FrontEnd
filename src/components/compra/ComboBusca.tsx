@@ -4,6 +4,7 @@ import { AlertCircle, RotateCw, Search } from 'lucide-react'
 import Spinner from '../ui/Spinner'
 import OpcaoInativa from '../shared/OpcaoInativa'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
 
 /**
  * Busca com painel de resultados (V0.15.0, Compras) — mesmo comportamento de `ClienteSelect`:
@@ -29,7 +30,10 @@ export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, pl
   const [estado, setEstado] = useState<'carregando' | 'pronto' | 'erro'>('carregando')
   const [tentativa, setTentativa] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const debouncedQ = useDebouncedValue(q, 300)
+  const versaoLinhas = open ? itens.map(getKey).join(',') : ''
+  const maxHeight = useAlturaListaBusca(panelRef, versaoLinhas)
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false) }
@@ -85,7 +89,8 @@ export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, pl
         <div role="status" className={clsx(painel, 'px-4 py-3.5 text-sm text-muted')}>{vazio}</div>
       )}
       {open && estado !== 'erro' && itens.length > 0 && (
-        <div className={clsx(painel, 'max-h-[320px] overflow-y-auto p-1.5')}>
+        <div ref={panelRef} data-testid="combo-busca-resultados"
+          style={maxHeight != null ? { maxHeight } : undefined} className={clsx(painel, 'overflow-y-auto p-1.5')}>
           {itens.map(item => inativo?.(item) ? (
             <OpcaoInativa key={getKey(item)}>{renderItem(item)}</OpcaoInativa>
           ) : (

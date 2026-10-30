@@ -1,9 +1,9 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import ProtectedRoute from '../components/shared/ProtectedRoute'
 import LoginPage from '../pages/auth/LoginPage'
 import CadastroPage from '../pages/auth/CadastroPage'
 import OnboardingPage from '../pages/auth/OnboardingPage'
-import DashboardPage from '../pages/dashboard/DashboardPage'
+import AgendaPage from '../pages/agenda/AgendaPage'
 import ClientesPage from '../pages/clientes/ClientesPage'
 import FormClientePage from '../pages/clientes/FormClientePage'
 import DetalheClientePage from '../pages/clientes/DetalheClientePage'
@@ -58,7 +58,9 @@ export const router = createBrowserRouter([
     children: [
       { path: '/onboarding', element: <OnboardingPage /> },
 
-      { path: '/dashboard',  element: <DashboardPage /> },
+      { path: '/agenda',     element: <AgendaPage /> },
+      // V0.18.0 (#1040, RN-NOVA-1): o Dashboard geral deixou de existir; o endereço antigo cai na Agenda (links e favoritos)
+      { path: '/dashboard',  element: <Navigate to="/agenda" replace /> },
       { path: '/clientes',            element: <ClientesPage /> },
       { path: '/clientes/novo',       element: <FormClientePage /> },
       { path: '/clientes/:id/editar', element: <FormClientePage /> },

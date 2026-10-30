@@ -5,7 +5,7 @@ import { apiLogin, criarInsumo } from '../helpers/api'
 /** V0.17.0 — #607 (RN-NOVA-15 e 16): CEN-NOVO-32 (menu), 33 (preço abaixo do sugerido) e 36/37 (margem e estado vazio) pela tela. */
 test('V0.17.0 — menu com os grupos Cadastros e Vendas; item e grupo destacados', async ({ page }) => {
   await login(page)
-  await page.goto('/dashboard')
+  await page.goto('/agenda')
 
   // V0.17.0 #963 (CEN-NOVO-55): recolhido ao entrar; a verificação dos itens vem depois de abrir o grupo
   const cadastros = page.getByRole('button', { name: 'Cadastros', exact: true })
@@ -41,7 +41,7 @@ test('V0.17.0 — Dashboard de Cadastros: preço abaixo do sugerido, margem e es
   expect(produto.ok(), await produto.text()).toBeTruthy()
 
   await login(page)
-  await page.goto('/dashboard')
+  await page.goto('/agenda')
   // V0.17.0 #963: grupo Cadastros recolhido ao entrar — abre o grupo e clica no link pelo destino
   await page.getByRole('button', { name: 'Cadastros', exact: true }).click()
   await page.locator('a[href="/cadastros/dashboard"]').click()

@@ -18,3 +18,27 @@ test('V0.17.0 — Entrega imediata abre em Sim; Não mostra a previsão vazia e 
   await page.getByText('Entrega imediata?').locator('..').getByRole('button', { name: 'Sim', exact: true }).click()
   await expect(page.getByLabel('Previsão de entrega')).toHaveCount(0)
 })
+
+test('V0.18.0 — CEN-NOVO-71: Entrega imediata segue ordem Não/Sim e cores binárias', async ({ page }) => {
+  await login(page)
+  await page.goto('/compras/nova')
+
+  const controle = page.getByText('Entrega imediata?').locator('..')
+  const nao = controle.getByRole('button', { name: 'Não', exact: true })
+  const sim = controle.getByRole('button', { name: 'Sim', exact: true })
+
+  await expect(controle.getByRole('button')).toHaveText(['Não', 'Sim'])
+  await expect(sim).toHaveAttribute('aria-pressed', 'true')
+  await expect(sim).toHaveAttribute('data-tom', 'teal')
+  await expect(nao).toHaveAttribute('aria-pressed', 'false')
+  await expect(nao).not.toHaveAttribute('data-tom', /.+/)
+
+  await nao.click()
+  await expect(nao).toHaveAttribute('aria-pressed', 'true')
+  await expect(nao).toHaveAttribute('data-tom', 'laranja')
+  await expect(sim).not.toHaveAttribute('data-tom', /.+/)
+
+  await sim.click()
+  await expect(sim).toHaveAttribute('aria-pressed', 'true')
+  await expect(sim).toHaveAttribute('data-tom', 'teal')
+})

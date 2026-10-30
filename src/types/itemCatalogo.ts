@@ -68,3 +68,14 @@ export interface PreviewPrecoResponse {
   custoTotal: number
   precoSugerido: number
 }
+
+/** V0.18.0 (#961, RN-NOVA-28) — uma mudança do preço sugerido do item: valores, causa e a referência do evento (COM-12). */
+export interface HistoricoPrecoItem {
+  id: string
+  valorAnterior: number
+  valorNovo: number
+  causa: string
+  referenciaTexto?: string | null
+  referenciaId?: string | null
+  criadoEm: string
+}

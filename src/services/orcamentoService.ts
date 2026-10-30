@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, SugestaoQuantidadeProducao, ComentarioOrcamento } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -13,6 +13,17 @@ export const orcamentoService = {
     if (dataCriacaoAte) params.dataCriacaoAte = dataCriacaoAte;
     if (sort) params.sort = sort;
     const response = await api.get('/orcamentos', { params });
+    return response.data;
+  },
+
+  /** V0.18.0 (#1038, RN-NOVA-22) — a página 0 traz os comentários mais recentes; cada página vem em ordem cronológica. */
+  comentarios: async (id: string, page: number, size = 20): Promise<PageResponse<ComentarioOrcamento>> => {
+    const response = await api.get(`/orcamentos/${id}/comentarios`, { params: { page, size } });
+    return response.data;
+  },
+
+  comentar: async (id: string, texto: string): Promise<ComentarioOrcamento> => {
+    const response = await api.post(`/orcamentos/${id}/comentarios`, { texto });
     return response.data;
   },
 
@@ -41,8 +52,8 @@ export const orcamentoService = {
   },
 
   // RN-NOVA-18 (V0.8.3, P-B008/P-F001d) — paginação real, mesmo formato Page<> dos demais
-  // service.listar do sistema. Tamanho de página mantido em 8 (não 20) — painel de ItemSearch
-  // calibrado para exibir exatamente 8 linhas (ORC-030). Único consumidor: ItemSearch
+  // service.listar do sistema. Tamanho de página mantido em 8 (não 20); o painel de ItemSearch
+  // mostra 6 linhas sem rolar (LINHAS_BUSCA_VISIVEIS, CEN-NOVO-160). Único consumidor: ItemSearch
   // (CriarOrcamentoPage.tsx) — breaking change sem coexistência, confirmado por grep (Passo 0).
   // #641 (RN-NOVA-40) — `incluirInativos`: traz também os itens indisponíveis (ativo=false), depois dos disponíveis.
   buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = 8, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
@@ -125,6 +136,14 @@ export const orcamentoService = {
   // consumidor (desabilitar o botão de confirmação enquanto a Promise não resolve).
   criarProducaoVinculada: async (id: string, data: CriarProducaoVinculadaRequest): Promise<OrcamentoProducaoResponse[]> => {
     const response = await api.post(`/orcamentos/${id}/criar-producao-vinculada`, data);
+    return response.data;
+  },
+
+  // RN-NOVA-39 (V0.18.0, #1166) — sugestão de quantidade por produto não fracionável do orçamento.
+  sugerirQuantidadesProducao: async (id: string, produtoIds?: string[]): Promise<SugestaoQuantidadeProducao[]> => {
+    const response = await api.get(`/orcamentos/${id}/sugestao-quantidade-producao`, {
+      params: produtoIds && produtoIds.length ? { produtoIds: produtoIds.join(',') } : undefined,
+    });
     return response.data;
   },
 

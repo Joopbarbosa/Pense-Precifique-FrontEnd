@@ -1,8 +1,34 @@
 import api from './api'
-import type { ProducaoDetalhe, ProducaoResumo, ProducaoContagensResponse, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse, FinalizarProducaoRequest, DesagruparProducaoRequest, DesagruparProducaoResponse } from '../types/producao'
+import type { ProducaoDetalhe, ProducaoResumo, ProducaoContagensResponse, CriarProducaoRequest, DivisaoResponse, CancelarProducaoRequest, AgruparProducoesRequest, AgruparResponse, AlertaInsumo, ConfirmacaoEstoqueNegativoResponse, FinalizarProducaoRequest, DesagruparProducaoRequest, DesagruparProducaoResponse, CandidataJuntar, ProducoesPeriodo, JuntarProducoesRequest, JuntarProducoesResponse, ExcedenteLote } from '../types/producao'
 import type { PageResponse } from '../types/shared'
 
 export const producaoService = {
+  // RN-NOVA-42 (V0.18.0, #1169) — juntar produções de pedidos diferentes em um lote.
+  candidatasJuntar: async (id: string): Promise<CandidataJuntar[]> => {
+    const response = await api.get(`/producoes/${id}/candidatas-juntar`)
+    return response.data
+  },
+
+  producoesDoPeriodo: async (orcamentoId: string): Promise<ProducoesPeriodo> => {
+    const response = await api.get('/producoes/do-periodo', { params: { orcamentoId } })
+    return response.data
+  },
+
+  juntar: async (id: string, data: JuntarProducoesRequest): Promise<JuntarProducoesResponse> => {
+    const response = await api.post(`/producoes/${id}/juntar`, data)
+    return response.data
+  },
+
+  excedentes: async (id: string): Promise<ExcedenteLote[]> => {
+    const response = await api.get(`/producoes/${id}/excedentes`)
+    return response.data
+  },
+
+  resolverExcedente: async (id: string, cancelarLote: boolean): Promise<ProducaoDetalhe> => {
+    const response = await api.post(`/producoes/${id}/resolver-excedente`, { cancelarLote })
+    return response.data
+  },
+
   listar: async (params: { busca?: string; estado?: string; dataInicioDe?: string; dataInicioAte?: string; sort?: string; page?: number; size?: number }): Promise<PageResponse<ProducaoResumo>> => {
     const response = await api.get('/producoes', { params })
     return response.data

@@ -23,7 +23,7 @@ function antecipar(id: string, dias: number) {
   const container = process.env.DB_CONTAINER!
   const banco = process.env.DB_NAME!
   execFileSync('docker', ['exec', container, 'psql', '-U', 'pense_user', '-d', banco, '-c',
-    `UPDATE compras SET previsao_entrega = '${hojeLocal(-dias)}', data_compra = '${hojeLocal(-dias - 5)}' WHERE id = '${id}'`])
+    `UPDATE compras SET previsao_entrega = '${hojeLocal(-dias)}', data_compra = '${hojeLocal(0)}' WHERE id = '${id}'`])
 }
 
 function ddmm(iso: string) { const [, m, d] = iso.split('-'); return `${d}/${m}` }

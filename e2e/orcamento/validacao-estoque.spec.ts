@@ -67,14 +67,13 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     await page.waitForTimeout(600)
     await expect(page.getByText('Estoque insuficiente', { exact: true })).toBeVisible()
 
-    await page.locator('input[type="number"][placeholder="10"]').fill('7')
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
 
     // O checkpoint pré-criação também mostra o mesmo aviso — não bloqueia, só avisa; só depois de
     // "Continuar mesmo assim" a criação de fato acontece.
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(/disponível 5, necessário 10/i)).toBeVisible()
-    await page.getByRole('button', { name: 'Continuar mesmo assim', exact: true }).click()
+    await expect(page.getByText('Estoque ficará negativo')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('itens-estoque-negativo')).toContainText('Estoque 5 · precisa de 10 · fica em -5')
+    await page.getByRole('button', { name: 'OK', exact: true }).click()
 
     // Sem modal pós-criação (removida) — vai direto para o Detalhe do Orçamento.
     await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]+$/, { timeout: 10_000 })
@@ -103,14 +102,13 @@ test.describe('Cenários 189-190 — Validação de Estoque no Orçamento (Fluxo
     // isso, `handleSubmit` pode rodar com `simulacoes` ainda desatualizado (ainda a resposta da
     // quantidade inicial 1, não da 10 alcançada pelos cliques em "+").
     await page.waitForTimeout(600)
-    await page.locator('input[type="number"][placeholder="10"]').fill('7')
 
     await page.getByRole('button', { name: 'Criar orçamento', exact: true }).click()
 
     // Checkpoint pré-criação aparece primeiro (não bloqueia); "Continuar mesmo assim" segue com o
     // POST normalmente.
-    await expect(page.getByText('Itens com estoque insuficiente')).toBeVisible({ timeout: 5000 })
-    await page.getByRole('button', { name: 'Continuar mesmo assim', exact: true }).click()
+    await expect(page.getByText('Estoque ficará negativo')).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: 'OK', exact: true }).click()
 
     // Não bloqueado: a artesã é levada direto ao Detalhe do Orçamento, sem tela de aviso intermediária.
     await expect(page).toHaveURL(/\/orcamentos\/[0-9a-f-]+$/, { timeout: 10_000 })
