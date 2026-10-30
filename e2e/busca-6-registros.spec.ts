@@ -1,6 +1,7 @@
 import { expect, test, type Locator } from '@playwright/test'
 import { E2E_API_URL } from './helpers/target'
 import { apiLogin, criarInsumo, inativarInsumo } from './helpers/api'
+import { apiAbrirTurno, apiCriarProdutoComEstoque, apiFecharTurnoSeAberto } from './helpers/caixa'
 import { login } from './helpers/auth'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi } from './helpers/orcamento'
 import { criarInsumoComEstoque } from './helpers/insumo'
@@ -100,5 +101,86 @@ test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 reg
     for (const id of produtos) await inativarProduto(request, tokenLimpeza, id)
     for (const id of insumos) await inativarInsumo(request, tokenLimpeza, id)
     for (const cliente of clientes) await request.delete(`${API_URL}/clientes/${cliente.id}`, { headers: { Authorization: `Bearer ${tokenLimpeza}` } }).catch(() => {})
+  }
+})
+
+/** Painel do buscador: ancestral mais próximo com rolagem vertical de uma linha de resultado. */
+function painelDoBuscador(page: import('@playwright/test').Page) {
+  return page.locator('[data-search-row]').first().locator('xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " overflow-y-auto ")][1]')
+}
+
+/** Rolar até o fim do painel deve trazer para dentro da área visível um registro que não está entre os 6 primeiros. */
+async function conferirRolagemAlcanca(painel: Locator, nome: string) {
+  await painel.evaluate(el => { el.scrollTop = el.scrollHeight })
+  await expect.poll(() => painel.evaluate((el, alvoNome) => {
+    const alvo = [...el.querySelectorAll<HTMLElement>('[data-search-row]')].find(linha => linha.textContent?.includes(alvoNome))
+    if (!alvo) return false
+    const caixa = el.getBoundingClientRect()
+    const r = alvo.getBoundingClientRect()
+    return r.top >= caixa.top - 1 && r.bottom <= caixa.bottom + 1
+  }, nome)).toBe(true)
+}
+
+test('CEN-NOVO-160 — Item de venda do Caixa exibe 6 registros sem rolar', async ({ page, request }) => {
+  const token = await apiLogin(request)
+  const sufixo = Date.now()
+  const produtos: string[] = []
+
+  try {
+    await apiAbrirTurno(request, token, 100)
+    for (let i = 1; i <= 10; i++) {
+      const produto = await apiCriarProdutoComEstoque(
+        request, token, `QA1195-Caixa-${sufixo}-${String(i).padStart(2, '0')}`, 20, 10, true,
+      )
+      produtos.push(produto.id)
+    }
+
+    await login(page)
+    await page.goto('/caixa')
+    await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    const busca = page.getByPlaceholder('Buscar produto ou item de catálogo...')
+    await busca.click()
+    await conferirSeisLinhasVisiveis(painelDoBuscador(page))
+
+    await busca.fill(`QA1195-Caixa-${sufixo}`)
+    await expect.poll(() => page.locator('[data-search-row]').count()).toBe(10)
+    const painel = painelDoBuscador(page)
+    await conferirSeisLinhasVisiveis(painel)
+    await conferirRolagemAlcanca(painel, `QA1195-Caixa-${sufixo}-10`)
+  } finally {
+    const tokenLimpeza = await apiLogin(request)
+    for (const id of produtos) await inativarProduto(request, tokenLimpeza, id)
+    await apiFecharTurnoSeAberto(request, tokenLimpeza)
+  }
+})
+
+test('CEN-NOVO-160 — Insumo da ficha técnica exibe 6 registros sem rolar', async ({ page, request }) => {
+  const token = await apiLogin(request)
+  const sufixo = Date.now()
+  const insumos: string[] = []
+
+  try {
+    for (let i = 1; i <= 10; i++) {
+      const insumo = await criarInsumo(request, token, `QA1195-Ficha-${sufixo}-${String(i).padStart(2, '0')}`)
+      insumos.push(insumo.id)
+    }
+
+    await login(page)
+    await page.goto('/produtos/novo')
+    await page.getByPlaceholder('Ex: Kit Convite Casamento').fill(`QA1195-Produto-${sufixo}`)
+    await page.getByPlaceholder('45').fill('30')
+    await page.getByRole('button', { name: 'Próximo: Ficha Técnica' }).click()
+    const busca = page.getByPlaceholder('Buscar insumo ou produto...')
+    await busca.click()
+    await conferirSeisLinhasVisiveis(painelDoBuscador(page))
+
+    await busca.fill(`QA1195-Ficha-${sufixo}`)
+    await expect.poll(() => page.locator('[data-search-row]').count()).toBe(10)
+    const painel = painelDoBuscador(page)
+    await conferirSeisLinhasVisiveis(painel)
+    await conferirRolagemAlcanca(painel, `QA1195-Ficha-${sufixo}-10`)
+  } finally {
+    const tokenLimpeza = await apiLogin(request)
+    for (const id of insumos) await inativarInsumo(request, tokenLimpeza, id)
   }
 })
