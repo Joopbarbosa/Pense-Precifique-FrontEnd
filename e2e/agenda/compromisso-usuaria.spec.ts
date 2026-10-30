@@ -29,6 +29,8 @@ test.describe('#1039 — Compromisso da usuária', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < diasAFrente; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    // a busca isola o chip: a linha de dia inteiro mostra só 2 e esconde o resto em +N (#1189)
+    await page.getByLabel('Buscar na agenda').fill(titulo)
     await page.getByTestId('compromisso').filter({ hasText: titulo }).first().click()
   }
 
