@@ -39,7 +39,7 @@ interface Arrasto { chave: string; dia: string; inicio: number; fim: number }
  * o minuto de agora com um traço laranja (#1052). A linha de dia inteiro tem altura máxima e rola por dentro, para muitos compromissos não cobrirem a grade. Clicar num espaço vazio cria um evento (#1064); o compromisso avulso pendente se
  * arrasta para outro dia e hora e se estica pela borda de baixo (#1065).
  */
-/** RN-NOVA-45 (#1183) — máximo de compromissos de dia inteiro por dia na Semana; o resto vira "+N". */
+/** RN-NOVA-51 (#1189, substitui o 3 da RN-NOVA-45) — máximo de compromissos de dia inteiro por dia na Semana; o resto vira "+N". */
 const LIMITE_DIA_INTEIRO = 2
 
 export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onCriar, onMover, onEsticar, onMoverDia, onVerDiaInteiro }: {
