@@ -16,13 +16,17 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
     // a conta de teste é compartilhada: os outros specs deixam atrasados e compromissos de hoje, então a conta parte do que já existe
     const antes = await resumoAgenda(request, token)
     for (const titulo of atrasados) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(-2) })
-    // com horário, cada um ocupa a grade; sem horário a linha de dia inteiro mostra só 2 e o resto vira +N (#1189)
-    for (const [i, titulo] of pendentes.entries()) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(0), horario: `${String(8 + i).padStart(2, '0')}:00`, horarioFim: `${String(8 + i).padStart(2, '0')}:30` })
+    // com horário (no fim do dia, para ainda não estarem atrasados), cada um ocupa a grade; sem horário a linha de dia inteiro mostra só 2 e o resto vira +N (#1189)
+    for (const [i, titulo] of pendentes.entries()) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(0), horario: `23:${String(10 + i * 10).padStart(2, '0')}`, horarioFim: `23:${String(15 + i * 10).padStart(2, '0')}` })
 
     await login(page)
     await page.goto('/agenda')
-    await expect(page.getByTestId('resumo-atrasados')).toHaveText(`${antes.atrasados + 2} atrasados`)
-    await expect(page.getByTestId('resumo-hoje')).toHaveText(`${antes.hoje + 5} para hoje`)
+    // compromisso de hoje com horário já passado conta como atrasado: a divisão depende da hora da execução, o total não
+    const depois = await resumoAgenda(request, token)
+    expect(depois.atrasados + depois.hoje).toBe(antes.atrasados + antes.hoje + 7)
+    expect(depois.atrasados).toBeGreaterThanOrEqual(antes.atrasados + 2)
+    await expect(page.getByTestId('resumo-atrasados')).toHaveText(`${depois.atrasados} atrasados`)
+    await expect(page.getByTestId('resumo-hoje')).toHaveText(`${depois.hoje} para hoje`)
     const resumoAtrasados = await page.getByTestId('resumo-atrasados').innerText()
     const resumoHoje = await page.getByTestId('resumo-hoje').innerText()
     await page.getByLabel('Mostrar').selectOption('ATRASADOS')
