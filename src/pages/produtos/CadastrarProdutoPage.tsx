@@ -11,7 +11,7 @@ import { Button, Field, TextArea } from '../../components/ui'
 import Spinner from '../../components/ui/Spinner'
 import {
   ArrowRight, Box, Plus, Search, Layers, Trash2,
-  Check, AlertTriangle, ChevronRight, Pencil, FileText, ImagePlus, X,
+  Check, AlertTriangle, ChevronRight, Pencil, FileText, ImagePlus, X, ExternalLink,
 } from 'lucide-react'
 import { produtoService } from '../../services/produtoService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
@@ -534,7 +534,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
           </div>
           <InsumoSearch onAdd={add} jaAdicionados={ficha.map(f => f.id)} />
         </div>
-        <div className="grid grid-cols-[1fr_132px_96px_44px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
+        <div className="grid grid-cols-[1fr_132px_96px_80px] gap-3 border-t border-line bg-cream px-[22px] py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-dim">
           <span>Componente</span><span>Quantidade</span><span className="text-right">Custo</span><span></span>
         </div>
         {ficha.length === 0 ? (
@@ -542,7 +542,7 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             Nenhum componente ainda. Use a busca acima para adicionar.
           </div>
         ) : ficha.map((row, idx) => (
-          <div key={`${row.id}-${idx}`} className="grid animate-row-in grid-cols-[1fr_132px_96px_44px] items-center gap-3 border-t border-line px-[22px] py-[13px]">
+          <div key={`${row.id}-${idx}`} className="grid animate-row-in grid-cols-[1fr_132px_96px_80px] items-center gap-3 border-t border-line px-[22px] py-[13px]">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-[7px]">
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-dark">{row.nome}</span>
@@ -555,13 +555,27 @@ function FichaTecnica({ ficha, setFicha, rendimento, setRendimento, rendimentoEr
             </div>
             <QtyInput value={row.qtd} un={row.un} fracionavel={row.fracionavel} onChange={v => setQtd(idx, v)} />
             <div className="text-right text-sm font-bold text-dark [font-variant-numeric:tabular-nums]">{moeda(row.qtd * row.custo)}</div>
-            <button
-              onClick={() => remove(idx)}
-              aria-label="Remover componente"
-              className="grid h-[34px] w-[34px] place-items-center justify-self-end rounded-[9px] border-none bg-transparent text-[#BDB9B1] hover:bg-danger-bg hover:text-danger-deep"
-            >
-              <Trash2 size={16} />
-            </button>
+            <div className="flex items-center justify-end gap-1">
+              {row.tipo !== 'customizacao' && (
+                <a
+                  href={row.tipo === 'produto' ? `/produtos/${row.id}` : `/insumos/${row.id}`}
+                  target="_blank" rel="noopener noreferrer"
+                  aria-label={`Abrir ${row.tipo === 'produto' ? 'produto' : 'insumo'} em outra aba`}
+                  title="Abrir o detalhe em outra aba"
+                  data-testid="abrir-componente"
+                  className="grid h-[34px] w-[34px] place-items-center rounded-[9px] text-teal hover:bg-teal/10"
+                >
+                  <ExternalLink size={16} />
+                </a>
+              )}
+              <button
+                onClick={() => remove(idx)}
+                aria-label="Remover componente"
+                className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border-none bg-transparent text-[#BDB9B1] hover:bg-danger-bg hover:text-danger-deep"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         ))}
         <div className="border-t border-line px-[22px] py-section">

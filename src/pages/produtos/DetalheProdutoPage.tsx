@@ -551,7 +551,8 @@ export default function DetalheProdutoPage() {
               {produto.fichaTecnica.map((item, idx) => (
                 <div
                   key={item.id}
-                  onClick={() => navigate(item.produtoBaseId ? `/produtos/${item.produtoBaseId}` : `/insumos/${item.insumoId}`)}
+                  data-testid="item-ficha"
+                  onClick={() => window.open(item.produtoBaseId ? `/produtos/${item.produtoBaseId}` : `/insumos/${item.insumoId}`, '_blank', 'noopener,noreferrer')}
                   className={clsx(
                     'flex animate-fade-up cursor-pointer items-center gap-3.5 px-5 py-4 transition-colors duration-100 hover:bg-line',
                     idx > 0 && 'border-t border-line'
