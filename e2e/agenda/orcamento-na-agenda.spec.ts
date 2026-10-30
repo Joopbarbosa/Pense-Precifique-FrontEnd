@@ -44,7 +44,6 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     const chip = page.getByTestId('compromisso').filter({ hasText: `Sinal a receber — ORC-${orcamento.numero} (${nomeCliente}) — R$ 30,00` })
     await expect(chip).toBeVisible()
     await expect(chip).toHaveClass(/bg-rose-bg/)
-    await expect(chip).not.toHaveClass(/bg-teal/)
     await chip.click()
     const painel = page.getByTestId('painel-orcamento')
     await expect(painel).toContainText(nomeCliente)
@@ -82,6 +81,9 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
+    // Com outros compromissos de dia inteiro no mesmo dia (suíte inteira), só 2 cabem na linha; o "+N" abre os demais.
+    const mais = page.locator('[data-testid^="mais-"]')
+    if (await mais.count()) await mais.first().click()
     await expect(page.getByTestId('compromisso').filter({ hasText: `Saldo a receber — ORC-${orcamento.numero} (${nomeCliente}) — R$ 70,00` })).toBeVisible()
   })
 

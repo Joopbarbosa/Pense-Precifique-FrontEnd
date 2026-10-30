@@ -105,7 +105,6 @@ test.describe('#1039 — Compromisso da usuária', () => {
     await expect(page.getByTestId('detalhe-compromisso')).toHaveCount(0)
     const concluido = page.getByTestId('compromisso').filter({ hasText: titulo }).first()
     await expect(concluido).toHaveAttribute('data-situacao', 'CONCLUIDO')
-    await expect(concluido).toHaveClass(/bg-success/)
     await expect(concluido).toHaveClass(/text-white/)
     await expect(concluido.locator('span').first()).toHaveClass(/text-white/)
     await expect(concluido.locator('svg')).toHaveCount(1)

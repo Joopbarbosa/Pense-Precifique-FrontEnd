@@ -16,7 +16,7 @@ const API_URL = E2E_API_URL
 
 /**
  * OpenProject #217 — RN-NOVA-6 (busca de item de catálogo server-side) e RN-NOVA-7 (listagem
- * completa com rolagem, até 8 itens visíveis por vez) em `ItemSearch`/`ModalCustomizacoes`
+ * completa com rolagem, até 6 itens visíveis por vez) em `ItemSearch`/`ModalCustomizacoes`
  * (`CriarOrcamentoPage.tsx`). Backend ganhou `busca` em `GET /orcamentos/itens-catalogo`
  * (achado da Análise — o endpoint não tinha esse parâmetro, ver `ItemCatalogoRepository`).
  */
