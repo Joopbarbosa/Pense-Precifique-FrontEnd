@@ -54,6 +54,7 @@ export default function FiltrosAgenda({ busca, onMudarBusca, resultados, filtros
       </span>}
       </div>
       </div>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 self-start">
       <label className="flex items-center gap-2 text-xs font-semibold text-body">
         Mostrar
         <select aria-label="Mostrar" value={filtros.mostrar} onChange={e => onMudarMostrar(e.target.value as MostrarAgenda)}
@@ -74,7 +75,8 @@ export default function FiltrosAgenda({ busca, onMudarBusca, resultados, filtros
       <button type="button" disabled={!ativo} onClick={onLimpar} className="h-9 rounded-btn px-2 text-sm font-semibold text-teal enabled:hover:bg-teal/10 disabled:cursor-not-allowed disabled:text-faint">
         Limpar filtros
       </button>
-      {direita && <div className="ml-auto">{direita}</div>}
+      </div>
+      {direita && <div className="ml-auto shrink-0 self-start">{direita}</div>}
     </div>
   )
 }

@@ -31,6 +31,8 @@ test.describe('#1108/#1109 — Painel do orçamento na Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    // a busca isola o chip: os orçamentos do arquivo entregam no mesmo dia e a linha de dia inteiro mostra só 2 (#1189)
+    await page.getByLabel('Buscar na agenda').fill(`ORC-${orcamento.numero}`)
     await page.getByTestId('compromisso').filter({ hasText: `Entrega estimada — ORC-${orcamento.numero}` }).click()
     return { orcamento, nomeProduto }
   }
