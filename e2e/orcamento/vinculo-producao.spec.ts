@@ -104,7 +104,7 @@ test.describe('P-T004/#320 — Vínculo Orçamento-Produção (CEN-NOVO-H a N)',
     const quantidadeItem = 5 // > estoqueAtual (3)
     const clienteH = await criarCliente(request, token, `${nomeCliente}-b`)
     const orcamentoId = await abrirVinculoNoAprovado(page, request, token, clienteH.id, produto.id, quantidadeItem)
-    await page.getByText(producaoExistente.identificador, { exact: true }).click()
+    await page.getByRole('dialog').getByRole('button').filter({ hasText: producaoExistente.identificador }).getByText('Vincular', { exact: true }).click()
 
     await expect(page.getByText('Confirmar vínculo').first()).toBeVisible()
     await page.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click()
