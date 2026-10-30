@@ -37,6 +37,7 @@ export default function ChipCompromisso({ compromisso: c, onAbrir, compacto, pre
       data-testid="compromisso"
       data-origem={c.origem}
       data-situacao={c.situacao}
+      data-tom={c.atrasado ? 'perigo' : concluido ? 'sucesso' : ORIGEM[c.origem].tom}
       data-atrasado={c.atrasado ? 'sim' : 'nao'}
       onClick={() => onAbrir(c)}
       onMouseEnter={e => {

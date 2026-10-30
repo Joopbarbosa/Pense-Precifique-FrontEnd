@@ -94,7 +94,7 @@ test.describe('#1039 — Compromisso da usuária', () => {
     expect(achadas.map(a => a.data)).toEqual(esperado)
   })
 
-  test('CT-1039-04 — concluir uma ocorrência: fica riscada e a outra segue pendente', async ({ page, request }) => {
+  test('CT-1039-04 — concluir uma ocorrência (concluído em tom de sucesso com ✓): fica riscada e a outra segue pendente', async ({ page, request }) => {
     const token = await apiLogin(request)
     const titulo = `Conferir estoque ${Date.now()}`
     const inicio = hojeLocal(1)
@@ -105,6 +105,7 @@ test.describe('#1039 — Compromisso da usuária', () => {
     await expect(page.getByTestId('detalhe-compromisso')).toHaveCount(0)
     const concluido = page.getByTestId('compromisso').filter({ hasText: titulo }).first()
     await expect(concluido).toHaveAttribute('data-situacao', 'CONCLUIDO')
+    await expect(concluido).toHaveAttribute('data-tom', 'sucesso') // CT-1039: concluído em tom de sucesso, com ✓
     await expect(concluido).toHaveClass(/text-white/)
     await expect(concluido.locator('span').first()).toHaveClass(/text-white/)
     await expect(concluido.locator('svg')).toHaveCount(1)

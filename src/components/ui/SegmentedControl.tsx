@@ -51,9 +51,11 @@ export default function SegmentedControl<T>({
           : binaria
             ? (i === 0 ? 'bg-orange text-white' : 'bg-teal text-white')
             : 'bg-teal text-white'
+        const tom = ativo ? (activeColors ? undefined : binaria ? (i === 0 ? 'laranja' : 'teal') : 'teal') : undefined
         return (
           <button
             key={i}
+            data-tom={tom}
             type="button"
             aria-pressed={ativo}
             onClick={() => onChange(opt.value)}

@@ -163,9 +163,9 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
               {dias.length === 7 ? `Sem ${numeroDaSemana(dias[0])}` : ''}
             </div>
             {dias.map(d => (
-              <div key={d} className={clsx('flex flex-col items-center gap-0.5 py-2 leading-tight', d === hoje && 'text-orange')} data-testid={`cabecalho-dia-${d}`}>
+              <div key={d} className={clsx('flex flex-col items-center gap-0.5 py-2 leading-tight', d === hoje && 'text-orange')} data-testid={`cabecalho-dia-${d}`} data-tom={d === hoje ? 'laranja' : undefined}>
                 <span className="uppercase tracking-wide">{DIAS_SEMANA_CURTO[diaDaSemana(d)]}</span>
-                <span className={clsx('grid h-7 min-w-7 place-items-center rounded-full px-1 text-[17px]', d === hoje && 'bg-orange text-white')}>{diaDoMes(d)}</span>
+                <span data-tom={d === hoje ? 'laranja' : undefined} className={clsx('grid h-7 min-w-7 place-items-center rounded-full px-1 text-[17px]', d === hoje && 'bg-orange text-white')}>{diaDoMes(d)}</span>
               </div>
             ))}
           </div>
@@ -175,7 +175,7 @@ export default function GradeHoras({ dias, hoje, porDia, onAbrir, sinalHoje, onC
                 className="p-1.5 text-right text-[11px] font-semibold text-teal underline-offset-2 hover:underline">dia inteiro</button>
             ) : <div className="p-1.5 text-right text-[11px] font-semibold text-subtle">dia inteiro</div>}
             {dias.map(d => (
-              <div key={d} data-testid={`dia-${d}`} className={clsx('flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5', d === hoje && 'bg-orange/5')}
+              <div key={d} data-testid={`dia-${d}`} data-tom={d === hoje ? 'laranja' : undefined} className={clsx('flex min-h-[44px] flex-col gap-1 border-l border-line p-1.5', d === hoje && 'bg-orange/5')}
                 onDragOver={onMoverDia ? e => e.preventDefault() : undefined}
                 onDrop={onMoverDia ? e => { e.preventDefault(); const chave = e.dataTransfer.getData('text/plain'); if (chave) onMoverDia(chave, d) } : undefined}>
                 {(() => {
