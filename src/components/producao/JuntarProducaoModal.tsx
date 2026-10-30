@@ -9,7 +9,7 @@ import { formatarData } from '../../utils/data'
 import type { CandidataJuntar, JuntarProducoesResponse } from '../../types/producao'
 
 // RN-NOVA-42/48 (V0.18.0, #1169/#1184) — "Juntar com outra produção": lista as produções de qualquer
-// produto de outros pedidos; só Aguardando início pode ser escolhida (Em andamento aparece marcada). A data é editável e só AVISA (nunca bloqueia) quando passa do
+// produto de outros pedidos; Aguardando início e Em andamento podem ser escolhidas, várias de uma vez (R5). A data é editável e só AVISA (nunca bloqueia) quando passa do
 // prazo de algum pedido; o aviso vem na resposta e aparece depois de juntar.
 
 // RN-NOVA-41 (#1168) — rótulos da situação da produção (Detalhe do orçamento e lista de candidatas).
@@ -33,7 +33,7 @@ const inputClasse = 'h-11 w-full rounded-input border-[1.5px] border-line bg-whi
 
 export default function JuntarProducaoModal({ producaoId, identificador, onClose, onJuntado }: Props) {
   const [candidatas, setCandidatas] = useState<CandidataJuntar[] | null>(null)
-  const [escolhida, setEscolhida] = useState<string | null>(null)
+  const [escolhidas, setEscolhidas] = useState<string[]>([])
   const [dataInicio, setDataInicio] = useState('')
   const [dataTerminoPrevista, setDataTerminoPrevista] = useState('')
   const [salvando, setSalvando] = useState(false)
@@ -47,12 +47,12 @@ export default function JuntarProducaoModal({ producaoId, identificador, onClose
   }, [producaoId])
 
   const juntar = async () => {
-    if (!escolhida) return
+    if (escolhidas.length === 0) return
     setSalvando(true)
     setErro(null)
     try {
       const r = await producaoService.juntar(producaoId, {
-        producaoOutraId: escolhida,
+        producaoOutraIds: escolhidas,
         ...(dataInicio ? { dataInicio } : {}),
         ...(dataTerminoPrevista ? { dataTerminoPrevista } : {}),
       })
@@ -74,7 +74,7 @@ export default function JuntarProducaoModal({ producaoId, identificador, onClose
         footer={<Button variant="primary" onClick={() => onJuntado(resposta)}>Entendi</Button>}
       >
         <p className="m-0 text-[13.5px] leading-[1.6] text-body">
-          {identificador} foi juntada em um lote. As produções originais ficam como Não realizada.
+          {identificador} foi juntada em um lote com as produções escolhidas. As produções originais ficam como Não realizada.
         </p>
         {resposta.avisos.length > 0 && (
           <div data-testid="avisos-juntar" className="mt-3 flex flex-col gap-2">
@@ -94,13 +94,13 @@ export default function JuntarProducaoModal({ producaoId, identificador, onClose
     <ModalShell
       open
       onClose={onClose}
-      title="Juntar com outra produção"
+      title="Juntar com outras produções"
       subtitle={`Produção ${identificador}`}
       icon={<Layers size={18} />}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" disabled={!escolhida || salvando} onClick={juntar}>
+          <Button variant="primary" disabled={escolhidas.length === 0 || salvando} onClick={juntar}>
             {salvando ? 'Juntando...' : 'Juntar produções'}
           </Button>
         </>
@@ -114,19 +114,25 @@ export default function JuntarProducaoModal({ producaoId, identificador, onClose
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Produções para juntar">
+          <div className="flex flex-col gap-2" role="group" aria-label="Produções para juntar">
             {candidatas.map(c => (
               <label
                 key={c.id}
                 data-testid="candidata-juntar"
                 className={`flex items-start gap-3 rounded-input border border-line bg-white px-3.5 py-3 ${c.selecionavel ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
               >
-                <input type="radio" name="candidata" disabled={!c.selecionavel} checked={escolhida === c.id} onChange={() => setEscolhida(c.id)} className="mt-1" />
+                <input
+                  type="checkbox"
+                  disabled={!c.selecionavel}
+                  checked={escolhidas.includes(c.id)}
+                  onChange={() => setEscolhidas(atual => atual.includes(c.id) ? atual.filter(x => x !== c.id) : [...atual, c.id])}
+                  className="mt-1"
+                />
                 <span className="min-w-0 text-[13px] text-body">
                   <strong className="text-dark">{c.identificador}</strong> · {c.orcamentos.join(', ')}
-                  {!c.selecionavel && (
+                  {c.situacao !== 'AGUARDANDO_INICIO' && (
                     <span data-testid="candidata-situacao" className="ml-2 rounded-full bg-orange/10 px-2 py-0.5 text-[11.5px] font-semibold text-orange">
-                      {ROTULO_ESTADO_PRODUCAO[c.situacao] ?? c.situacao} — não pode ser juntada
+                      {ROTULO_ESTADO_PRODUCAO[c.situacao] ?? c.situacao}{c.selecionavel ? '' : ' — não pode ser juntada'}
                     </span>
                   )}
                   <span className="block text-muted">

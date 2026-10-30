@@ -951,7 +951,7 @@ export default function DetalheOrcamentoPage() {
     setJuntandoPeriodo(outraId);
     setErroPeriodo(null);
     try {
-      const r = await producaoService.juntar(origemId, { producaoOutraId: outraId });
+      const r = await producaoService.juntar(origemId, { producaoOutraIds: [outraId] });
       setAvisosPeriodo(r.avisos);
       await carregar();
     } catch (err) {
@@ -1797,7 +1797,7 @@ export default function DetalheOrcamentoPage() {
               <p data-testid="periodo-vazio" className="m-0 text-[12.5px] text-muted">Nenhuma outra produção no período.</p>
             ) : (
               periodo.producoes.map((p) => {
-                const origem = producoesVinculadas.find((v) => v.estado === "AGUARDANDO_INICIO");
+                const origem = producoesVinculadas.find((v) => v.estado === "AGUARDANDO_INICIO" || v.estado === "EM_ANDAMENTO");
                 return (
                   <div key={p.id} data-testid="producao-periodo" className="flex flex-wrap items-center justify-between gap-2 rounded-input border border-line bg-white px-3.5 py-2.5">
                     <div className="min-w-0 text-[12.5px] text-body">

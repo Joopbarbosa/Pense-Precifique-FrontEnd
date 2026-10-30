@@ -151,7 +151,7 @@ export interface ProducoesPeriodo {
 }
 
 export interface JuntarProducoesRequest {
-  producaoOutraId: string
+  producaoOutraIds: string[]
   dataInicio?: string
   dataTerminoPrevista?: string
 }
