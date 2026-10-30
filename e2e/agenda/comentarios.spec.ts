@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
+import { filtrarAgenda } from '../helpers/agenda'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi, cancelarOrcamentoViaApi } from '../helpers/orcamento'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 
@@ -35,6 +36,7 @@ test.describe('#1038 — Comentários por orçamento', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, `Validade — ORC-${orcamento.numero}`)
     await page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` }).click()
     await expect(page.getByTestId('sem-comentarios')).toBeVisible()
     await page.getByLabel('Novo comentário').fill('Cliente pediu entrega no sábado')

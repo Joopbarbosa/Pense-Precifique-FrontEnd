@@ -21,8 +21,9 @@ test.describe('#1165 — Busca na Agenda', () => {
   test('CT-1165-01 / CEN-NOVO-132 — busca por título (sem acento nem maiúscula), sem resultado e limpar', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
-    await criarCompromissoUsuaria(request, token, { titulo: `Reunião Ana ${ts}`, data: hojeLocal(1) })
-    await criarCompromissoUsuaria(request, token, { titulo: `Compras Beto ${ts}`, data: hojeLocal(1) })
+    // com horário: a linha de dia inteiro mostra só 2 e esconde o resto atrás do "+N" quando outros specs deixam compromissos no mesmo dia (#1204)
+    await criarCompromissoUsuaria(request, token, { titulo: `Reunião Ana ${ts}`, data: hojeLocal(1), horario: '09:00', horarioFim: '09:30' })
+    await criarCompromissoUsuaria(request, token, { titulo: `Compras Beto ${ts}`, data: hojeLocal(1), horario: '10:00', horarioFim: '10:30' })
     await irParaODia(page, 1)
     const ana = page.getByTestId('compromisso').filter({ hasText: `Reunião Ana ${ts}` })
     const beto = page.getByTestId('compromisso').filter({ hasText: `Compras Beto ${ts}` })
@@ -74,7 +75,7 @@ test.describe('#1165 — Busca na Agenda', () => {
   test('CT-1165-03 (negativo) / CEN-NOVO-133 — só espaços não filtra; o campo não aceita mais de 100 caracteres', async ({ page, request }) => {
     const token = await apiLogin(request)
     const ts = Date.now()
-    await criarCompromissoUsuaria(request, token, { titulo: `Evento espaços ${ts}`, data: hojeLocal(1) })
+    await criarCompromissoUsuaria(request, token, { titulo: `Evento espaços ${ts}`, data: hojeLocal(1), horario: '09:00', horarioFim: '09:30' })
     await irParaODia(page, 1)
     const evento = page.getByTestId('compromisso').filter({ hasText: `Evento espaços ${ts}` })
     await expect(evento).toBeVisible()

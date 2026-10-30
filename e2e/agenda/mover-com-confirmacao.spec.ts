@@ -3,7 +3,7 @@ import { E2E_API_URL } from '../helpers/target'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
-import { criarCompromissoUsuaria } from '../helpers/agenda'
+import { criarCompromissoUsuaria, filtrarAgenda } from '../helpers/agenda'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 import { registrarCompraPendente } from '../helpers/compra'
 
@@ -68,6 +68,7 @@ test.describe('#1181 — Mover card com confirmação', () => {
     // amanhã e não hoje: o dia de hoje acumula chips de outros specs e esconde o card atrás do "+N"
     const origem = hojeLocal(1), destino = hojeLocal(-1)
     await abrirMes(page, origem)
+    await filtrarAgenda(page, compra.identificador) // isola o card do "+N" que os dias próximos de hoje acumulam (#1204)
     const chip = page.getByTestId(`dia-${origem}`).getByTestId('compromisso').filter({ hasText: compra.identificador })
     await arrastar(page, chip, destino)
     await expect(page.getByTestId('movimento-bloqueio')).toBeVisible()

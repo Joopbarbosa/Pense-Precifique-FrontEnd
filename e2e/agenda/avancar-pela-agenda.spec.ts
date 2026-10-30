@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
+import { filtrarAgenda } from '../helpers/agenda'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi, buscarOrcamento } from '../helpers/orcamento'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 
@@ -31,6 +32,7 @@ test.describe('#1037 — Avançar status pela Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < diasAFrente; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, texto)
     await page.getByTestId('compromisso').filter({ hasText: texto }).click()
   }
 

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
+import { filtrarAgenda } from '../helpers/agenda'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi } from '../helpers/orcamento'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 
@@ -22,6 +23,7 @@ test.describe('#1157 — Concluídos permanecem na Agenda', () => {
       await page.goto('/agenda')
       await page.getByRole('button', { name: 'Dia', exact: true }).click()
       for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+      await filtrarAgenda(page, `Validade — ORC-${orcamento.numero}`)
       const chip = page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })
       await expect(chip).toHaveAttribute('data-situacao', 'CONCLUIDO')
 
