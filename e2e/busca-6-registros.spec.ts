@@ -33,23 +33,23 @@ test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 reg
   const insumos: string[] = []
   const produtos: string[] = []
   const producoes: string[] = []
-  let clienteId: string | undefined
+  const clientes: Array<{ id: string; nome: string }> = []
 
   try {
-    const insumoBase = await criarInsumoComEstoque(request, token, `QA322-Insumo-${sufixo}-00`, 1000)
+    const insumoBase = await criarInsumoComEstoque(request, token, `QA1195-Insumo-${sufixo}-00`, 1000)
     insumos.push(insumoBase.id)
     for (let i = 1; i < 15; i++) {
-      const insumo = await criarInsumo(request, token, `QA322-Insumo-${sufixo}-${String(i).padStart(2, '0')}`)
+      const insumo = await criarInsumo(request, token, `QA1195-Insumo-${sufixo}-${String(i).padStart(2, '0')}`)
       insumos.push(insumo.id)
     }
 
     const produtoBase = await criarProdutoComFichaEEstoque(
-      request, token, `QA322-Produto-${sufixo}-00`, [{ insumoId: insumoBase.id, quantidade: 1 }], 3,
+      request, token, `QA1195-Produto-${sufixo}-00`, [{ insumoId: insumoBase.id, quantidade: 1 }], 3,
     )
     produtos.push(produtoBase.id)
     for (let i = 1; i < 12; i++) {
       const produto = await criarProdutoComFicha(
-        request, token, `QA322-Produto-${sufixo}-${String(i).padStart(2, '0')}`,
+        request, token, `QA1195-Produto-${sufixo}-${String(i).padStart(2, '0')}`,
         [{ insumoId: insumoBase.id, quantidade: 1 }],
       )
       produtos.push(produto.id)
@@ -60,8 +60,9 @@ test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 reg
       producoes.push(producao.id)
     }
 
-    const cliente = await criarCliente(request, token, `QA322-Cliente-${sufixo}`)
-    clienteId = cliente.id
+    for (let i = 0; i < 10; i++) {
+      clientes.push(await criarCliente(request, token, `QA1195-Cliente-${sufixo}-${String(i + 1).padStart(2, '0')}`))
+    }
 
     await login(page)
     await page.goto('/compras/nova')
@@ -73,7 +74,7 @@ test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 reg
     await conferirSeisLinhasVisiveis(page.getByTestId('busca-produtos-producao'))
 
     // #1107 — o vínculo sai da criação; a modal abre pelo detalhe do orçamento aprovado.
-    const orcamento = await criarOrcamentoViaApi(request, token, cliente.id,
+    const orcamento = await criarOrcamentoViaApi(request, token, clientes[0].id,
       [{ produtoId: produtoBase.id, precoUnitario: 20, margemAplicada: 50, quantidade: 5 }], { sinalAtivo: false })
     await avancarStatusViaApi(request, token, orcamento.id)
     await avancarStatusViaApi(request, token, orcamento.id)
@@ -83,11 +84,21 @@ test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 reg
     await page.getByRole('button', { name: 'OK, vincular produção', exact: true }).click()
     await expect(page.getByText('Escolha uma produção aguardando início')).toBeVisible()
     await conferirSeisLinhasVisiveis(page.getByTestId('producoes-disponiveis'))
+
+    await page.goto('/orcamentos/novo')
+    const buscaCliente = page.getByPlaceholder('Selecionar cliente...')
+    await buscaCliente.click()
+    const linhasCliente = page.locator('[data-search-row]')
+    await expect.poll(() => linhasCliente.count()).toBe(10)
+    const painelCliente = linhasCliente.first().locator('xpath=..')
+    await conferirSeisLinhasVisiveis(painelCliente)
+    await painelCliente.evaluate(el => { el.scrollTop = el.scrollHeight })
+    await expect(linhasCliente.filter({ hasText: clientes[9].nome })).toBeVisible()
   } finally {
     const tokenLimpeza = await apiLogin(request)
     await teardownProducoes(request, tokenLimpeza, producoes)
     for (const id of produtos) await inativarProduto(request, tokenLimpeza, id)
     for (const id of insumos) await inativarInsumo(request, tokenLimpeza, id)
-    if (clienteId) await request.delete(`${API_URL}/clientes/${clienteId}`, { headers: { Authorization: `Bearer ${tokenLimpeza}` } }).catch(() => {})
+    for (const cliente of clientes) await request.delete(`${API_URL}/clientes/${cliente.id}`, { headers: { Authorization: `Bearer ${tokenLimpeza}` } }).catch(() => {})
   }
 })
