@@ -4,7 +4,8 @@ import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
 import { criarCompromissoUsuaria } from '../helpers/agenda'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi } from '../helpers/orcamento'
-import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
+import { criarProdutoComEstoque, criarProdutoComFichaEEstoque, criarProducaoComData, iniciarProducaoViaApi, travarProducaoViaApi, inativarProduto } from '../helpers/producao'
+import { criarInsumoComEstoque } from '../helpers/insumo'
 
 /**
  * #1034 (V0.18.0, RN-NOVA-1 a RN-NOVA-7) — a Agenda: visões Dia, Semana e Mês, faixa de atrasados e de hoje, "+N" do mês,
@@ -116,18 +117,44 @@ test.describe('#1034 — Agenda', () => {
     await expect(page.getByTestId('lista-do-dia').getByTestId('compromisso')).toHaveCount(5)
   })
 
-  test('CT-1066 / CEN-NOVO-101 — resumo aparece no hover e some ao sair do compromisso', async ({ page, request }) => {
+  test('CT-1066 / CEN-NOVO-101 — resumo aparece no hover (título, data, início–término, origem, atraso e marcações) e some ao sair do compromisso', async ({ page, request }) => {
     const token = await apiLogin(request)
-    await criarCompromissoUsuaria(request, token, { titulo: 'Revisar tecido', data: hojeLocal(0), horario: '14:30' })
+    // dois dias atrás, para o cartão trazer atraso; o avulso tem início e término (RN-NOVA-2 v4)
+    const dia = hojeLocal(-2)
+    const dataBr = `${dia.slice(8, 10)}/${dia.slice(5, 7)}/${dia.slice(0, 4)}`
+    await criarCompromissoUsuaria(request, token, { titulo: 'Revisar tecido', data: dia, horario: '14:30', horarioFim: '15:45' })
+    // produção com término previsto já passado e travada: o cartão traz a marcação "Travada" e o atraso
+    const insumo = await criarInsumoComEstoque(request, token, `QA1066-Insumo-${Date.now()}`, 100)
+    const produto = await criarProdutoComFichaEEstoque(request, token, `QA1066-Produto-${Date.now()}`, [{ insumoId: insumo.id, quantidade: 1 }], 0, 1)
+    produtoIds.push(produto.id)
+    // início e término no dia alvo (o término não pode ser anterior ao início); iniciada e depois travada
+    const producao = await criarProducaoComData(request, token, produto.id, dia, dia)
+    const iniciou = await iniciarProducaoViaApi(request, token, producao.id)
+    if (!iniciou.ok()) throw new Error(`Falha ao iniciar produção de teste: ${iniciou.status()} ${await iniciou.text()}`)
+    await travarProducaoViaApi(request, token, producao.id, 'Travada pelo teste E2E do CT-1066 para o cartão mostrar a marcação')
+
     await login(page)
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
+    await page.getByRole('button', { name: 'Anterior' }).click()
+    await page.getByRole('button', { name: 'Anterior' }).click()
+    await expect(page.getByTestId(`cabecalho-dia-${dia}`)).toBeVisible()
+
     const chip = page.getByTestId('compromisso').filter({ hasText: 'Revisar tecido' })
     await chip.hover()
     const cartao = page.getByTestId('cartao-resumo')
     await expect(cartao).toContainText('Revisar tecido')
-    await expect(cartao).toContainText('14:30')
+    await expect(cartao).toContainText(`${dataBr} · 14:30–15:45`)
     await expect(cartao).toContainText('Avulso')
+    await expect(cartao).toContainText('Atrasado há 2 dias')
+
+    const chipProducao = page.getByTestId('compromisso').filter({ hasText: 'Término previsto' }).filter({ hasText: produto.nome })
+    await chipProducao.hover()
+    await expect(cartao).toContainText('Término previsto')
+    await expect(cartao).toContainText(dataBr)
+    await expect(cartao).toContainText('Atrasado há 2 dias')
+    await expect(cartao).toContainText('Travada')
+
     await page.getByRole('heading', { name: 'Agenda' }).hover()
     await expect(cartao).toHaveCount(0)
     await chip.click()
