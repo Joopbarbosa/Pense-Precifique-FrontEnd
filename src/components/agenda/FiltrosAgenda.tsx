@@ -40,7 +40,9 @@ export default function FiltrosAgenda({ busca, onMudarBusca, resultados, filtros
 
   return (
     <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="filtros-agenda">
+      <div className="flex flex-col items-start gap-1.5" data-testid="resumo-e-busca">
       {esquerda}
+      <div className="flex items-center gap-3">
       <label className="relative flex items-center">
         <Search size={15} className="pointer-events-none absolute left-2.5 text-subtle" aria-hidden />
         <input type="search" value={busca} maxLength={MAXIMO_BUSCA_AGENDA} onChange={e => onMudarBusca(e.target.value)} aria-label="Buscar na agenda"
@@ -50,6 +52,8 @@ export default function FiltrosAgenda({ busca, onMudarBusca, resultados, filtros
       {resultados != null && <span className="text-xs font-semibold text-body" data-testid="busca-resultados" role="status">
         {resultados === 1 ? '1 resultado neste período' : `${resultados} resultados neste período`}
       </span>}
+      </div>
+      </div>
       <label className="flex items-center gap-2 text-xs font-semibold text-body">
         Mostrar
         <select aria-label="Mostrar" value={filtros.mostrar} onChange={e => onMudarMostrar(e.target.value as MostrarAgenda)}

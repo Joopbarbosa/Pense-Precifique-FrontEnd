@@ -11,7 +11,7 @@ const INSUMO_URL = `${E2E_API_URL}/insumos`
 
 /**
  * V0.18.0 (#1169) — RN-NOVA-42: juntar produções de pedidos diferentes em um lote.
- * Cobre CEN-NOVO-145 (5+7 → 12) e 147 (aviso de data, que não bloqueia). V0.18.0/#1184 (RN-NOVA-48/49) substituiu o CEN-NOVO-151: a lista traz qualquer produto (162), Em andamento marcada (164) e a seção do período (165).
+ * Cobre CEN-NOVO-145 (5+7 → 12) e 147 (aviso de data, que não bloqueia). V0.18.0/#1184 (RN-NOVA-48/49) substituiu o CEN-NOVO-151: a lista traz qualquer produto (162), Em andamento escolhível (164, R5) e a seção do período (165).
  * Entrada hostil e as demais regras de lote estão em ProducaoJuntarIT (backend).
  */
 test.describe('V0.18.0/#1169 — RN-NOVA-42: juntar com outra produção (CEN-NOVO-145, 147, 162, 164 e 165)', () => {
@@ -130,11 +130,11 @@ test.describe('V0.18.0/#1169 — RN-NOVA-42: juntar com outra produção (CEN-NO
     await expect(linha).toContainText('QA1184a-Cookie')
   })
 
-  test('CEN-NOVO-164 — produção Em andamento aparece marcada e não pode ser escolhida', async ({ page, request }) => {
+  test('CEN-NOVO-164 (R5) — produção Em andamento aparece com a situação e pode ser escolhida', async ({ page, request }) => {
     const token = await apiLogin(request)
-    const p = await produto(request, token, 'QA1184b-Brownie')
-    const a = await pedidoComProducao(request, token, p, 5, 'QA1184b-Maria')
-    const b = await pedidoComProducao(request, token, p, 7, 'QA1184b-Juliana')
+    const p = await produto(request, token, 'QA1191a-Brownie')
+    const a = await pedidoComProducao(request, token, p, 5, 'QA1191a-Maria')
+    const b = await pedidoComProducao(request, token, p, 7, 'QA1191a-Juliana')
     const iniciar = await request.post(`${E2E_API_URL}/producoes/${b.producao.id}/iniciar`, { headers: { Authorization: `Bearer ${token}` }, data: {} })
     expect(iniciar.ok()).toBeTruthy()
 
@@ -144,7 +144,44 @@ test.describe('V0.18.0/#1169 — RN-NOVA-42: juntar com outra produção (CEN-NO
     const candidata = page.getByTestId('candidata-juntar').filter({ hasText: b.producao.identificador })
     await expect(candidata).toHaveCount(1, { timeout: 10_000 })
     await expect(candidata.getByTestId('candidata-situacao')).toContainText('Em andamento')
-    await expect(candidata.locator('input[type=radio]')).toBeDisabled()
+    await expect(candidata.locator('input[type=checkbox]')).toBeEnabled()
+    await candidata.click()
+    await page.getByRole('button', { name: 'Juntar produções', exact: true }).click()
+    await expect(page.getByText(/Lote PRD-\d+ criado/)).toBeVisible({ timeout: 15_000 })
+  })
+
+  test('CEN-NOVO-171 (R5) — escolhe duas produções de uma vez e todas viram um lote só', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const p = await produto(request, token, 'QA1191b-Brownie')
+    const a = await pedidoComProducao(request, token, p, 5, 'QA1191b-Maria')
+    const b = await pedidoComProducao(request, token, p, 4, 'QA1191b-Juliana')
+    const c = await pedidoComProducao(request, token, p, 3, 'QA1191b-Ana')
+
+    await login(page)
+    await page.goto(`/orcamentos/${a.orcamentoId}`)
+    await page.getByRole('button', { name: 'Juntar com outra produção', exact: true }).click()
+    const candB = page.getByTestId('candidata-juntar').filter({ hasText: b.producao.identificador })
+    const candC = page.getByTestId('candidata-juntar').filter({ hasText: c.producao.identificador })
+    await expect(candB).toHaveCount(1, { timeout: 10_000 })
+    await candB.click()
+    await candC.click()
+    await expect(candB.locator('input[type=checkbox]')).toBeChecked()
+    await expect(candC.locator('input[type=checkbox]')).toBeChecked()
+    await page.getByRole('button', { name: 'Juntar produções', exact: true }).click()
+    await expect(page.getByText(/Lote PRD-\d+ criado/)).toBeVisible({ timeout: 15_000 })
+    await page.getByRole('button', { name: 'Entendi', exact: true }).click()
+    await expect(page.getByTestId('linha-lote')).toContainText('QA1191b-Brownie', { timeout: 10_000 })
+  })
+
+  test('CEN-NOVO-172 (R5, negativo) — sem nenhuma escolha o botão Juntar fica desabilitado', async ({ page, request }) => {
+    const token = await apiLogin(request)
+    const p = await produto(request, token, 'QA1191c-Brownie')
+    const a = await pedidoComProducao(request, token, p, 5, 'QA1191c-Maria')
+    await pedidoComProducao(request, token, p, 7, 'QA1191c-Juliana')
+    await login(page)
+    await page.goto(`/orcamentos/${a.orcamentoId}`)
+    await page.getByRole('button', { name: 'Juntar com outra produção', exact: true }).click()
+    await expect(page.getByTestId('candidata-juntar').first()).toBeVisible({ timeout: 10_000 })
     await expect(page.getByRole('button', { name: 'Juntar produções', exact: true })).toBeDisabled()
   })
 
