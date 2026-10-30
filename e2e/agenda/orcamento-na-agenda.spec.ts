@@ -30,7 +30,7 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     return { orcamento, nomeCliente }
   }
 
-  test('CT-1035-01 — "Sinal a receber" no dia de "Sinal até", com o valor, e o painel do orçamento no detalhe', async ({ page, request }) => {
+  test('CT-1035-01 / CEN-NOVO-103 — "Sinal a receber" no dia de "Sinal até", com o valor, e o painel do orçamento no detalhe', async ({ page, request }) => {
     const token = await apiLogin(request)
     const dia = hojeLocal(2)
     const { orcamento, nomeCliente } = await novoOrcamento(request, token, 'QA1035A', { sinalAtivo: true, percentualSinal: 30, sinalAte: dia })
@@ -45,6 +45,9 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     const chip = page.getByTestId('compromisso').filter({ hasText: `Sinal a receber — ORC-${orcamento.numero} (${nomeCliente}) — R$ 30,00` })
     await expect(chip).toBeVisible()
     await expect(chip).toHaveClass(/bg-rose-bg/)
+    await expect(chip).toHaveAttribute('data-tom', 'rosa') // CEN-NOVO-103: orçamento não usa o tom de sucesso/verde
+    await expect(chip).not.toHaveAttribute('data-tom', 'sucesso')
+    await expect(chip).not.toHaveAttribute('data-tom', 'teal')
     await chip.click()
     const painel = page.getByTestId('painel-orcamento')
     await expect(painel).toContainText(nomeCliente)

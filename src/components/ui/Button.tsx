@@ -14,6 +14,8 @@ interface ButtonProps {
   className?: string
   autoFocus?: boolean
   'data-testid'?: string
+  /** Tom (cor) estável para teste e leitura: não muda o visual. */
+  'data-tom'?: string
 }
 
 const sizeClasses = {
@@ -44,6 +46,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className,
       autoFocus,
       'data-testid': testId,
+      'data-tom': tom,
     },
     ref
   ) => {
@@ -55,6 +58,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled}
         autoFocus={autoFocus}
         data-testid={testId}
+        data-tom={tom}
         className={clsx(
           'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn font-semibold font-[inherit] transition-[filter,transform,background-color] duration-150',
           disabled ? 'cursor-not-allowed opacity-50 pointer-events-none' : 'cursor-pointer',

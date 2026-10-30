@@ -167,7 +167,7 @@ export default function AgendaPage() {
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Agenda</h1>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" icon={<ChevronLeft size={16} />} onClick={() => setReferencia(navegar(visao, referencia, -1))}>Anterior</Button>
-          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
+          <Button variant={periodoContemHoje ? 'primary' : 'ghost'} size="sm" data-tom={periodoContemHoje ? 'laranja' : 'neutro'} onClick={() => { setReferencia(hoje); setSinalHoje(n => n + 1) }}>Hoje</Button>
           <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />} onClick={() => setReferencia(navegar(visao, referencia, 1))}>Próximo</Button>
         </div>
         <span className={visao === 'MES' ? 'text-[15px] font-semibold text-dark' : 'sr-only'} data-testid="titulo-periodo">{tituloDoPeriodo(visao, referencia)}</span>

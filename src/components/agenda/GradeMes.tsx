@@ -30,14 +30,14 @@ export default function GradeMes({ dias, mesDeReferencia, hoje, porDia, onAbrir,
             const restantes = itens.length - visiveis.length
             const foraDoMes = dia.slice(0, 7) !== mesDeReferencia.slice(0, 7)
             return (
-              <div key={dia} data-testid={`dia-${dia}`}
+              <div key={dia} data-testid={`dia-${dia}`} data-tom={dia === hoje ? 'laranja' : undefined}
                 onDragOver={onMoverDia ? e => e.preventDefault() : undefined}
                 onDrop={onMoverDia ? e => { e.preventDefault(); const chave = e.dataTransfer.getData('text/plain'); if (chave) onMoverDia(chave, dia) } : undefined}
                 className={clsx('relative min-h-[112px] border-b border-r border-line p-1.5', foraDoMes && 'bg-cream/60', dia === hoje && 'bg-orange/5')}>
                 <button type="button" data-testid={`criar-dia-${dia}`} aria-label={`Criar evento em ${dia}`} onClick={() => onCriar(dia)}
                   className="absolute inset-0 z-0 cursor-pointer rounded-md bg-transparent hover:bg-cream/60 focus-visible:outline-2 focus-visible:outline-teal" />
                 <div className="relative z-10 mb-1 flex justify-end">
-                  <button type="button" onClick={() => onVerDia(dia)} aria-label={`Ver o dia ${dia}`}
+                  <button type="button" onClick={() => onVerDia(dia)} aria-label={`Ver o dia ${dia}`} data-tom={dia === hoje ? 'laranja' : undefined}
                     className={clsx('grid h-6 min-w-6 place-items-center rounded-full px-1 text-xs font-semibold',
                       dia === hoje ? 'bg-orange text-white' : foraDoMes ? 'text-faint' : 'text-body')}>
                     {diaDoMes(dia)}
