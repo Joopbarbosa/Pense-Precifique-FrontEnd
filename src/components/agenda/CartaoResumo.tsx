@@ -26,7 +26,9 @@ export default function CartaoResumo({ compromisso, ancora, atraso }: { compromi
     }
   }, [ancora])
 
-  const horario = compromisso.horario ? ` · ${compromisso.horario}` : ''
+  // RN-NOVA-2 v4 (#1066): data e hora de início–término quando o compromisso tem término; senão só o início
+  const faixa = compromisso.horario && compromisso.horarioFim ? `${compromisso.horario}–${compromisso.horarioFim}` : compromisso.horario
+  const horario = faixa ? ` · ${faixa}` : ''
   return createPortal(
     <div data-testid="cartao-resumo" role="tooltip" className="fixed z-[100] w-[280px] rounded-card border border-line bg-white p-3 text-sm text-body shadow-card" style={posicao}>
       <p className="m-0 font-semibold text-dark">{compromisso.titulo}</p>
