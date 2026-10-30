@@ -16,7 +16,8 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
     // a conta de teste é compartilhada: os outros specs deixam atrasados e compromissos de hoje, então a conta parte do que já existe
     const antes = await resumoAgenda(request, token)
     for (const titulo of atrasados) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(-2) })
-    for (const titulo of pendentes) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(0) })
+    // com horário, cada um ocupa a grade; sem horário a linha de dia inteiro mostra só 2 e o resto vira +N (#1189)
+    for (const [i, titulo] of pendentes.entries()) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(0), horario: `${String(8 + i).padStart(2, '0')}:00`, horarioFim: `${String(8 + i).padStart(2, '0')}:30` })
 
     await login(page)
     await page.goto('/agenda')
@@ -39,15 +40,15 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
     const token = await apiLogin(request)
     const sufixo = Date.now()
     const tituloEvento = `Filtro evento ${sufixo}`
-    await criarCompromissoUsuaria(request, token, { titulo: tituloEvento, data: hojeLocal(1) })
+    await criarCompromissoUsuaria(request, token, { titulo: tituloEvento, data: hojeLocal(0), horario: '10:00', horarioFim: '10:30' })
 
     const insumo = await criarInsumoComEstoque(request, token, `Filtro insumo ${sufixo}`, 0, true)
-    const compra = await registrarCompraPendente(request, token, [{ insumoId: insumo.id, quantidade: 1, precoTotal: 10 }], hojeLocal(2), hojeLocal(0))
+    const compra = await registrarCompraPendente(request, token, [{ insumoId: insumo.id, quantidade: 1, precoTotal: 10 }], hojeLocal(0), hojeLocal(0))
 
     const produto = await criarProdutoComEstoque(request, token, `Filtro produto ${sufixo}`, 100)
     const cliente = await criarCliente(request, token, `Filtro cliente ${sufixo}`)
     const orcamento = await criarOrcamentoViaApi(request, token, cliente.id,
-      [{ produtoId: produto.id, precoUnitario: 40, margemAplicada: 50, quantidade: 1 }], { prazoProducaoDias: 2 })
+      [{ produtoId: produto.id, precoUnitario: 40, margemAplicada: 50, quantidade: 1 }], { prazoProducaoDias: 1 })
     await avancarStatusViaApi(request, token, orcamento.id)
     await avancarStatusViaApi(request, token, orcamento.id)
 
@@ -68,6 +69,9 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
     await page.getByLabel('Meus eventos', { exact: true }).uncheck()
     await expect(page.getByTestId('compromisso').filter({ hasText: tituloEvento })).toBeVisible()
     await expect(page.getByTestId('compromisso').filter({ hasText: compra.identificador })).toBeVisible()
+    // a entrega estimada cai amanhã: no sábado ela está na semana seguinte; a busca isola o chip da linha de dia inteiro (limite de 2, #1189)
+    if (new Date().getDay() === 6) await page.getByRole('button', { name: 'Próximo' }).click()
+    await page.getByLabel('Buscar na agenda').fill(`ORC-${orcamento.numero}`)
     await expect(page.getByTestId('compromisso').filter({ hasText: `Entrega estimada — ORC-${orcamento.numero}` })).toBeVisible()
   })
 
