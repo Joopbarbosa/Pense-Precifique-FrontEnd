@@ -112,8 +112,10 @@ function painelDoBuscador(page: import('@playwright/test').Page) {
 
 /** Rolar até o fim do painel deve trazer para dentro da área visível um registro que não está entre os 6 primeiros. */
 async function conferirRolagemAlcanca(painel: Locator, nome: string) {
-  await painel.evaluate(el => { el.scrollTop = el.scrollHeight })
+  // a rolagem é refeita a cada tentativa: com a suíte inteira a API responde mais devagar e uma nova renderização da lista
+  // pode devolver o painel ao topo depois do primeiro scroll
   await expect.poll(() => painel.evaluate((el, alvoNome) => {
+    el.scrollTop = el.scrollHeight
     const alvo = [...el.querySelectorAll<HTMLElement>('[data-search-row]')].find(linha => linha.textContent?.includes(alvoNome))
     if (!alvo) return false
     const caixa = el.getBoundingClientRect()
