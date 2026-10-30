@@ -28,8 +28,12 @@ async function abrirMes(page: Page, alvo: string) {
 
 async function arrastar(page: Page, chip: Locator, destino: string) {
   await expect(chip).toBeVisible()
+  const alvo = page.getByTestId(`dia-${destino}`)
+  // linhas do fim do mês podem ficar abaixo da dobra; o mouse só acerta o que está na tela
+  await alvo.scrollIntoViewIfNeeded()
+  await chip.scrollIntoViewIfNeeded()
   const de = (await chip.boundingBox())!
-  const para = (await page.getByTestId(`dia-${destino}`).boundingBox())!
+  const para = (await alvo.boundingBox())!
   await page.mouse.move(de.x + de.width / 2, de.y + de.height / 2)
   await page.mouse.down()
   await page.mouse.move(de.x + de.width / 2 + 10, de.y + de.height / 2 + 10, { steps: 4 })
