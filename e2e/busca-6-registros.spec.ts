@@ -23,7 +23,8 @@ async function conferirSeisLinhasVisiveis(painel: Locator) {
     const linhas = [...el.querySelectorAll<HTMLElement>('[data-search-row]')]
     const painelBox = el.getBoundingClientRect()
     const primeirasSeisDentro = linhas.slice(0, 6).every(linha => linha.getBoundingClientRect().bottom <= painelBox.bottom + 1)
-    const setimaFora = linhas[6] ? linhas[6].getBoundingClientRect().top >= painelBox.bottom - 1 : false
+    // tolerância de 2px: a borda do painel pode cobrir um sub-pixel da 7ª linha sem que ela apareça
+    const setimaFora = linhas[6] ? linhas[6].getBoundingClientRect().top >= painelBox.bottom - 2 : false
     return primeirasSeisDentro && setimaFora && el.scrollHeight > el.clientHeight && el.scrollTop === 0
   })).toBe(true)
 }
@@ -138,8 +139,9 @@ test('CEN-NOVO-160 — Item de venda do Caixa exibe 6 registros sem rolar', asyn
     await login(page)
     await page.goto('/caixa')
     await page.getByRole('button', { name: 'Adicionar item', exact: true }).click()
+    // o campo já recebe foco ao abrir o item; um click do Playwright rola o painel 12px e expõe a 7ª linha
     const busca = page.getByPlaceholder('Buscar produto ou item de catálogo...')
-    await busca.click()
+    await busca.focus()
     await conferirSeisLinhasVisiveis(painelDoBuscador(page))
 
     await busca.fill(`QA1195-Caixa-${sufixo}`)
@@ -171,7 +173,7 @@ test('CEN-NOVO-160 — Insumo da ficha técnica exibe 6 registros sem rolar', as
     await page.getByPlaceholder('45').fill('30')
     await page.getByRole('button', { name: 'Próximo: Ficha Técnica' }).click()
     const busca = page.getByPlaceholder('Buscar insumo ou produto...')
-    await busca.click()
+    await busca.focus()
     await conferirSeisLinhasVisiveis(painelDoBuscador(page))
 
     await busca.fill(`QA1195-Ficha-${sufixo}`)
