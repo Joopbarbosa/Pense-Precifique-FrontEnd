@@ -3,6 +3,7 @@ import { E2E_API_URL } from '../helpers/target'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
+import { filtrarAgenda } from '../helpers/agenda'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 import { registrarCompraPendente } from '../helpers/compra'
 import { criarProdutoComFicha, inativarProduto, teardownProducoes } from '../helpers/producao'
@@ -56,6 +57,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, `Início previsto — ${producao.identificador}`) // isola o card do "+N" de dia inteiro (#1204)
     const chip = page.getByTestId('compromisso').filter({ hasText: `Início previsto — ${producao.identificador} (Bolsa ${sufixo} — Atelier, +2 produtos)` })
     await expect(chip).toBeVisible()
     await expect(chip).toHaveClass(/bg-purple\/15/)
@@ -79,6 +81,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, `Entrega de compra — ${compra.identificador}`) // isola o card do "+N" de dia inteiro (#1204)
     const chip = page.getByTestId('compromisso').filter({ hasText: `Entrega de compra — ${compra.identificador}` })
     await expect(chip).toBeVisible()
     await expect(chip).toHaveClass(/bg-azul\/20/)
@@ -129,6 +132,7 @@ test.describe('#1036 e #549 — Produção e compra na Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, `Entrega de compra — ${compra.identificador}`) // isola o card do "+N" de dia inteiro (#1204)
     await page.getByTestId('compromisso').filter({ hasText: `Entrega de compra — ${compra.identificador}` }).click()
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
     const campo = page.getByRole('textbox').last()

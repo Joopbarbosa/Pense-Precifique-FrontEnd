@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
+import { filtrarAgenda } from '../helpers/agenda'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi, buscarOrcamento } from '../helpers/orcamento'
 import { criarProdutoComEstoque, inativarProduto } from '../helpers/producao'
 
@@ -60,6 +61,7 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, `Validade — ORC-${orcamento.numero}`)
     await expect(page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero} vence hoje` })).toBeVisible()
     await page.getByRole('button', { name: 'Anterior' }).click()
     await expect(page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })).toHaveCount(0)
@@ -67,6 +69,7 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Próximo' }).click()
+    await filtrarAgenda(page, `Validade — ORC-${orcamento.numero}`)
     const chip = page.getByTestId('compromisso').filter({ hasText: `Validade — ORC-${orcamento.numero}` })
     await expect(chip).toHaveCount(1)
     await expect(chip).toHaveAttribute('data-situacao', 'CONCLUIDO')
@@ -81,9 +84,8 @@ test.describe('#1035 — Orçamento na Agenda', () => {
     await page.goto('/agenda')
     await page.getByRole('button', { name: 'Dia', exact: true }).click()
     await page.getByRole('button', { name: 'Próximo' }).click()
-    // Com outros compromissos de dia inteiro no mesmo dia (suíte inteira), só 2 cabem na linha; o "+N" abre os demais.
-    const mais = page.locator('[data-testid^="mais-"]')
-    if (await mais.count()) await mais.first().click()
+    // Com outros compromissos de dia inteiro no mesmo dia (suíte inteira), só 2 cabem na linha e o "+N" esconde o resto; a busca isola o card (#1204).
+    await filtrarAgenda(page, `Saldo a receber — ORC-${orcamento.numero}`)
     await expect(page.getByTestId('compromisso').filter({ hasText: `Saldo a receber — ORC-${orcamento.numero} (${nomeCliente}) — R$ 70,00` })).toBeVisible()
   })
 

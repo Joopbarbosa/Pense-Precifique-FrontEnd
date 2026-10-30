@@ -15,7 +15,8 @@ test.describe('#1058 — filtros visuais da Agenda (CEN-NOVO-85 a 87)', () => {
     const pendentes = Array.from({ length: 5 }, (_, i) => `Filtro pendente ${i + 1} ${Date.now()}`)
     // a conta de teste é compartilhada: os outros specs deixam atrasados e compromissos de hoje, então a conta parte do que já existe
     const antes = await resumoAgenda(request, token)
-    for (const titulo of atrasados) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(-2) })
+    // idem os atrasados: com horário, o "+N" da linha de dia inteiro não os esconde quando outros specs deixam compromissos nesses dias (#1204)
+    for (const [i, titulo] of atrasados.entries()) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(-2), horario: `0${8 + i}:00`, horarioFim: `0${8 + i}:30` })
     // com horário (no fim do dia, para ainda não estarem atrasados), cada um ocupa a grade; sem horário a linha de dia inteiro mostra só 2 e o resto vira +N (#1189)
     for (const [i, titulo] of pendentes.entries()) await criarCompromissoUsuaria(request, token, { titulo, data: hojeLocal(0), horario: `23:${String(10 + i * 10).padStart(2, '0')}`, horarioFim: `23:${String(15 + i * 10).padStart(2, '0')}` })
 

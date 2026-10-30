@@ -3,7 +3,7 @@ import { E2E_API_URL } from '../helpers/target'
 import { login } from '../helpers/auth'
 import { apiLogin } from '../helpers/api'
 import { hojeLocal } from '../helpers/data'
-import { criarCompromissoUsuaria } from '../helpers/agenda'
+import { criarCompromissoUsuaria, filtrarAgenda } from '../helpers/agenda'
 import { criarInsumoComEstoque } from '../helpers/insumo'
 import { registrarCompraPendente } from '../helpers/compra'
 import { criarCliente, criarOrcamentoViaApi, avancarStatusViaApi, buscarOrcamento } from '../helpers/orcamento'
@@ -102,6 +102,7 @@ test.describe('#1187 — Restrições ao mover e histórico da Agenda', () => {
     const origem = hojeLocal(1), destino = hojeLocal(2)
 
     await abrirMes(page, origem)
+    await filtrarAgenda(page, rotulo) // isola o card do "+N" que os dias próximos de hoje acumulam (#1204)
     const chip = page.getByTestId(`dia-${origem}`).getByTestId('compromisso').filter({ hasText: rotulo })
     await arrastar(page, chip, destino)
     await naoAbreJanela(page)
@@ -141,6 +142,7 @@ test.describe('#1187 — Restrições ao mover e histórico da Agenda', () => {
 
     await abrirMes(page, origem)
     for (const [trecho, rotulo] of [[compra.identificador, 'compra'], [rotuloSinal, 'sinal']] as const) {
+      await filtrarAgenda(page, trecho) // isola o card do "+N" que os dias próximos de hoje acumulam (#1204)
       const chip = page.getByTestId(`dia-${origem}`).getByTestId('compromisso').filter({ hasText: trecho })
       await arrastar(page, chip, destino)
       await expect(page.getByTestId('movimento-bloqueio'), rotulo).toBeVisible()
@@ -158,6 +160,7 @@ test.describe('#1187 — Restrições ao mover e histórico da Agenda', () => {
     const origem = hojeLocal(0), destino = hojeLocal(-1)
     await criarCompromissoUsuaria(request, token, { titulo, data: origem })
     await abrirMes(page, origem)
+    await filtrarAgenda(page, titulo) // isola o card do "+N" que os dias próximos de hoje acumulam (#1204)
     const chip = page.getByTestId(`dia-${origem}`).getByTestId('compromisso').filter({ hasText: titulo })
     await arrastar(page, chip, destino)
     await expect(page.getByTestId('movimento-aviso')).toContainText('A data já passou')
