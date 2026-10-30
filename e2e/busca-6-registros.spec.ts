@@ -89,7 +89,7 @@ test('CEN-NOVO-160 — Registrar compra, Nova produção e vínculo exibem 6 reg
 
     await page.goto('/orcamentos/novo')
     const buscaCliente = page.getByPlaceholder('Selecionar cliente...')
-    await buscaCliente.click()
+    await buscaCliente.fill(`QA1195-Cliente-${sufixo}`) // restringe aos 10 clientes do teste; a suíte inteira deixa outros
     const linhasCliente = page.locator('[data-search-row]')
     await expect.poll(() => linhasCliente.count()).toBe(10)
     const painelCliente = linhasCliente.first().locator('xpath=..')
