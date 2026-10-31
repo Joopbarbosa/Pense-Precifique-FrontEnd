@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { AlertCircle, Phone, RotateCw, Search } from 'lucide-react'
+import { AlertCircle, ExternalLink, Phone, RotateCw, Search } from 'lucide-react'
 import Spinner from '../ui/Spinner'
 import { InativoBadge } from '../cliente/PapelTags'
 import OpcaoInativa from '../shared/OpcaoInativa'
@@ -7,6 +7,7 @@ import { clienteService } from '../../services/clienteService'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import type { ClienteResponse } from '../../types/cliente'
 import { useAlturaListaBusca } from '../../hooks/useAlturaListaBusca'
+import CadastroRapidoClienteModal from '../cliente/CadastroRapidoClienteModal'
 
 /**
  * Busca + seleção de cliente — usado por Orçamento e Caixa (#502, V0.12.0). Extraído de
@@ -76,6 +77,9 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
           <button onClick={onClear} className="shrink-0 cursor-pointer border-none bg-transparent px-2 py-1.5 text-[13px] font-semibold text-teal">
             Trocar
           </button>
+          <button type="button" aria-label="Abrir detalhe do cliente em nova aba" title="Abrir detalhe do cliente" onClick={() => window.open(`/clientes/${cliente.id}`, '_blank', 'noopener,noreferrer')}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line bg-white text-teal"><ExternalLink size={16} /></button>
+          <CadastroRapidoClienteModal onCriado={onSelect} />
         </div>
       </div>
     )
@@ -92,8 +96,11 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
           onChange={e => { setQ(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           placeholder="Selecionar cliente..."
-          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-4 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
+          className="h-12 w-full rounded-input border-[1.5px] border-line bg-white py-0 pl-[42px] pr-24 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150 focus:border-teal focus:ring-4 focus:ring-teal/12"
         />
+        <button type="button" aria-label="Abrir detalhe do cliente em nova aba" title="Selecione um cliente para abrir o detalhe" disabled
+          className="absolute right-[58px] top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg border border-line bg-white text-muted opacity-50 disabled:cursor-not-allowed"><ExternalLink size={16} /></button>
+        <CadastroRapidoClienteModal onCriado={onSelect} triggerClassName="absolute right-2 top-1.5 inline-grid h-9 w-10 place-items-center rounded-input border border-line bg-white text-teal hover:bg-teal/5" />
         {open && estado === 'carregando' && results.length === 0 && (
           <div role="status" className="absolute inset-x-0 top-[54px] z-30 flex items-center gap-2.5 rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-muted shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
             <Spinner size={16} trackColor="#EFEDE8" /> Buscando clientes…

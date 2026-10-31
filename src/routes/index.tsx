@@ -45,6 +45,7 @@ import DetalheProducaoPage from '../pages/producao/DetalheProducaoPage'
 import ConfiguracoesPage from '../pages/configuracoes/ConfiguracoesPage'
 import CaixaPage from '../pages/caixa/CaixaPage'
 import FinanceiroPage from '../pages/financeiro/FinanceiroPage'
+import CategoriasFinanceirasPage from '../pages/financeiro/CategoriasFinanceirasPage'
 import HistoricoVendasPage from '../pages/caixa/HistoricoVendasPage'
 
 export const router = createBrowserRouter([
@@ -79,6 +80,7 @@ export const router = createBrowserRouter([
 
       { path: '/caixa',                element: <CaixaPage /> },
       { path: '/financeiro',           element: <FinanceiroPage /> },
+      { path: '/financeiro/categorias', element: <CategoriasFinanceirasPage /> },
       { path: '/caixa/historico',      element: <HistoricoVendasPage /> },
 
       { path: '/compras',              element: <ComprasPage /> },
