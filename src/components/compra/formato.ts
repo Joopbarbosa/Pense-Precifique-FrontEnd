@@ -1,16 +1,8 @@
-import { formatarData } from '../../utils/data'
 import type { CompraResponse, RegraPrecoReferencia, StatusCompra } from '../../types/compra'
 import { BRL } from '../venda/formato'
 import type { VinculoNotaResponse } from '../../types/vinculoNota'
 
 // V0.15.0 — formatação das telas de Compras (só exibição; valores vêm prontos da API).
-
-/** #993: dd/mm/aaaa hh:mm de um LocalDateTime do servidor (já no horário de Brasília), sem passar por Date para não mudar de fuso. */
-export function formatarDataHora(iso?: string | null): string {
-  if (!iso) return '—'
-  const [dia, hora] = iso.split('T')
-  return hora ? `${formatarData(dia)} ${hora.slice(0, 5)}` : formatarData(dia)
-}
 
 /** R$ com 2 casas (#603, RN-NOVA-33): custo unitário e preço pago guardam 4, mas a tela mostra 2. */
 export function moeda(n: number | null | undefined): string {

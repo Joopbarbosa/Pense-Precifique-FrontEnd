@@ -16,8 +16,10 @@ export function rotuloMes(iso: string): string {
   return `${MESES[Number(iso.slice(5, 7)) - 1]}/${iso.slice(2, 4)}`
 }
 
-/** "2026-10-02T14:10:00" → "02/10/2026 14:10"; vazio quando não há data. */
-export function formatarDataHora(iso?: string | null): string {
-  if (!iso) return ''
-  return `${formatarData(iso)} ${iso.slice(11, 16)}`
+/** Formata data/hora ISO sem criar Date; texto vazio é definido pelo chamador. */
+export function formatarDataHora(iso?: string | null, textoVazio = ''): string {
+  if (!iso) return textoVazio
+  const data = formatarData(iso)
+  const hora = iso.slice(11, 16)
+  return hora.trim() ? `${data} ${hora}` : data
 }
