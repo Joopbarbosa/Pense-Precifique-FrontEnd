@@ -1,12 +1,10 @@
 import { formatarMoeda2 } from '../../utils/formatacao'
 import { useState } from "react";
-import clsx from "clsx";
 import { Receipt, Wallet } from "lucide-react";
 import Button from "../ui/Button";
 import ModalShell from "../ui/ModalShell";
-import TextArea from "../ui/TextArea";
-import { METODOS_PAGAMENTO } from "../../constants";
-import type { OrcamentoDetalheResponse, AvancaStatusRequest, MetodoPagamento } from "../../types/orcamento";
+import MetodoPagamentoEscolha from "../compra/MetodoPagamentoEscolha";
+import type { OrcamentoDetalheResponse, AvancaStatusRequest } from "../../types/orcamento";
 
 const BRL = (n: number) => formatarMoeda2(n);
 
@@ -23,13 +21,8 @@ export default function ModalSinal({
   onConfirm: (data: AvancaStatusRequest) => void;
   saving: boolean;
 }) {
-  const [forma, setForma] = useState<MetodoPagamento>("PIX");
-  const [formaObs, setFormaObs] = useState("");
-
-  const obsCharCount = formaObs.length;
-  const obsInvalida = obsCharCount > 0 && obsCharCount < 50;
-  const obsValida = forma !== "OUTRO" || obsCharCount >= 50;
-  const podeConfirmar = obsValida && !saving;
+  const [forma, setForma] = useState<string | null>(null);
+  const podeConfirmar = !!forma && !saving;
 
   return (
     <ModalShell
@@ -49,10 +42,7 @@ export default function ModalSinal({
             variant="primary"
             disabled={!podeConfirmar}
             onClick={() =>
-              onConfirm({
-                metodoSinalRecebido: forma,
-                metodoSinalRecebidoObs: forma === "OUTRO" ? formaObs : undefined,
-              })
+              onConfirm({ metodoSinalRecebidoId: forma ?? undefined })
             }
           >
             {saving ? "Confirmando..." : "Confirmar e gerar recibo →"}
@@ -73,47 +63,12 @@ export default function ModalSinal({
         </span>
       </div>
 
-      {/* Forma de pagamento — chips */}
+      {/* Forma de pagamento — métodos ativos do cadastro (RN-NOVA-42) */}
       <div className="mb-section">
         <div className="mb-[9px] text-[13px] font-semibold text-body">
           Forma de pagamento recebida
         </div>
-        <div className="flex flex-wrap gap-2">
-          {METODOS_PAGAMENTO.map((m) => {
-            const on = forma === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setForma(m.id)}
-                className={clsx(
-                  "h-[38px] whitespace-nowrap rounded-full border-[1.5px] px-3.5 font-[inherit] text-[13.5px] font-semibold transition-all duration-150",
-                  on ? "border-teal bg-teal text-white" : "border-line bg-white text-body"
-                )}
-              >
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {forma === "OUTRO" && (
-          <div className="mt-3 animate-[fadeUp_.2s_ease_both]">
-            <span className="mb-[7px] flex items-center text-[13px] font-semibold text-body">
-              <span>
-                Descreva a forma de pagamento <span className="text-orange">*</span>
-              </span>
-            </span>
-            <TextArea
-              value={formaObs}
-              onChange={setFormaObs}
-              rows={2}
-              minimo={50}
-              erro={obsInvalida ? `Mínimo de 50 caracteres. Faltam ${50 - obsCharCount}.` : undefined}
-              textSize="text-[13.5px]"
-              placeholder="Ex: cheque à vista, app de pagamento..."
-            />
-          </div>
-        )}
+        <MetodoPagamentoEscolha value={forma} onChange={setForma} />
       </div>
 
       {/* Aviso */}

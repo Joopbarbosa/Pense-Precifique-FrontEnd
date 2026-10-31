@@ -16,11 +16,10 @@ import Toast from '../../components/shared/Toast'
 import type { ClienteResponse } from '../../types/cliente'
 import type { ProdutoResponse } from '../../types/produto'
 import type {
-  OrcamentoRequest, MetodoPagamento, ItemCatalogoBuscaResponse,
+  OrcamentoRequest, ItemCatalogoBuscaResponse,
   SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse,
 } from '../../types/orcamento'
 import type { CatalogoResponse } from '../../types/catalogo'
-import { METODOS_PAGAMENTO } from '../../constants'
 import { useToast } from '../../hooks/useToast'
 import { extractApiError } from '../../utils/apiError'
 // Componentes de venda compartilhados com o Caixa (V0.12.0) — antes eram funções locais deste
@@ -190,8 +189,6 @@ function PrazoSection({
 
 // ── PagamentoSection ───────────────────────────────────────────────────────
 function PagamentoSection({
-  metodoPagamento, setMetodoPagamento,
-  metodoPagamentoObs, setMetodoPagamentoObs,
   ativo, setAtivo,
   tipo, setTipo,
   valor, setValor,
@@ -199,10 +196,6 @@ function PagamentoSection({
   error,
   sinalAte, setSinalAte, sinalAteError,
 }: {
-  metodoPagamento: string
-  setMetodoPagamento: (v: string) => void
-  metodoPagamentoObs: string
-  setMetodoPagamentoObs: (v: string) => void
   ativo: boolean
   setAtivo: (v: boolean) => void
   tipo: '%' | 'R$'
@@ -216,63 +209,8 @@ function PagamentoSection({
   setSinalAte: (v: string) => void
   sinalAteError?: string
 }) {
-  const obsCharCount = metodoPagamentoObs.length
-  const obsInvalido = obsCharCount > 0 && obsCharCount < 50
   return (
     <div className="flex flex-col gap-5 px-5 pb-5 pt-4">
-
-      {/* MÉTODO DE PAGAMENTO */}
-      <div>
-        <div className="mb-3.5 flex items-center gap-3">
-          <span className="grid h-[38px] w-[38px] place-items-center rounded-[11px] bg-teal/10 text-teal">
-            <Wallet size={18} />
-          </span>
-          <div>
-            <div className="text-[14.5px] font-semibold text-dark">Método de pagamento</div>
-            <div className="mt-px text-[12.5px] text-muted">Como a cliente vai pagar.</div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {METODOS_PAGAMENTO.map(m => {
-            const on = metodoPagamento === m.id
-            return (
-              <button
-                key={m.id}
-                onClick={() => setMetodoPagamento(m.id)}
-                className={clsx(
-                  'h-[38px] whitespace-nowrap rounded-full border-[1.5px] px-4 font-[inherit] text-[13.5px] font-semibold transition-all duration-150',
-                  on ? 'border-teal bg-teal text-white' : 'border-line bg-white text-body hover:bg-cream'
-                )}
-              >
-                {m.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {metodoPagamento === 'OUTRO' && (
-          <div className="mt-3 animate-[fadeUp_.2s_ease_both]">
-            <label className="block">
-              <span className="mb-[7px] flex items-center text-[13px] font-semibold text-body">
-                <span>Descreva o método de pagamento <span className="text-orange">*</span></span>
-              </span>
-              <TextArea
-                value={metodoPagamentoObs}
-                onChange={setMetodoPagamentoObs}
-                rows={3}
-                minimo={50}
-                erro={obsInvalido ? `Mínimo de 50 caracteres. Faltam ${50 - obsCharCount}.` : undefined}
-                textSize="text-sm"
-                placeholder="Ex: cheque à vista, transferência internacional..."
-              />
-            </label>
-          </div>
-        )}
-      </div>
-
-      {/* DIVISOR */}
-      <div className="h-px bg-line" />
 
       {/* SINAL */}
       <div>
@@ -470,8 +408,6 @@ export default function CriarOrcamentoPage() {
   const [modalItem, setModalItem] = useState<Item | null>(null)
   const [descTipo, setDescTipo] = useState<'%' | 'R$'>('%')
   const [descValor, setDescValor] = useState('')
-  const [metodoPagamento, setMetodoPagamento] = useState('PIX')
-  const [metodoPagamentoObs, setMetodoPagamentoObs] = useState('')
   // #1111 — orçamento novo começa sem prazo de produção; a edição carrega o que foi gravado
   const [temPrazoProducao, setTemPrazoProducao] = useState(false)
   const [prazoDias, setPrazoDias] = useState('')
@@ -561,8 +497,6 @@ export default function CriarOrcamentoPage() {
           estoqueAtual: it.estoqueAtual,
           fracionavel: it.fracionavel ?? undefined,
         })))
-        setMetodoPagamento(orc.metodoPagamento)
-        setMetodoPagamentoObs(orc.metodoPagamentoObs || '')
         setTemPrazoProducao(orc.prazoProducaoDias != null)
         setPrazoDias(orc.prazoProducaoDias != null ? String(orc.prazoProducaoDias) : '')
         setInicioImediato(orc.inicioAssimQueAprovado)
@@ -697,11 +631,6 @@ export default function CriarOrcamentoPage() {
       return
     }
 
-    if (metodoPagamento === 'OUTRO' && metodoPagamentoObs.length < 50) {
-      alert('Descreva o método de pagamento com ao menos 50 caracteres')
-      return
-    }
-
     const pendentes = calcularItensPendentesAvanco()
     if (pendentes.length > 0) {
       setPendentesAvanco(pendentes)
@@ -729,8 +658,6 @@ export default function CriarOrcamentoPage() {
           quantidade: c.qtd,
         })),
       })),
-      metodoPagamento: metodoPagamento as MetodoPagamento,
-      metodoPagamentoObs: metodoPagamento === 'OUTRO' ? metodoPagamentoObs : undefined,
       temPrazoProducao,
       prazoProducaoDias: temPrazoProducao ? prazoDiasNum : undefined,
       inicioAssimQueAprovado: temPrazoProducao ? inicioImediato : true,
@@ -892,10 +819,6 @@ export default function CriarOrcamentoPage() {
           {/* Seção 4: Pagamento */}
           <SectionCard step="4" label="Condições de pagamento" hint="Quer pedir um sinal (entrada) para começar?">
             <PagamentoSection
-              metodoPagamento={metodoPagamento}
-              setMetodoPagamento={setMetodoPagamento}
-              metodoPagamentoObs={metodoPagamentoObs}
-              setMetodoPagamentoObs={setMetodoPagamentoObs}
               ativo={sinalAtivo} setAtivo={setSinalAtivo}
               tipo={sinalTipo} setTipo={setSinalTipo}
               valor={sinalValor} setValor={setSinalValor}
