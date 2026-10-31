@@ -685,7 +685,7 @@ export default function DetalheClientePage() {
                       <div className="text-right text-body md:text-left">{formatarData(c.dataCompra)}</div>
                       <div className="flex flex-wrap gap-1.5">
                         <Pilula tom={s.tom}>{s.label}</Pilula>
-                        {c.status === 'CONFIRMADA' && !c.pago && <Pilula tom="laranja">Não paga</Pilula>}
+                        {c.status === 'CONFIRMADA' && c.pago === false && <Pilula tom="laranja">Não paga</Pilula>}
                       </div>
                       <div className="text-right font-semibold text-dark [font-variant-numeric:tabular-nums] md:text-left">{BRL(c.valor)}</div>
                     </div>

@@ -64,7 +64,8 @@ export interface CompraResponse {
   dataCompra: string
   multiplosFornecedores: boolean
   fornecedor: CadastroRef | null
-  pago: boolean
+  /** V0.19.0 (#1173, RN-NOVA-9) — derivado das parcelas; nulo em compra cancelada (a tela mostra "—"). */
+  pago: boolean | null
   metodoPagamento: MetodoPagamentoRef | null
   observacoes: string | null
   origem: OrigemCompra
@@ -105,7 +106,7 @@ export interface CompraResumoResponse {
   status: StatusCompra
   dataCompra: string
   fornecedores: string[]
-  pago: boolean
+  pago: boolean | null
   total: number
   quantidadeItens: number
   /** DT-NOVA-19 — "Fita de cetim ×10 m, Cola ×3 un". */
@@ -145,6 +146,8 @@ export interface CompraRequest {
   entregaImediata?: boolean
   /** #957 — só com entregaImediata = false; obrigatória ao confirmar. */
   previsaoEntrega?: string | null
+  /** V0.19.0 (#1173, RN-NOVA-8) — quando vence a compra não paga (ou a 1ª parcela do cartão). */
+  vencimento?: string | null
 }
 
 /** #959 (RN-NOVA-7) — entrada da compra pendente: sempre a compra inteira. */

@@ -134,6 +134,7 @@ export interface VendaCaixaPagamentoResponse {
   valor: number
   parcelas?: number | null
   taxaPercentualAplicada?: number | null
+  taxaValorAplicada?: number | null
 }
 
 export interface VendaCaixaResponse {
