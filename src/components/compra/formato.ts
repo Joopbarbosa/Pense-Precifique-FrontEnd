@@ -1,10 +1,11 @@
 import type { CompraResponse, RegraPrecoReferencia, StatusCompra } from '../../types/compra'
 import { BRL } from '../venda/formato'
+import { formatarNumero2 } from '../../utils/formatacao'
 import type { VinculoNotaResponse } from '../../types/vinculoNota'
 
 // V0.15.0 — formatação das telas de Compras (só exibição; valores vêm prontos da API).
 
-/** R$ com 2 casas (#603, RN-NOVA-33): custo unitário e preço pago guardam 4, mas a tela mostra 2. */
+/** R$ com 2 casas: custo unitário e preço pago guardam precisão integral, a tela mostra 2. */
 export function moeda(n: number | null | undefined): string {
   if (n == null) return '—'
   return BRL(n)
@@ -12,7 +13,7 @@ export function moeda(n: number | null | undefined): string {
 
 export function qtd(n: number | null | undefined): string {
   if (n == null) return '—'
-  return n.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+  return formatarNumero2(n)
 }
 
 /** Texto digitado ("1.250,5" / "1250.5" / "12,35") → número; vazio/ inválido → null. */

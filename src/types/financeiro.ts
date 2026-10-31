@@ -25,6 +25,9 @@ export interface ParcelaFinanceira {
   metodoPagamentoId?: string | null
   metodoPagamentoNome?: string | null
   origemBaixa?: string | null
+  /** F6 (PP-525): só despesa tem categoria. */
+  categoriaId?: string | null
+  categoriaNome?: string | null
 }
 
 export interface ListaParcelas {
@@ -39,8 +42,9 @@ export interface ListaParcelas {
 
 export interface FiltroParcelas {
   tipo: TipoLancamento
-  de: string
-  ate: string
+  /** Ausentes = período padrão da API: mês atual + todas as vencidas de qualquer mês (PP-697). */
+  de?: string
+  ate?: string
   situacao: FiltroSituacaoParcela
   page?: number
   size?: number
@@ -49,4 +53,12 @@ export interface FiltroParcelas {
 export interface BaixaParcelaRequest {
   dataBaixa?: string
   metodoPagamentoId: string
+}
+
+/** PP-525 (F6) — categoria de despesa. `semeada` = padrão do sistema (não se renomeia, inativa nem exclui). */
+export interface CategoriaFinanceira {
+  id: string
+  nome: string
+  semeada: boolean
+  ativa: boolean
 }

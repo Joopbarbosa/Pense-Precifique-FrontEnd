@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { Wallet } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
@@ -15,7 +16,7 @@ import { BRL } from '../../components/venda/formato'
 import { formatarData } from '../../utils/data'
 import { extractApiError } from '../../utils/apiError'
 import {
-  MENSAGEM_SEM_LANCAMENTOS, mensagemListaVazia, periodoDoMes, podeBaixar, podeDesfazer,
+  MENSAGEM_SEM_LANCAMENTOS, TEXTO_PERIODO_PADRAO, mensagemListaVazia, parametrosPeriodo, periodoDoMes, podeBaixar, podeDesfazer,
   rotuloAcaoBaixa, rotuloOrigem, rotuloParcela, rotuloSituacao,
 } from '../../utils/financeiro'
 import type { FiltroSituacaoParcela, ListaParcelas, ParcelaFinanceira, TipoLancamento } from '../../types/financeiro'
@@ -40,8 +41,10 @@ export default function FinanceiroPage() {
   const [tipo, setTipo] = useState<TipoLancamento>('A_PAGAR')
   const [situacao, setSituacao] = useState<FiltroSituacaoParcela>('EM_ABERTO')
   const mes = useMemo(() => periodoDoMes(), [])
-  const [de, setDe] = useState(mes.de)
-  const [ate, setAte] = useState(mes.ate)
+  // PP-697: null = padrão da API (mês atual + todas as vencidas); datas só vão quando a usuária escolhe um período
+  const [periodo, setPeriodo] = useState<{ de: string; ate: string } | null>(null)
+  const de = periodo?.de ?? mes.de
+  const ate = periodo?.ate ?? mes.ate
   const [lista, setLista] = useState<ListaParcelas | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -54,14 +57,14 @@ export default function FinanceiroPage() {
   const carregar = useCallback(async () => {
     setCarregando(true)
     try {
-      setLista(await financeiroService.listarParcelas({ tipo, de, ate, situacao }))
+      setLista(await financeiroService.listarParcelas({ tipo, ...parametrosPeriodo(periodo), situacao }))
       setErro(null)
     } catch (e) {
       setErro(extractApiError(e, 'Não foi possível carregar o financeiro.'))
     } finally {
       setCarregando(false)
     }
-  }, [tipo, de, ate, situacao])
+  }, [tipo, periodo, situacao])
 
   useEffect(() => { void carregar() }, [carregar])
 
@@ -89,17 +92,20 @@ export default function FinanceiroPage() {
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Financeiro</h1>
         <SegmentedControl options={OPCOES_TIPO} value={tipo} onChange={t => { setTipo(t); setSituacao('EM_ABERTO') }} display="inline-flex" optionWidth="whitespace-nowrap px-4" />
+        <Link to="/financeiro/categorias" className="ml-auto text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-categorias">Categorias de despesa</Link>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <SegmentedControl options={OPCOES_SITUACAO(tipo)} value={situacao} onChange={setSituacao} display="inline-flex" optionWidth="whitespace-nowrap px-4" />
         <label className="flex items-center gap-2 text-[13.5px] text-body">De
-          <input type="date" aria-label="Período de" value={de} max={ate} onChange={e => e.target.value && setDe(e.target.value)} className="h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 text-[14px]" />
+          <input type="date" aria-label="Período de" value={de} max={ate} onChange={e => e.target.value && setPeriodo({ de: e.target.value, ate })} className="h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 text-[14px]" />
         </label>
         <label className="flex items-center gap-2 text-[13.5px] text-body">até
-          <input type="date" aria-label="Período até" value={ate} min={de} onChange={e => e.target.value && setAte(e.target.value)} className="h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 text-[14px]" />
+          <input type="date" aria-label="Período até" value={ate} min={de} onChange={e => e.target.value && setPeriodo({ de, ate: e.target.value })} className="h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 text-[14px]" />
         </label>
+        {periodo && <Button variant="ghost" size="sm" onClick={() => setPeriodo(null)}>Voltar ao padrão</Button>}
       </div>
+      {!periodo && <p className="mb-4 mt-0 text-[13px] text-muted" data-testid="texto-periodo-padrao">{TEXTO_PERIODO_PADRAO}</p>}
 
       {lista && (
         <div className="mb-4 flex flex-wrap gap-3" data-testid="totais-financeiro">
@@ -140,7 +146,7 @@ export default function FinanceiroPage() {
                 <div className="min-w-[200px] flex-1">
                   <div className="text-[15px] font-semibold text-dark">{p.descricao}</div>
                   <div className="text-[13px] text-muted">
-                    {rotuloOrigem(p.origem)} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
+                    {rotuloOrigem(p.origem)}{p.categoriaNome && ` · ${p.categoriaNome}`} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
                     {p.dataBaixa && ` · ${baixadaRotulo.toLowerCase()} em ${formatarData(p.dataBaixa)}${p.metodoPagamentoNome ? ` (${p.metodoPagamentoNome})` : ''}`}
                   </div>
                 </div>

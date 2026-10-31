@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
@@ -149,7 +150,7 @@ export const ERRO_PERIODO = {
 /** #988: "N vendas · M unidades" quando a lista de vendas é de um produto; senão, "N registros". */
 function contagem(total: number, unidades: number | null, vendas: boolean): string {
   if (vendas && unidades != null) {
-    const un = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(unidades)
+    const un = formatarNumero2(unidades)
     return `${total} ${total === 1 ? 'venda' : 'vendas'} · ${un} ${unidades === 1 ? 'unidade' : 'unidades'}`
   }
   return `${total} ${total === 1 ? 'registro' : 'registros'}`

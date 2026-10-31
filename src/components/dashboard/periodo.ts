@@ -1,4 +1,5 @@
 import { dataLocalIso, formatarData, MESES } from '../../utils/data'
+import { formatarNumero2 } from '../../utils/formatacao'
 export { rotuloMes } from '../../utils/data'
 
 
@@ -21,7 +22,7 @@ export function intervalo(p: Periodo): { de: string; ate: string } {
   return { de: dataLocalIso(new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1)), ate: dataLocalIso(hoje) }
 }
 
-export const pct = (n: number | null | undefined) => n == null ? '—' : `${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+export const pct = (n: number | null | undefined) => n == null ? '—' : `${formatarNumero2(n)}%`
 export const ultimoDia = (mesIso: string) => {
   const [a, m] = mesIso.split('-').map(Number)
   return `${mesIso.slice(0, 7)}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`

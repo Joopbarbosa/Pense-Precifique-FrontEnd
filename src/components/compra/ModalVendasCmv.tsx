@@ -7,11 +7,12 @@ import ModalRegistro from '../cliente/ModalRegistro'
 import { compraService } from '../../services/compraService'
 import type { VendaCmvResponse, VendasCmvResponse } from '../../types/compra'
 import { extractApiError } from '../../utils/apiError'
+import { formatarNumero2 } from '../../utils/formatacao'
 
 import { BRL } from '../venda/formato'
 
 export interface FiltroVendasCmv { de: string; ate: string; mes?: string }
-const percentual = (valor: number) => `${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+const percentual = (valor: number) => `${formatarNumero2(valor)}%`
 
 export default function ModalVendasCmv({ filtro, onClose }: { filtro: FiltroVendasCmv; onClose: () => void }) {
   const [pagina, setPagina] = useState(0)

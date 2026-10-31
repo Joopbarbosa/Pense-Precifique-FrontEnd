@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mensagemListaVazia, periodoDoMes, podeBaixar, podeDesfazer, rotuloAcaoBaixa, rotuloParcela, MENSAGEM_SEM_LANCAMENTOS } from '../../src/utils/financeiro.ts'
+import { TEXTO_PERIODO_PADRAO, parametrosPeriodo, mensagemListaVazia, periodoDoMes, podeBaixar, podeDesfazer, rotuloAcaoBaixa, rotuloParcela, MENSAGEM_SEM_LANCAMENTOS } from '../../src/utils/financeiro.ts'
 
 test('período padrão é o mês corrente, inclusive em fevereiro bissexto e dezembro', () => {
   assert.deepEqual(periodoDoMes(new Date(2028, 1, 10)), { de: '2028-02-01', ate: '2028-02-29' })
@@ -25,4 +25,21 @@ test('baixar só em aberto/vence hoje/vencida; desfazer só paga/recebida; cance
   for (const s of ['PAGA', 'RECEBIDA']) { assert.equal(podeBaixar({ situacaoExibida: s }), false); assert.equal(podeDesfazer({ situacaoExibida: s }), true) }
   assert.equal(podeBaixar({ situacaoExibida: 'CANCELADA' }), false)
   assert.equal(podeDesfazer({ situacaoExibida: 'CANCELADA' }), false)
+})
+
+test('PP-697: sem período escolhido a API recebe nenhuma data (padrão mês + vencidas); escolhido vai inteiro', () => {
+  assert.deepEqual(parametrosPeriodo(null), {})
+  assert.deepEqual(parametrosPeriodo({ de: '2026-09-01', ate: '2026-09-30' }), { de: '2026-09-01', ate: '2026-09-30' })
+  assert.match(TEXTO_PERIODO_PADRAO, /mês atual e todas as contas vencidas/)
+})
+
+test('PP-525: nome de categoria exige 2 a 40 caracteres (espaços nas pontas não contam)', async () => {
+  const { mensagemNomeCategoria } = await import('../../src/utils/financeiro.ts')
+  assert.equal(mensagemNomeCategoria(''), 'Informe o nome da categoria.')
+  assert.equal(mensagemNomeCategoria('   '), 'Informe o nome da categoria.')
+  assert.match(mensagemNomeCategoria('a'), /de 2 a 40/)
+  assert.match(mensagemNomeCategoria('  b  '), /de 2 a 40/)
+  assert.equal(mensagemNomeCategoria('Ab'), null)
+  assert.equal(mensagemNomeCategoria('x'.repeat(40)), null)
+  assert.match(mensagemNomeCategoria('y'.repeat(41)), /de 2 a 40/)
 })

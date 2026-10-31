@@ -1,9 +1,10 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { Calculator, Sparkles, Info } from 'lucide-react'
 
 const moeda = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarMoeda2(n)
 
 export function LinhaCalculadora({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (

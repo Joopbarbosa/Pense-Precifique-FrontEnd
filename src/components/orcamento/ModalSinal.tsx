@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import { useState } from "react";
 import clsx from "clsx";
 import { Receipt, Wallet } from "lucide-react";
@@ -7,7 +8,7 @@ import TextArea from "../ui/TextArea";
 import { METODOS_PAGAMENTO } from "../../constants";
 import type { OrcamentoDetalheResponse, AvancaStatusRequest, MetodoPagamento } from "../../types/orcamento";
 
-const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace(".", ",")}`;
+const BRL = (n: number) => formatarMoeda2(n);
 
 // ─── ModalSinal — confirmar recebimento do sinal ──────────────────────────────
 

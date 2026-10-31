@@ -14,6 +14,14 @@ export function periodoDoMes(hoje: Date = new Date()): { de: string; ate: string
   return { de: iso(new Date(ano, mes, 1)), ate: iso(new Date(ano, mes + 1, 0)) }
 }
 
+/** PP-697 — texto do período padrão (sem datas escolhidas). */
+export const TEXTO_PERIODO_PADRAO = 'Mostrando o mês atual e todas as contas vencidas de meses anteriores.'
+
+/** Período enviado à API: só vai quando a usuária escolheu datas; sem escolha, a API aplica o padrão. */
+export function parametrosPeriodo(escolhido: { de: string; ate: string } | null): { de?: string; ate?: string } {
+  return escolhido ? { de: escolhido.de, ate: escolhido.ate } : {}
+}
+
 export function mensagemListaVazia(tipo: TipoLancamento): string {
   return tipo === 'A_PAGAR' ? 'Nada a pagar neste período.' : 'Nada a receber neste período.'
 }
@@ -48,4 +56,12 @@ export function podeBaixar(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): boole
 
 export function podeDesfazer(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): boolean {
   return p.situacaoExibida === 'PAGA' || p.situacaoExibida === 'RECEBIDA'
+}
+
+/** PP-525 — validação rápida do nome de categoria (2 a 40); a API repete a regra e decide a unicidade. Devolve a mensagem ou null. */
+export function mensagemNomeCategoria(nome: string): string | null {
+  const texto = nome.trim()
+  if (!texto) return 'Informe o nome da categoria.'
+  if (texto.length < 2 || texto.length > 40) return 'O nome da categoria deve ter de 2 a 40 caracteres.'
+  return null
 }
