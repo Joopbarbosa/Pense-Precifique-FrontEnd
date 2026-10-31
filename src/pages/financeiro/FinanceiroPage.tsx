@@ -50,6 +50,7 @@ export default function FinanceiroPage() {
   const [erro, setErro] = useState<string | null>(null)
   const [baixando, setBaixando] = useState<ParcelaFinanceira | null>(null)
   const [desfazendo, setDesfazendo] = useState<ParcelaFinanceira | null>(null)
+  const [excluindo, setExcluindo] = useState<{ parcela: ParcelaFinanceira; seguintes: boolean; toda: boolean } | null>(null)
   const [processando, setProcessando] = useState(false)
   const { toast, setToast } = useToast()
   const [toastErro, setToastErro] = useState<string | null>(null)
@@ -85,6 +86,23 @@ export default function FinanceiroPage() {
     }
   }
 
+  async function excluir() {
+    if (!excluindo) return
+    setProcessando(true)
+    try {
+      await financeiroService.excluirOcorrencia(excluindo.parcela.id, excluindo['seguintes'])
+      setExcluindo(null); setToast('Ocorrência excluída.'); await carregar()
+    } catch (e) { setExcluindo(null); setToastErro(extractApiError(e, 'Não foi possível excluir a ocorrência.')) }
+    finally { setProcessando(false) }
+  }
+
+  async function confirmarEscopoExclusao(parcela: ParcelaFinanceira, seguintes: boolean) {
+    try {
+      const toda = await financeiroService.preverExclusaoOcorrencia(parcela.id, seguintes)
+      setExcluindo({ parcela, seguintes, toda })
+    } catch (e) { setToastErro(extractApiError(e, 'Não foi possível conferir o impacto da exclusão.')) }
+  }
+
   const baixadaRotulo = tipo === 'A_PAGAR' ? 'Paga' : 'Recebida'
 
   return (
@@ -92,7 +110,10 @@ export default function FinanceiroPage() {
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Financeiro</h1>
         <SegmentedControl options={OPCOES_TIPO} value={tipo} onChange={t => { setTipo(t); setSituacao('EM_ABERTO') }} display="inline-flex" optionWidth="whitespace-nowrap px-4" />
-        <Link to="/financeiro/categorias" className="ml-auto text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-categorias">Categorias de despesa</Link>
+        <div className="ml-auto flex items-center gap-4">
+          <Link to={`/financeiro/novo?tipo=${tipo}`} className="text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-nova-conta">Nova {tipo === 'A_PAGAR' ? 'despesa' : 'receita'}</Link>
+          <Link to="/financeiro/categorias" className="text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-categorias">Categorias de despesa</Link>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -147,6 +168,7 @@ export default function FinanceiroPage() {
                   <div className="text-[15px] font-semibold text-dark">{p.descricao}</div>
                   <div className="text-[13px] text-muted">
                     {rotuloOrigem(p.origem)}{p.categoriaNome && ` · ${p.categoriaNome}`} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
+                    {p.foraProjecao && ' · Fora da projeção'}
                     {p.dataBaixa && ` · ${baixadaRotulo.toLowerCase()} em ${formatarData(p.dataBaixa)}${p.metodoPagamentoNome ? ` (${p.metodoPagamentoNome})` : ''}`}
                   </div>
                 </div>
@@ -156,6 +178,11 @@ export default function FinanceiroPage() {
                 <div className="w-28 text-right text-[16px] font-bold text-dark">{BRL(p.valor)}</div>
                 {podeBaixar(p) && <Button size="sm" onClick={() => setBaixando(p)}>{rotuloAcaoBaixa(p.tipo)}</Button>}
                 {podeDesfazer(p) && <Button size="sm" variant="ghost" onClick={() => setDesfazendo(p)}>Desfazer</Button>}
+                {p.origem === 'AVULSO' && p.situacao === 'EM_ABERTO' && <>
+                  <Link to={`/financeiro/novo?parcela=${p.id}`} className="text-[13px] font-semibold text-teal no-underline hover:underline">Editar</Link>
+                  <Button size="sm" variant="ghost" onClick={() => void confirmarEscopoExclusao(p, false)}>Excluir só esta</Button>
+                  {p.totalParcelas > 1 && <Button size="sm" variant="ghost" onClick={() => void confirmarEscopoExclusao(p, true)}>Excluir esta e as seguintes</Button>}
+                </>}
               </li>
             )
           })}
@@ -166,6 +193,12 @@ export default function FinanceiroPage() {
         onBaixada={() => { setBaixando(null); setToast(tipo === 'A_PAGAR' ? 'Pagamento registrado.' : 'Recebimento registrado.'); void carregar() }} />
       <ConfirmacaoModal open={!!desfazendo} onClose={() => setDesfazendo(null)} onConfirm={() => void desfazer()}
         title="Desfazer baixa?" description="Isso muda o realizado do período." confirmLabel="Desfazer baixa" confirmingLabel="Desfazendo..." confirming={processando} variant="danger" />
+      <ConfirmacaoModal open={!!excluindo} onClose={() => setExcluindo(null)} onConfirm={() => void excluir()}
+        title={excluindo?.toda ? 'Excluir conta inteira?' : 'Excluir ocorrência?'}
+        description={excluindo?.toda
+          ? 'Isso exclui a conta inteira, sem nenhuma ocorrência restante.'
+          : `A ocorrência ${excluindo?.seguintes ? 'e as seguintes em aberto serão' : 'será'} excluída; as ocorrências pagas permanecem.`}
+        confirmLabel="Excluir" confirmingLabel="Excluindo..." confirming={processando} variant="danger" />
       <Toast message={toast} />
       <Toast message={toastErro} variant="error" />
     </AppLayout>
