@@ -1,3 +1,4 @@
+import { formatarMoeda2, formatarNumero2 } from '../../utils/formatacao'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
 import ModalErro from '../../components/ui/ModalErro'
@@ -28,7 +29,7 @@ const num = (s: string) =>
   parseFloat((s || '').toString().replace(/\./g, '').replace(',', '.')) || 0
 
 const moeda = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarMoeda2(n)
 
 const inputClass = (hasError?: boolean) => clsx(
   'h-[46px] w-full rounded-input border-[1.5px] bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden transition-[border-color,box-shadow] duration-150',
@@ -253,8 +254,7 @@ function ComponenteSearch({ onAdd, jaAdicionados }: { onAdd: (i: Omit<Componente
 // ---------- QtyInput ----------
 
 function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: string; fracionavel: boolean; onChange: (v: string) => void }) {
-  const maxFrac = fracionavel ? 2 : 0
-  const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
+  const [display, setDisplay] = useState(formatarNumero2(value))
 
   return (
     <div className="relative">
@@ -373,7 +373,7 @@ export default function NovoItemCatalogoPage() {
             // #579/RN-NOVA-30 — na edição o preço final é o gravado: o preview não o substitui pelo sugerido e
             // ele vai sempre no request; só muda se a artesã digitar (mesmo comportamento de Produto).
             setPrecoEditadoManualmente(true)
-            setPrecoVenda(item.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+            setPrecoVenda(formatarNumero2(item.precoVenda))
 
             // OpenProject #528 — ItemCatalogoComponenteResponse agora expõe fracionavelInsumo
             // (mesmo padrão de FichaTecnicaItemResponse), eliminando o round-trip por componente
@@ -438,7 +438,7 @@ export default function NovoItemCatalogoPage() {
       setPrecoSugerido(resp.precoSugerido)
       setPreviewDetalhe(resp)
       if (!precoEditadoManualmente) {
-        setPrecoVenda(resp.precoSugerido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        setPrecoVenda(formatarNumero2(resp.precoSugerido))
       }
       setErro(null)
     } catch (err: any) {

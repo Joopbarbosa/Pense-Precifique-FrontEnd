@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { formatarData } from '../../utils/data'
 import { useEffect, useState } from 'react'
 import { ExternalLink, FileText } from 'lucide-react'
@@ -19,7 +20,7 @@ import { STATUS_LABEL } from '../../constants/statusOrcamento'
 export type TipoRegistro = 'ORCAMENTO' | 'VENDA_CAIXA' | 'COMPRA'
 
 const rotuloDesconto = (tipo: string | null | undefined, valor: number | null | undefined) =>
-  !valor ? null : tipo === 'PERCENTUAL' ? `${valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%` : BRL(valor)
+  !valor ? null : tipo === 'PERCENTUAL' ? `${formatarNumero2(valor)}%` : BRL(valor)
 
 const TIPO_LABEL: Record<TipoRegistro, string> = { ORCAMENTO: 'Orçamento', VENDA_CAIXA: 'Venda no Caixa', COMPRA: 'Compra' }
 
@@ -73,7 +74,7 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
     const v = await caixaService.buscarVendaPorId(id)
     // #993 (RN-NOVA-30): data e hora, cliente (ou "Consumidor final"), desconto em reais (e o percentual), pagamentos pelo nome, troco e motivo
     const desconto = !v.descontoValor ? null
-      : v.descontoTipo === 'PERCENTUAL' ? `${BRL(v.subtotal - v.total)} (${v.descontoValor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%)` : BRL(v.descontoValor)
+      : v.descontoTipo === 'PERCENTUAL' ? `${BRL(v.subtotal - v.total)} (${formatarNumero2(v.descontoValor)}%)` : BRL(v.descontoValor)
     return {
       identificador: v.identificador,
       status: v.status === 'CONCLUIDA' ? 'Concluída' : 'Cancelada',

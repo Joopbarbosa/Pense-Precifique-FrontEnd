@@ -30,6 +30,7 @@ import {
   type ItemPendente, type AlteracaoCampo,
 } from '../../hooks/useEdicaoConfiguracoes'
 import { BRL } from '../../components/venda/formato'
+import { formatarNumero2 } from '../../utils/formatacao'
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -45,10 +46,10 @@ const parseDecimal = (s: string) => {
 }
 
 const formatHora = (v: number) =>
-  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarNumero2(v)
 
 const formatMargem = (v: number) =>
-  Number.isInteger(v) ? v.toString() : v.toLocaleString('pt-BR')
+  formatarNumero2(v)
 
 /* ── AffixInput ──────────────────────────────────────────────── */
 

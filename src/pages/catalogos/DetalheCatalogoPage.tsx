@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import { useState, useEffect, useCallback } from 'react'
 import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -20,7 +21,7 @@ import { dispararDownloadBlob } from '../../utils/download'
 import { rotuloProduto } from '../../utils/rotuloProduto'
 
 const moeda = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarMoeda2(n)
 
 function ItemRow({ item, onClick, onEditar, onRemover, onHistorico }: {
   item: ItemCatalogoResponse

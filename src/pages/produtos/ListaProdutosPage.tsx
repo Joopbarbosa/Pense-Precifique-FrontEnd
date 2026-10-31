@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -57,7 +58,7 @@ const contagemPorCategoria = (contadores: ProdutoContagensResponse | null, c: st
 }
 
 const BRL = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarMoeda2(n)
 
 // V0.13.0 (DT-NOVA-1) — ITEM_CATALOGO_PRINCIPAL/CUSTOMIZACAO_ANEXADA foram unificados em
 // ITEM_CATALOGO_COMPONENTE (ver types/produto.ts); `tipoProdutoBase` (só de exibição/filtro do

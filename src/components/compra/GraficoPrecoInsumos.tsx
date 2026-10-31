@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { MESES, formatarData } from '../../utils/data'
 import { useEffect, useMemo, useState } from 'react'
 import BotaoAjuda from '../ui/BotaoAjuda'
@@ -27,7 +28,7 @@ type Selecionado = { id: string; nome: string; unidade: string; slot: number }
 const MAX_INSUMOS = 5
 
 const ts = (iso: string) => { const [a, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(a, m - 1, d).getTime() }
-const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
+const pct = (v: number) => `${v > 0 ? '+' : ''}${formatarNumero2(v)}%`
 
 type Linha = { t: number; com: string; data: string; [k: string]: number | string | null }
 

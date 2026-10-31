@@ -7,8 +7,7 @@
  * acima de mil — única mudança visual deliberada da extração (nenhum teste E2E depende do
  * formato antigo; verificado antes da troca).
  */
-export const BRL = (n: number) =>
-  'R$ ' + arredondar2(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+export const BRL = (n: number) => formatarMoeda2(arredondar2(n))
 
 /**
  * V0.15.0 (#603, RN-NOVA-33) — dinheiro na tela sempre com 2 casas, 3ª casa arredondada para cima a
@@ -18,3 +17,4 @@ export const BRL = (n: number) =>
 export function arredondar2(n: number): number {
   return Math.sign(n) * Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100
 }
+import { formatarMoeda2 } from '../../utils/formatacao'

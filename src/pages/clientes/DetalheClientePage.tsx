@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { formatarData, dataLocalIso, rotuloMes } from '../../utils/data'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -45,7 +46,7 @@ type AbaNumeros = 'CLIENTE' | 'FORNECEDOR' | 'AMBOS'
 const TIPO_PESSOA_LABEL: Record<TipoPessoa, string> = { FISICA: 'Pessoa física', JURIDICA: 'Pessoa jurídica', ESTRANGEIRO: 'Estrangeiro' }
 
 
-const qtd = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
+const qtd = (n: number) => formatarNumero2(n)
 
 const PERIODOS = [
   { value: 3, label: '3 meses' },

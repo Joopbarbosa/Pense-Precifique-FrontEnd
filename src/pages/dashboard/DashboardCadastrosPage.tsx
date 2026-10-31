@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { formatarData, dataLocalIso } from '../../utils/data'
 import { useEffect, useMemo, useState } from 'react'
 import type { IdAjuda } from '../../constants/ajudaDashboards'
@@ -35,7 +36,7 @@ import type { DashboardCadastrosResponse, ItemRanking, RankingCadastros } from '
 const SEM_DADOS = 'Sem dados no período'
 const vazio = (texto = SEM_DADOS) => <div className="py-8 text-center text-sm text-muted">{texto}</div>
 const nomeItem = (i: ItemRanking) => i.marca ? `${i.rotulo} (${i.marca})` : i.rotulo
-const num = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+const num = (n: number) => formatarNumero2(n)
 const itensDaLupa = (itens: ItemRanking[], formato: (v: number) => string): ItemListaCompleta[] =>
   itens.map((i, n) => ({ chave: `${i.id ?? i.rotulo}-${n}`, identificador: i.identificador, rotulo: nomeItem(i), valor: formato(i.valor) }))
 
@@ -238,7 +239,7 @@ export default function DashboardCadastrosPage() {
       {todos && <ModalListaCompleta titulo={todos.titulo} itens={todos.itens} onClose={() => setTodos(null)} />}
       {estoqueLupa === 'valor' && (
         <ModalTabelaEstoque titulo="Valor do estoque a custo" colunas={['Item', 'Tipo', 'Estoque', 'Custo unitário', 'Valor']}
-          linhas={d!.estoque.valorItens.map(l => [`${l.identificador} ${l.nome}`, l.tipo === 'INSUMO' ? 'Insumo' : 'Produto', num(l.estoque), l.custoUnitario == null ? '—' : l.custoUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }), BRL(l.valor)])}
+          linhas={d!.estoque.valorItens.map(l => [`${l.identificador} ${l.nome}`, l.tipo === 'INSUMO' ? 'Insumo' : 'Produto', num(l.estoque), l.custoUnitario == null ? '—' : formatarNumero2(l.custoUnitario), BRL(l.valor)])}
           total={`Total ${BRL(d!.estoque.valorTotal)}`} onClose={() => setEstoqueLupa(null)} />
       )}
       {estoqueLupa === 'potencial' && (

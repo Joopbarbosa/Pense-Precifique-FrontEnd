@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { useState, useEffect } from 'react'
 import { Calculator, ExternalLink } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
@@ -34,7 +35,7 @@ export default function ModalCalculadoraItem({ carregar, onClose, onConfirm, con
       .then(d => {
         if (cancelado) return
         setDados(d)
-        setPrecoFinal(d.precoInicial.toFixed(2).replace('.', ','))
+        setPrecoFinal(formatarNumero2(d.precoInicial))
         setEstado('ok')
       })
       .catch(() => { if (!cancelado) setEstado('erro') })
