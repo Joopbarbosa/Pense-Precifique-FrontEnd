@@ -423,6 +423,9 @@ export default function DetalheClientePage() {
   const [registroAberto, setRegistroAberto] = useState<{ tipo: TipoRegistro; id: string } | null>(null)
   const [abaNumeros, setAbaNumeros] = useState<AbaNumeros>('CLIENTE')
   const [insumosAbertos, setInsumosAbertos] = useState(false)
+  const [consentimentoData, setConsentimentoData] = useState(dataLocalIso())
+  const [consentimentoDescricao, setConsentimentoDescricao] = useState('')
+  const [consentimentoHistorico, setConsentimentoHistorico] = useState<import('../../types/cliente').EventoConsentimentoResponse[]>([])
   const { modalErro, mostrarErro } = useModalErro()
   const [listagem, setListagem] = useState<{ titulo: string; papel: PapelCadastro; filtro: FiltroInicial } | null>(null)
   const abrirListagem: AbrirListagem = (titulo, papel, filtro) => setListagem({ titulo, papel, filtro })
@@ -443,6 +446,25 @@ export default function DetalheClientePage() {
       .then(([c, ind]) => { setCadastro(c); setIndicadores(ind) })
       .catch(err => setErroCarga(extractApiError(err, 'Não foi possível carregar o cadastro.')))
   }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    clienteService.historicoConsentimento(id).then(setConsentimentoHistorico).catch(() => setConsentimentoHistorico([]))
+  }, [id, cadastro?.aceitaWhatsapp, cadastro?.recusouWhatsapp])
+
+  const registrarConsentimento = async (tipo: 'ACEITE' | 'RECUSA') => {
+    if (!cadastro) return
+    setProcessando(true)
+    try {
+      if (tipo === 'RECUSA') await clienteService.registrarRecusa(cadastro.id, consentimentoData)
+      else await clienteService.registrarAceite(cadastro.id, consentimentoData, consentimentoDescricao || undefined)
+      const atualizado = await clienteService.buscarPorId(cadastro.id)
+      setCadastro(atualizado)
+      setConsentimentoDescricao('')
+      setToast(tipo === 'RECUSA' ? 'Recusa registrada. O número ficará bloqueado para mensagens.' : 'Aceite registrado.')
+    } catch (err) { mostrarErro(err, 'Não foi possível registrar a preferência de mensagens.') }
+    finally { setProcessando(false) }
+  }
 
   const ind = indicadores
   // Um registro que perdeu o papel ainda tem histórico (contrato): mostra a seção se tem o papel OU dados.
@@ -587,9 +609,20 @@ export default function DetalheClientePage() {
 
       <div className="mt-4 flex flex-col gap-4">
         {aba === 'detalhes' ? (
-          <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <DadosCadastrais c={cadastro} />
-          </div>
+          <>
+            <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]"><DadosCadastrais c={cadastro} /></div>
+            <section className="rounded-card border border-[#F0EEE9] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]" aria-labelledby="consentimento-cliente">
+              <h2 id="consentimento-cliente" className="m-0 text-base font-bold text-dark">Mensagens pelo WhatsApp</h2>
+              <p className="mb-4 mt-1 text-sm text-muted">Estado: {cadastro.recusouWhatsapp ? `Pediu para parar (${formatarData(cadastro.recusouWhatsappEm)})` : cadastro.aceitaWhatsapp ? `Aceita receber (${formatarData(cadastro.aceitaWhatsappEm)})` : 'Sem aceite registrado'}.</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Data<input type="date" value={consentimentoData} onChange={e => setConsentimentoData(e.target.value)} className="h-10 rounded-input border border-line px-3 text-sm text-dark" /></label>
+                {cadastro.recusouWhatsapp && <label className="min-w-[260px] flex-1 text-xs font-semibold text-muted">Como a pessoa voltou a aceitar (10 a 200 caracteres)<input value={consentimentoDescricao} maxLength={200} onChange={e => setConsentimentoDescricao(e.target.value)} className="mt-1 h-10 w-full rounded-input border border-line px-3 text-sm text-dark" /></label>}
+                {!cadastro.aceitaWhatsapp && <Button disabled={processando || (cadastro.recusouWhatsapp && consentimentoDescricao.trim().length < 10)} onClick={() => registrarConsentimento('ACEITE')}>Registrar aceite</Button>}
+                {!cadastro.recusouWhatsapp && <Button variant="ghost" disabled={processando} onClick={() => registrarConsentimento('RECUSA')}>Pediu para parar</Button>}
+              </div>
+              {consentimentoHistorico.length > 0 && <div className="mt-4 border-t border-line pt-3"><h3 className="m-0 mb-2 text-sm font-semibold text-body">Histórico de preferências</h3><ul className="m-0 space-y-2 p-0 text-sm text-body">{consentimentoHistorico.map(e => <li key={e.id}>{e.tipo === 'ACEITE' ? 'Aceite' : 'Recusa'} em {formatarData(e.data)}{e.descricao ? ` — ${e.descricao}` : ''}</li>)}</ul></div>}
+            </section>
+          </>
         ) : aba === 'dashboards' ? (
           <>
             {mostraCliente && <GraficosCadastro cadastroId={cadastro.id} papel="CLIENTE" abrir={abrirListagem} />}

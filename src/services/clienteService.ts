@@ -45,6 +45,19 @@ export const clienteService = {
     await api.post(`/clientes/${id}/reativar`)
   },
 
+  registrarAceite: async (id: string, data: string, descricao?: string): Promise<void> => {
+    await api.post(`/clientes/${id}/consentimento/aceite`, { data, descricao })
+  },
+
+  registrarRecusa: async (id: string, data: string): Promise<void> => {
+    await api.post(`/clientes/${id}/consentimento/recusa`, { data })
+  },
+
+  historicoConsentimento: async (id: string) => {
+    const response = await api.get(`/clientes/${id}/consentimento/historico`)
+    return response.data
+  },
+
   // ---------- Detalhe (#560, #451) ----------
 
   indicadores: async (id: string): Promise<IndicadoresCadastroResponse> => {
