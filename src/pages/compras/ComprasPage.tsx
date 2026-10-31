@@ -268,7 +268,7 @@ export default function ComprasPage() {
               <div className="mt-2 flex flex-wrap gap-1.5 md:mt-0">
                 <StatusCompraBadge status={c.status} size="sm" />
                 {c.status === 'PENDENTE_RECEBIMENTO' && <PrevisaoTag previsao={c.previsaoEntrega} diasAtraso={c.diasAtraso} size="sm" />}
-                {c.status === 'CONFIRMADA' && !c.pago && <NaoPagaBadge size="sm" />}
+                {c.status === 'CONFIRMADA' && c.pago === false && <NaoPagaBadge size="sm" />}
               </div>
               <div className="absolute right-2 top-2 md:static md:flex md:justify-end" onClick={e => e.stopPropagation()}>
                 <ActionMenu items={itensMenu(c)} />

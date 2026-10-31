@@ -132,7 +132,7 @@ export default function DetalheCompraPage() {
             <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em] text-dark">Compra {compra.identificador}</h1>
             <StatusCompraBadge status={compra.status} />
             {pendente && <PrevisaoTag previsao={compra.previsaoEntrega} diasAtraso={compra.diasAtraso} />}
-            {confirmada && !compra.pago && <NaoPagaBadge />}
+            {confirmada && compra.pago === false && <NaoPagaBadge />}
           </div>
           <div className="mt-1 text-sm text-muted">
             {rascunho ? 'Rascunho: estoque e custo ainda não foram alterados.' : pendente ? 'Pendente de recebimento: estoque e custo só mudam quando a entrada for registrada.' : confirmada ? `Confirmada em ${formatarData(compra.confirmadaEm)}` : `Cancelada em ${formatarData(compra.canceladaEm)}`}
