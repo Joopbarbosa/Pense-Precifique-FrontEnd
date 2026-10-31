@@ -303,7 +303,7 @@ export default function ClientesPage() {
 
           {loading ? (
             <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
-              <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
+              <Spinner size={20} trackColor="#EFEDE8" />
               Carregando…
             </div>
           ) : (

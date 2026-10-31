@@ -235,7 +235,7 @@ export default function ComprasPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando compras…</div>
+        <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} trackColor="#EFEDE8" /> Carregando compras…</div>
       ) : error ? (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
           {error}

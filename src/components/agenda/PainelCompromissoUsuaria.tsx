@@ -37,7 +37,7 @@ export default function PainelCompromissoUsuaria({ compromisso, onAlterado }: { 
   }, [compromisso.referenciaId, dataOriginal])
 
   if (erro) return <p className="text-sm text-danger">{erro}</p>
-  if (!detalhe) return <div className="flex justify-center py-3"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={18} /></div>
+  if (!detalhe) return <div className="flex justify-center py-3"><Spinner trackColor="rgba(42,157,143,0.2)" size={18} /></div>
   const d = detalhe
   const pendente = d.situacao === 'PENDENTE'
 

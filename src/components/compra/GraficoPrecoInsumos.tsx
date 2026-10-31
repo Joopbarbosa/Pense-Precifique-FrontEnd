@@ -167,7 +167,7 @@ export default function GraficoPrecoInsumos({ inicial, de, ate }: {
           {sel.length === 0 ? (
             <div className="grid h-[240px] place-items-center rounded-input border border-dashed border-line text-sm text-muted">Escolha um insumo para ver como o preço pago mudou.</div>
           ) : loading && !dados ? (
-            <div className="flex h-[320px] items-center justify-center gap-2.5 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando gráfico…</div>
+            <div className="flex h-[320px] items-center justify-center gap-2.5 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Carregando gráfico…</div>
           ) : erro ? (
             <div role="alert" className="grid h-[240px] place-items-center text-sm text-danger">{erro}</div>
           ) : semPontos ? (

@@ -93,7 +93,7 @@ export default function EntradaComprasPage() {
 
       {!escolhida ? (
         pendentes === null && !erroLista ? (
-          <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando compras…</div>
+          <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} trackColor="#EFEDE8" /> Carregando compras…</div>
         ) : erroLista ? (
           <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{erroLista}</div>
         ) : ordenadas.length === 0 ? (
@@ -154,7 +154,7 @@ export default function EntradaComprasPage() {
           <div className="flex flex-wrap justify-end gap-3 px-[26px] pb-6">
             <Button variant="ghost" icon={<ArrowLeft size={16} />} disabled={enviando}
               onClick={() => { setEscolhida(null); navigate('/compras/entrada', { replace: true }) }}>Voltar</Button>
-            <Button variant="primary" icon={enviando ? <Spinner size={15} /> : <Check size={16} />} disabled={enviando} onClick={confirmar}>
+            <Button variant="primary" icon={enviando ? <Spinner size={15} color="#fff" /> : <Check size={16} />} disabled={enviando} onClick={confirmar}>
               {enviando ? 'Confirmando…' : 'Confirmar entrada'}
             </Button>
           </div>

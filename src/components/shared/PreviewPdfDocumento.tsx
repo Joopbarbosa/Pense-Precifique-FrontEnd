@@ -77,7 +77,7 @@ export default function PreviewPdfDocumento({ active, trilha, titulo, badge, vol
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <Button variant="ghost" icon={<ArrowLeft size={17} />} onClick={() => navigate(voltar.to)}>{voltar.label}</Button>
-            <Button variant="primary" icon={downloadRetry.executando ? <Spinner size={15} /> : <Download size={17} />}
+            <Button variant="primary" icon={downloadRetry.executando ? <Spinner size={15} color="#fff" /> : <Download size={17} />}
               onClick={baixar} disabled={status !== 'ok' || downloadBloqueado}>
               {downloadRetry.executando ? 'Baixando...' : downloadRetry.cooldownRestante > 0 ? `Aguarde ${downloadRetry.cooldownRestante}s` : 'Baixar PDF'}
             </Button>
@@ -89,7 +89,7 @@ export default function PreviewPdfDocumento({ active, trilha, titulo, badge, vol
         <div className="mx-auto max-w-[820px]">
           {status === 'carregando' && (
             <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 rounded-[4px] border border-line bg-white text-muted">
-              <Spinner size={28} color="#2A9D8F" trackColor="rgba(42,157,143,0.18)" thickness={3} />
+              <Spinner size={28} trackColor="rgba(42,157,143,0.18)" thickness={3} />
               Preparando seu documento...
             </div>
           )}

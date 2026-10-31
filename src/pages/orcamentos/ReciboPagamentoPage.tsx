@@ -148,7 +148,7 @@ export default function ReciboPagamentoPage() {
             </Button>
             <Button
               variant="secondary"
-              icon={downloadRetry.executando ? <Spinner size={15} /> : <Download size={17} />}
+              icon={downloadRetry.executando ? <Spinner size={15} color="#fff" /> : <Download size={17} />}
               onClick={handleDownloadPdf}
               disabled={previewStatus !== 'ok' || downloadBloqueado}
             >
@@ -167,7 +167,7 @@ export default function ReciboPagamentoPage() {
         <div className="mx-auto max-w-[820px]">
           {previewStatus === 'carregando' && (
             <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 rounded-[4px] border border-line bg-white text-muted">
-              <Spinner size={28} color="#2A9D8F" trackColor="rgba(42,157,143,0.18)" thickness={3} />
+              <Spinner size={28} trackColor="rgba(42,157,143,0.18)" thickness={3} />
               Preparando seu documento...
             </div>
           )}

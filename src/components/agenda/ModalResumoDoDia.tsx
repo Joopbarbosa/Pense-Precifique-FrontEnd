@@ -59,7 +59,7 @@ export default function ModalResumoDoDia({ onClose, onAbrir }: { onClose: () => 
   return (
     <ModalShell open onClose={onClose} title="Resumo do dia" subtitle={subtitulo} width={680} icon={<ClipboardList size={15} />}>
       {erro ? <p className="py-6 text-center text-sm text-danger">{erro}</p>
-        : !resumo ? <div className="flex justify-center py-8"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={22} /></div>
+        : !resumo ? <div className="flex justify-center py-8"><Spinner trackColor="rgba(42,157,143,0.2)" size={22} /></div>
         : (
           <div className="flex flex-col gap-5" data-testid="resumo-do-dia">
             <Secao titulo="A receber" testid="resumo-a-receber"

@@ -298,7 +298,7 @@ function PassoEmpresa({ onAvancar }: { onAvancar: () => void }) {
         )}
 
         <Button variant="primary" type="submit" fullWidth size="lg" disabled={salvando}
-          icon={salvando ? <Spinner size={16} /> : undefined}
+          icon={salvando ? <Spinner size={16} color="#fff" /> : undefined}
           iconRight={salvando ? undefined : <span className="-mt-px text-[19px]">→</span>}>
           {salvando ? 'Salvando…' : 'Avançar'}
         </Button>
@@ -459,7 +459,7 @@ export default function OnboardingPage() {
               fullWidth
               disabled={loading || !isValid}
               size="lg"
-              icon={loading ? <Spinner size={16} /> : undefined}
+              icon={loading ? <Spinner size={16} color="#fff" /> : undefined}
               iconRight={loading ? undefined : <span className="-mt-px text-[19px]">→</span>}
             >
               {loading ? 'Preparando tudo…' : 'Começar a usar o sistema'}

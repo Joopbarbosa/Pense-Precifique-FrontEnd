@@ -43,7 +43,7 @@ export default function ComentariosOrcamento({ orcamentoId }: { orcamentoId: str
   return (
     <div className="flex flex-col gap-3" data-testid="comentarios-orcamento">
       {lista.loading && lista.items.length === 0 ? (
-        <div className="flex justify-center py-4"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={18} /></div>
+        <div className="flex justify-center py-4"><Spinner trackColor="rgba(42,157,143,0.2)" size={18} /></div>
       ) : lista.error ? (
         <p className="text-sm text-danger">{lista.error}</p>
       ) : lista.items.length === 0 ? (

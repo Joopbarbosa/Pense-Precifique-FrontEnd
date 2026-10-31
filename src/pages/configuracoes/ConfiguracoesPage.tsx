@@ -1322,7 +1322,7 @@ function UnidadesMedida() {
 
         {loading ? (
           <div className="flex items-center gap-2.5 py-6 text-sm text-muted">
-            <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+            <Spinner size={18} trackColor="#EFEDE8" />
             Carregando…
           </div>
         ) : unidades.length === 0 ? (
@@ -1474,7 +1474,7 @@ export default function ConfiguracoesPage() {
 
       {loadingData ? (
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
-          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
+          <Spinner size={20} trackColor="#EFEDE8" />
           Carregando configurações…
         </div>
       ) : (

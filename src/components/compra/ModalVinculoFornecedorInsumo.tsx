@@ -83,7 +83,7 @@ export default function ModalVinculoFornecedorInsumo({ vinculo, onClose, onSalvo
             </div>
             <div className="max-h-[260px] overflow-y-auto">
               {erroCompras ? <div className="px-4 py-6 text-center text-sm text-danger">{erroCompras}</div>
-                : compras === null ? <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+                : compras === null ? <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} trackColor="#EFEDE8" /> Carregando…</div>
                 : compras.length === 0 ? <div className="px-4 py-6 text-center text-sm text-muted">Nenhuma compra confirmada deste insumo com este fornecedor.</div>
                 : compras.map((c, k) => (
                   <button key={`${c.compraId}-${k}`} type="button" data-testid="compra-vinculo" onClick={() => window.open(`/compras/${c.compraId}`, '_blank', 'noopener')}

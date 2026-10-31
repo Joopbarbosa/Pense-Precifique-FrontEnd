@@ -185,7 +185,7 @@ export default function AgendaPage() {
 
       {erro && <p className="rounded-card border border-danger-line bg-danger-bg px-4 py-3 text-sm text-danger-deep">{erro}</p>}
       {carregando && compromissos.length === 0 && !erro ? (
-        <div className="flex justify-center py-16"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={24} /></div>
+        <div className="flex justify-center py-16"><Spinner trackColor="rgba(42,157,143,0.2)" size={24} /></div>
       ) : visao === 'MES' ? (
         <GradeMes dias={periodo.dias} mesDeReferencia={referencia} hoje={hoje} porDia={porDia} onAbrir={abrir} onVerDia={setDiaAberto} onCriar={abrirNovoEvento} onMoverDia={moverParaDia} />
       ) : (

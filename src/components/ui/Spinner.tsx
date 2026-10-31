@@ -7,7 +7,7 @@ interface SpinnerProps {
 
 export default function Spinner({
   size = 16,
-  color = '#fff',
+  color = 'var(--color-teal)',
   trackColor = 'rgba(255,255,255,0.45)',
   thickness = 2.4,
 }: SpinnerProps) {

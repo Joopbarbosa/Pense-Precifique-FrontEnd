@@ -542,7 +542,7 @@ function InsumoResolverVinculosModal({ insumo, operacao, produtos, catalogoVincu
     >
       {loading ? (
         <div className="flex items-center justify-center gap-2.5 px-5 py-8 text-sm text-muted">
-          <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+          <Spinner size={18} trackColor="#EFEDE8" />
           Carregando vínculos…
         </div>
       ) : (
@@ -828,7 +828,7 @@ export default function ListaInsumosPage() {
 
       {loading ? (
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
-          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
+          <Spinner size={20} trackColor="#EFEDE8" />
           Carregando insumos…
         </div>
       ) : empty ? (

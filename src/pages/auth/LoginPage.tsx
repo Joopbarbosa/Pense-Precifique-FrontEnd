@@ -148,7 +148,7 @@ export default function LoginPage() {
               type="submit"
               fullWidth
               disabled={loading}
-              icon={loading ? <Spinner size={16} /> : undefined}
+              icon={loading ? <Spinner size={16} color="#fff" /> : undefined}
               iconRight={loading ? undefined : <span className="-mt-px text-lg">→</span>}
               size="lg"
             >

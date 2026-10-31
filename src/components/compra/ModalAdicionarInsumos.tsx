@@ -125,7 +125,7 @@ export default function ModalAdicionarInsumos({ jaNaLista, onClose, onAdicionar 
             )
           })())}
           {carregando && (
-            <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+            <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} trackColor="#EFEDE8" /> Carregando…</div>
           )}
         </div>
         {!erro && total > 0 && (

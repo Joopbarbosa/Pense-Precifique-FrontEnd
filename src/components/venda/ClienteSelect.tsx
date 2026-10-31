@@ -96,7 +96,7 @@ export default function ClienteSelect({ cliente, onSelect, onClear }: {
         />
         {open && estado === 'carregando' && results.length === 0 && (
           <div role="status" className="absolute inset-x-0 top-[54px] z-30 flex items-center gap-2.5 rounded-xl border border-line bg-white px-4 py-3.5 text-sm text-muted shadow-[0_12px_30px_-8px_rgba(0,0,0,0.18)]">
-            <Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Buscando clientes…
+            <Spinner size={16} trackColor="#EFEDE8" /> Buscando clientes…
           </div>
         )}
         {open && estado === 'pronto' && results.length === 0 && (

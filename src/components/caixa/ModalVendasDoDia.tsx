@@ -50,7 +50,7 @@ export default function ModalVendasDoDia({ onClose }: { onClose: () => void }) {
           </Button>
         </>}>
         {carregando && !dados ? (
-          <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando vendas…</div>
+          <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Carregando vendas…</div>
         ) : erro ? (
           <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">
             {erro} <Button variant="ghost" size="sm" onClick={() => setTentativa(t => t + 1)}>Tentar de novo</Button>
