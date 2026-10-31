@@ -4,7 +4,8 @@ import { ExternalLink, FileText } from 'lucide-react'
 import { Button, ModalShell } from '../ui'
 import Spinner from '../ui/Spinner'
 import { BRL } from '../venda/formato'
-import { formatarDataHora, moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
+import { moeda, qtd, rotuloPagamento, STATUS_COMPRA_LABEL } from '../compra/formato'
+import { formatarDataHora } from '../../utils/data'
 import { orcamentoService } from '../../services/orcamentoService'
 import { caixaService } from '../../services/caixaService'
 import { compraService } from '../../services/compraService'
@@ -144,7 +145,7 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
       {erro ? (
         <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-2.5 text-[13px] text-danger-deep">{erro}</div>
       ) : !visao ? (
-        <div className="flex items-center gap-2.5 py-6 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+        <div className="flex items-center gap-2.5 py-6 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Carregando…</div>
       ) : (
         <div data-testid="modal-registro" className="flex flex-col gap-4">
           <div className="rounded-input border border-line">
