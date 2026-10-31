@@ -119,7 +119,7 @@ export interface CompraFornecedorHistoricoResponse {
   dataCompra: string
   status: 'RASCUNHO' | 'CONFIRMADA' | 'CANCELADA'
   valor: number
-  pago: boolean
+  pago: boolean | null
 }
 
 /** #451 (RN-NOVA-20) — `gastoMensal` tem um ponto por mês do período, inclusive meses com 0. */

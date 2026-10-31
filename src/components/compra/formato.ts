@@ -69,7 +69,8 @@ export function erroDesconto(tipo: 'VALOR' | 'PERCENTUAL', valorTxt: string, bas
 
 /** #597 (RN-NOVA-42) — "Pago — Cartão de crédito · 3x", "Pago — Pix" ou "Não pago". */
 export function rotuloPagamento(c: Pick<CompraResponse, 'pago' | 'metodoPagamento' | 'parcelas'>): string {
-  if (!c.pago) return 'Não pago'
+  if (c.pago === null) return '—'
+  if (!c.pago) return c.metodoPagamento && c.parcelas ? `Não pago — ${c.metodoPagamento.nome} · ${c.parcelas}x` : 'Não pago'
   if (!c.metodoPagamento) return 'Pago'
   return `Pago — ${c.metodoPagamento.nome}${c.parcelas ? ` · ${c.parcelas}x` : ''}`
 }
