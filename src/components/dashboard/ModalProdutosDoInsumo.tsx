@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { useEffect, useState } from 'react'
 import { ModalShell, Button } from '../ui'
 import Spinner from '../ui/Spinner'
@@ -40,7 +41,7 @@ export default function ModalProdutosDoInsumo({ insumoId, insumoNome, onClose }:
                     <a href={`/produtos/${p.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-teal no-underline hover:underline">{rotuloProduto(p.nome, p.marca)}</a>
                   </td>
                   <td className="px-2 py-2 [font-variant-numeric:tabular-nums]">
-                    {p.quantidade != null ? `${p.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}${p.unidade ? ` ${p.unidade}` : ''}` : '—'}
+                    {p.quantidade != null ? `${formatarNumero2(p.quantidade)}${p.unidade ? ` ${p.unidade}` : ''}` : '—'}
                   </td>
                 </tr>
               ))}

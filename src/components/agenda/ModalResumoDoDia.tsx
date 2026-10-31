@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ClipboardList } from 'lucide-react'
 import ModalShell from '../ui/ModalShell'
@@ -8,7 +9,7 @@ import { formatarData } from '../../utils/data'
 import { moeda } from '../compra/formato'
 import ChipCompromisso from './ChipCompromisso'
 
-const numero = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
+const numero = (n: number) => formatarNumero2(n)
 
 function Secao({ titulo, testid, resumo, children }: { titulo: string; testid: string; resumo?: ReactNode; children: ReactNode }) {
   return (

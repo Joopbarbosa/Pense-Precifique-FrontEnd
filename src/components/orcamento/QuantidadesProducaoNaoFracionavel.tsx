@@ -1,3 +1,4 @@
+import { formatarNumero2 } from '../../utils/formatacao'
 import { useEffect, useState } from 'react'
 import { orcamentoService } from '../../services/orcamentoService'
 import { extractApiError } from '../../utils/apiError'
@@ -15,7 +16,7 @@ interface Props {
   onChange: (quantidades: QuantidadeProducao[], valido: boolean) => void
 }
 
-const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+const fmt = (n: number) => formatarNumero2(n)
 
 export default function QuantidadesProducaoNaoFracionavel({ orcamentoId, produtoIds, disabled, onChange }: Props) {
   const [sugestoes, setSugestoes] = useState<SugestaoQuantidadeProducao[]>([])

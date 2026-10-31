@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import ModalVendasDoDia from '../../components/caixa/ModalVendasDoDia'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import OpcaoInativa from '../../components/shared/OpcaoInativa'
@@ -45,7 +46,7 @@ import { rotuloProduto } from '../../utils/rotuloProduto'
 const num = (s: string) => parseFloat((s || '').replace(/\./g, '').replace(',', '.')) || 0
 
 const moeda = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarMoeda2(n)
 
 const paraCampoMoeda = (n: number) => n.toFixed(2).replace('.', ',')
 

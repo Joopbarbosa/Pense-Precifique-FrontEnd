@@ -1,3 +1,4 @@
+import { formatarMoeda2, formatarNumero2 } from '../../utils/formatacao'
 import React, { useState, useRef, useEffect } from 'react'
 import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { erroArquivoImagem, erroFotoNaoEnviada, usePreviaArquivo } from '../../utils/fotoPendente'
@@ -31,7 +32,7 @@ const num = (s: string) => {
 }
 
 const moeda = (n: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  formatarMoeda2(n)
 
 const TIPO_LABEL_TO_API: Record<string, TipoProduto> = {
   'Produto':      'PRODUTO',
@@ -454,12 +455,11 @@ function InsumoSearch({ onAdd, jaAdicionados }: { onAdd: (i: ItemDb) => void; ja
 // ---------- QtyInput ----------
 
 function QtyInput({ value, un, fracionavel, onChange }: { value: number; un: string; fracionavel: boolean; onChange: (v: string) => void }) {
-  const maxFrac = fracionavel ? 2 : 0
   // Estado local é a fonte da verdade do texto digitado — não resincroniza a partir de `value` a
   // cada keystroke (o round-trip qtd -> num() -> toLocaleString() truncava "0,25" para "025"/"0"
   // em insumo não-fracionável). `ficha` só popula este componente uma vez (no add ou no load de
   // edição, antes do primeiro mount), então o valor inicial do useState já cobre os dois casos.
-  const [display, setDisplay] = useState(value.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac }))
+  const [display, setDisplay] = useState(formatarNumero2(value))
 
   return (
     <div className="relative">
@@ -831,7 +831,7 @@ export default function CadastrarProdutoPage() {
   // Preço final nasce espelhando o sugerido ao vivo — para de acompanhar assim que a artesã edita manualmente (override, RN-038a/PDT-001).
   useEffect(() => {
     if (!mostrarPrecoMargem || editando || precoFinalManual) return
-    setPrecoFinal(sugeridoCalc > 0 ? sugeridoCalc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')
+    setPrecoFinal(sugeridoCalc > 0 ? formatarNumero2(sugeridoCalc) : '')
   }, [mostrarPrecoMargem, editando, precoFinalManual, sugeridoCalc])
 
   // RN-NOVA-2 (#299) — fracionável nasce espelhando o derivado da ficha técnica; para de acompanhar
@@ -878,7 +878,7 @@ export default function CadastrarProdutoPage() {
           setMargem(produto.margemLucro.toString())
         }
         if (produto.precoVenda != null) {
-          setPrecoFinal(produto.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+          setPrecoFinal(formatarNumero2(produto.precoVenda))
           setPrecoFinalManual(true)
           setModoMargem('personalizar')
         }
@@ -930,7 +930,7 @@ export default function CadastrarProdutoPage() {
         : await produtoService.cadastrar(request)
 
       if (mostrarPrecoMargem && result.precoVenda != null) {
-        setPrecoFinal(result.precoVenda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        setPrecoFinal(formatarNumero2(result.precoVenda))
         setPrecoFinalManual(true)
       }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { unidadeMedidaService } from '../../services/unidadeMedidaService'
 import { tentarConverterFracao } from '../../utils/quantidade'
+import { formatarMoeda2 } from '../../utils/formatacao'
 import type { InsumoRequest, InsumoResponse, NovoInsumoRequest, RegraPrecoReferencia, TipoExibicaoQuantidade } from '../../types/insumo'
 import type { UnidadeMedidaResponse } from '../../types/unidadeMedida'
 
@@ -76,7 +77,7 @@ export function useFormInsumo({ editando, inicial }: { editando: boolean; inicia
     : (qComprada > 0 ? preco / qComprada : null)
   // #458 (V0.10.0) — sempre 2 casas com arredondamento matemático padrão.
   const custoFmt = custoUnit != null
-    ? 'R$ ' + custoUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? formatarMoeda2(custoUnit)
     : '—'
 
   // RN-NOVA-1 (V0.10.0, #442) — cadastro só calcula/exibe o custo unitário; não grava movimentação.
