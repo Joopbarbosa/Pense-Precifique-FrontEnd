@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { Wallet } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
@@ -91,6 +92,7 @@ export default function FinanceiroPage() {
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Financeiro</h1>
         <SegmentedControl options={OPCOES_TIPO} value={tipo} onChange={t => { setTipo(t); setSituacao('EM_ABERTO') }} display="inline-flex" optionWidth="whitespace-nowrap px-4" />
+        <Link to="/financeiro/categorias" className="ml-auto text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-categorias">Categorias de despesa</Link>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -144,7 +146,7 @@ export default function FinanceiroPage() {
                 <div className="min-w-[200px] flex-1">
                   <div className="text-[15px] font-semibold text-dark">{p.descricao}</div>
                   <div className="text-[13px] text-muted">
-                    {rotuloOrigem(p.origem)} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
+                    {rotuloOrigem(p.origem)}{p.categoriaNome && ` · ${p.categoriaNome}`} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
                     {p.dataBaixa && ` · ${baixadaRotulo.toLowerCase()} em ${formatarData(p.dataBaixa)}${p.metodoPagamentoNome ? ` (${p.metodoPagamentoNome})` : ''}`}
                   </div>
                 </div>

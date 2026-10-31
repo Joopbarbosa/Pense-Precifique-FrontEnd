@@ -57,3 +57,11 @@ export function podeBaixar(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): boole
 export function podeDesfazer(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): boolean {
   return p.situacaoExibida === 'PAGA' || p.situacaoExibida === 'RECEBIDA'
 }
+
+/** PP-525 — validação rápida do nome de categoria (2 a 40); a API repete a regra e decide a unicidade. Devolve a mensagem ou null. */
+export function mensagemNomeCategoria(nome: string): string | null {
+  const texto = nome.trim()
+  if (!texto) return 'Informe o nome da categoria.'
+  if (texto.length < 2 || texto.length > 40) return 'O nome da categoria deve ter de 2 a 40 caracteres.'
+  return null
+}
