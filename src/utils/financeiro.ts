@@ -14,6 +14,14 @@ export function periodoDoMes(hoje: Date = new Date()): { de: string; ate: string
   return { de: iso(new Date(ano, mes, 1)), ate: iso(new Date(ano, mes + 1, 0)) }
 }
 
+/** PP-697 — texto do período padrão (sem datas escolhidas). */
+export const TEXTO_PERIODO_PADRAO = 'Mostrando o mês atual e todas as contas vencidas de meses anteriores.'
+
+/** Período enviado à API: só vai quando a usuária escolheu datas; sem escolha, a API aplica o padrão. */
+export function parametrosPeriodo(escolhido: { de: string; ate: string } | null): { de?: string; ate?: string } {
+  return escolhido ? { de: escolhido.de, ate: escolhido.ate } : {}
+}
+
 export function mensagemListaVazia(tipo: TipoLancamento): string {
   return tipo === 'A_PAGAR' ? 'Nada a pagar neste período.' : 'Nada a receber neste período.'
 }
