@@ -43,3 +43,50 @@ test('PP-525: nome de categoria exige 2 a 40 caracteres (espaços nas pontas nã
   assert.equal(mensagemNomeCategoria('x'.repeat(40)), null)
   assert.match(mensagemNomeCategoria('y'.repeat(41)), /de 2 a 40/)
 })
+
+// ---- PP-524 (#1176, F5): resumo do mês — apresentação pura ----
+import { diaMes, formatarPercentual, larguraBarra, mesDaData, mudarMes, primeiroDiaNegativo, rotuloMes, rotuloUrgencia, rotuloVerTodas, urgenciaVencimento, MENSAGEM_SEM_MOVIMENTOS_GRAFICO, MENSAGEM_SEM_VENCIMENTOS } from '../../src/utils/financeiro.ts'
+
+test('trocar de mês vira o ano nos dois sentidos', () => {
+  assert.equal(mudarMes('2026-12', 1), '2027-01')
+  assert.equal(mudarMes('2026-01', -1), '2025-12')
+  assert.equal(mudarMes('2026-10', 0), '2026-10')
+  assert.equal(mudarMes('2026-03', -15), '2024-12')
+  assert.equal(mesDaData(new Date(2026, 9, 31)), '2026-10')
+  assert.equal(rotuloMes('2026-03'), 'março de 2026')
+})
+
+test('urgência: vencida e vence hoje trazem texto próprio; próximos dias não depende de cor', () => {
+  assert.equal(urgenciaVencimento({ situacaoExibida: 'VENCIDA' }), 'VENCIDA')
+  assert.equal(urgenciaVencimento({ situacaoExibida: 'VENCE_HOJE' }), 'HOJE')
+  assert.equal(urgenciaVencimento({ situacaoExibida: 'EM_ABERTO' }), 'PROXIMA')
+  assert.equal(rotuloUrgencia({ situacaoExibida: 'VENCIDA', rotulo: 'Vencida há 3 dias' }), 'Vencida há 3 dias')
+  assert.equal(rotuloUrgencia({ situacaoExibida: 'VENCIDA' }), 'Vencida')
+  assert.equal(rotuloUrgencia({ situacaoExibida: 'VENCE_HOJE' }), 'Vence hoje')
+  assert.equal(rotuloUrgencia({ situacaoExibida: 'EM_ABERTO', rotulo: 'Vence em 3 dias' }), 'Próximos dias')
+})
+
+test('Ver todas mostra o total real; mensagens vazias fixas', () => {
+  assert.equal(rotuloVerTodas(12), 'Ver todas (12)')
+  assert.equal(MENSAGEM_SEM_VENCIMENTOS, 'Nenhum vencimento nos próximos 7 dias.')
+  assert.equal(MENSAGEM_SEM_MOVIMENTOS_GRAFICO, 'Sem movimentos para mostrar.')
+})
+
+test('barra de categoria: proporcional à maior, mínimo 2% e nunca fora de 0 a 100', () => {
+  assert.equal(larguraBarra(100, 100), 100)
+  assert.equal(larguraBarra(50, 100), 50)
+  assert.equal(larguraBarra(1, 1000), 2)
+  assert.equal(larguraBarra(0, 100), 0)
+  assert.equal(larguraBarra(10, 0), 0)
+  assert.equal(larguraBarra(500, 100), 100)
+  assert.equal(larguraBarra(Number.NaN, 100), 0)
+})
+
+test('percentual com vírgula e uma casa; dia/mês curto; primeiro dia negativo', () => {
+  assert.equal(formatarPercentual(47.1), '47,1%')
+  assert.equal(formatarPercentual(100), '100,0%')
+  assert.equal(diaMes('2026-11-05'), '05/11')
+  assert.equal(primeiroDiaNegativo([{ data: '2026-11-01', saldo: 10 }, { data: '2026-11-02', saldo: -1 }, { data: '2026-11-03', saldo: -9 }]), '2026-11-02')
+  assert.equal(primeiroDiaNegativo([{ data: '2026-11-01', saldo: 0 }]), null)
+  assert.equal(primeiroDiaNegativo([]), null)
+})
