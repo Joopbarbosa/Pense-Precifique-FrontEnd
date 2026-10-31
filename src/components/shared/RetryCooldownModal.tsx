@@ -35,7 +35,7 @@ export default function RetryCooldownModal({
       footer={
         <Button
           variant="primary"
-          icon={executando ? <Spinner size={15} /> : <RefreshCw size={15} />}
+          icon={executando ? <Spinner size={15} color="#fff" /> : <RefreshCw size={15} />}
           disabled={bloqueado}
           onClick={onTentarNovamente}
         >

@@ -67,7 +67,7 @@ export default function DashboardCompras() {
           {erro} <Button variant="ghost" size="sm" onClick={carregar}>Tentar de novo</Button>
         </div>
       ) : !d || (carregando && !d) ? (
-        <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando painel…</div>
+        <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Carregando painel…</div>
       ) : (
         <div className={clsx('flex flex-col gap-4 transition-opacity', carregando && 'opacity-60')}>
           <BigNumberGroup tela="dashboard-compras" testid="numeros-dashboard">

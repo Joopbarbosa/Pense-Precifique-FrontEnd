@@ -44,7 +44,7 @@ export default function PainelOrcamento({ orcamentoId, tipo, onAlterado }: { orc
   }, [orcamento]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (erro) return <p className="text-sm text-danger">{erro}</p>
-  if (!orcamento) return <div className="flex justify-center py-3"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={18} /></div>
+  if (!orcamento) return <div className="flex justify-center py-3"><Spinner trackColor="rgba(42,157,143,0.2)" size={18} /></div>
   const o = orcamento
   const acao = rotuloAcaoAvancar(o.status, fluxo.precisaVincularProducao, fluxo.temVinculo)
   // #1108 — o painel ganha a cor do tipo do compromisso: entrega em verde-água, dinheiro a receber em laranja

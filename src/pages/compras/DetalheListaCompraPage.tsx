@@ -102,7 +102,7 @@ export default function DetalheListaCompraPage() {
         {erro
           ? <><div className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erro}</div>
               <div className="mt-4"><Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/compras/lista?aba=historico')}>Voltar</Button></div></>
-          : <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando lista…</div>}
+          : <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} trackColor="#EFEDE8" /> Carregando lista…</div>}
       </AppLayout>
     )
   }
@@ -139,10 +139,10 @@ export default function DetalheListaCompraPage() {
           )}
           {rascunho && <>
             <Button variant="secondary" icon={<Pencil size={16} />} onClick={() => navigate(`/compras/lista?aba=nova&rascunho=${lista.id}`)}>Editar rascunho</Button>
-            <Button variant="primary" icon={criando ? <Spinner size={15} /> : <ListChecks size={16} />} disabled={criando} onClick={gerar}>Gerar lista</Button>
+            <Button variant="primary" icon={criando ? <Spinner size={15} color="#fff" /> : <ListChecks size={16} />} disabled={criando} onClick={gerar}>Gerar lista</Button>
           </>}
           {podeCriarCompra && (
-            <Button variant="primary" icon={criando ? <Spinner size={15} /> : <PackagePlus size={16} />} disabled={criando} onClick={criarCompra}>
+            <Button variant="primary" icon={criando ? <Spinner size={15} color="#fff" /> : <PackagePlus size={16} />} disabled={criando} onClick={criarCompra}>
               Criar compra a partir da lista
             </Button>
           )}

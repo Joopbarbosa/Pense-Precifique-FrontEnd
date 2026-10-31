@@ -29,7 +29,7 @@ export default function HistoricoNotaInsumo({ insumoId, unidade }: { insumoId: s
   }, [insumoId])
 
   if (erro) return <div className="px-5 py-8 text-center text-sm text-danger" role="alert">Não foi possível carregar o histórico de notas.</div>
-  if (!vinculos) return <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+  if (!vinculos) return <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-muted"><Spinner size={16} trackColor="#EFEDE8" /> Carregando…</div>
   if (vinculos.length === 0) return (
     <div className="flex flex-col items-center gap-2 px-5 py-8 text-center text-sm text-muted" data-testid="historico-nota-vazio">
       <History size={22} /> Nenhum item de nota foi ligado a este insumo ainda.

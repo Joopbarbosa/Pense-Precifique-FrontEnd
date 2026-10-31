@@ -117,7 +117,7 @@ export default function DashboardCadastrosPage() {
             {erro} <Button variant="ghost" size="sm" onClick={carregar}>Tentar de novo</Button>
           </div>
         ) : !d ? (
-          <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando painel…</div>
+          <div className="flex items-center gap-2.5 py-8 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Carregando painel…</div>
         ) : mobile ? (
           <div className="flex items-center gap-2.5 rounded-card border border-line bg-cream px-4 py-3.5 text-[13.5px] text-body">
             <Monitor size={18} className="shrink-0 text-teal" /> {MENSAGEM_GRAFICO_CELULAR}

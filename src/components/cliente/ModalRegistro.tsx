@@ -76,7 +76,7 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
     return {
       identificador: v.identificador,
       status: v.status === 'CONCLUIDA' ? 'Concluída' : 'Cancelada',
-      data: formatarDataHora(v.dataVenda),
+      data: formatarDataHora(v.dataVenda, '—'),
       pessoa: v.clienteNome ?? 'Consumidor final',
       linhas: v.itens.map(i => ({
         nome: i.produtoNome,

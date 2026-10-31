@@ -80,7 +80,7 @@ export default function ModalInsumosFornecedor({ fornecedorId, fornecedorNome, o
             </div>
             <div className="max-h-[420px] overflow-y-auto">
               {erro ? <div className="flex items-center justify-center gap-3 px-4 py-6 text-sm text-danger">{erro}<Button variant="ghost" size="sm" onClick={carregar}>Tentar de novo</Button></div>
-                : vinculos === null ? <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+                : vinculos === null ? <div className="flex items-center gap-2 px-4 py-4 text-sm text-muted"><Spinner size={16} trackColor="#EFEDE8" /> Carregando…</div>
                 : linhas.length === 0 ? <div className="px-4 py-8 text-center text-sm text-muted">{vinculos.length === 0 ? 'Nenhum insumo vinculado a este fornecedor.' : 'Nenhum insumo com estes filtros.'}</div>
                 : linhas.map(v => (
                   <button key={v.id} type="button" data-testid="linha-insumo-fornecedor" onClick={() => setAberto(v)}

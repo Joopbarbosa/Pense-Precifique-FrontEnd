@@ -50,7 +50,7 @@ export default function PainelCompra({ compraId, onAlterada }: { compraId: strin
   }
 
   if (erro) return <p className="text-sm text-danger">{erro}</p>
-  if (!compra) return <div className="flex justify-center py-3"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={18} /></div>
+  if (!compra) return <div className="flex justify-center py-3"><Spinner trackColor="rgba(42,157,143,0.2)" size={18} /></div>
   const pendente = compra.status === 'PENDENTE_RECEBIMENTO'
   return (
     <div className="flex flex-col gap-3" data-testid="painel-compra">

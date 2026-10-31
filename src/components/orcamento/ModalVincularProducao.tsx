@@ -262,7 +262,7 @@ export default function ModalVincularProducao({
       >
         {simulando && (
           <div className="flex items-center justify-center gap-2 py-10 text-[13px] text-muted">
-            <Spinner size={16} color="#2A9D8F" trackColor="rgba(42,157,143,0.18)" />
+            <Spinner size={16} trackColor="rgba(42,157,143,0.18)" />
             Calculando o que essa produção vai precisar...
           </div>
         )}
@@ -365,7 +365,7 @@ export default function ModalVincularProducao({
 
       {loading && (
         <div className="flex items-center justify-center gap-2 py-10 text-[13px] text-muted">
-          <Spinner size={16} color="#2A9D8F" trackColor="rgba(42,157,143,0.18)" />
+          <Spinner size={16} trackColor="rgba(42,157,143,0.18)" />
           Carregando produções...
         </div>
       )}

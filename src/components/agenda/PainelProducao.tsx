@@ -25,7 +25,7 @@ export default function PainelProducao({ producaoId }: { producaoId: string }) {
     return () => { vivo = false }
   }, [producaoId])
   if (erro) return <p className="text-sm text-danger">{erro}</p>
-  if (!producao) return <div className="flex justify-center py-3"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={18} /></div>
+  if (!producao) return <div className="flex justify-center py-3"><Spinner trackColor="rgba(42,157,143,0.2)" size={18} /></div>
   const produtos = [...producao.produtos].sort((a, b) => a.nomeProduto.localeCompare(b.nomeProduto, 'pt-BR', { sensitivity: 'base' }))
   return (
     <dl className="grid grid-cols-[110px_1fr] gap-y-2 rounded-card border border-line bg-cream px-4 py-3 text-sm text-body" data-testid="painel-producao">

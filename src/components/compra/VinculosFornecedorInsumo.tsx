@@ -114,7 +114,7 @@ export default function VinculosFornecedorInsumo({ modo, id }: { modo: 'insumo' 
 
 
       {loading ? (
-        <div className="flex items-center gap-2.5 px-5 py-8 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+        <div className="flex items-center gap-2.5 px-5 py-8 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Carregando…</div>
       ) : erro ? (
         <div className="flex items-center justify-center gap-3 px-5 py-8 text-sm text-danger">{erro} <Button variant="ghost" size="sm" onClick={carregar}>Tentar de novo</Button></div>
       ) : vinculos.length === 0 ? (

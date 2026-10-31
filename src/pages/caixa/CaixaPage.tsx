@@ -322,7 +322,7 @@ function FecharCaixaModal({ open, onClose, turno, onFechado }: {
           </Field>
           {carregandoPrevia && (
             <div className="flex items-center gap-2 text-[12.5px] text-muted">
-              <Spinner size={14} color="#2A9D8F" trackColor="#EFEDE8" /> Calculando valor esperado…
+              <Spinner size={14} trackColor="#EFEDE8" /> Calculando valor esperado…
             </div>
           )}
           {temDiferenca && (
@@ -460,7 +460,7 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center gap-2.5 py-8 text-sm text-muted">
-          <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" />
+          <Spinner size={18} trackColor="#EFEDE8" />
           Carregando…
         </div>
       ) : vendas.length === 0 ? (
@@ -858,7 +858,7 @@ function ModalSelecionarCliente({ open, onClose, onSelect }: {
             </div>
           ) : estado === 'carregando' && resultados.length === 0 ? (
             <div role="status" className="flex items-center justify-center gap-2.5 py-8 text-sm text-muted">
-              <Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Buscando clientes…
+              <Spinner size={16} trackColor="#EFEDE8" /> Buscando clientes…
             </div>
           ) : resultados.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted">Nenhum cliente encontrado</div>
@@ -1374,7 +1374,7 @@ export default function CaixaPage() {
 
         {loading ? (
           <div className="flex flex-1 items-center justify-center gap-2.5 text-sm text-muted">
-            <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" />
+            <Spinner size={20} trackColor="#EFEDE8" />
             Carregando…
           </div>
         ) : erro ? (

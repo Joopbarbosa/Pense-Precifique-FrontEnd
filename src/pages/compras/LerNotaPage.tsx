@@ -159,7 +159,7 @@ export default function LerNotaPage() {
           )}
         </Field>
         <div>
-          <Button variant="primary" icon={lendo ? <Spinner size={15} /> : <FileSearch size={16} />} onClick={() => { void ler() }} disabled={!podeLer}>
+          <Button variant="primary" icon={lendo ? <Spinner size={15} color="#fff" /> : <FileSearch size={16} />} onClick={() => { void ler() }} disabled={!podeLer}>
             {lendo ? 'Lendo a nota…' : 'Ler nota'}
           </Button>
         </div>

@@ -169,7 +169,7 @@ function NovaLista({ rascunho }: { rascunho: ListaCompraResponse | null }) {
       <div className="rounded-card border border-[#F0EEE9] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
           <span className="text-[13px] font-bold text-dark">Sugestão ({linhas.length} {linhas.length === 1 ? 'insumo' : 'insumos'})</span>
-          {carregando && <span className="flex items-center gap-2 text-[12.5px] text-muted"><Spinner size={14} color="#2A9D8F" trackColor="#EFEDE8" /> Atualizando…</span>}
+          {carregando && <span className="flex items-center gap-2 text-[12.5px] text-muted"><Spinner size={14} trackColor="#EFEDE8" /> Atualizando…</span>}
         </div>
         {erroPrevia ? (
           <div className="flex items-center justify-center gap-3 px-5 py-8 text-sm text-danger">{erroPrevia} <Button variant="ghost" size="sm" onClick={atualizarPrevia}>Tentar de novo</Button></div>
@@ -272,7 +272,7 @@ function Historico() {
     ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
     : { campo, dir: campo === 'status' ? 'asc' : 'desc' })
 
-  if (loading) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+  if (loading) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} trackColor="#EFEDE8" /> Carregando…</div>
   if (error) return <div role="alert" className="flex items-center justify-between rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{error}<Button variant="ghost" size="sm" onClick={reset}>Tentar de novo</Button></div>
   if (items.length === 0) return <EmptyState icon={<History size={20} />} title="Nenhuma lista ainda" description="As listas que você gerar ou salvar como rascunho ficam aqui para consultar e baixar em PDF." />
 
@@ -312,7 +312,7 @@ function NovaListaOuRascunho({ rascunhoId }: { rascunhoId: string | null }) {
   }, [rascunhoId])
   if (!rascunhoId) return <NovaLista rascunho={null} />
   if (erro) return <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-4 py-3 text-[13.5px] text-danger-deep">{erro}</div>
-  if (!rascunho) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Abrindo rascunho…</div>
+  if (!rascunho) return <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} trackColor="#EFEDE8" /> Abrindo rascunho…</div>
   return (
     <div className="flex flex-col gap-3">
       <div className="rounded-input border border-azul/20 bg-azul/5 px-4 py-2.5 text-[13.5px] text-body">

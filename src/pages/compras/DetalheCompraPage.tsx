@@ -103,7 +103,7 @@ export default function DetalheCompraPage() {
             <div className="mt-4"><Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/compras')}>Voltar</Button></div>
           </>
         ) : (
-          <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando compra…</div>
+          <div className="flex items-center gap-2.5 py-10 text-sm text-muted"><Spinner size={20} trackColor="#EFEDE8" /> Carregando compra…</div>
         )}
       </AppLayout>
     )
@@ -149,7 +149,7 @@ export default function DetalheCompraPage() {
           {rascunho && <>
             <Button variant="ghost" icon={<Trash2 size={16} />} onClick={() => setModal('excluir')}>Excluir</Button>
             <Button variant="ghost" icon={<Pencil size={16} />} onClick={() => navigate(`/compras/${compra.id}/editar`)}>Editar</Button>
-            <Button variant="primary" icon={processando ? <Spinner size={15} /> : <Check size={16} />} disabled={processando} onClick={() => setModal('confirmar')}>
+            <Button variant="primary" icon={processando ? <Spinner size={15} color="#fff" /> : <Check size={16} />} disabled={processando} onClick={() => setModal('confirmar')}>
               Confirmar compra
             </Button>
           </>}
@@ -159,7 +159,7 @@ export default function DetalheCompraPage() {
             <Button variant="secondary" icon={<CreditCard size={16} />} onClick={() => setModal('pagamento')}>Alterar pagamento</Button>
           </>}
           {posConfirmacao && (
-            <Button variant="ghost" icon={duplicando ? <Spinner size={15} /> : <Copy size={16} />} disabled={processando || duplicando} onClick={() => pedirDuplicar(compra)}>Duplicar</Button>
+            <Button variant="ghost" icon={duplicando ? <Spinner size={15} color="#fff" /> : <Copy size={16} />} disabled={processando || duplicando} onClick={() => pedirDuplicar(compra)}>Duplicar</Button>
           )}
           <Button variant="ghost" icon={<FileText size={16} />} onClick={() => navigate(`/compras/${compra.id}/pdf`)}>PDF</Button>
         </div>

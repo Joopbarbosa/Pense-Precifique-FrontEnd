@@ -82,7 +82,7 @@ export default function ComboBusca<T>({ buscar, onSelect, getKey, renderItem, pl
       )}
       {open && estado === 'carregando' && itens.length === 0 && (
         <div role="status" className={clsx(painel, 'flex items-center gap-2.5 px-4 py-3.5 text-sm text-muted')}>
-          <Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Buscando…
+          <Spinner size={16} trackColor="#EFEDE8" /> Buscando…
         </div>
       )}
       {open && estado === 'pronto' && itens.length === 0 && (

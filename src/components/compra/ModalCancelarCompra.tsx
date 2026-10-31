@@ -72,7 +72,7 @@ export default function ModalCancelarCompra({ compra, onClose, onCancelada }: {
         </Button>
       </>}>
       {!simulacao && !erroSimulacao ? (
-        <div className="flex items-center gap-2.5 py-4 text-sm text-muted"><Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Verificando estoque e custos…</div>
+        <div className="flex items-center gap-2.5 py-4 text-sm text-muted"><Spinner size={18} trackColor="#EFEDE8" /> Verificando estoque e custos…</div>
       ) : erroSimulacao ? (
         <div role="alert" className="rounded-input border border-danger-line bg-danger-tint px-3.5 py-3 text-[13.5px] text-danger-deep">{erroSimulacao}</div>
       ) : (

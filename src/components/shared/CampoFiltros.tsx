@@ -133,7 +133,7 @@ function BuscaGrupo({ grupo, marcado, alternar }: {
       </label>
       <div className="mt-1.5 flex flex-col">
         {opcoes === null ? (
-          <div className="flex items-center gap-2 px-1 py-1.5 text-[12px] text-muted"><Spinner size={12} color="#2A9D8F" trackColor="#EFEDE8" /> Buscando…</div>
+          <div className="flex items-center gap-2 px-1 py-1.5 text-[12px] text-muted"><Spinner size={12} trackColor="#EFEDE8" /> Buscando…</div>
         ) : opcoes.length === 0 ? (
           <div className="px-1 py-1.5 text-[12px] text-muted">Nada encontrado.</div>
         ) : opcoes.map(o => {

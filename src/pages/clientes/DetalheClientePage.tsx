@@ -261,7 +261,7 @@ function GraficosCadastro({ cadastroId, papel, abrir }: { cadastroId: string; pa
         <div className="px-5 py-10 text-center text-sm text-muted">Escolha a data inicial e a final.</div>
       ) : loading ? (
         <div className="flex items-center gap-2.5 px-5 py-10 text-sm text-muted">
-          <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando gráficos…
+          <Spinner size={18} trackColor="#EFEDE8" /> Carregando gráficos…
         </div>
       ) : erro ? (
         <div className="px-5 py-8 text-center text-sm text-danger">{erro}</div>
@@ -381,7 +381,7 @@ function ListaHistorico<T>({ titulo, icone, colunas, h, vazio, renderLinha, lege
       )}
       {h.loading ? (
         <div className="flex items-center gap-2.5 px-5 py-8 text-sm text-muted">
-          <Spinner size={18} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…
+          <Spinner size={18} trackColor="#EFEDE8" /> Carregando…
         </div>
       ) : h.erro && h.itens.length === 0 ? (
         <div className="px-5 py-8 text-center text-sm text-danger">{h.erro}</div>
@@ -480,7 +480,7 @@ export default function DetalheClientePage() {
     return (
       <AppLayout active="clientes" compact>
         <div className="flex items-center gap-2.5 py-10 text-sm text-muted">
-          <Spinner size={20} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando cadastro…
+          <Spinner size={20} trackColor="#EFEDE8" /> Carregando cadastro…
         </div>
       </AppLayout>
     )

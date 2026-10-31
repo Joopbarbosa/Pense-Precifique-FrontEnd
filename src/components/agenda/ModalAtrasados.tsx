@@ -21,7 +21,7 @@ export default function ModalAtrasados({ onClose, onAbrir }: { onClose: () => vo
     <ModalShell open onClose={onClose} title="Atrasados" subtitle="Do mais antigo para o mais recente" width={640}
       icon={<AlertTriangle size={15} />}>
       {lista.loading && lista.items.length === 0 ? (
-        <div className="flex justify-center py-8"><Spinner color="#2A9D8F" trackColor="rgba(42,157,143,0.2)" size={22} /></div>
+        <div className="flex justify-center py-8"><Spinner trackColor="rgba(42,157,143,0.2)" size={22} /></div>
       ) : lista.error ? (
         <p className="py-6 text-center text-sm text-danger">{lista.error}</p>
       ) : lista.items.length === 0 ? (

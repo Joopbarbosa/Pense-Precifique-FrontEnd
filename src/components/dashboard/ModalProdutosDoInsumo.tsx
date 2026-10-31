@@ -27,7 +27,7 @@ export default function ModalProdutosDoInsumo({ insumoId, insumoNome, onClose }:
         {erro ? (
           <div role="alert" className="text-sm text-danger">{erro}</div>
         ) : !produtos ? (
-          <div className="flex items-center gap-2.5 py-6 text-sm text-muted"><Spinner size={16} color="#2A9D8F" trackColor="#EFEDE8" /> Carregando…</div>
+          <div className="flex items-center gap-2.5 py-6 text-sm text-muted"><Spinner size={16} trackColor="#EFEDE8" /> Carregando…</div>
         ) : produtos.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted">Nenhum produto ativo usa este insumo.</div>
         ) : (
