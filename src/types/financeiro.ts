@@ -28,6 +28,20 @@ export interface ParcelaFinanceira {
   /** F6 (PP-525): só despesa tem categoria. */
   categoriaId?: string | null
   categoriaNome?: string | null
+  foraProjecao: boolean
+}
+
+export interface ContaAvulsaRequest {
+  tipo: TipoLancamento
+  descricao: string
+  valor: number
+  vencimento: string
+  categoriaId?: string
+  meses?: number
+  foraProjecao: boolean
+  jaPaga: boolean
+  dataBaixa?: string
+  metodoPagamentoId?: string
 }
 
 export interface ListaParcelas {
