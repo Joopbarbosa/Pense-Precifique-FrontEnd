@@ -71,6 +71,12 @@ export const caixaService = {
     return response.data
   },
 
+  // #1170 (V0.19.0): recibo da venda do Caixa em PDF
+  baixarReciboVenda: async (id: string): Promise<Blob> => {
+    const response = await api.get<Blob>(`/caixa/vendas/${id}/recibo`, { responseType: 'blob' })
+    return response.data
+  },
+
   cancelarVenda: async (id: string, data: CancelarVendaCaixaRequest): Promise<VendaCaixaResponse> => {
     const response = await api.post<VendaCaixaResponse>(`/caixa/vendas/${id}/cancelar`, data)
     return response.data

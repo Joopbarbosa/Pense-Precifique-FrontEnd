@@ -1,3 +1,4 @@
+import EnviarWhatsappBotao from '../../components/whatsapp/EnviarWhatsappBotao'
 import { formatarMoeda2 } from '../../utils/formatacao'
 import { useState, useEffect, useCallback } from 'react'
 import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
@@ -237,6 +238,7 @@ export default function DetalheCatalogoPage() {
           >
             {pdfRetry.executando ? 'Gerando PDF…' : 'Gerar PDF'}
           </Button>
+          {catalogo.ativo && <EnviarWhatsappBotao tipoDocumento="CATALOGO" documentoId={catalogo.id} />}
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate(`/catalogos/itens/novo?catalogoId=${catalogo.id}`)}>
             Adicionar item
           </Button>
