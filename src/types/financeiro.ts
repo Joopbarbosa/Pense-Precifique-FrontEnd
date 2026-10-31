@@ -39,8 +39,9 @@ export interface ListaParcelas {
 
 export interface FiltroParcelas {
   tipo: TipoLancamento
-  de: string
-  ate: string
+  /** Ausentes = período padrão da API: mês atual + todas as vencidas de qualquer mês (PP-697). */
+  de?: string
+  ate?: string
   situacao: FiltroSituacaoParcela
   page?: number
   size?: number
