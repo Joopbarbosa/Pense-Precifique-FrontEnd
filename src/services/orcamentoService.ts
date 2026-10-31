@@ -1,5 +1,5 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, SugestaoQuantidadeProducao, ComentarioOrcamento } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, SugestaoQuantidadeProducao, ComentarioOrcamento, PagamentoOrcamentoValidadoResponse } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
@@ -70,6 +70,12 @@ export const orcamentoService = {
   simularEstoque: async (itens: SimularAlertasOrcamentoItemRequest[]): Promise<SimulacaoEstoqueProdutoResponse[]> => {
     const response = await api.post('/orcamentos/simular-alertas', itens);
     return response.data;
+  },
+
+  // V0.19.0 (PP-528) — só valida o passo Pagamento (nada é gravado; a gravação é da aprovação, #1174).
+  validarPagamento: async (id: string, corpo: Record<string, unknown>): Promise<PagamentoOrcamentoValidadoResponse> => {
+    const response = await api.post(`/orcamentos/${id}/pagamento/validar`, corpo)
+    return response.data
   },
 
   avancarStatus: async (id: string, data?: AvancaStatusRequest): Promise<OrcamentoDetalheResponse | ConfirmacaoEstoqueNegativoResponse> => {

@@ -1,12 +1,10 @@
 import type { AvisoEstoqueNegativo } from './producao';
 import type { ItemCatalogoComponenteResponse } from './itemCatalogo';
+import type { MetodoPagamentoRef } from './compra';
 
 export type StatusOrcamento =
   'RASCUNHO' | 'ENVIADO' | 'APROVADO' | 'AGUARDANDO_SINAL' |
   'SINAL_PAGO' | 'EM_PRODUCAO' | 'FINALIZADO' | 'ENTREGUE' | 'PAGO' | 'CANCELADO';
-
-export type MetodoPagamento =
-  'PIX' | 'DINHEIRO' | 'CREDITO' | 'DEBITO' | 'TRANSFERENCIA' | 'BOLETO' | 'OUTRO';
 
 export interface OrcamentoItemCustomizacaoRequest {
   produtoId: string;
@@ -79,8 +77,6 @@ export interface ComentarioOrcamento {
 export interface OrcamentoRequest {
   clienteId: string;
   itens: OrcamentoItemRequest[];
-  metodoPagamento: MetodoPagamento;
-  metodoPagamentoObs?: string;
   temPrazoProducao: boolean;
   prazoProducaoDias?: number;
   inicioAssimQueAprovado: boolean;
@@ -226,8 +222,8 @@ export interface OrcamentoDetalheResponse {
   clienteId: string;
   nomeCliente: string;
   status: StatusOrcamento;
-  metodoPagamento: MetodoPagamento;
-  metodoPagamentoObs?: string;
+  /** V0.19.0 (RN-NOVA-37) — forma escolhida no passo Pagamento da aprovação; nula até lá. */
+  metodoPagamento?: MetodoPagamentoRef | null;
   prazoProducaoDias?: number;
   inicioAssimQueAprovado: boolean;
   dataInicioEstimada?: string;
@@ -247,7 +243,7 @@ export interface OrcamentoDetalheResponse {
   percentualSinal?: number;
   valorSinal?: number;
   dataSinalPago?: string;
-  metodoSinalRecebido?: MetodoPagamento;
+  metodoSinalRecebido?: MetodoPagamentoRef | null;
   // DT-NOVA-4 (V0.10.0, #466) — setado uma única vez na transição pra PAGO, nunca sobrescrito.
   // Substitui status === "PAGO" como indicador de "já foi pago" (RN-NOVA-10 tira PAGO de terminal).
   dataPagamento?: string;
@@ -274,8 +270,8 @@ export interface OrcamentoDetalheResponse {
 }
 
 export interface AvancaStatusRequest {
-  metodoSinalRecebido?: MetodoPagamento;
-  metodoSinalRecebidoObs?: string;
+  /** V0.19.0 (RN-NOVA-42) — id de um método ativo do cadastro de métodos de pagamento. */
+  metodoSinalRecebidoId?: string;
   motivoCancelamento?: string;
   tipoCancelamento?: string;
   percentualMulta?: number;
@@ -304,3 +300,16 @@ export interface SimulacaoAvancoStatusResponse {
   avisosEstoque: AvisoEstoqueNegativo[];
 }
 
+
+/** V0.19.0 (PP-528) — resposta de POST /orcamentos/{id}/pagamento/validar. */
+export interface PagamentoOrcamentoValidadoResponse {
+  metodoPagamento: MetodoPagamentoRef;
+  temSinal: boolean;
+  total: number;
+  percentualSinal: number | null;
+  valorSinal: number | null;
+  saldo: number;
+  geraParcelaSaldo: boolean;
+  sinalAte: string | null;
+  vencimentoSaldo: string | null;
+}
