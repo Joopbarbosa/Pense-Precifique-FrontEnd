@@ -14,7 +14,7 @@ import { normalizarErroBlob } from '../../utils/apiError'
  * PDF, sem layout duplicado no front), o download só habilita depois do preview, e erro usa
  * `useRetryCooldown` + `RetryCooldownModal`.
  */
-export default function PreviewPdfDocumento({ active, trilha, titulo, badge, voltar, carregarHtml, baixarPdf, nomeArquivo }: {
+export default function PreviewPdfDocumento({ active, trilha, titulo, badge, voltar, carregarHtml, baixarPdf, nomeArquivo, acoesExtras }: {
   active: 'compras'
   trilha: { label: string; to?: string }[]
   titulo: string
@@ -23,6 +23,8 @@ export default function PreviewPdfDocumento({ active, trilha, titulo, badge, vol
   carregarHtml: () => Promise<string>
   baixarPdf: () => Promise<Blob>
   nomeArquivo: string
+  /** #1170: ações adicionais ao lado de "Baixar PDF" (ex.: enviar por WhatsApp). */
+  acoesExtras?: ReactNode
 }) {
   const navigate = useNavigate()
   const [html, setHtml] = useState<string | null>(null)
@@ -77,6 +79,7 @@ export default function PreviewPdfDocumento({ active, trilha, titulo, badge, vol
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <Button variant="ghost" icon={<ArrowLeft size={17} />} onClick={() => navigate(voltar.to)}>{voltar.label}</Button>
+            {acoesExtras}
             <Button variant="primary" icon={downloadRetry.executando ? <Spinner size={15} color="#fff" /> : <Download size={17} />}
               onClick={baixar} disabled={status !== 'ok' || downloadBloqueado}>
               {downloadRetry.executando ? 'Baixando...' : downloadRetry.cooldownRestante > 0 ? `Aguarde ${downloadRetry.cooldownRestante}s` : 'Baixar PDF'}

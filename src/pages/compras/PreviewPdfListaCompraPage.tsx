@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import PreviewPdfDocumento from '../../components/shared/PreviewPdfDocumento'
+import EnviarWhatsappBotao from '../../components/whatsapp/EnviarWhatsappBotao'
 import { listaCompraService } from '../../services/compraService'
 import type { ListaCompraResponse } from '../../types/compra'
 
@@ -18,6 +19,7 @@ export default function PreviewPdfListaCompraPage() {
       carregarHtml={() => listaCompraService.previewHtml(id!)}
       baixarPdf={() => listaCompraService.baixarPdf(id!)}
       nomeArquivo={`lista-compras-${lista?.identificador ?? id}.pdf`}
+      acoesExtras={<EnviarWhatsappBotao tipoDocumento="LISTA_COMPRAS" documentoId={id!} mostrarAvisoFornecedor />}
     />
   )
 }
