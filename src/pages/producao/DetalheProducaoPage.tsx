@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import { formatarData } from '../../utils/data'
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -59,7 +60,7 @@ function fmtDataHora(iso: string): string {
 
 // RN-NOVA-15 (V0.8.3, #375+308) — mesmo padrão local de BRL(n) já usado em
 // DetalheOrcamentoPage.tsx/ListaProdutosPage.tsx, sem util compartilhado no projeto.
-const BRL = (n: number) => `R$ ${(n ?? 0).toFixed(2).replace('.', ',')}`
+const BRL = (n: number) => formatarMoeda2(n)
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (

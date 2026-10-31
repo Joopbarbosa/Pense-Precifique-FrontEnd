@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import React, { useState, useRef, useEffect } from 'react'
 import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -26,8 +27,7 @@ import { extractApiError } from '../../utils/apiError'
 import { formatQuantidade } from '../../utils/quantidade'
 import { rotuloProduto } from '../../utils/rotuloProduto'
 
-const moeda = (n: number, dec?: number) =>
-  'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: dec ?? 2, maximumFractionDigits: dec ?? 2 })
+const moeda = (n: number, _dec?: number) => formatarMoeda2(n)
 
 const fmtData = (iso: string) => {
   const d = new Date(iso)

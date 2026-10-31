@@ -1,3 +1,4 @@
+import { formatarMoeda2 } from '../../utils/formatacao'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -30,7 +31,7 @@ const FILTERS: { label: string; value: StatusOrcamento | '' }[] = [
   { label: 'Cancelado', value: 'CANCELADO' },
 ]
 
-const fmt = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`
+const fmt = (n: number) => formatarMoeda2(n)
 
 // #255 — campo aninhado (cliente.nome) e simples (numero/total/createdAt) vão via ?sort= do
 // backend (confirmado por curl no Passo 0); status ordena pelo ciclo de vida do pedido
