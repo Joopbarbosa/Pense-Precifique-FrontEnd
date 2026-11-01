@@ -28,6 +28,8 @@ import type {
   QuantidadeProducao,
 } from "../../types/orcamento";
 import type { ClienteResponse } from "../../types/cliente";
+import { podeAlterarPagamento } from "../../utils/pagamentoOrcamento";
+import ParcelasOrcamento from "../../components/orcamento/ParcelasOrcamento";
 import ModaisAvancarStatus from "../../components/orcamento/ModaisAvancarStatus";
 import ComentariosOrcamento from "../../components/orcamento/ComentariosOrcamento";
 import { rotuloAcaoAvancar } from "../../components/orcamento/acaoAvancarStatus";
@@ -549,6 +551,11 @@ export default function DetalheOrcamentoPage() {
 
       {aba === "detalhes" && (
         <>
+      <ParcelasOrcamento
+        parcelas={orcamento.parcelas ?? []}
+        podeAlterar={podeAlterarPagamento(status, orcamento.parcelas)}
+        onAlterar={fluxo.abrirAlterarPagamento}
+      />
       {/* SEÇÃO 1 — TIMELINE */}
       {status !== "CANCELADO" && (
         <section className="animate-fade-up rounded-card border border-[#F0EEE9] bg-white px-7 py-[26px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">

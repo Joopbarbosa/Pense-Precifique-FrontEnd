@@ -153,3 +153,10 @@ export function montarCorpoPagamento(e: EntradaPagamento): Record<string, unknow
   if (e.vencimentoSaldo) corpo.vencimentoSaldo = e.vencimentoSaldo
   return corpo
 }
+
+/** RN-NOVA-41 (#1174): "Alterar pagamento" só entre a aprovação e o fim da produção e sem parcela recebida. */
+export function podeAlterarPagamento(status: string | undefined, parcelas: { situacao: string }[] | undefined): boolean {
+  if (!status || !['APROVADO', 'AGUARDANDO_SINAL', 'EM_PRODUCAO', 'FINALIZADO'].includes(status)) return false
+  const ps = parcelas ?? []
+  return ps.length > 0 && !ps.some(p => p.situacao === 'BAIXADA')
+}
