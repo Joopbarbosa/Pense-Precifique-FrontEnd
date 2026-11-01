@@ -23,6 +23,10 @@ import PreviewPdfListaCompraPage from '../pages/compras/PreviewPdfListaCompraPag
 import ListaOrcamentosPage from '../pages/orcamentos/ListaOrcamentosPage'
 import CriarOrcamentoPage from '../pages/orcamentos/CriarOrcamentoPage'
 import DetalheOrcamentoPage from '../pages/orcamentos/DetalheOrcamentoPage'
+import ListaDescritivosPage from '../pages/orcamentos/descritivo/ListaDescritivosPage'
+import DescritivoFormPage from '../pages/orcamentos/descritivo/DescritivoFormPage'
+import DetalheDescritivoPage from '../pages/orcamentos/descritivo/DetalheDescritivoPage'
+import PdfDescritivoPage from '../pages/orcamentos/descritivo/PdfDescritivoPage'
 import PreviewPdfOrcamentoPage from '../pages/orcamentos/PreviewPdfOrcamentoPage'
 import ReciboSinalPage from '../pages/orcamentos/ReciboSinalPage'
 import ReciboMultaPage from '../pages/orcamentos/ReciboMultaPage'
@@ -71,6 +75,11 @@ export const router = createBrowserRouter([
       { path: '/clientes/:id',        element: <DetalheClientePage /> },
 
       { path: '/orcamentos',                          element: <ListaOrcamentosPage /> },
+      { path: '/orcamentos/descritivos',                element: <ListaDescritivosPage /> },
+      { path: '/orcamentos/descritivos/novo',           element: <DescritivoFormPage /> },
+      { path: '/orcamentos/descritivos/:id',            element: <DetalheDescritivoPage /> },
+      { path: '/orcamentos/descritivos/:id/editar',     element: <DescritivoFormPage /> },
+      { path: '/orcamentos/descritivos/:id/pdf',        element: <PdfDescritivoPage /> },
       { path: '/orcamentos/novo',                     element: <CriarOrcamentoPage /> },
       { path: '/orcamentos/:id/editar',               element: <CriarOrcamentoPage /> },
       { path: '/orcamentos/:id',                      element: <DetalheOrcamentoPage /> },

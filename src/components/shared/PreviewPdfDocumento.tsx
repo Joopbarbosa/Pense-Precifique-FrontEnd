@@ -15,7 +15,7 @@ import { normalizarErroBlob } from '../../utils/apiError'
  * `useRetryCooldown` + `RetryCooldownModal`.
  */
 export default function PreviewPdfDocumento({ active, trilha, titulo, badge, voltar, carregarHtml, baixarPdf, nomeArquivo, acoesExtras }: {
-  active: 'compras'
+  active: 'compras' | 'orcamentos'
   trilha: { label: string; to?: string }[]
   titulo: string
   badge?: ReactNode
