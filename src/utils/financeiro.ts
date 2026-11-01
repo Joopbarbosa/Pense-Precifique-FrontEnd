@@ -65,3 +65,66 @@ export function mensagemNomeCategoria(nome: string): string | null {
   if (texto.length < 2 || texto.length > 40) return 'O nome da categoria deve ter de 2 a 40 caracteres.'
   return null
 }
+
+// ---- PP-524 (F5): resumo do mês — só apresentação; todos os números vêm prontos da API ----
+
+export const MENSAGEM_SEM_MOVIMENTOS_GRAFICO = 'Sem movimentos para mostrar.'
+export const MENSAGEM_SEM_VENCIMENTOS = 'Nenhum vencimento nos próximos 7 dias.'
+
+const NOMES_MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+/** "2026-10" do mês de uma data local. */
+export function mesDaData(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Soma (ou subtrai) meses de um "AAAA-MM", virando o ano quando preciso. */
+export function mudarMes(mes: string, delta: number): string {
+  const [ano, m] = mes.split('-').map(Number)
+  const total = ano * 12 + (m - 1) + delta
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
+}
+
+/** "outubro de 2026". */
+export function rotuloMes(mes: string): string {
+  const [ano, m] = mes.split('-').map(Number)
+  return `${NOMES_MES[m - 1]} de ${ano}`
+}
+
+/** Urgência da linha de "Próximos vencimentos": vencida, vence hoje ou próximos dias (cor + texto, nunca só cor). */
+export function urgenciaVencimento(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): 'VENCIDA' | 'HOJE' | 'PROXIMA' {
+  return p.situacaoExibida === 'VENCIDA' ? 'VENCIDA' : p.situacaoExibida === 'VENCE_HOJE' ? 'HOJE' : 'PROXIMA'
+}
+
+export function rotuloUrgencia(p: Pick<ParcelaFinanceira, 'situacaoExibida' | 'rotulo'>): string {
+  const u = urgenciaVencimento(p)
+  if (p.rotulo && u !== 'PROXIMA') return p.rotulo
+  return u === 'VENCIDA' ? 'Vencida' : u === 'HOJE' ? 'Vence hoje' : 'Próximos dias'
+}
+
+/** Texto de "Ver todas (N)". */
+export function rotuloVerTodas(total: number): string {
+  return `Ver todas (${total})`
+}
+
+/** Largura (0 a 100) da barra de uma categoria em relação à maior. */
+export function larguraBarra(valor: number, maior: number): number {
+  if (!(maior > 0) || !(valor > 0)) return 0
+  return Math.min(100, Math.max(2, Math.round((valor / maior) * 100)))
+}
+
+/** "47,1%" — percentual com uma casa, como vem da API. */
+export function formatarPercentual(p: number): string {
+  return `${p.toFixed(1).replace('.', ',')}%`
+}
+
+/** Dia/mês curto para eixo e tabela: "2026-11-05" -> "05/11". */
+export function diaMes(iso: string): string {
+  const [, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+
+/** Quando o saldo projetado fica negativo em algum ponto (alerta em texto, além da cor). */
+export function primeiroDiaNegativo(serie: { data: string; saldo: number }[]): string | null {
+  return serie.find(p => p.saldo < 0)?.data ?? null
+}
