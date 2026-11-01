@@ -10,6 +10,7 @@ import SegmentedControl from '../../components/ui/SegmentedControl'
 import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import Toast from '../../components/shared/Toast'
 import ModalBaixa from '../../components/financeiro/ModalBaixa'
+import ResumoFinanceiroPainel from '../../components/financeiro/ResumoFinanceiroPainel'
 import { useToast } from '../../hooks/useToast'
 import { financeiroService } from '../../services/financeiroService'
 import { BRL } from '../../components/venda/formato'
@@ -115,6 +116,8 @@ export default function FinanceiroPage() {
           <Link to="/financeiro/categorias" className="text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-categorias">Categorias de despesa</Link>
         </div>
       </div>
+
+      <ResumoFinanceiroPainel />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <SegmentedControl options={OPCOES_SITUACAO(tipo)} value={situacao} onChange={setSituacao} display="inline-flex" optionWidth="whitespace-nowrap px-4" />

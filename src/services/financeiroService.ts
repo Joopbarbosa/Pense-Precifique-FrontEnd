@@ -1,5 +1,5 @@
 import api from './api'
-import type { BaixaParcelaRequest, CategoriaFinanceira, ContaAvulsaRequest, FiltroParcelas, ListaParcelas, ParcelaFinanceira } from '../types/financeiro'
+import type { BaixaParcelaRequest, CategoriaFinanceira, ContaAvulsaRequest, FiltroParcelas, ListaParcelas, ListaVencimentos, ParcelaFinanceira, ResumoFinanceiro } from '../types/financeiro'
 
 // V0.19.0 (PP-520) — contrato: modulos/FINANCEIRO/contrato-financeiro.md.
 export const financeiroService = {
@@ -58,4 +58,11 @@ export const financeiroService = {
     const response = await api.post<CategoriaFinanceira>(`/financeiro/categorias/${id}/reativar`)
     return response.data
   },
+
+  // PP-524 (F5) — resumo do mês e lista completa de vencimentos
+  resumo: async (mes?: string): Promise<ResumoFinanceiro> =>
+    (await api.get<ResumoFinanceiro>('/financeiro/resumo', { params: mes ? { mes } : {} })).data,
+
+  listarVencimentos: async (page = 0, size = 50): Promise<ListaVencimentos> =>
+    (await api.get<ListaVencimentos>('/financeiro/proximos-vencimentos', { params: { page, size } })).data,
 }
