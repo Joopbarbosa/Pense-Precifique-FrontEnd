@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
-import { Button, EmptyState, StatusBadge, VencidoBadge } from '../../components/ui'
+import { Button, EmptyState, ModalShell, StatusBadge, VencidoBadge } from '../../components/ui'
 import { ExternalLink, Download, Plus, Filter, Search, Calendar } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from '../../components/shared/ActionMenu'
 import RetryCooldownModal from '../../components/shared/RetryCooldownModal'
@@ -135,6 +135,7 @@ export default function ListaOrcamentosPage() {
   // #994 — página, busca, status, período e ordenação ficam na URL: voltar de um orçamento reabre a lista como estava
   const inicial = useParamsIniciais()
   const [filtro, setFiltro] = useState<StatusOrcamento | ''>(() => FILTERS.find(f => f.value && f.value === inicial.texto('status'))?.value ?? '')
+  const [escolhendoTipo, setEscolhendoTipo] = useState(false)
   const [periodOpen, setPeriodOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState(() => inicial.texto('de'))
   const [dateTo, setDateTo] = useState(() => inicial.texto('ate'))
@@ -249,9 +250,12 @@ export default function ListaOrcamentosPage() {
           <h1 className="m-0 text-[29px] font-bold tracking-tight text-dark">Orçamentos</h1>
           <p className="mb-0 mt-[7px] text-[14.5px] text-muted">Acompanhe e gerencie todos os seus orçamentos.</p>
         </div>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => navigate('/orcamentos/novo')}>
-          Novo Orçamento
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="ghost" onClick={() => navigate('/orcamentos/descritivos')}>Orçamentos descritivos</Button>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setEscolhendoTipo(true)}>
+            Novo Orçamento
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -269,7 +273,7 @@ export default function ListaOrcamentosPage() {
           icon={<Filter size={20} />}
           title="Você ainda não tem orçamentos"
           description="Que tal criar o primeiro? Leva poucos minutos e já sai com o preço certo."
-          action={{ label: 'Criar primeiro orçamento', icon: <Plus size={16} />, onClick: () => navigate('/orcamentos/novo') }}
+          action={{ label: 'Criar primeiro orçamento', icon: <Plus size={16} />, onClick: () => setEscolhendoTipo(true) }}
         />
       ) : (
         <>
@@ -444,6 +448,20 @@ export default function ListaOrcamentosPage() {
         onClose={downloadRetry.dispensarErro}
       />
 
+      <ModalShell open={escolhendoTipo} onClose={() => setEscolhendoTipo(false)} title="Novo orçamento" subtitle="Escolha o tipo" width={560}>
+        <div className="grid grid-cols-2 gap-3 max-[560px]:grid-cols-1">
+          <button type="button" onClick={() => navigate('/orcamentos/novo')} data-testid="tipo-venda"
+            className="rounded-card border-[1.5px] border-line bg-white p-4 text-left hover:bg-cream">
+            <div className="text-[15px] font-semibold text-dark">Venda</div>
+            <div className="mt-1 text-[13px] text-muted">Itens, total, prazo e pagamento.</div>
+          </button>
+          <button type="button" onClick={() => navigate('/orcamentos/descritivos/novo')} data-testid="tipo-descritivo"
+            className="rounded-card border-[1.5px] border-line bg-white p-4 text-left hover:bg-cream">
+            <div className="text-[15px] font-semibold text-dark">Descritivo</div>
+            <div className="mt-1 text-[13px] text-muted">Lista de opções com preço de referência, sem total.</div>
+          </button>
+        </div>
+      </ModalShell>
     </AppLayout>
   )
 }
