@@ -267,11 +267,29 @@ export interface OrcamentoDetalheResponse {
   updatedAt: string;
   avisosEstoque?: AvisoEstoque[];
   producoesVinculadas: OrcamentoProducaoResponse[];
+  /** V0.19.0 (#1174) — parcelas do pagamento; vazio antes da aprovação. */
+  parcelas?: ParcelaOrcamento[];
+}
+
+/** V0.19.0 (#1174, RN-NOVA-10) — parcela gerada pela aprovação. */
+export interface ParcelaOrcamento {
+  id: string;
+  papel: "SINAL" | "SALDO" | "TOTAL" | "MULTA";
+  valor: number;
+  vencimento: string;
+  situacao: "EM_ABERTO" | "BAIXADA" | "CANCELADA";
+  dataBaixa?: string | null;
+  metodoPagamentoNome?: string | null;
 }
 
 export interface AvancaStatusRequest {
   /** V0.19.0 (RN-NOVA-42) — id de um método ativo do cadastro de métodos de pagamento. */
   metodoSinalRecebidoId?: string;
+  /** V0.19.0 (#1174, RN-NOVA-38) — passo Pagamento; obrigatório ao aprovar. */
+  pagamento?: Record<string, unknown>;
+  /** V0.19.0 (#1174, RN-NOVA-43) — forma realmente recebida no "Recebi" do saldo/total. */
+  metodoRecebidoId?: string;
+  dataRecebimento?: string;
   motivoCancelamento?: string;
   tipoCancelamento?: string;
   percentualMulta?: number;

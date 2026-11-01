@@ -1,3 +1,4 @@
+import ModalPagamentoOrcamento from "./ModalPagamentoOrcamento";
 import ModalSinal from "./ModalSinal";
 import ModalConfirmarAtalho from "./ModalConfirmarAtalho";
 import ModalVincularProducao from "./ModalVincularProducao";
@@ -22,6 +23,31 @@ export default function ModaisAvancarStatus({
           saving={fluxo.saving}
           onClose={fluxo.fecharModalAvanco}
           onConfirm={(data) => fluxo.handleAvancar(data)}
+        />
+      )}
+
+      {fluxo.modalAvanco === "pagamento" && (
+        <ModalPagamentoOrcamento
+          titulo="Como será o pagamento?"
+          subtitulo="Aprovar orçamento"
+          total={orcamento.total}
+          saving={fluxo.saving}
+          erro={fluxo.erroAvanco}
+          rotuloConfirmar="Aprovar"
+          onClose={fluxo.fecharModalAvanco}
+          onConfirm={fluxo.handleConfirmarPagamento}
+        />
+      )}
+
+      {fluxo.modalAvanco === "alterarPagamento" && (
+        <ModalPagamentoOrcamento
+          titulo="Alterar pagamento"
+          total={orcamento.total}
+          saving={fluxo.saving}
+          erro={fluxo.erroAvanco}
+          rotuloConfirmar="Salvar pagamento"
+          onClose={fluxo.fecharModalAvanco}
+          onConfirm={fluxo.handleAlterarPagamento}
         />
       )}
 

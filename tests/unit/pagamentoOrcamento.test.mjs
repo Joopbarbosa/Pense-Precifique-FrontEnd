@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   MSG_FORMA, MSG_SINAL, MSG_SINAL_ATE, MSG_DATA_ANTERIOR_SALDO, MSG_DATA_ANTERIOR_SINAL,
-  lerDecimal, montarCorpoPagamento, percentualPorValor, sinalPorPercentual, validarPagamentoOrcamento,
+  lerDecimal, montarCorpoPagamento, podeAlterarPagamento, percentualPorValor, sinalPorPercentual, validarPagamentoOrcamento,
 } from '../../src/utils/pagamentoOrcamento.ts'
 
 const base = (extra = {}) => ({
@@ -102,4 +102,15 @@ test('corpo enviado ao servidor omite o que nao se aplica', () => {
   assert.equal(c.sinalAte, '2026-11-05')
   assert.equal(c.vencimentoSaldo, '2026-12-01')
   assert.equal('valorSinal' in c, false)
+})
+
+test('alterar pagamento: só de aprovado a finalizado e sem parcela recebida (RN-NOVA-41)', () => {
+  const aberta = [{ situacao: 'EM_ABERTO' }, { situacao: 'CANCELADA' }]
+  assert.equal(podeAlterarPagamento('APROVADO', aberta), true)
+  assert.equal(podeAlterarPagamento('AGUARDANDO_SINAL', aberta), true)
+  assert.equal(podeAlterarPagamento('ENVIADO', aberta), false)
+  assert.equal(podeAlterarPagamento('PAGO', aberta), false)
+  assert.equal(podeAlterarPagamento('EM_PRODUCAO', [{ situacao: 'BAIXADA' }, { situacao: 'EM_ABERTO' }]), false)
+  assert.equal(podeAlterarPagamento('APROVADO', []), false)
+  assert.equal(podeAlterarPagamento(undefined, undefined), false)
 })

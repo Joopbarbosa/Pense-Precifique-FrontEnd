@@ -12,7 +12,7 @@ import type {
   CriarProducaoVinculadaRequest,
 } from "../types/orcamento";
 
-export type ModalAvanco = null | "sinal" | "confirmarAtalho" | "vincularProducao";
+export type ModalAvanco = null | "sinal" | "confirmarAtalho" | "vincularProducao" | "pagamento" | "alterarPagamento";
 
 interface Params {
   id: string | undefined;
@@ -39,6 +39,8 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
   const [confirmandoAviso, setConfirmandoAviso] = useState(false);
   const [simulacaoAtalho, setSimulacaoAtalho] = useState<SimulacaoAvancoStatusResponse | null>(null);
   const [confirmandoAtalho, setConfirmandoAtalho] = useState(false);
+  // #1174 (RN-NOVA-38) — pagamento informado no passo Pagamento, guardado enquanto a usuária decide sobre o atalho.
+  const [pagamentoPendente, setPagamentoPendente] = useState<Record<string, unknown> | null>(null);
   const [vinculandoProducao, setVinculandoProducao] = useState(false);
   // RN-ORC-VINC-02 ponto 2 (P-F005) — true quando a modal de vínculo foi aberta por interceptar o
   // clique em "avançar para Em produção" (não pelo card/atalho "Vincular produção"), para os
@@ -101,16 +103,22 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     }
   };
 
-  // RN-NOVA-2 (revisada, P-F002.2) — clique em "Aprovar" com status ENVIADO: simula antes de
-  // aplicar, para o usuário poder recusar o atalho. Erro na simulação NUNCA cai no fluxo normal
-  // automaticamente — evita aplicar o atalho de verdade sem o usuário ter visto a modal.
-  const handleClicarAprovar = async () => {
+  // RN-NOVA-38 (#1174) — "Aprovar" abre o passo Pagamento; só depois vem a simulação do atalho (RN-NOVA-2).
+  const handleClicarAprovar = () => {
+    setErroAvanco(null);
+    setModalAvanco("pagamento");
+  };
+
+  // RN-NOVA-2 (revisada, P-F002.2) — com o pagamento informado, simula antes de aplicar, para a usuária poder
+  // recusar o atalho. Erro na simulação NUNCA cai no fluxo normal automaticamente.
+  const handleConfirmarPagamento = async (corpo: Record<string, unknown>) => {
     if (!id) return;
     setSaving(true);
     setErroAvanco(null);
+    setPagamentoPendente(corpo);
     let resultado: SimulacaoAvancoStatusResponse;
     try {
-      resultado = await orcamentoService.simularAvancarStatus(id);
+      resultado = await orcamentoService.simularAvancarStatus(id, { pagamento: corpo });
     } catch (err) {
       console.error("Erro ao simular avanço de status:", err);
       setErroAvanco(extractApiError(err, "Não foi possível verificar o atalho de aprovação. Tente novamente."));
@@ -123,7 +131,25 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
       setSaving(false);
       return;
     }
-    await handleAvancar();
+    await handleAvancar({ pagamento: corpo, ignorarAtalhoAprovacaoDireta: true });
+  };
+
+  // RN-NOVA-41 (#1174) — "Alterar pagamento".
+  const handleAlterarPagamento = async (corpo: Record<string, unknown>) => {
+    if (!id) return;
+    setSaving(true);
+    setErroAvanco(null);
+    try {
+      const result = await orcamentoService.alterarPagamento(id, corpo);
+      setOrcamento(() => result);
+      setModalAvanco(null);
+      setToast("Pagamento alterado.");
+    } catch (err) {
+      console.error("Erro ao alterar pagamento:", err);
+      setErroAvanco(extractApiError(err, "Não foi possível alterar o pagamento."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleConfirmarAtalho = async () => {
@@ -133,6 +159,7 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     try {
       const avisos = simulacaoAtalho?.avisosEstoque ?? [];
       const result = await orcamentoService.avancarStatus(id, {
+        pagamento: pagamentoPendente ?? undefined,
         confirmarEstoqueNegativoProdutoIds: avisos.length > 0 ? avisos.map((a) => a.componenteId) : undefined,
       });
       if (isConfirmacaoEstoqueNegativoResponse(result)) {
@@ -158,7 +185,7 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
     setConfirmandoAtalho(true);
     setErroAvanco(null);
     try {
-      const result = await orcamentoService.avancarStatus(id, { ignorarAtalhoAprovacaoDireta: true });
+      const result = await orcamentoService.avancarStatus(id, { pagamento: pagamentoPendente ?? undefined, ignorarAtalhoAprovacaoDireta: true });
       if (!isConfirmacaoEstoqueNegativoResponse(result)) {
         setOrcamento(() => result);
       }
@@ -304,6 +331,9 @@ export function useAvancarStatusOrcamento({ id, orcamento, setOrcamento, setToas
       setSimulacaoAtalho(null);
     },
     handleAvancar,
+    handleConfirmarPagamento,
+    handleAlterarPagamento,
+    abrirAlterarPagamento: () => { setErroAvanco(null); setModalAvanco("alterarPagamento"); },
     vinculandoProducao,
     vinculoViaTransicao,
     handleSimularVincularProducao,

@@ -78,6 +78,12 @@ export const orcamentoService = {
     return response.data
   },
 
+  // V0.19.0 (#1174, RN-NOVA-41) — "Alterar pagamento": refaz as parcelas em aberto (só sem parcela recebida).
+  alterarPagamento: async (id: string, corpo: Record<string, unknown>): Promise<OrcamentoDetalheResponse> => {
+    const response = await api.put(`/orcamentos/${id}/pagamento`, corpo)
+    return response.data
+  },
+
   avancarStatus: async (id: string, data?: AvancaStatusRequest): Promise<OrcamentoDetalheResponse | ConfirmacaoEstoqueNegativoResponse> => {
     const response = await api.post(`/orcamentos/${id}/avancar-status`, data || {});
     return response.data;
