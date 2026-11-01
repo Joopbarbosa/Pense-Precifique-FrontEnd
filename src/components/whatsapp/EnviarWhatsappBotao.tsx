@@ -35,6 +35,7 @@ export default function EnviarWhatsappBotao({ tipoDocumento, documentoId, client
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
+  const [reenviarParte2, setReenviarParte2] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -63,7 +64,7 @@ export default function EnviarWhatsappBotao({ tipoDocumento, documentoId, client
     : numeroWhatsappValido(numero) && aceite
   const podeEnviar = !desconectado && !legendaInvalida && destinoOk && (!mostrarAvisoFornecedor || confirmaPrecos) && !enviando
 
-  const enviar = async () => {
+  const enviar = async (somenteSegundaParte = false) => {
     setEnviando(true); setErro(null)
     try {
       const r = await whatsappService.enviar({
@@ -71,9 +72,12 @@ export default function EnviarWhatsappBotao({ tipoDocumento, documentoId, client
         ...(destino === 'cliente' ? { clienteId } : { numero: numero.trim(), confirmoAceite: aceite }),
         ...(legenda.trim() ? { legenda: legenda.trim() } : {}),
         ...(mostrarAvisoFornecedor ? { confirmaPrecosFornecedor: confirmaPrecos } : {}),
+        ...(somenteSegundaParte ? { reenviarSegundaParte: true } : {}),
       })
       setSucesso(`PDF enviado. Hoje: ${r.enviadosHoje} de ${r.limiteDiario} envios.`)
     } catch (err) {
+      const dados = (err as { response?: { data?: { reenviarSegundaParteDisponivel?: boolean } } })?.response?.data
+      setReenviarParte2(Boolean(dados?.reenviarSegundaParteDisponivel))
       setErro(extractApiError(err, 'Não foi possível enviar. Tente novamente.'))
     } finally { setEnviando(false) }
   }
@@ -90,10 +94,19 @@ export default function EnviarWhatsappBotao({ tipoDocumento, documentoId, client
           <div className="flex w-full gap-2.5">
             <Button variant="ghost" fullWidth onClick={() => setAberto(false)}>{sucesso ? 'Fechar' : 'Cancelar'}</Button>
             {!sucesso && (
-              <Button variant="primary" fullWidth onClick={enviar} disabled={!podeEnviar}
-                icon={enviando ? <Spinner size={15} color="#fff" /> : undefined}>
-                {enviando ? 'Enviando…' : 'Enviar'}
-              </Button>
+              <>
+                {reenviarParte2 && (
+                  <Button variant="secondary" fullWidth onClick={() => enviar(true)} disabled={enviando}>
+                    {enviando ? 'Reenviando…' : 'Reenviar somente a segunda parte'}
+                  </Button>
+                )}
+                {!reenviarParte2 && (
+                  <Button variant="primary" fullWidth onClick={() => enviar()} disabled={!podeEnviar}
+                    icon={enviando ? <Spinner size={15} color="#fff" /> : undefined}>
+                    {enviando ? 'Enviando…' : 'Enviar'}
+                  </Button>
+                )}
+              </>
             )}
           </div>
         }

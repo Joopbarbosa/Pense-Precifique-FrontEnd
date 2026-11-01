@@ -160,8 +160,17 @@ export const orcamentoService = {
   },
 
   baixarPdf: async (id: string): Promise<Blob> => {
+    const resultado = await orcamentoService.baixarPdfComDivisao(id, false);
+    if (resultado instanceof Blob) return resultado;
+    throw new Error('O PDF foi dividido. Use a opção de download das partes.');
+  },
+
+  baixarPdfComDivisao: async (id: string, dividir = false): Promise<Blob | { totalPaginas: number; partes: { numeroParte: number; totalPaginas: number; pdf: string }[] }> => {
     try {
-      const response = await api.get(`/orcamentos/${id}/pdf`, { responseType: 'blob' });
+      const response = await api.get(`/orcamentos/${id}/pdf`, { params: dividir ? { dividir: true } : undefined, responseType: 'blob' });
+      if (String(response.headers['content-type'] ?? '').includes('application/json')) {
+        return JSON.parse(await (response.data as Blob).text());
+      }
       return response.data;
     } catch (err) {
       throw await normalizarErroBlob(err);
