@@ -4,11 +4,12 @@ import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
+import AbaWhatsapp from '../../components/configuracoes/AbaWhatsapp'
 import Toast from '../../components/shared/Toast'
 import ModalShell from '../../components/ui/ModalShell'
 import {
   Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings,
-  Wallet, Tag, Plus, Percent, Ruler, Pencil, Trash2,
+  Wallet, Tag, Plus, Percent, Ruler, Pencil, Trash2, MessageCircle,
 } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
@@ -93,6 +94,7 @@ const SUBABAS = [
   { id: 'perfil' as const,       label: 'Perfil da empresa',   icon: Building2,         size: 17 },
   { id: 'pagamento' as const,    label: 'Métodos de Pagamento', icon: Wallet,           size: 17 },
   { id: 'unidades' as const,     label: 'Unidades de medida',  icon: Ruler,             size: 17 },
+  { id: 'whatsapp' as const,     label: 'WhatsApp',            icon: MessageCircle,     size: 17 },
   { id: 'conta' as const,        label: 'Conta',               icon: ShieldCheck,       size: 17 },
 ]
 
@@ -1512,6 +1514,7 @@ export default function ConfiguracoesPage() {
             <MetodosPagamento metodos={metodosPagamento} onChange={setMetodosPagamento} />
           </div>
           {aba === 'unidades' && <div data-testid="aba-unidades"><UnidadesMedida /></div>}
+          {aba === 'whatsapp' && <AbaWhatsapp />}
           {aba === 'conta' && <div data-testid="aba-conta"><ContaSeguranca /></div>}
         </>
       )}
