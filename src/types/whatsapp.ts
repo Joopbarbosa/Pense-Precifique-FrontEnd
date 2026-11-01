@@ -24,6 +24,7 @@ export interface WhatsappEnvioRequest {
   confirmoAceite?: boolean
   legenda?: string
   confirmaPrecosFornecedor?: boolean
+  reenviarSegundaParte?: boolean
 }
 
 export interface WhatsappEnvioResponse {
