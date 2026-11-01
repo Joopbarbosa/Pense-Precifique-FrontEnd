@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { validarTaxaMaquininha } from '../../utils/limitesCancelamentoTaxa'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
@@ -833,6 +834,13 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
   const max = Math.min(24, Math.max(1, parseInt(maxParcelas, 10) || 1))
 
   const aplicar = () => {
+    // RN-NOVA-52 — taxa de 0% a 100% (mesma regra do servidor).
+    const taxasParaValidar = [valor, ...(ehCredito && !uniforme ? Array.from({ length: max }, (_, i) => taxasPorParcela[i + 1] ?? '') : [])]
+    const msgTaxa = taxasParaValidar.map(validarTaxaMaquininha).find(m => m !== null)
+    if (msgTaxa) {
+      setErro(msgTaxa)
+      return
+    }
     if (ehCredito && !uniforme) {
       const semTaxa = Array.from({ length: max }, (_, i) => i + 1).find(p => !taxasPorParcela[p]?.trim())
       if (semTaxa) {

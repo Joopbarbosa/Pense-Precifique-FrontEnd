@@ -8,6 +8,7 @@ import TextArea from "../../ui/TextArea";
 import { dataLocalIso } from "../../../utils/data";
 import { Ban, AlertCircle, Wallet, Calendar, Receipt, Info } from "lucide-react";
 import type { OrcamentoDetalheResponse } from "../../../types/orcamento";
+import { validarPercentualMulta } from "../../../utils/limitesCancelamentoTaxa";
 import { BRL } from "./statusDetalhe";
 
 // ─── ModalCancelSimples ───────────────────────────────────────────────────────
@@ -51,25 +52,64 @@ export function ModalCancelJustificativa({
   saving,
 }: {
   onClose: () => void;
-  onConfirm: (justificativa: string) => void;
+  onConfirm: (justificativa: string, estornarValorRecebido: boolean, devolverEstoque: boolean) => void;
   saving: boolean;
 }) {
   const [texto, setTexto] = useState("");
+  // RN-NOVA-51 — depois da justificativa, duas perguntas Sim/Não em sequência. Fechar em qualquer
+  // ponto cancela tudo e nada é enviado; o envio só acontece após a segunda resposta.
+  const [etapa, setEtapa] = useState<"justificativa" | "estorno" | "estoque">("justificativa");
+  const [estornar, setEstornar] = useState(false);
   const len = texto.length;
   const invalido = len > 0 && len < 50;
   const valido = len >= 50 && !saving;
+
+  if (etapa === "estorno") {
+    return (
+      <ConfirmacaoModal
+        open
+        onClose={onClose}
+        onConfirm={() => { setEstornar(true); setEtapa("estoque"); }}
+        onCancel={() => { setEstornar(false); setEtapa("estoque"); }}
+        variant="danger"
+        icon={<Ban size={16} />}
+        title="Estornar o valor recebido?"
+        description="O valor já recebido deste pedido será devolvido à cliente (saída no financeiro)."
+        cancelLabel="Não"
+        confirmLabel="Sim"
+      />
+    );
+  }
+  if (etapa === "estoque") {
+    return (
+      <ConfirmacaoModal
+        open
+        onClose={onClose}
+        onConfirm={() => onConfirm(texto, estornar, true)}
+        onCancel={() => onConfirm(texto, estornar, false)}
+        variant="danger"
+        icon={<Ban size={16} />}
+        title="Devolver os insumos ao estoque?"
+        description="Os insumos consumidos na produção voltarão ao estoque."
+        cancelLabel="Não"
+        confirmLabel="Sim"
+        confirming={saving}
+        confirmingLabel="Cancelando..."
+      />
+    );
+  }
 
   return (
     <ConfirmacaoModal
       open
       onClose={onClose}
-      onConfirm={() => onConfirm(texto)}
+      onConfirm={() => setEtapa("estorno")}
       variant="danger"
       icon={<Ban size={16} />}
       title="Cancelar pedido já entregue?"
       subtitle="Justificativa obrigatória"
       cancelLabel="Voltar"
-      confirmLabel="Confirmar cancelamento"
+      confirmLabel="Continuar"
       confirmingLabel="Cancelando..."
       confirming={saving}
       confirmDisabled={!valido}
@@ -106,7 +146,7 @@ export function ModalCancelMulta({
 }: {
   orcamento: OrcamentoDetalheResponse;
   onClose: () => void;
-  onConfirm: (percentualMulta: number) => void;
+  onConfirm: (percentualMulta?: number) => void;
   saving: boolean;
 }) {
   const [step, setStep] = useState(1);
@@ -115,6 +155,8 @@ export function ModalCancelMulta({
 
   const total = orcamento.total || 0;
   const percNum = parseFloat((multaPerc || "0").replace(",", ".")) || 0;
+  // RN-NOVA-50 — multa > 0 e até 100% (o total); "sem multa" é uma escolha explícita (não envia nada).
+  const erroMulta = multaAtiva ? validarPercentualMulta(multaPerc) : null;
   const sinalPago = orcamento.sinalAtivo && orcamento.valorSinal ? orcamento.valorSinal : 0;
   const multaBruta = (total * percNum) / 100;
   const multaAplicada = multaAtiva ? Math.max(multaBruta - sinalPago, 0) : 0;
@@ -169,7 +211,7 @@ export function ModalCancelMulta({
                 <Button variant="ghost" onClick={() => setStep(1)}>
                   ← Voltar
                 </Button>
-                <Button variant="primary" fullWidth onClick={() => setStep(3)}>
+                <Button variant="primary" fullWidth disabled={erroMulta !== null} onClick={() => setStep(3)}>
                   Próximo →
                 </Button>
               </>
@@ -183,7 +225,7 @@ export function ModalCancelMulta({
                   variant="danger"
                   fullWidth
                   disabled={saving}
-                  onClick={() => onConfirm(multaAtiva ? percNum : 0)}
+                  onClick={() => onConfirm(multaAtiva ? percNum : undefined)}
                 >
                   {saving ? "Cancelando..." : "Confirmar cancelamento"}
                 </Button>
@@ -254,6 +296,11 @@ export function ModalCancelMulta({
                   className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/12"
                 />
               </div>
+              {erroMulta && (
+                <div role="alert" className="mt-2 text-xs font-medium text-danger">
+                  {erroMulta}
+                </div>
+              )}
               <div className="mt-2.5 text-xs text-muted">
                 Sugestão padrão: 50% do valor total.
               </div>

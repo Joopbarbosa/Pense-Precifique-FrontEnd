@@ -296,6 +296,10 @@ export interface AvancaStatusRequest {
   estornarSinal?: boolean;
   dataEstornoSinal?: string;
   justificativa?: string;
+  /** V0.19.0 (#692, RN-NOVA-51) — cancelamento de PAGO/ENTREGUE: estornar o valor recebido. */
+  estornarValorRecebido?: boolean;
+  /** V0.19.0 (#692, RN-NOVA-51) — cancelamento de PAGO/ENTREGUE: devolver os insumos ao estoque. */
+  devolverEstoque?: boolean;
   confirmarEstoqueNegativoProdutoIds?: string[];
   // ORC-047 (#398) — true confirma finalizar mesmo com produção vinculada cancelada ou não realizada.
   confirmarVinculosOrfaos?: boolean;

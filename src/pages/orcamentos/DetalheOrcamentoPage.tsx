@@ -9,6 +9,7 @@ import ModalCriarProducaoDetalhe from "../../components/orcamento/detalhe/ModalC
 import { NEXT_HINT, STATUS_META, BRL, cancelKind, CANCEL_KIND_HINT, fmtDate, datasDosPassos, type ApiStatus } from "../../components/orcamento/detalhe/statusDetalhe";
 import AppLayout from "../../components/layout/AppLayout";
 import Button from "../../components/ui/Button";
+import EnviarWhatsappBotao from "../../components/whatsapp/EnviarWhatsappBotao";
 import ModalShell from "../../components/ui/ModalShell";
 import SegmentedControl from "../../components/ui/SegmentedControl";
 import ConfirmacaoModal from "../../components/shared/ConfirmacaoModal";
@@ -64,6 +65,8 @@ export default function DetalheOrcamentoPage() {
   const [duplicando, setDuplicando] = useState(false);
   const [modal, setModal] = useState<null | "cancel" | "preview">(null);
   // RN-NOVA-22 (V0.18.0, #1038) — a conversa de comentários é uma aba do Detalhe; a outra é o próprio andamento do pedido
+  // #693 (RN do aviso de 10 páginas) — total de páginas quando o PDF passa de 10 e o servidor oferece dividir.
+  const [avisoDivisao, setAvisoDivisao] = useState<number | null>(null);
   const [aba, setAba] = useState<"detalhes" | "comentarios">("detalhes");
   const [itensSemEstoque, setItensSemEstoque] = useState<ItemSemEstoque[]>([]);
   // RN-NOVA-25 (V0.8.3, #319+376, P-F001f) — checkbox unificado do card "Estoque insuficiente":
@@ -372,12 +375,42 @@ export default function DetalheOrcamentoPage() {
   // documento migrado ao microsserviço neste MVP (épico #89). Tem também botão de preview próprio
   // no header ("Ver preview do PDF" → /orcamentos/{id}/preview), por isso o card mantém o download
   // direto para este item.
+  const salvarPartesOuPdf = (resposta: Awaited<ReturnType<typeof orcamentoService.baixarPdfComDivisao>>) => {
+    const nome = `orcamento-${orcamento?.numero || id}`;
+    if (resposta instanceof Blob) {
+      dispararDownloadBlob(resposta, `${nome}.pdf`);
+      return;
+    }
+    for (const parte of resposta.partes) {
+      const bytes = Uint8Array.from(atob(parte.pdf), (c) => c.charCodeAt(0));
+      dispararDownloadBlob(new Blob([bytes], { type: "application/pdf" }), `${nome}-parte-${parte.numeroParte}-de-2.pdf`);
+    }
+  };
+
   const handleDownloadPdf = () => {
     if (!id || pdfRetry.executando || pdfRetry.cooldownRestante > 0) return;
     pdfRetry.executar(async () => {
-      const blob = await orcamentoService.baixarPdf(id);
-      dispararDownloadBlob(blob, `orcamento-${orcamento?.numero || id}.pdf`);
+      setAvisoDivisao(null);
+      try {
+        salvarPartesOuPdf(await orcamentoService.baixarPdfComDivisao(id));
+      } catch (err) {
+        const dados = (err as { response?: { data?: { tipo?: string; totalPaginas?: number; dividirDisponivel?: boolean } } })?.response?.data;
+        if (dados?.tipo === "AVISO" && dados.dividirDisponivel) {
+          setAvisoDivisao(dados.totalPaginas ?? 11);
+          return;
+        }
+        // Acima de 20 páginas o servidor bloqueia (400) e a mensagem dele aparece no aviso de erro.
+        throw err;
+      }
     }, "Erro ao baixar PDF do orçamento.");
+  };
+
+  const confirmarDivisaoPdf = () => {
+    if (!id || pdfRetry.executando || pdfRetry.cooldownRestante > 0) return;
+    pdfRetry.executar(async () => {
+      salvarPartesOuPdf(await orcamentoService.baixarPdfComDivisao(id, true));
+      setAvisoDivisao(null);
+    }, "Não foi possível dividir o PDF do orçamento.");
   };
 
   // P-F013 — os outros 4 documentos (épico #248) navegam para a própria tela de preview em vez de
@@ -532,6 +565,7 @@ export default function DetalheOrcamentoPage() {
               Preview
             </Button>
           )}
+          {orcamento.status !== "RASCUNHO" && <EnviarWhatsappBotao tipoDocumento="ORCAMENTO" documentoId={orcamento.id} clienteSugeridoId={orcamento.clienteId} />}
         </div>
       </div>
 
@@ -886,6 +920,15 @@ export default function DetalheOrcamentoPage() {
       )}
 
       {/* SEÇÃO 3 — DOCUMENTOS */}
+      {avisoDivisao !== null && (
+        <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-orange/10 px-4 py-3 text-sm text-body">
+          <span>Este documento tem {avisoDivisao} páginas. Você pode dividi-lo em 2 PDFs menores. Deseja continuar?</span>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setAvisoDivisao(null)}>Agora não</Button>
+            <Button variant="primary" onClick={confirmarDivisaoPdf} disabled={pdfRetry.executando || pdfRetry.cooldownRestante > 0}>Dividir em 2 PDFs</Button>
+          </div>
+        </div>
+      )}
       <DownloadsCard
         orcamento={orcamento}
         onDownload={handleDownloadAny}
@@ -985,14 +1028,14 @@ export default function DetalheOrcamentoPage() {
           orcamento={orcamento}
           saving={saving}
           onClose={() => setModal(null)}
-          onConfirm={(percentualMulta) => handleCancelar({ percentualMulta })}
+          onConfirm={(percentualMulta) => handleCancelar(percentualMulta === undefined ? undefined : { percentualMulta })}
         />
       )}
       {modal === "cancel" && kind === "justificativa" && (
         <ModalCancelJustificativa
           saving={saving}
           onClose={() => setModal(null)}
-          onConfirm={(justificativa) => handleCancelar({ justificativa })}
+          onConfirm={(justificativa, estornarValorRecebido, devolverEstoque) => handleCancelar({ justificativa, estornarValorRecebido, devolverEstoque })}
         />
       )}
 
