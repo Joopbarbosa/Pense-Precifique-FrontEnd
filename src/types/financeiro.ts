@@ -76,3 +76,79 @@ export interface CategoriaFinanceira {
   semeada: boolean
   ativa: boolean
 }
+
+// V0.19.0 (PP-524 / #1176, F5) — resumo do mês. Contrato: modulos/FINANCEIRO/contrato-financeiro.md.
+export interface PendenciaResumo { emAberto: number; vencido: number }
+
+export interface PrevistoRealizadoResumo {
+  previstoEntradas: number
+  realizadoEntradas: number
+  previstoSaidas: number
+  realizadoSaidas: number
+}
+
+export interface ProximosVencimentosResumo {
+  itens: ParcelaFinanceira[]
+  total: number
+  temMais: boolean
+  mensagemVazio: string
+}
+
+export interface SemanaResumo {
+  numero: number
+  rotulo: string
+  de: string
+  ate: string
+  entradas: number
+  saidas: number
+  saldoAcumulado: number
+}
+
+export interface MarcoProjecao { dias: number; data: string; saldo: number }
+export interface PontoProjecao { data: string; saldo: number }
+
+export interface ProjecaoResumo {
+  saldoAtual: number
+  marcos: MarcoProjecao[]
+  serie: PontoProjecao[]
+  semDados: boolean
+  mensagemSemDados: string
+}
+
+export interface CategoriaDespesaResumo {
+  categoriaId: string | null
+  nome: string
+  valor: number
+  percentual: number
+  outras: boolean
+}
+
+export interface ResumoFinanceiro {
+  mes: string
+  de: string
+  ate: string
+  hoje: string
+  saldoInicial: number
+  saldoInicialInformado: boolean
+  avisoSaldoInicial: string | null
+  entradasRealizadas: number
+  saidasRealizadas: number
+  movimentoPeriodo: number
+  saldoFinal: number
+  aReceber: PendenciaResumo
+  aPagar: PendenciaResumo
+  previstoRealizado: PrevistoRealizadoResumo
+  semMovimentos: boolean
+  mensagemSemMovimentos: string | null
+  proximosVencimentos: ProximosVencimentosResumo
+  entrouSaiu: SemanaResumo[]
+  projecao: ProjecaoResumo
+  maioresDespesas: CategoriaDespesaResumo[]
+}
+
+export interface ListaVencimentos {
+  itens: ParcelaFinanceira[]
+  total: number
+  pagina: number
+  tamanhoPagina: number
+}
