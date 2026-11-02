@@ -16,7 +16,6 @@ const LOGO = {
 async function cadastrarPelaTela(page: Page, empresa: string) {
   const email = `e2e-onb-${Date.now()}-${Math.floor(Math.random() * 1000)}@teste.com`
   await page.goto('/cadastro')
-  await page.getByPlaceholder('Seu nome').fill('Ana')
   await page.getByPlaceholder('Ex: Ateliê da Ana').fill(empresa)
   await page.getByPlaceholder('seuemail@email.com').fill(email)
   await page.getByPlaceholder('Mínimo 8 caracteres').fill(SENHA)
