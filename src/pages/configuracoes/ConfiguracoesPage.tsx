@@ -525,7 +525,7 @@ function PerfilEmpresa({
     if (alteracoes.length === 0) return []
 
     let erro: string | undefined
-    if (!telefoneValido(whatsapp)) {
+    if (!telefoneValido(whatsapp) && whatsapp !== initialWhatsapp) {
       erro = `${MENSAGEM_TELEFONE_INVALIDO}: confira o WhatsApp / Telefone da empresa.`
     } else {
       const diaInvalido = DIAS_SEMANA.find(d => !horarios[d.valor].fechado && horarios[d.valor].fechamento <= horarios[d.valor].abertura)
@@ -606,6 +606,11 @@ function PerfilEmpresa({
               </div>
               <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
             </div>
+            {!telefoneValido(initialWhatsapp) && whatsapp === initialWhatsapp && (
+              <p role="status" className="mt-2 text-[12px] leading-normal text-[#8A5A00]">
+                O telefone salvo é antigo e inválido. Ele será mantido ao salvar o Perfil; atualize-o quando puder.
+              </p>
+            )}
           </CfgField>
           <CfgField label="Endereço" opt>
             <CfgInput value={endereco} onChange={setEndereco} placeholder="Rua, número, bairro, cidade" />
