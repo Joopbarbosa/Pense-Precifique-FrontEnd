@@ -14,3 +14,7 @@ export function numeroWhatsappValido(entrada: string): boolean {
 export function legendaExcedeu(legenda: string): boolean {
   return legenda.length > LEGENDA_MAX
 }
+
+/** Aviso de risco exibido antes de conectar o WhatsApp (PP-705, decisão do Gestor em 01/11/2026). */
+export const AVISO_RISCO_WHATSAPP =
+  'Existe o risco de o seu WhatsApp ser banido. Por isso, não use o WhatsApp principal da loja: use um número específico para cobranças e envio de orçamentos.'

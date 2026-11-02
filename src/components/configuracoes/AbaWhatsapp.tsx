@@ -4,6 +4,7 @@ import { Button, Spinner } from '../ui'
 import ConfirmacaoModal from '../shared/ConfirmacaoModal'
 import { whatsappService } from '../../services/whatsappService'
 import { extractApiError } from '../../utils/apiError'
+import { AVISO_RISCO_WHATSAPP } from '../../utils/whatsapp'
 import type { EstadoWhatsapp, WhatsappStatus } from '../../types/whatsapp'
 
 const ROTULO: Record<EstadoWhatsapp, string> = {
@@ -110,18 +111,8 @@ export default function AbaWhatsapp() {
           {!conectado && (
             <div className="flex flex-col gap-3 rounded-xl border border-[#F0C36D] bg-[#FFF8E7] p-4" data-testid="aviso-risco">
               <div className="flex items-center gap-2 font-bold text-dark"><AlertTriangle size={17} /> Antes de conectar seu WhatsApp</div>
-              <p className="m-0 text-[13.5px] text-body">
-                O Pense &amp; Precifique envia seus PDFs usando uma conexão <strong>não oficial</strong> com o WhatsApp (Evolution API).
-                Ela serve para enviar orçamentos e recibos a clientes que pediram, um de cada vez, mas{' '}
-                <strong>o WhatsApp não autoriza esse tipo de conexão</strong>. O número pode ser <strong>limitado ou bloqueado</strong>,
-                e não se sabe com que frequência isso acontece.
-              </p>
-              <p className="m-0 text-[13.5px] text-body">
-                Para reduzir o risco: envie só para quem aceitou receber pelo WhatsApp, respeite quem pedir para parar,
-                não faça envios em massa e evite mensagens com cara de propaganda.
-              </p>
-              <p className="m-0 text-[13.5px] text-body">
-                Recomendamos usar um número que você possa ficar sem por um tempo, ou ter outro número de reserva.
+              <p className="m-0 text-[13.5px] text-body" data-testid="aviso-risco-texto">
+                {AVISO_RISCO_WHATSAPP}
               </p>
               <label className="flex cursor-pointer items-center gap-2 text-[14px] font-semibold text-dark">
                 <input type="checkbox" checked={entendi} onChange={e => setEntendi(e.target.checked)} data-testid="entendi-riscos" />
