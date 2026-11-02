@@ -3,6 +3,7 @@ import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, Ava
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
+import { LINHAS_BUSCA_VISIVEIS } from '../constants/buscadores';
 
 export const orcamentoService = {
   listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string, sort?: string): Promise<PageResponse<OrcamentoResponse>> => {
@@ -52,11 +53,11 @@ export const orcamentoService = {
   },
 
   // RN-NOVA-18 (V0.8.3, P-B008/P-F001d) — paginação real, mesmo formato Page<> dos demais
-  // service.listar do sistema. Tamanho de página mantido em 8 (não 20); o painel de ItemSearch
+  // service.listar do sistema. Tamanho de página padrão = 6 (PP-698, antes 8); o painel de ItemSearch
   // mostra 6 linhas sem rolar (LINHAS_BUSCA_VISIVEIS, CEN-NOVO-160). Único consumidor: ItemSearch
   // (CriarOrcamentoPage.tsx) — breaking change sem coexistência, confirmado por grep (Passo 0).
   // #641 (RN-NOVA-40) — `incluirInativos`: traz também os itens indisponíveis (ativo=false), depois dos disponíveis.
-  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = 8, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = LINHAS_BUSCA_VISIVEIS, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
     const params: Record<string, any> = { page, size };
     if (catalogoId) params.catalogoId = catalogoId;
     if (busca) params.busca = busca;
