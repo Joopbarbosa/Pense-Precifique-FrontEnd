@@ -72,7 +72,7 @@ function StrengthMeter({ senha }: { senha: string }) {
 }
 
 // ── SuccessNote ────────────────────────────────────────────────────────────
-function SuccessNote({ nome }: { nome: string }) {
+function SuccessNote() {
   return (
     <div className="animate-fade-up pt-[30px] pb-2.5 text-center">
       <div className="mx-auto grid h-16 w-16 animate-pop place-items-center rounded-full bg-teal/12 text-teal">
@@ -81,7 +81,7 @@ function SuccessNote({ nome }: { nome: string }) {
         </svg>
       </div>
       <h2 className="mt-section mb-1.5 text-[22px] font-bold text-dark">
-        Conta criada{nome ? `, ${nome.split(' ')[0]}` : ''}! 🎉
+        Conta criada! 🎉
       </h2>
       <p className="m-0 text-[14.5px] leading-[1.55] text-muted">
         Agora vamos para a <strong className="text-teal">Etapa 2 — Precificação</strong> para configurar seus custos.
@@ -95,13 +95,12 @@ export default function CadastroPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
 
-  const [nome, setNome] = useState('')
   const [empresa, setEmpresa] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [senha2, setSenha2] = useState('')
   const [touched, setTouched] = useState({
-    nome: false, empresa: false, email: false, senha: false, senha2: false,
+    empresa: false, email: false, senha: false, senha2: false,
   })
   const [emailEmUso, setEmailEmUso] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -111,7 +110,6 @@ export default function CadastroPage() {
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 
   const erros = {
-    nome:    touched.nome    && !nome.trim()      ? 'Como podemos te chamar?' : '',
     empresa: touched.empresa && !empresa.trim()   ? 'Informe o nome do seu ateliê.' : '',
     email:   emailEmUso
       ? 'Este e-mail já está em uso. Faça login ou use outro e-mail.'
@@ -123,16 +121,16 @@ export default function CadastroPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setTouched({ nome: true, empresa: true, email: true, senha: true, senha2: true })
+    setTouched({ empresa: true, email: true, senha: true, senha2: true })
     setEmailEmUso(false)
     setApiError(null)
 
-    if (!nome.trim() || !empresa.trim() || !email.trim() || !emailValido || senha.length < 8 || senha2 !== senha) return
+    if (!empresa.trim() || !email.trim() || !emailValido || senha.length < 8 || senha2 !== senha) return
 
     setLoading(true)
     try {
       const response = await authService.register({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         senha,
         confirmarSenha: senha2,
         nomeEmpresa: empresa.trim(),
@@ -209,7 +207,7 @@ export default function CadastroPage() {
           <Stepper />
 
           {done ? (
-            <SuccessNote nome={nome} />
+            <SuccessNote />
           ) : (
             <>
               <h1 className="mt-0 mb-1.5 text-2xl font-bold tracking-[-0.02em] text-dark">
@@ -227,25 +225,15 @@ export default function CadastroPage() {
               )}
 
               <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3.5">
-                {/* Nome + Empresa */}
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-                  <Input
-                    label="Nome"
-                    placeholder="Seu nome"
-                    value={nome}
-                    onChange={setNome}
-                    error={erros.nome}
-                    autoComplete="given-name"
-                  />
-                  <Input
-                    label="Nome do ateliê"
-                    placeholder="Ex: Ateliê da Ana"
-                    value={empresa}
-                    onChange={setEmpresa}
-                    error={erros.empresa}
-                    autoComplete="organization"
-                  />
-                </div>
+                {/* Empresa (#699: o campo Nome pessoal saiu do cadastro) */}
+                <Input
+                  label="Nome do ateliê"
+                  placeholder="Ex: Ateliê da Ana"
+                  value={empresa}
+                  onChange={setEmpresa}
+                  error={erros.empresa}
+                  autoComplete="organization"
+                />
 
                 {/* E-mail */}
                 <Input

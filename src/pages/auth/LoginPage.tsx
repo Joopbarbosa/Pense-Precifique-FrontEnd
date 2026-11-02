@@ -29,7 +29,7 @@ export default function LoginPage() {
     if (!emailValido || senha === '') return
     setLoading(true)
     try {
-      const response = await authService.login({ email: email.trim(), senha })
+      const response = await authService.login({ email: email.trim().toLowerCase(), senha })
       setAuth(response.token, { id: response.usuarioId, email: response.email })
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/agenda'
       navigate(from, { replace: true })
