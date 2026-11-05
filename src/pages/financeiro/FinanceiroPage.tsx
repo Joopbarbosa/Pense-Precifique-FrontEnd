@@ -18,7 +18,7 @@ import { formatarData } from '../../utils/data'
 import { extractApiError } from '../../utils/apiError'
 import {
   MENSAGEM_SEM_LANCAMENTOS, TEXTO_PERIODO_PADRAO, mensagemListaVazia, parametrosPeriodo, periodoDoMes, podeBaixar, podeDesfazer,
-  rotuloAcaoBaixa, rotuloOrigem, rotuloParcela, rotuloSituacao,
+  ehCancelada, rotuloAcaoBaixa, rotuloOrigem, rotuloParcela, rotuloSituacao,
 } from '../../utils/financeiro'
 import type { FiltroSituacaoParcela, ListaParcelas, ParcelaFinanceira, TipoLancamento } from '../../types/financeiro'
 
@@ -163,11 +163,12 @@ export default function FinanceiroPage() {
         <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label={tipo === 'A_PAGAR' ? 'Contas a pagar' : 'Contas a receber'}>
           {lista.itens.map(p => {
             const vencida = p.situacaoExibida === 'VENCIDA'
+            const cancelada = ehCancelada(p)
             return (
               <li key={p.id} data-testid="parcela-financeira" data-situacao={p.situacaoExibida}
                 className={clsx('flex flex-wrap items-center gap-x-4 gap-y-2 rounded-input border px-4 py-3',
-                  vencida ? 'border-danger-line bg-danger-bg' : 'border-line bg-white')}>
-                <div className="min-w-[200px] flex-1">
+                  vencida ? 'border-danger-line bg-danger-bg' : 'border-line bg-white', cancelada && 'bg-gray-50 opacity-75')}>
+                <div className={clsx('min-w-[200px] flex-1', cancelada && 'line-through')} data-testid={cancelada ? 'parcela-cancelada-riscada' : undefined}>
                   <div className="text-[15px] font-semibold text-dark">{p.descricao}</div>
                   <div className="text-[13px] text-muted">
                     {rotuloOrigem(p.origem)}{p.categoriaNome && ` · ${p.categoriaNome}`} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
@@ -175,10 +176,10 @@ export default function FinanceiroPage() {
                     {p.dataBaixa && ` · ${baixadaRotulo.toLowerCase()} em ${formatarData(p.dataBaixa)}${p.metodoPagamentoNome ? ` (${p.metodoPagamentoNome})` : ''}`}
                   </div>
                 </div>
-                <span className={clsx('text-[12.5px] font-semibold', vencida ? 'text-danger-deep' : 'text-muted')} data-testid="situacao-parcela">
+                <span className={clsx('text-[12.5px] font-semibold', vencida ? 'text-danger-deep' : 'text-muted', cancelada && 'rounded-full border border-line px-2 py-0.5')} data-testid="situacao-parcela">
                   {vencida && p.rotulo ? p.rotulo : (p.rotulo && p.situacaoExibida === 'VENCE_HOJE' ? p.rotulo : rotuloSituacao(p.situacaoExibida))}
                 </span>
-                <div className="w-28 text-right text-[16px] font-bold text-dark">{BRL(p.valor)}</div>
+                <div className={clsx('w-28 text-right text-[16px] font-bold text-dark', cancelada && 'line-through')}>{BRL(p.valor)}</div>
                 {podeBaixar(p) && <Button size="sm" onClick={() => setBaixando(p)}>{rotuloAcaoBaixa(p.tipo)}</Button>}
                 {podeDesfazer(p) && <Button size="sm" variant="ghost" onClick={() => setDesfazendo(p)}>Desfazer</Button>}
                 {p.origem === 'AVULSO' && p.situacao === 'EM_ABERTO' && <>

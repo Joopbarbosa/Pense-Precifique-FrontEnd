@@ -41,13 +41,18 @@ export function rotuloSituacao(s: SituacaoExibida): string {
     case 'VENCIDA': return 'Vencida'
     case 'PAGA': return 'Paga'
     case 'RECEBIDA': return 'Recebida'
-    case 'CANCELADA': return 'Cancelada'
+    case 'CANCELADA': return 'Cancelado'
   }
 }
 
 /** "2 de 5" — só quando há mais de uma parcela. */
 export function rotuloParcela(p: Pick<ParcelaFinanceira, 'numero' | 'totalParcelas'>): string {
   return p.totalParcelas > 1 ? `${p.numero} de ${p.totalParcelas}` : 'Única'
+}
+
+/** PP-707 (RN-NOVA-59): a lista "Todas" traz a parcela cancelada riscada e com o selo "Cancelado" (o texto vem da API). */
+export function ehCancelada(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): boolean {
+  return p.situacaoExibida === 'CANCELADA'
 }
 
 export function podeBaixar(p: Pick<ParcelaFinanceira, 'situacaoExibida'>): boolean {
