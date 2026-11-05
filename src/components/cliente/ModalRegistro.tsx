@@ -172,7 +172,7 @@ export default function ModalRegistro({ tipo, id, onClose }: { tipo: TipoRegistr
                     </div>
                   )}
                 </div>
-                <div className="text-body [font-variant-numeric:tabular-nums]">{l.quantidade}</div>
+                <div className="text-body [font-variant-numeric:tabular-nums]">{formatarNumero2(Number(l.quantidade))}</div>
                 <div className="text-body [font-variant-numeric:tabular-nums]">{l.unitario}</div>
                 <div className="text-right font-semibold text-dark [font-variant-numeric:tabular-nums]">{l.subtotal}</div>
               </div>

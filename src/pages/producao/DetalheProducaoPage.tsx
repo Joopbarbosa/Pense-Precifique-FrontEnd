@@ -288,7 +288,7 @@ export default function DetalheProducaoPage() {
                   )}
                 </div>
                 <span className="shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
-                  ×{p.quantidade}
+                  ×{formatQuantidade(p.quantidade, true)}
                 </span>
               </div>
             ))}

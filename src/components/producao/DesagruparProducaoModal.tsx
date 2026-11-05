@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatarNumero2 } from '../../utils/formatacao'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import { Ungroup, AlertCircle, Clock, Play } from 'lucide-react'
@@ -79,7 +80,7 @@ export default function DesagruparProducaoModal({ producao, onClose, onSuccess }
       <p className="m-0 text-[13.5px] leading-[1.6] text-body">
         Esta produção agrupada vira <strong>{produtos.length} produções novas</strong>, uma por
         produto — a produção agrupada original passa a não realizada. Qual status{' '}
-        <strong>{produtoAtual.nomeProduto}</strong> (×{produtoAtual.quantidade}) deve assumir?
+        <strong>{produtoAtual.nomeProduto}</strong> (×{formatarNumero2(produtoAtual.quantidade)}) deve assumir?
       </p>
 
       <div className="mt-4 flex flex-col gap-2.5">
