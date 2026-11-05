@@ -16,3 +16,8 @@ test('quantidades, inclusive antigas e não fracionáveis, mostram duas casas', 
   assert.equal(formatQuantidade(1.125, true, 'FRACAO'), '1,13')
   assert.equal(formatQuantidade(2, false), '2,00')
 })
+
+test('formatador mantém duas casas em números negativos e extremos', () => {
+  assert.equal(formatarNumero2(-1.125), '-1,13')
+  assert.equal(formatarNumero2(1e20), '100.000.000.000.000.000.000,00')
+})

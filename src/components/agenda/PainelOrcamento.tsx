@@ -14,6 +14,7 @@ import { orcamentoService } from '../../services/orcamentoService'
 import { STATUS_LABEL } from '../../constants'
 import { BRL } from '../venda/formato'
 import { formatarData } from '../../utils/data'
+import { formatarNumero2 } from '../../utils/formatacao'
 import type { OrcamentoDetalheResponse } from '../../types/orcamento'
 
 /**
@@ -66,7 +67,7 @@ export default function PainelOrcamento({ orcamentoId, tipo, onAlterado }: { orc
           <ul className="flex flex-col gap-0.5">
             {o.itens.map(i => (
               <li key={i.id}>
-                {i.quantidade}× {i.catalogoNome ?? i.nomeProduto}
+                {formatarNumero2(i.quantidade)}× {i.catalogoNome ?? i.nomeProduto}
                 {i.customizacoes.length > 0 && <span className="text-muted"> — {i.customizacoes.map(c => c.nomeProduto).join(', ')}</span>}
               </li>
             ))}

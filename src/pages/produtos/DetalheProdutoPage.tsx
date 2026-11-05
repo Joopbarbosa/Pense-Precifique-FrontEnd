@@ -578,9 +578,7 @@ export default function DetalheProdutoPage() {
                     </div>
                     <div className="mt-0.5 text-[12.5px] text-muted">
                       {item.marcaInsumo ? item.marcaInsumo + ' · ' : ''}
-                      {item.insumoId
-                        ? formatQuantidade(item.quantidade, item.fracionavelInsumo ?? true, item.tipoExibicaoQuantidade)
-                        : item.quantidade} {item.unidadeMedida || 'un'}
+                      {formatQuantidade(item.quantidade, item.fracionavelInsumo ?? true, item.tipoExibicaoQuantidade)} {item.unidadeMedida || 'un'}
                     </div>
                   </div>
                   <span className="shrink-0 whitespace-nowrap text-[14.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">

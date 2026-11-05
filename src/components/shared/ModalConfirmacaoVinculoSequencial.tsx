@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatarNumero2 } from '../../utils/formatacao'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import { Link2Off, AlertCircle, AlertTriangle } from 'lucide-react'
@@ -219,13 +220,13 @@ export default function ModalConfirmacaoVinculoSequencial({ fila, onConcluir, di
           <>
             A produção <strong>{item.rotuloOutroLado}</strong> já está{' '}
             {getBadgeEstado(item.estadoProducao).label.toLowerCase()} e o produto{' '}
-            <strong>{produto.nomeProduto}</strong> (×{produto.quantidade}) foi contribuído por este
+            <strong>{produto.nomeProduto}</strong> (×{formatarNumero2(produto.quantidade)}) foi contribuído por este
             orçamento.
           </>
         ) : (
           <>
             Esta produção já está {getBadgeEstado(item.estadoProducao).label.toLowerCase()} e o
-            produto <strong>{produto.nomeProduto}</strong> (×{produto.quantidade}) foi contribuído
+            produto <strong>{produto.nomeProduto}</strong> (×{formatarNumero2(produto.quantidade)}) foi contribuído
             pelo orçamento <strong>{item.rotuloOutroLado}</strong>.
           </>
         )}{' '}

@@ -3,6 +3,7 @@ import Spinner from '../ui/Spinner'
 import { producaoService } from '../../services/producaoService'
 import { formatarData } from '../../utils/data'
 import type { ProducaoDetalhe } from '../../types/producao'
+import { formatarNumero2 } from '../../utils/formatacao'
 
 const ESTADO: Record<string, string> = {
   AGUARDANDO_INICIO: 'Aguardando início', EM_ANDAMENTO: 'Em andamento', TRAVADA: 'Travada',
@@ -33,7 +34,7 @@ export default function PainelProducao({ producaoId }: { producaoId: string }) {
       <dt className="font-semibold text-dark">Produtos</dt>
       <dd>
         <ul className="m-0 list-none p-0" data-testid="produtos-da-producao">
-          {produtos.map(p => <li key={p.produtoId}>{p.nomeProduto} ({p.quantidade})</li>)}
+          {produtos.map(p => <li key={p.produtoId}>{p.nomeProduto} ({formatarNumero2(p.quantidade)})</li>)}
         </ul>
       </dd>
       <dt className="font-semibold text-dark">Início</dt><dd>{producao.dataInicio ? formatarData(producao.dataInicio) : '—'}</dd>
