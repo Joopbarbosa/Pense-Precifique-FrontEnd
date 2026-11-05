@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import PreviewPdfDocumento from '../../components/shared/PreviewPdfDocumento'
 import { StatusCompraBadge } from '../../components/compra/StatusCompraBadge'
+import EnviarWhatsappBotao from '../../components/whatsapp/EnviarWhatsappBotao'
 import { compraService } from '../../services/compraService'
 import type { CompraResponse } from '../../types/compra'
 
@@ -22,6 +23,7 @@ export default function PreviewPdfCompraPage() {
       carregarHtml={() => compraService.previewHtml(id!)}
       baixarPdf={() => compraService.baixarPdf(id!)}
       nomeArquivo={`compra-${compra?.identificador ?? id}.pdf`}
+      acoesExtras={<EnviarWhatsappBotao tipoDocumento="COMPRA" documentoId={id!} />}
     />
   )
 }

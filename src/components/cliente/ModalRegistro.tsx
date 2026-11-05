@@ -92,7 +92,12 @@ async function carregar(tipo: TipoRegistro, id: string): Promise<Visao> {
       desconto,
       total: v.total,
       extras: [
-        ...v.pagamentos.map(p => ({ rotulo: 'Pagamento', valor: `${p.metodoPagamentoNome}: ${BRL(p.valor)}${p.parcelas && p.parcelas > 1 ? ` em ${p.parcelas} parcelas` : ''}` })),
+        ...v.pagamentos.flatMap(p => [
+          { rotulo: 'Pagamento', valor: `${p.metodoPagamentoNome}: ${BRL(p.valor)}${p.parcelas && p.parcelas > 1 ? ` em ${p.parcelas} parcelas` : ''}` },
+          ...(p.taxaPercentualAplicada != null && p.taxaValorAplicada != null && p.taxaValorAplicada > 0
+            ? [{ rotulo: 'Taxa da maquininha', valor: `${formatarNumero2(p.taxaPercentualAplicada)}% (${BRL(p.taxaValorAplicada)})` }]
+            : []),
+        ]),
         ...(v.troco ? [{ rotulo: 'Troco', valor: BRL(v.troco) }] : []),
         ...(v.cancelamentoMotivo ? [{ rotulo: 'Motivo do cancelamento', valor: v.cancelamentoMotivo }] : []),
       ],

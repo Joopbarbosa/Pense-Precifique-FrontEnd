@@ -11,6 +11,7 @@ import Paginacao from '../../components/shared/Paginacao'
 import ModalRegistro from '../../components/cliente/ModalRegistro'
 import { useModalErro } from '../../hooks/useModalErro'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import ReciboVendaAcoes from '../../components/caixa/ReciboVendaAcoes'
 import { caixaService } from '../../services/caixaService'
 
 import { BRL } from '../../components/venda/formato'
@@ -141,6 +142,7 @@ export default function HistoricoVendasPage() {
                 <th className="px-3 py-3 font-semibold">Pagamento</th>
                 <th className="px-3 py-3"><SortableHeader label="Total" field="total" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} /></th>
                 <th className="px-3 py-3"><SortableHeader label="Status" field="status" activeField={ordem.campo} dir={ordem.dir} onSort={ordenar} /></th>
+                <th className="px-3 py-3 font-semibold">Recibo</th>
               </tr>
             </thead>
             <tbody>
@@ -154,6 +156,9 @@ export default function HistoricoVendasPage() {
                   <td className="whitespace-nowrap px-3 py-3 [font-variant-numeric:tabular-nums]">{BRL(v.total)}</td>
                   <td className="whitespace-nowrap px-3 py-3">
                     <span className={v.status === 'CANCELADA' ? 'text-danger' : 'font-semibold text-success'}>{ROTULO_STATUS[v.status]}</span>
+                  </td>
+                  <td className="px-3 py-3">
+                    {v.status === 'CONCLUIDA' && <ReciboVendaAcoes vendaId={v.id} identificador={v.identificador} compacto />}
                   </td>
                 </tr>
               ))}

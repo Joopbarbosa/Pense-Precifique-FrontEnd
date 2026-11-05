@@ -1,4 +1,5 @@
 import api from './api'
+import { LINHAS_BUSCA_VISIVEIS } from '../constants/buscadores'
 import type {
   AbrirCaixaTurnoRequest, CaixaTurnoResponse, FecharCaixaTurnoRequest, FechamentoPreviaResponse,
   CaixaMovimentoRequest, CaixaMovimentoResponse,
@@ -71,6 +72,12 @@ export const caixaService = {
     return response.data
   },
 
+  // #1170 (V0.19.0): recibo da venda do Caixa em PDF
+  baixarReciboVenda: async (id: string): Promise<Blob> => {
+    const response = await api.get<Blob>(`/caixa/vendas/${id}/recibo`, { responseType: 'blob' })
+    return response.data
+  },
+
   cancelarVenda: async (id: string, data: CancelarVendaCaixaRequest): Promise<VendaCaixaResponse> => {
     const response = await api.post<VendaCaixaResponse>(`/caixa/vendas/${id}/cancelar`, data)
     return response.data
@@ -79,7 +86,7 @@ export const caixaService = {
   /** Reabertura de RN-NOVA-1 (achado do teste manual) — busca de itens de Catálogo disponíveis
    *  pra venda no Caixa, em paralelo a `produtoService.listar(..., semCatalogo=true)`. */
   // #641 (RN-NOVA-40) — `incluirInativos`: traz também os itens indisponíveis (ativo=false), depois dos disponíveis.
-  buscarItensCatalogo: async (busca?: string, page = 0, size = 8, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+  buscarItensCatalogo: async (busca?: string, page = 0, size = LINHAS_BUSCA_VISIVEIS, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
     const params: Record<string, any> = { page, size }
     if (busca) params.busca = busca
     if (incluirInativos) params.incluirInativos = true

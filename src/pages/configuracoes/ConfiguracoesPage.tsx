@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { validarTaxaMaquininha } from '../../utils/limitesCancelamentoTaxa'
 import clsx from 'clsx'
 import AppLayout from '../../components/layout/AppLayout'
 import Button from '../../components/ui/Button'
 import Spinner from '../../components/ui/Spinner'
 import SegmentedControl from '../../components/ui/SegmentedControl'
+import AbaWhatsapp from '../../components/configuracoes/AbaWhatsapp'
 import Toast from '../../components/shared/Toast'
 import ModalShell from '../../components/ui/ModalShell'
 import {
   Check, SlidersHorizontal, Building2, ShieldCheck, ArrowRight, Clock, Info, Settings,
-  Wallet, Tag, Plus, Percent, Ruler, Pencil, Trash2,
+  Wallet, Tag, Plus, Percent, Ruler, Pencil, Trash2, MessageCircle,
 } from 'lucide-react'
 import { empresaService } from '../../services/empresaService'
 import { usuarioService } from '../../services/usuarioService'
@@ -93,6 +95,7 @@ const SUBABAS = [
   { id: 'perfil' as const,       label: 'Perfil da empresa',   icon: Building2,         size: 17 },
   { id: 'pagamento' as const,    label: 'Métodos de Pagamento', icon: Wallet,           size: 17 },
   { id: 'unidades' as const,     label: 'Unidades de medida',  icon: Ruler,             size: 17 },
+  { id: 'whatsapp' as const,     label: 'WhatsApp',            icon: MessageCircle,     size: 17 },
   { id: 'conta' as const,        label: 'Conta',               icon: ShieldCheck,       size: 17 },
 ]
 
@@ -522,7 +525,7 @@ function PerfilEmpresa({
     if (alteracoes.length === 0) return []
 
     let erro: string | undefined
-    if (!telefoneValido(whatsapp)) {
+    if (!telefoneValido(whatsapp) && whatsapp !== initialWhatsapp) {
       erro = `${MENSAGEM_TELEFONE_INVALIDO}: confira o WhatsApp / Telefone da empresa.`
     } else {
       const diaInvalido = DIAS_SEMANA.find(d => !horarios[d.valor].fechado && horarios[d.valor].fechamento <= horarios[d.valor].abertura)
@@ -603,6 +606,11 @@ function PerfilEmpresa({
               </div>
               <ControleModoTelefone estrangeiro={modoWhatsapp.estrangeiro} onAlternar={modoWhatsapp.alternar} />
             </div>
+            {!telefoneValido(initialWhatsapp) && whatsapp === initialWhatsapp && (
+              <p role="status" className="mt-2 text-[12px] leading-normal text-[#8A5A00]">
+                O telefone salvo é antigo e inválido. Ele será mantido ao salvar o Perfil; atualize-o quando puder.
+              </p>
+            )}
           </CfgField>
           <CfgField label="Endereço" opt>
             <CfgInput value={endereco} onChange={setEndereco} placeholder="Rua, número, bairro, cidade" />
@@ -831,6 +839,13 @@ function MetodoCartaoModal({ open, onClose, metodo, onSaved }: {
   const max = Math.min(24, Math.max(1, parseInt(maxParcelas, 10) || 1))
 
   const aplicar = () => {
+    // RN-NOVA-52 — taxa de 0% a 100% (mesma regra do servidor).
+    const taxasParaValidar = [valor, ...(ehCredito && !uniforme ? Array.from({ length: max }, (_, i) => taxasPorParcela[i + 1] ?? '') : [])]
+    const msgTaxa = taxasParaValidar.map(validarTaxaMaquininha).find(m => m !== null)
+    if (msgTaxa) {
+      setErro(msgTaxa)
+      return
+    }
     if (ehCredito && !uniforme) {
       const semTaxa = Array.from({ length: max }, (_, i) => i + 1).find(p => !taxasPorParcela[p]?.trim())
       if (semTaxa) {
@@ -1512,6 +1527,7 @@ export default function ConfiguracoesPage() {
             <MetodosPagamento metodos={metodosPagamento} onChange={setMetodosPagamento} />
           </div>
           {aba === 'unidades' && <div data-testid="aba-unidades"><UnidadesMedida /></div>}
+          {aba === 'whatsapp' && <AbaWhatsapp />}
           {aba === 'conta' && <div data-testid="aba-conta"><ContaSeguranca /></div>}
         </>
       )}

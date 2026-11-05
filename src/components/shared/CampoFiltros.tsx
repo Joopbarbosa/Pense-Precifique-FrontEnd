@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { Check, ListFilter, Search, X } from 'lucide-react'
 import Spinner from '../ui/Spinner'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { limitarOpcoesBusca } from '../../constants/buscadores'
 
 // V0.15.0 (#585, RN-NOVA-35) — campo único de filtros da modal de listagem: seleção múltipla agrupada
 // por tipo, com os escolhidos como etiquetas (cada uma com X). Tipos diferentes somam como E; valores do
@@ -115,10 +116,9 @@ function BuscaGrupo({ grupo, marcado, alternar }: {
   useEffect(() => {
     let vivo = true
     setOpcoes(null)
-    // #1212 (QA R2, F1): o corte em 8 é intencional. Este é o filtro de uma modal (Insumo, Fornecedor), fora da lista de buscadores da
-    // RN-NOVA-46 / CEN-NOVO-160 (que fixa 6 linhas visíveis nos campos de escolha); a lista é curta e quem quer outro valor digita para
-    // estreitar a busca, que é feita no servidor.
-    grupo.buscar!(q.trim()).then(r => { if (vivo) setOpcoes(r.slice(0, 8)) }).catch(() => { if (vivo) setOpcoes([]) })
+    // PP-698 (PDT-010/INS-008): o filtro de modal (Insumo, Fornecedor) também mostra 6 registros no primeiro clique; para outro
+    // valor, digita-se para estreitar a busca, que é feita no servidor. (Antes era 8, #1212.)
+    grupo.buscar!(q.trim()).then(r => { if (vivo) setOpcoes(limitarOpcoesBusca(r)) }).catch(() => { if (vivo) setOpcoes([]) })
     return () => { vivo = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, grupo.id])

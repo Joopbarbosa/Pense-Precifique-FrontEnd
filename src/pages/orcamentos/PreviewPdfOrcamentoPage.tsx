@@ -27,6 +27,7 @@ export default function PreviewPdfOrcamentoPage() {
   const { toast, setToast } = useToast()
 
   const [html, setHtml] = useState<string | null>(null)
+  const [avisoDivisao, setAvisoDivisao] = useState<number | null>(null)
   const [previewModalOpen, setPreviewModalOpen] = useState(false)
   const previewRetry = useRetryCooldown()
   const downloadRetry = useRetryCooldown()
@@ -84,12 +85,46 @@ export default function PreviewPdfOrcamentoPage() {
 
   // O botão principal fica desabilitado durante o cooldown (disabled abaixo) — o guard aqui é
   // defesa extra contra contornar o bloqueio da RN-NOVA-3 clicando de novo antes do re-render.
+  const salvarPdf = (blob: Blob, nome: string) => dispararDownloadBlob(blob, nome)
+
   const handleDownloadPdf = () => {
     if (!id || downloadBloqueado) return
     downloadRetry.executar(async () => {
-      const blob = await orcamentoService.baixarPdf(id)
-      dispararDownloadBlob(blob, `orcamento-${orcamento?.numero || id}.pdf`)
+      setAvisoDivisao(null)
+      try {
+        const resposta = await orcamentoService.baixarPdfComDivisao(id)
+        if (resposta instanceof Blob) salvarPdf(resposta, `orcamento-${orcamento?.numero || id}.pdf`)
+        else {
+          for (const parte of resposta.partes) {
+            const bytes = Uint8Array.from(atob(parte.pdf), caractere => caractere.charCodeAt(0))
+            salvarPdf(new Blob([bytes], { type: 'application/pdf' }), `orcamento-${orcamento?.numero || id}-parte-${parte.numeroParte}-de-2.pdf`)
+          }
+        }
+      } catch (err) {
+        const dados = (err as { response?: { data?: { tipo?: string; totalPaginas?: number; dividirDisponivel?: boolean } } })?.response?.data
+        if (dados?.tipo === 'AVISO' && dados.dividirDisponivel) {
+          setAvisoDivisao(dados.totalPaginas ?? 11)
+          return
+        }
+        throw err
+      }
     }, 'Erro ao baixar PDF do orçamento.')
+  }
+
+  const confirmarDivisaoPdf = () => {
+    if (!id || downloadBloqueado) return
+    downloadRetry.executar(async () => {
+      const resposta = await orcamentoService.baixarPdfComDivisao(id, true)
+      if (resposta instanceof Blob) {
+        salvarPdf(resposta, `orcamento-${orcamento?.numero || id}.pdf`)
+      } else {
+        resposta.partes.forEach(parte => {
+          const bytes = Uint8Array.from(atob(parte.pdf), caractere => caractere.charCodeAt(0))
+          salvarPdf(new Blob([bytes], { type: 'application/pdf' }), `orcamento-${orcamento?.numero || id}-parte-${parte.numeroParte}-de-2.pdf`)
+        })
+      }
+      setAvisoDivisao(null)
+    }, 'Não foi possível dividir o PDF do orçamento.')
   }
 
   // #247 — RASCUNHO→ENVIADO não exige body (OrcamentoService.avancarStatus, case RASCUNHO,
@@ -190,6 +225,16 @@ export default function PreviewPdfOrcamentoPage() {
           </div>
         </div>
       </div>
+
+      {avisoDivisao !== null && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-orange/10 px-7 py-3 text-sm text-body">
+          <span>Este documento tem {avisoDivisao} páginas. Você pode dividi-lo em 2 PDFs menores. Deseja continuar?</span>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setAvisoDivisao(null)}>Agora não</Button>
+            <Button variant="primary" onClick={confirmarDivisaoPdf} disabled={downloadBloqueado}>Dividir em 2 PDFs</Button>
+          </div>
+        </div>
+      )}
 
       {/* DOCUMENTO A4 */}
       <div className="mt-4 flex-1 overflow-auto bg-[#EDECEA] px-9 pb-14 pt-7 max-[767px]:px-3.5 max-[767px]:pb-14 max-[767px]:pt-section">

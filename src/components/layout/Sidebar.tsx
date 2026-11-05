@@ -1,7 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Logo, Wordmark } from '../ui'
-import { CalendarDays, LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History, Database } from 'lucide-react'
+import { CalendarDays, LayoutGrid, Users, FileText, Box, Package, LogOut, Files, Factory, Settings, ChevronLeft, ChevronRight, ChevronDown, Receipt, ShoppingBag, ShoppingCart, ClipboardList, BarChart3, History, Database, Wallet } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useMenuStore } from '../../store/menuStore'
 import { useSaidaConfiguracoesStore } from '../../store/saidaConfiguracoesStore'
@@ -59,12 +59,13 @@ const GRUPO_CADASTROS = {
 
 const NAV_RESTANTE = [
   { id: 'clientes',  label: 'Clientes e Fornecedores', icon: Users, size: 20, href: '/clientes' },
+  { id: 'financeiro', label: 'Financeiro',    icon: Wallet,   size: 20, href: '/financeiro' },
   { id: 'producao',  label: 'Produção',      icon: Factory,  size: 20, href: '/producao' },
   { id: 'config',    label: 'Configurações', icon: Settings, size: 20, href: '/configuracoes' },
 ] as const
 
 interface SidebarProps {
-  active: 'agenda' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
+  active: 'agenda' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard' | 'financeiro'
   open: boolean
   onClose: () => void
   collapsed: boolean

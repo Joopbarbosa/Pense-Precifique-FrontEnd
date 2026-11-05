@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import clsx from 'clsx'
+import { Wallet } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import AppLayout from '../../components/layout/AppLayout'
+import Button from '../../components/ui/Button'
+import Spinner from '../../components/ui/Spinner'
+import EmptyState from '../../components/ui/EmptyState'
+import SegmentedControl from '../../components/ui/SegmentedControl'
+import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
+import Toast from '../../components/shared/Toast'
+import ModalBaixa from '../../components/financeiro/ModalBaixa'
+import ResumoFinanceiroPainel from '../../components/financeiro/ResumoFinanceiroPainel'
+import { useToast } from '../../hooks/useToast'
+import { financeiroService } from '../../services/financeiroService'
+import { BRL } from '../../components/venda/formato'
+import { formatarData } from '../../utils/data'
+import { extractApiError } from '../../utils/apiError'
+import {
+  MENSAGEM_SEM_LANCAMENTOS, TEXTO_PERIODO_PADRAO, mensagemListaVazia, parametrosPeriodo, periodoDoMes, podeBaixar, podeDesfazer,
+  rotuloAcaoBaixa, rotuloOrigem, rotuloParcela, rotuloSituacao,
+} from '../../utils/financeiro'
+import type { FiltroSituacaoParcela, ListaParcelas, ParcelaFinanceira, TipoLancamento } from '../../types/financeiro'
+
+const OPCOES_TIPO = [
+  { value: 'A_PAGAR' as TipoLancamento, label: 'A pagar' },
+  { value: 'A_RECEBER' as TipoLancamento, label: 'A receber' },
+]
+
+const OPCOES_SITUACAO = (tipo: TipoLancamento) => [
+  { value: 'EM_ABERTO' as FiltroSituacaoParcela, label: 'Em aberto' },
+  { value: 'VENCIDAS' as FiltroSituacaoParcela, label: 'Vencidas' },
+  { value: 'BAIXADAS' as FiltroSituacaoParcela, label: tipo === 'A_PAGAR' ? 'Pagas' : 'Recebidas' },
+  { value: 'TODAS' as FiltroSituacaoParcela, label: 'Todas' },
+]
+
+/**
+ * V0.19.0 (PP-520, F1) — Financeiro: listas "A pagar" e "A receber". "Vencida", "Vence hoje", totais e rótulos
+ * vêm prontos da API; a tela só exibe e dispara a baixa/desfazer.
+ */
+export default function FinanceiroPage() {
+  const [tipo, setTipo] = useState<TipoLancamento>('A_PAGAR')
+  const [situacao, setSituacao] = useState<FiltroSituacaoParcela>('EM_ABERTO')
+  const mes = useMemo(() => periodoDoMes(), [])
+  // PP-697: null = padrão da API (mês atual + todas as vencidas); datas só vão quando a usuária escolhe um período
+  const [periodo, setPeriodo] = useState<{ de: string; ate: string } | null>(null)
+  const de = periodo?.de ?? mes.de
+  const ate = periodo?.ate ?? mes.ate
+  const [lista, setLista] = useState<ListaParcelas | null>(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [baixando, setBaixando] = useState<ParcelaFinanceira | null>(null)
+  const [desfazendo, setDesfazendo] = useState<ParcelaFinanceira | null>(null)
+  const [excluindo, setExcluindo] = useState<{ parcela: ParcelaFinanceira; seguintes: boolean; toda: boolean } | null>(null)
+  const [processando, setProcessando] = useState(false)
+  const { toast, setToast } = useToast()
+  const [toastErro, setToastErro] = useState<string | null>(null)
+
+  const carregar = useCallback(async () => {
+    setCarregando(true)
+    try {
+      setLista(await financeiroService.listarParcelas({ tipo, ...parametrosPeriodo(periodo), situacao }))
+      setErro(null)
+    } catch (e) {
+      setErro(extractApiError(e, 'Não foi possível carregar o financeiro.'))
+    } finally {
+      setCarregando(false)
+    }
+  }, [tipo, periodo, situacao])
+
+  useEffect(() => { void carregar() }, [carregar])
+
+  async function desfazer() {
+    if (!desfazendo) return
+    setProcessando(true)
+    try {
+      await financeiroService.desfazerBaixa(desfazendo.id)
+      setDesfazendo(null)
+      setToast('Baixa desfeita.')
+      await carregar()
+    } catch (e) {
+      setDesfazendo(null)
+      setToastErro(extractApiError(e, 'Não foi possível desfazer a baixa.'))
+      setTimeout(() => setToastErro(null), 4000)
+    } finally {
+      setProcessando(false)
+    }
+  }
+
+  async function excluir() {
+    if (!excluindo) return
+    setProcessando(true)
+    try {
+      await financeiroService.excluirOcorrencia(excluindo.parcela.id, excluindo['seguintes'])
+      setExcluindo(null); setToast('Ocorrência excluída.'); await carregar()
+    } catch (e) { setExcluindo(null); setToastErro(extractApiError(e, 'Não foi possível excluir a ocorrência.')) }
+    finally { setProcessando(false) }
+  }
+
+  async function confirmarEscopoExclusao(parcela: ParcelaFinanceira, seguintes: boolean) {
+    try {
+      const toda = await financeiroService.preverExclusaoOcorrencia(parcela.id, seguintes)
+      setExcluindo({ parcela, seguintes, toda })
+    } catch (e) { setToastErro(extractApiError(e, 'Não foi possível conferir o impacto da exclusão.')) }
+  }
+
+  const baixadaRotulo = tipo === 'A_PAGAR' ? 'Paga' : 'Recebida'
+
+  return (
+    <AppLayout active="financeiro">
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h1 className="m-0 text-[25px] font-bold tracking-tight text-dark">Financeiro</h1>
+        <SegmentedControl options={OPCOES_TIPO} value={tipo} onChange={t => { setTipo(t); setSituacao('EM_ABERTO') }} display="inline-flex" optionWidth="whitespace-nowrap px-4" />
+        <div className="ml-auto flex items-center gap-4">
+          <Link to={`/financeiro/novo?tipo=${tipo}`} className="text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-nova-conta">Nova {tipo === 'A_PAGAR' ? 'despesa' : 'receita'}</Link>
+          <Link to="/financeiro/categorias" className="text-[14px] font-semibold text-teal no-underline hover:underline" data-testid="link-categorias">Categorias de despesa</Link>
+        </div>
+      </div>
+
+      <ResumoFinanceiroPainel />
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <SegmentedControl options={OPCOES_SITUACAO(tipo)} value={situacao} onChange={setSituacao} display="inline-flex" optionWidth="whitespace-nowrap px-4" />
+        <label className="flex items-center gap-2 text-[13.5px] text-body">De
+          <input type="date" aria-label="Período de" value={de} max={ate} onChange={e => e.target.value && setPeriodo({ de: e.target.value, ate })} className="h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 text-[14px]" />
+        </label>
+        <label className="flex items-center gap-2 text-[13.5px] text-body">até
+          <input type="date" aria-label="Período até" value={ate} min={de} onChange={e => e.target.value && setPeriodo({ de, ate: e.target.value })} className="h-9 rounded-input border-[1.5px] border-line bg-white px-2.5 text-[14px]" />
+        </label>
+        {periodo && <Button variant="ghost" size="sm" onClick={() => setPeriodo(null)}>Voltar ao padrão</Button>}
+      </div>
+      {!periodo && <p className="mb-4 mt-0 text-[13px] text-muted" data-testid="texto-periodo-padrao">{TEXTO_PERIODO_PADRAO}</p>}
+
+      {lista && (
+        <div className="mb-4 flex flex-wrap gap-3" data-testid="totais-financeiro">
+          <div className="rounded-input border border-line bg-white px-4 py-3">
+            <div className="text-[12.5px] font-medium text-muted">Em aberto</div>
+            <div className="text-[20px] font-bold text-dark" data-testid="total-em-aberto">{BRL(lista.totalEmAberto)}</div>
+          </div>
+          <div className={clsx('rounded-input border px-4 py-3', lista.totalVencido > 0 ? 'border-danger-line bg-danger-bg' : 'border-line bg-white')}>
+            <div className={clsx('text-[12.5px] font-medium', lista.totalVencido > 0 ? 'text-danger-deep' : 'text-muted')}>Vencido</div>
+            <div className={clsx('text-[20px] font-bold', lista.totalVencido > 0 ? 'text-danger-deep' : 'text-dark')} data-testid="total-vencido">{BRL(lista.totalVencido)}</div>
+          </div>
+        </div>
+      )}
+
+      {carregando && !lista && <div className="flex justify-center py-12"><Spinner /></div>}
+      {erro && (
+        <div role="alert" className="flex flex-col items-start gap-3 rounded-input border border-danger-line bg-danger-bg px-4 py-3 text-[14px] text-danger-deep">
+          {erro}
+          <Button variant="secondary" size="sm" onClick={() => void carregar()}>Tentar de novo</Button>
+        </div>
+      )}
+
+      {!erro && lista && lista.vazioDeLancamentos && (
+        <EmptyState icon={<Wallet size={28} />} title="Nenhum lançamento ainda" description={MENSAGEM_SEM_LANCAMENTOS} />
+      )}
+      {!erro && lista && !lista.vazioDeLancamentos && lista.itens.length === 0 && (
+        <EmptyState icon={<Wallet size={28} />} title={mensagemListaVazia(tipo)} compact />
+      )}
+
+      {!erro && lista && lista.itens.length > 0 && (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label={tipo === 'A_PAGAR' ? 'Contas a pagar' : 'Contas a receber'}>
+          {lista.itens.map(p => {
+            const vencida = p.situacaoExibida === 'VENCIDA'
+            return (
+              <li key={p.id} data-testid="parcela-financeira" data-situacao={p.situacaoExibida}
+                className={clsx('flex flex-wrap items-center gap-x-4 gap-y-2 rounded-input border px-4 py-3',
+                  vencida ? 'border-danger-line bg-danger-bg' : 'border-line bg-white')}>
+                <div className="min-w-[200px] flex-1">
+                  <div className="text-[15px] font-semibold text-dark">{p.descricao}</div>
+                  <div className="text-[13px] text-muted">
+                    {rotuloOrigem(p.origem)}{p.categoriaNome && ` · ${p.categoriaNome}`} · Parcela {rotuloParcela(p)} · vence {formatarData(p.vencimento)}
+                    {p.foraProjecao && ' · Fora da projeção'}
+                    {p.dataBaixa && ` · ${baixadaRotulo.toLowerCase()} em ${formatarData(p.dataBaixa)}${p.metodoPagamentoNome ? ` (${p.metodoPagamentoNome})` : ''}`}
+                  </div>
+                </div>
+                <span className={clsx('text-[12.5px] font-semibold', vencida ? 'text-danger-deep' : 'text-muted')} data-testid="situacao-parcela">
+                  {vencida && p.rotulo ? p.rotulo : (p.rotulo && p.situacaoExibida === 'VENCE_HOJE' ? p.rotulo : rotuloSituacao(p.situacaoExibida))}
+                </span>
+                <div className="w-28 text-right text-[16px] font-bold text-dark">{BRL(p.valor)}</div>
+                {podeBaixar(p) && <Button size="sm" onClick={() => setBaixando(p)}>{rotuloAcaoBaixa(p.tipo)}</Button>}
+                {podeDesfazer(p) && <Button size="sm" variant="ghost" onClick={() => setDesfazendo(p)}>Desfazer</Button>}
+                {p.origem === 'AVULSO' && p.situacao === 'EM_ABERTO' && <>
+                  <Link to={`/financeiro/novo?parcela=${p.id}`} className="text-[13px] font-semibold text-teal no-underline hover:underline">Editar</Link>
+                  <Button size="sm" variant="ghost" onClick={() => void confirmarEscopoExclusao(p, false)}>Excluir só esta</Button>
+                  {p.totalParcelas > 1 && <Button size="sm" variant="ghost" onClick={() => void confirmarEscopoExclusao(p, true)}>Excluir esta e as seguintes</Button>}
+                </>}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <ModalBaixa parcela={baixando} onClose={() => setBaixando(null)}
+        onBaixada={() => { setBaixando(null); setToast(tipo === 'A_PAGAR' ? 'Pagamento registrado.' : 'Recebimento registrado.'); void carregar() }} />
+      <ConfirmacaoModal open={!!desfazendo} onClose={() => setDesfazendo(null)} onConfirm={() => void desfazer()}
+        title="Desfazer baixa?" description="Isso muda o realizado do período." confirmLabel="Desfazer baixa" confirmingLabel="Desfazendo..." confirming={processando} variant="danger" />
+      <ConfirmacaoModal open={!!excluindo} onClose={() => setExcluindo(null)} onConfirm={() => void excluir()}
+        title={excluindo?.toda ? 'Excluir conta inteira?' : 'Excluir ocorrência?'}
+        description={excluindo?.toda
+          ? 'Isso exclui a conta inteira, sem nenhuma ocorrência restante.'
+          : `A ocorrência ${excluindo?.seguintes ? 'e as seguintes em aberto serão' : 'será'} excluída; as ocorrências pagas permanecem.`}
+        confirmLabel="Excluir" confirmingLabel="Excluindo..." confirming={processando} variant="danger" />
+      <Toast message={toast} />
+      <Toast message={toastErro} variant="error" />
+    </AppLayout>
+  )
+}

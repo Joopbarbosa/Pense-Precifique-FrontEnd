@@ -1,8 +1,9 @@
 import api from './api';
-import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, SugestaoQuantidadeProducao, ComentarioOrcamento } from '../types/orcamento';
+import type { OrcamentoRequest, OrcamentoResponse, OrcamentoDetalheResponse, AvancaStatusRequest, ItemCatalogoBuscaResponse, ItemSemEstoque, SimularAlertasOrcamentoItemRequest, SimulacaoEstoqueProdutoResponse, SimulacaoAvancoStatusResponse, OrcamentoProducaoResponse, CriarProducaoVinculadaRequest, SugestaoQuantidadeProducao, ComentarioOrcamento, PagamentoOrcamentoValidadoResponse } from '../types/orcamento';
 import type { ConfirmacaoEstoqueNegativoResponse, AlertaInsumo } from '../types/producao';
 import type { PageResponse } from '../types/shared';
 import { normalizarErroBlob } from '../utils/apiError';
+import { LINHAS_BUSCA_VISIVEIS } from '../constants/buscadores';
 
 export const orcamentoService = {
   listar: async (page: number, size = 20, status?: string, busca?: string, dataCriacaoDe?: string, dataCriacaoAte?: string, sort?: string): Promise<PageResponse<OrcamentoResponse>> => {
@@ -52,11 +53,11 @@ export const orcamentoService = {
   },
 
   // RN-NOVA-18 (V0.8.3, P-B008/P-F001d) — paginação real, mesmo formato Page<> dos demais
-  // service.listar do sistema. Tamanho de página mantido em 8 (não 20); o painel de ItemSearch
+  // service.listar do sistema. Tamanho de página padrão = 6 (PP-698, antes 8); o painel de ItemSearch
   // mostra 6 linhas sem rolar (LINHAS_BUSCA_VISIVEIS, CEN-NOVO-160). Único consumidor: ItemSearch
   // (CriarOrcamentoPage.tsx) — breaking change sem coexistência, confirmado por grep (Passo 0).
   // #641 (RN-NOVA-40) — `incluirInativos`: traz também os itens indisponíveis (ativo=false), depois dos disponíveis.
-  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = 8, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
+  buscarItensCatalogo: async (catalogoId?: string, busca?: string, page = 0, size = LINHAS_BUSCA_VISIVEIS, incluirInativos = false): Promise<PageResponse<ItemCatalogoBuscaResponse>> => {
     const params: Record<string, any> = { page, size };
     if (catalogoId) params.catalogoId = catalogoId;
     if (busca) params.busca = busca;
@@ -70,6 +71,18 @@ export const orcamentoService = {
   simularEstoque: async (itens: SimularAlertasOrcamentoItemRequest[]): Promise<SimulacaoEstoqueProdutoResponse[]> => {
     const response = await api.post('/orcamentos/simular-alertas', itens);
     return response.data;
+  },
+
+  // V0.19.0 (PP-528) — só valida o passo Pagamento (nada é gravado; a gravação é da aprovação, #1174).
+  validarPagamento: async (id: string, corpo: Record<string, unknown>): Promise<PagamentoOrcamentoValidadoResponse> => {
+    const response = await api.post(`/orcamentos/${id}/pagamento/validar`, corpo)
+    return response.data
+  },
+
+  // V0.19.0 (#1174, RN-NOVA-41) — "Alterar pagamento": refaz as parcelas em aberto (só sem parcela recebida).
+  alterarPagamento: async (id: string, corpo: Record<string, unknown>): Promise<OrcamentoDetalheResponse> => {
+    const response = await api.put(`/orcamentos/${id}/pagamento`, corpo)
+    return response.data
   },
 
   avancarStatus: async (id: string, data?: AvancaStatusRequest): Promise<OrcamentoDetalheResponse | ConfirmacaoEstoqueNegativoResponse> => {
@@ -148,8 +161,17 @@ export const orcamentoService = {
   },
 
   baixarPdf: async (id: string): Promise<Blob> => {
+    const resultado = await orcamentoService.baixarPdfComDivisao(id, false);
+    if (resultado instanceof Blob) return resultado;
+    throw new Error('O PDF foi dividido. Use a opção de download das partes.');
+  },
+
+  baixarPdfComDivisao: async (id: string, dividir = false): Promise<Blob | { totalPaginas: number; partes: { numeroParte: number; totalPaginas: number; pdf: string }[] }> => {
     try {
-      const response = await api.get(`/orcamentos/${id}/pdf`, { responseType: 'blob' });
+      const response = await api.get(`/orcamentos/${id}/pdf`, { params: dividir ? { dividir: true } : undefined, responseType: 'blob' });
+      if (String(response.headers['content-type'] ?? '').includes('application/json')) {
+        return JSON.parse(await (response.data as Blob).text());
+      }
       return response.data;
     } catch (err) {
       throw await normalizarErroBlob(err);

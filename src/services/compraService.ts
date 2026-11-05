@@ -66,8 +66,8 @@ export const compraService = {
     return response.data
   },
 
-  atualizarPagamento: async (id: string, pago: boolean, metodoPagamentoId: string | null, parcelas: number | null = null): Promise<CompraResponse> => {
-    const response = await api.patch(`/compras/${id}/pagamento`, { pago, metodoPagamentoId, parcelas })
+  atualizarPagamento: async (id: string, pago: boolean, metodoPagamentoId: string | null, parcelas: number | null = null, vencimento: string | null = null): Promise<CompraResponse> => {
+    const response = await api.patch(`/compras/${id}/pagamento`, { pago, metodoPagamentoId, parcelas, vencimento })
     return response.data
   },
 

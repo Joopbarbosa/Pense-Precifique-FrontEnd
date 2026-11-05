@@ -25,6 +25,13 @@ export interface ClienteResponse {
   nome: string
   email?: string | null
   whatsapp?: string | null
+  whatsappCanonico?: string | null
+  aceitaWhatsapp?: boolean
+  aceitaWhatsappEm?: string | null
+  aceitaWhatsappPor?: string | null
+  recusouWhatsapp?: boolean
+  recusouWhatsappEm?: string | null
+  recusouWhatsappPor?: string | null
   telefone?: string | null
   site?: string | null
   endereco?: string | null
@@ -37,6 +44,14 @@ export interface ClienteResponse {
   ativa: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface EventoConsentimentoResponse {
+  id: string
+  tipo: 'ACEITE' | 'RECUSA'
+  data: string
+  descricao?: string | null
+  registradoEm: string
 }
 
 export interface ClienteContagensResponse {
@@ -119,7 +134,7 @@ export interface CompraFornecedorHistoricoResponse {
   dataCompra: string
   status: 'RASCUNHO' | 'CONFIRMADA' | 'CANCELADA'
   valor: number
-  pago: boolean
+  pago: boolean | null
 }
 
 /** #451 (RN-NOVA-20) — `gastoMensal` tem um ponto por mês do período, inclusive meses com 0. */

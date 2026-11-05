@@ -5,7 +5,7 @@ import TopBar from './TopBar'
 import { lerPreferencia, gravarPreferencia } from '../../utils/preferenciaLocal'
 
 interface AppLayoutProps {
-  active: 'agenda' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard'
+  active: 'agenda' | 'clientes' | 'orcamentos' | 'caixa' | 'compras' | 'insumos' | 'produtos' | 'catalogos' | 'producao' | 'config' | 'vendas-dashboard' | 'cadastros-dashboard' | 'financeiro'
   children: React.ReactNode
   noPad?: boolean
   fullHeight?: boolean

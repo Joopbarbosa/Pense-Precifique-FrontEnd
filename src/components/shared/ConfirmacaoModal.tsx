@@ -4,6 +4,8 @@ import Button from '../ui/Button'
 interface ConfirmacaoModalProps {
   open: boolean
   onClose: () => void
+  /** Ação do botão de recusa; sem ela o botão fecha (onClose). Fechar pelo X/Esc continua em onClose. */
+  onCancel?: () => void
   onConfirm: () => void
   title: string
   subtitle?: string
@@ -22,7 +24,7 @@ interface ConfirmacaoModalProps {
 }
 
 export default function ConfirmacaoModal({
-  open, onClose, onConfirm,
+  open, onClose, onCancel, onConfirm,
   title, subtitle, description,
   icon, iconBg, iconColor,
   variant = 'default',
@@ -46,7 +48,7 @@ export default function ConfirmacaoModal({
       width={width}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={confirming}>
+          <Button variant="ghost" onClick={onCancel ?? onClose} disabled={confirming}>
             {cancelLabel}
           </Button>
           <Button

@@ -1,5 +1,6 @@
 import { formatarMoeda2 } from '../../utils/formatacao'
 import { formatarNumero2 } from '../../utils/formatacao'
+import ReciboVendaAcoes from '../../components/caixa/ReciboVendaAcoes'
 import ModalVendasDoDia from '../../components/caixa/ModalVendasDoDia'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import OpcaoInativa from '../../components/shared/OpcaoInativa'
@@ -486,7 +487,10 @@ function VendasDoTurnoModal({ open, onClose, turnoId, onVendaCancelada }: {
                 </div>
               </div>
               {v.status === 'CONCLUIDA' && (
-                <Button variant="ghost" size="sm" onClick={() => setCancelando(v)}>Cancelar</Button>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <ReciboVendaAcoes vendaId={v.id} identificador={v.identificador} compacto />
+                  <Button variant="ghost" size="sm" onClick={() => setCancelando(v)}>Cancelar</Button>
+                </div>
               )}
             </div>
           ))}
@@ -794,6 +798,7 @@ function VendaConcluidaModal({ venda, onNovaVenda }: {
               <span className="font-semibold text-teal">{moeda(venda.troco)}</span>
             </div>
           )}
+          <div className="mt-3"><ReciboVendaAcoes vendaId={venda.id} identificador={venda.identificador} /></div>
         </div>
       )}
     </ModalShell>

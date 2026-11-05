@@ -12,6 +12,7 @@ import ConfirmacaoModal from '../../components/shared/ConfirmacaoModal'
 import { FornecedorSelect, InsumoPicker } from '../../components/compra/Pickers'
 import ModalImpactoCompra from '../../components/compra/ModalImpactoCompra'
 import DescontoInput from '../../components/compra/DescontoInput'
+import { vencimentoPadrao } from '../../utils/vencimento'
 import { erroDesconto, moeda, paraCampo, parseDecimal } from '../../components/compra/formato'
 import { BRL } from '../../components/venda/formato'
 import { compraService } from '../../services/compraService'
@@ -87,6 +88,8 @@ export default function FormCompraPage() {
   const [pago, setPago] = useState(!editando)
   const [metodoId, setMetodoId] = useState<string | null>(null)
   const [parcelas, setParcelas] = useState<number | null>(null)
+  // V0.19.0 (#1173): vazio = ainda sem escolha; sugerimos a data da compra (ou +1 mês no cartão).
+  const [vencimento, setVencimento] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [descontoNotaTipo, setDescontoNotaTipo] = useState<TipoDesconto>('PERCENTUAL')
@@ -109,7 +112,7 @@ export default function FormCompraPage() {
         setPrevisaoEntrega(c.previsaoEntrega ?? '')
         setMultiplos(c.multiplosFornecedores)
         setFornecedor(c.fornecedor)
-        setPago(c.pago)
+        setPago(c.pago !== false || !!c.metodoPagamento)
         setMetodoId(c.metodoPagamento?.id ?? null)
         setParcelas(c.parcelas)
         setObservacoes(c.observacoes ?? '')
@@ -154,6 +157,7 @@ export default function FormCompraPage() {
     setMultiplos(sim)
   }
 
+  const precisaVencimento = !pago || parcelas !== null
   const montarRequest = (): CompraRequest => ({
     dataCompra,
     entregaImediata,
@@ -163,6 +167,7 @@ export default function FormCompraPage() {
     pago,
     metodoPagamentoId: pago ? metodoId : null,
     parcelas: pago ? parcelas : null,
+    vencimento: precisaVencimento ? (vencimento || vencimentoPadrao(dataCompra, pago)) : null,
     observacoes: observacoes.trim() || undefined,
     itens: linhas.map(l => {
       const desconto = parseDecimal(l.desconto)
@@ -301,6 +306,13 @@ export default function FormCompraPage() {
                 <SegmentedControl options={[{ value: false, label: 'Não pago' }, { value: true, label: 'Pago' }]} value={pago}
                   onChange={v => { setPago(v); if (!v) setMetodoId(null) }} />
               </Field>
+              {precisaVencimento && (
+                <Field label={pago ? 'Vencimento da 1ª parcela' : 'Vence em'} required={!pago} size="md"
+                  hint={pago ? 'Se não informar, a 1ª parcela vence um mês depois da compra.' : 'Quando esta compra precisa ser paga.'}>
+                  <input type="date" aria-label="Vencimento" value={vencimento || vencimentoPadrao(dataCompra, pago)} onChange={e => setVencimento(e.target.value)}
+                    className="h-12 w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[14.5px] text-dark outline-hidden focus:border-teal focus:ring-4 focus:ring-teal/focus" />
+                </Field>
+              )}
               {pago && (
                 <div className="md:col-span-2">
                   <Field label="Como foi paga?" required group size="md">
