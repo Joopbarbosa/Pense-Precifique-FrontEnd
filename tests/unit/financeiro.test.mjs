@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { TEXTO_PERIODO_PADRAO, parametrosPeriodo, mensagemListaVazia, periodoDoMes, podeBaixar, podeDesfazer, rotuloAcaoBaixa, rotuloParcela, MENSAGEM_SEM_LANCAMENTOS } from '../../src/utils/financeiro.ts'
+import { TEXTO_PERIODO_PADRAO, parametrosPeriodo, mensagemListaVazia, periodoDoMes, ehCancelada, podeBaixar, podeDesfazer, rotuloSituacao, rotuloAcaoBaixa, rotuloParcela, MENSAGEM_SEM_LANCAMENTOS } from '../../src/utils/financeiro.ts'
 
 test('período padrão é o mês corrente, inclusive em fevereiro bissexto e dezembro', () => {
   assert.deepEqual(periodoDoMes(new Date(2028, 1, 10)), { de: '2028-02-01', ate: '2028-02-29' })
@@ -89,4 +89,10 @@ test('percentual com vírgula e uma casa; dia/mês curto; primeiro dia negativo'
   assert.equal(primeiroDiaNegativo([{ data: '2026-11-01', saldo: 10 }, { data: '2026-11-02', saldo: -1 }, { data: '2026-11-03', saldo: -9 }]), '2026-11-02')
   assert.equal(primeiroDiaNegativo([{ data: '2026-11-01', saldo: 0 }]), null)
   assert.equal(primeiroDiaNegativo([]), null)
+})
+
+test('PP-707: cancelada é riscada com o selo "Cancelado"; as demais situações não', () => {
+  assert.equal(ehCancelada({ situacaoExibida: 'CANCELADA' }), true)
+  for (const s of ['EM_ABERTO', 'VENCE_HOJE', 'VENCIDA', 'PAGA', 'RECEBIDA']) assert.equal(ehCancelada({ situacaoExibida: s }), false)
+  assert.equal(rotuloSituacao('CANCELADA'), 'Cancelado')
 })
