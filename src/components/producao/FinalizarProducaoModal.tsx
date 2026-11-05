@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatarNumero2 } from '../../utils/formatacao'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
 import { Spinner } from '../ui'
@@ -84,7 +85,7 @@ export default function FinalizarProducaoModal({ producaoId, producao: producaoP
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-dark">{p.nomeProduto}</div>
-                      <div className="text-[12.5px] text-muted">Planejado: ×{p.quantidade}</div>
+                      <div className="text-[12.5px] text-muted">Planejado: ×{formatarNumero2(p.quantidade)}</div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <label htmlFor={`perda-${p.produtoId}`} className="text-[12.5px] text-muted">Perda</label>
@@ -102,7 +103,7 @@ export default function FinalizarProducaoModal({ producaoId, producao: producaoP
                   </div>
                   {excedeu && (
                     <div className="mt-2 text-[12.5px] text-danger">
-                      Perda não pode ser maior que a quantidade planejada ({p.quantidade}).
+                      Perda não pode ser maior que a quantidade planejada ({formatarNumero2(p.quantidade)}).
                     </div>
                   )}
                 </div>

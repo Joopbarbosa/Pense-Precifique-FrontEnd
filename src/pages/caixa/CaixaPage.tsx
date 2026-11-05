@@ -1,4 +1,5 @@
 import { formatarMoeda2 } from '../../utils/formatacao'
+import { formatarNumero2 } from '../../utils/formatacao'
 import ReciboVendaAcoes from '../../components/caixa/ReciboVendaAcoes'
 import ModalVendasDoDia from '../../components/caixa/ModalVendasDoDia'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -775,12 +776,12 @@ function VendaConcluidaModal({ venda, onNovaVenda }: {
           {venda.itens.map(item => (
             <div key={item.id}>
               <div className="flex justify-between py-1.5 text-[13.5px]">
-                <span className="text-body">{item.quantidade}x {item.produtoNome}</span>
+                <span className="text-body">{formatarNumero2(item.quantidade)}x {item.produtoNome}</span>
                 <span className="font-semibold text-dark">{moeda(item.subtotal)}</span>
               </div>
               {item.customizacoes.map(c => (
                 <div key={c.id} className="flex items-baseline justify-between gap-2 py-0.5 pl-3 text-[12px] text-muted">
-                  <span className="min-w-0 truncate">+ {c.quantidade}x {c.produtoNome}</span>
+                  <span className="min-w-0 truncate">+ {formatarNumero2(c.quantidade)}x {c.produtoNome}</span>
                   <span className="shrink-0">{moeda(c.subtotal)}</span>
                 </div>
               ))}

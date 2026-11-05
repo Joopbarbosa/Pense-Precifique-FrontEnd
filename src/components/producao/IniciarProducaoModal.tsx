@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { formatarNumero2 } from '../../utils/formatacao'
 import clsx from 'clsx'
 import ModalShell from '../ui/ModalShell'
 import Button from '../ui/Button'
@@ -204,7 +205,7 @@ export default function IniciarProducaoModal({ producaoId, producao: producaoPro
           {producao.produtos.map((p, i) => (
             <div key={i} className="flex items-center justify-between rounded-[10px] border border-line bg-cream px-3.5 py-3">
               <span className="text-sm font-medium text-dark">{p.nomeProduto}</span>
-              <span className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">×{p.quantidade}</span>
+              <span className="text-[13.5px] font-semibold text-dark [font-variant-numeric:tabular-nums]">×{formatarNumero2(p.quantidade)}</span>
             </div>
           ))}
 

@@ -1,4 +1,5 @@
 import { formatarData } from '../../utils/data'
+import { formatarNumero2 } from '../../utils/formatacao'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { Factory, Box, Calendar, AlertTriangle } from 'lucide-react'
@@ -54,7 +55,7 @@ export default function ModalDetalheResumidoProducao({ producao, onClose }: Prop
                   <div className="text-[12px] text-muted">{p.tipoProduto}</div>
                 </div>
                 <span className="shrink-0 text-[13.5px] font-bold text-dark [font-variant-numeric:tabular-nums]">
-                  ×{p.quantidade}
+                  ×{formatarNumero2(p.quantidade)}
                 </span>
               </div>
             ))}

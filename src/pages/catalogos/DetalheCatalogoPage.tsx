@@ -1,5 +1,6 @@
 import EnviarWhatsappBotao from '../../components/whatsapp/EnviarWhatsappBotao'
 import { formatarMoeda2 } from '../../utils/formatacao'
+import { formatarNumero2 } from '../../utils/formatacao'
 import { useState, useEffect, useCallback } from 'react'
 import DescricaoComLinks from '../../components/shared/DescricaoComLinks'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -83,7 +84,7 @@ function ItemRow({ item, onClick, onEditar, onRemover, onHistorico }: {
                 c.ativo ? 'bg-line-soft text-subtle' : 'bg-danger-bg text-danger'
               )}
             >
-              {c.nomeInsumo ?? c.nomeProdutoBase} × {c.quantidade}
+              {c.nomeInsumo ?? c.nomeProdutoBase} × {formatarNumero2(c.quantidade)}
             </span>
           ))}
         </div>
