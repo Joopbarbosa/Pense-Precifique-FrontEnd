@@ -257,6 +257,8 @@ export interface OrcamentoDetalheResponse {
   vencido: boolean;
   percentualMulta?: number;
   valorMulta?: number;
+  /** V0.19.0 (#692, RN-NOVA-58) — multa total em R$ (referência); `valorMulta` é só a parte a receber. */
+  valorMultaBruta?: number | null;
   // RN-NOVA-1/ORC-036 (V0.8.2, P-B002) — populado só quando o sinal pago excedeu o valor bruto da
   // multa (mini-estorno); nesse caso valorMulta vem sempre 0. Null nos outros 3 casos.
   valorDevolvidoMulta?: number | null;
@@ -293,6 +295,9 @@ export interface AvancaStatusRequest {
   motivoCancelamento?: string;
   tipoCancelamento?: string;
   percentualMulta?: number;
+  /** V0.19.0 (#692, RN-NOVA-58) — multa em R$; com multa vai exatamente um entre valor e percentual. */
+  valorMulta?: number;
+  comMulta?: boolean;
   estornarSinal?: boolean;
   dataEstornoSinal?: string;
   justificativa?: string;
