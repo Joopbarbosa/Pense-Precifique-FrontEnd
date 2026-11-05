@@ -26,7 +26,9 @@ export function documentosDisponiveis(orcamento: OrcamentoDetalheResponse): Docu
 
   // PDF do orçamento — qualquer status exceto CANCELADO; #464 (V0.10.0) reabre a exceção quando
   // há multa aplicável (percentualMulta > 0) — usuário confirmou querer os dois juntos nesse caso.
-  const temMulta = orcamento.percentualMulta != null && orcamento.percentualMulta > 0;
+  // RN-NOVA-58: multa em R$ pequena grava 0,00% — vale o valor bruto, não só o percentual.
+  const temMulta = (orcamento.percentualMulta != null && orcamento.percentualMulta > 0)
+    || (orcamento.valorMultaBruta != null && orcamento.valorMultaBruta > 0);
   if (status !== "CANCELADO" || temMulta) {
     links.push({
       label: "PDF do orçamento", kind: "pdf", icon: <FileText size={18} />,

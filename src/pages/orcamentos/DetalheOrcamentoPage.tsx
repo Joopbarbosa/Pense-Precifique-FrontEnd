@@ -1020,7 +1020,7 @@ export default function DetalheOrcamentoPage() {
           orcamento={orcamento}
           saving={saving}
           onClose={() => setModal(null)}
-          onConfirm={(data) => handleCancelar(data)}
+          onConfirm={({ valorMulta, percentualMulta, ...resto }) => handleCancelar({ ...resto, ...(valorMulta !== undefined || percentualMulta !== undefined ? { comMulta: true, valorMulta, percentualMulta } : {}) })}
         />
       )}
       {modal === "cancel" && kind === "multa" && (
@@ -1028,14 +1028,15 @@ export default function DetalheOrcamentoPage() {
           orcamento={orcamento}
           saving={saving}
           onClose={() => setModal(null)}
-          onConfirm={(percentualMulta) => handleCancelar(percentualMulta === undefined ? undefined : { percentualMulta })}
+          onConfirm={(multa) => handleCancelar(multa === undefined ? undefined : { comMulta: true, ...multa })}
         />
       )}
       {modal === "cancel" && kind === "justificativa" && (
         <ModalCancelJustificativa
+          total={orcamento.total || 0}
           saving={saving}
           onClose={() => setModal(null)}
-          onConfirm={(justificativa, estornarValorRecebido, devolverEstoque) => handleCancelar({ justificativa, estornarValorRecebido, devolverEstoque })}
+          onConfirm={(justificativa, estornarValorRecebido, devolverEstoque, multa) => handleCancelar({ justificativa, estornarValorRecebido, devolverEstoque, ...(multa ? { comMulta: true, ...multa } : {}) })}
         />
       )}
 

@@ -8,8 +8,70 @@ import TextArea from "../../ui/TextArea";
 import { dataLocalIso } from "../../../utils/data";
 import { Ban, AlertCircle, Wallet, Calendar, Receipt, Info } from "lucide-react";
 import type { OrcamentoDetalheResponse } from "../../../types/orcamento";
-import { validarPercentualMulta } from "../../../utils/limitesCancelamentoTaxa";
+import { validarMulta, multaBrutaEmReais, type ModoMulta } from "../../../utils/limitesCancelamentoTaxa";
 import { BRL } from "./statusDetalhe";
+
+// ─── Multa em R$ ou em % (RN-NOVA-58) ─────────────────────────────────────────
+
+/** Multa escolhida na tela: exatamente um dos dois campos vai ao servidor; o outro ele calcula. */
+export interface MultaEscolhida {
+  valorMulta?: number;
+  percentualMulta?: number;
+}
+
+function lerMulta(modo: ModoMulta, texto: string): MultaEscolhida {
+  const n = parseFloat(texto.replace(",", "."));
+  return modo === "valor" ? { valorMulta: n } : { percentualMulta: n };
+}
+
+function CampoMulta({
+  total,
+  modo,
+  setModo,
+  texto,
+  setTexto,
+  erro,
+}: {
+  total: number;
+  modo: ModoMulta;
+  setModo: (m: ModoMulta) => void;
+  texto: string;
+  setTexto: (t: string) => void;
+  erro: string | null;
+}) {
+  return (
+    <div className="animate-[fadeUp_.25s_ease_both]">
+      <SegmentedControl
+        options={[{ value: "valor" as ModoMulta, label: "Em R$" }, { value: "percentual" as ModoMulta, label: "Em %" }]}
+        value={modo}
+        onChange={(m) => { setModo(m); setTexto(m === "percentual" ? "50" : String((total / 2).toFixed(2))); }}
+        height="h-11"
+        optionWidth="w-24"
+        textSize="text-sm"
+        activeColors={["bg-orange text-white", "bg-orange text-white"]}
+        className="mb-3 w-fit"
+      />
+      <span className="mb-2 block text-[13px] font-semibold text-body">
+        {modo === "valor" ? "Valor da multa (R$)" : "Percentual da multa (%)"}
+      </span>
+      <input
+        value={texto}
+        onChange={(e) => setTexto(e.target.value.replace(/[^\d.,]/g, ""))}
+        inputMode="decimal"
+        aria-label={modo === "valor" ? "Valor da multa em reais" : "Percentual da multa"}
+        className="h-[46px] w-full rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/12"
+      />
+      {erro && (
+        <div role="alert" className="mt-2 text-xs font-medium text-danger">
+          {erro}
+        </div>
+      )}
+      <div className="mt-2.5 text-xs text-muted">
+        Informe a multa em valor ou em percentual; o outro é calculado. Total do pedido: {BRL(total)}.
+      </div>
+    </div>
+  );
+}
 
 // ─── ModalCancelSimples ───────────────────────────────────────────────────────
 
@@ -47,23 +109,60 @@ export function ModalCancelSimples({
 // ─── ModalCancelJustificativa — ENTREGUE / PAGO ───────────────────────────────
 
 export function ModalCancelJustificativa({
+  total,
   onClose,
   onConfirm,
   saving,
 }: {
+  total: number;
   onClose: () => void;
-  onConfirm: (justificativa: string, estornarValorRecebido: boolean, devolverEstoque: boolean) => void;
+  onConfirm: (justificativa: string, estornarValorRecebido: boolean, devolverEstoque: boolean, multa?: MultaEscolhida) => void;
   saving: boolean;
 }) {
   const [texto, setTexto] = useState("");
   // RN-NOVA-51 — depois da justificativa, duas perguntas Sim/Não em sequência. Fechar em qualquer
   // ponto cancela tudo e nada é enviado; o envio só acontece após a segunda resposta.
-  const [etapa, setEtapa] = useState<"justificativa" | "estorno" | "estoque">("justificativa");
+  const [etapa, setEtapa] = useState<"justificativa" | "multa" | "estorno" | "estoque">("justificativa");
   const [estornar, setEstornar] = useState(false);
+  // RN-NOVA-58 — multa opcional em R$ ou em %, escolhida antes das perguntas de estorno e estoque.
+  const [multaAtiva, setMultaAtiva] = useState(false);
+  const [modo, setModo] = useState<ModoMulta>("percentual");
+  const [multaTexto, setMultaTexto] = useState("50");
+  const erroMulta = multaAtiva ? validarMulta(modo, multaTexto, total) : null;
+  const multa = multaAtiva ? lerMulta(modo, multaTexto) : undefined;
   const len = texto.length;
   const invalido = len > 0 && len < 50;
   const valido = len >= 50 && !saving;
 
+  if (etapa === "multa") {
+    return (
+      <ConfirmacaoModal
+        open
+        onClose={onClose}
+        onConfirm={() => setEtapa("estorno")}
+        variant="danger"
+        icon={<Ban size={16} />}
+        title="Deseja cobrar multa pelo cancelamento?"
+        cancelLabel="Voltar"
+        confirmLabel="Continuar"
+        confirmDisabled={erroMulta !== null}
+      >
+        <SegmentedControl
+          options={[{ value: false, label: "Não" }, { value: true, label: "Sim" }]}
+          value={multaAtiva}
+          onChange={setMultaAtiva}
+          height="h-11"
+          optionWidth="w-20"
+          textSize="text-sm"
+          activeColors={["bg-line-soft text-body", "bg-orange text-white"]}
+          className="mb-4 w-fit"
+        />
+        {multaAtiva && (
+          <CampoMulta total={total} modo={modo} setModo={setModo} texto={multaTexto} setTexto={setMultaTexto} erro={erroMulta} />
+        )}
+      </ConfirmacaoModal>
+    );
+  }
   if (etapa === "estorno") {
     return (
       <ConfirmacaoModal
@@ -85,8 +184,8 @@ export function ModalCancelJustificativa({
       <ConfirmacaoModal
         open
         onClose={onClose}
-        onConfirm={() => onConfirm(texto, estornar, true)}
-        onCancel={() => onConfirm(texto, estornar, false)}
+        onConfirm={() => onConfirm(texto, estornar, true, multa)}
+        onCancel={() => onConfirm(texto, estornar, false, multa)}
         variant="danger"
         icon={<Ban size={16} />}
         title="Devolver os insumos ao estoque?"
@@ -103,7 +202,7 @@ export function ModalCancelJustificativa({
     <ConfirmacaoModal
       open
       onClose={onClose}
-      onConfirm={() => setEtapa("estorno")}
+      onConfirm={() => setEtapa("multa")}
       variant="danger"
       icon={<Ban size={16} />}
       title="Cancelar pedido já entregue?"
@@ -146,19 +245,20 @@ export function ModalCancelMulta({
 }: {
   orcamento: OrcamentoDetalheResponse;
   onClose: () => void;
-  onConfirm: (percentualMulta?: number) => void;
+  onConfirm: (multa?: MultaEscolhida) => void;
   saving: boolean;
 }) {
   const [step, setStep] = useState(1);
   const [multaAtiva, setMultaAtiva] = useState(true);
-  const [multaPerc, setMultaPerc] = useState("50");
+  const [modo, setModo] = useState<ModoMulta>("percentual");
+  const [multaTexto, setMultaTexto] = useState("50");
 
   const total = orcamento.total || 0;
-  const percNum = parseFloat((multaPerc || "0").replace(",", ".")) || 0;
-  // RN-NOVA-50 — multa > 0 e até 100% (o total); "sem multa" é uma escolha explícita (não envia nada).
-  const erroMulta = multaAtiva ? validarPercentualMulta(multaPerc) : null;
+  // RN-NOVA-50/58 — multa de R$ 0,01 até o total, em R$ ou em %; "sem multa" é uma escolha explícita (não envia nada).
+  const erroMulta = multaAtiva ? validarMulta(modo, multaTexto, total) : null;
   const sinalPago = orcamento.sinalAtivo && orcamento.valorSinal ? orcamento.valorSinal : 0;
-  const multaBruta = (total * percNum) / 100;
+  const multaBruta = multaAtiva && !erroMulta ? multaBrutaEmReais(modo, multaTexto, total) : 0;
+  const percNum = total > 0 ? Math.round((multaBruta / total) * 10000) / 100 : 0;
   const multaAplicada = multaAtiva ? Math.max(multaBruta - sinalPago, 0) : 0;
   // RN-NOVA-1/ORC-036 (mini-estorno) — o valor exato a devolver só existe depois de confirmar (o
   // servidor recalcula com BigDecimal/arredondamento próprios, ver OrcamentoService.calcularResultadoMulta).
@@ -225,7 +325,7 @@ export function ModalCancelMulta({
                   variant="danger"
                   fullWidth
                   disabled={saving}
-                  onClick={() => onConfirm(multaAtiva ? percNum : undefined)}
+                  onClick={() => onConfirm(multaAtiva ? lerMulta(modo, multaTexto) : undefined)}
                 >
                   {saving ? "Cancelando..." : "Confirmar cancelamento"}
                 </Button>
@@ -281,29 +381,8 @@ export function ModalCancelMulta({
           />
 
           {multaAtiva && (
-            <div className="animate-[fadeUp_.25s_ease_both]">
-              <span className="mb-2 block text-[13px] font-semibold text-body">
-                Percentual da multa (%)
-              </span>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <input
-                  value={multaPerc}
-                  onChange={(e) =>
-                    setMultaPerc(e.target.value.replace(/[^\d.,]/g, ""))
-                  }
-                  inputMode="decimal"
-                  placeholder="50"
-                  className="h-[46px] min-w-[120px] flex-1 rounded-input border-[1.5px] border-line bg-white px-3.5 font-[inherit] text-[15px] font-semibold text-dark outline-hidden transition-colors duration-150 focus:border-orange focus:ring-4 focus:ring-orange/12"
-                />
-              </div>
-              {erroMulta && (
-                <div role="alert" className="mt-2 text-xs font-medium text-danger">
-                  {erroMulta}
-                </div>
-              )}
-              <div className="mt-2.5 text-xs text-muted">
-                Sugestão padrão: 50% do valor total.
-              </div>
+            <div>
+              <CampoMulta total={total} modo={modo} setModo={setModo} texto={multaTexto} setTexto={setMultaTexto} erro={erroMulta} />
               <div className="mt-4 flex items-center justify-between rounded-xl border border-orange/focus bg-orange/8 px-4 py-3.5">
                 <span className="text-sm font-semibold text-dark">
                   Multa
@@ -388,7 +467,7 @@ export function ModalCancelEstorno({
 }: {
   orcamento: OrcamentoDetalheResponse;
   onClose: () => void;
-  onConfirm: (data: { estornarSinal: boolean; dataEstornoSinal?: string }) => void;
+  onConfirm: (data: { estornarSinal: boolean; dataEstornoSinal?: string } & MultaEscolhida) => void;
   saving: boolean;
 }) {
   const [step, setStep] = useState(1);
@@ -399,6 +478,15 @@ export function ModalCancelEstorno({
 
   const valorSinal = orcamento.valorSinal || 0;
   const nomeCliente = orcamento.nomeCliente;
+  // RN-NOVA-58 — em SINAL_PAGO a multa também vale: em R$ ou em %, abatida do sinal já recebido.
+  const total = orcamento.total || 0;
+  const [multaAtiva, setMultaAtiva] = useState(false);
+  const [modo, setModo] = useState<ModoMulta>("percentual");
+  const [multaTexto, setMultaTexto] = useState("50");
+  const erroMulta = multaAtiva ? validarMulta(modo, multaTexto, total) : null;
+  const multa = multaAtiva ? lerMulta(modo, multaTexto) : {};
+  const multaBruta = multaAtiva && !erroMulta ? multaBrutaEmReais(modo, multaTexto, total) : 0;
+  const valorEstorno = Math.max(valorSinal - multaBruta, 0);
 
   const tituloPasso =
     step === 1 ? `Estornar sinal para ${nomeCliente}?` : "Confirmar estorno do sinal";
@@ -436,11 +524,11 @@ export function ModalCancelEstorno({
                 <Button
                   variant="primary"
                   fullWidth
-                  disabled={saving}
+                  disabled={saving || erroMulta !== null}
                   onClick={() =>
                     estornar
                       ? setStep(2)
-                      : onConfirm({ estornarSinal: false })
+                      : onConfirm({ estornarSinal: false, ...multa })
                   }
                 >
                   {estornar ? "Próximo →" : saving ? "Cancelando..." : "Confirmar cancelamento"}
@@ -457,7 +545,7 @@ export function ModalCancelEstorno({
                   fullWidth
                   disabled={saving}
                   onClick={() =>
-                    onConfirm({ estornarSinal: true, dataEstornoSinal: `${dataEstorno}T12:00:00` })
+                    onConfirm({ estornarSinal: true, dataEstornoSinal: `${dataEstorno}T12:00:00`, ...multa })
                   }
                 >
                   {saving ? "Processando..." : "Confirmar e gerar recibo de estorno"}
@@ -538,6 +626,26 @@ export function ModalCancelEstorno({
               </p>
             </div>
           )}
+
+          {/* Multa (RN-NOVA-58) */}
+          <div className="mt-5 border-t border-line pt-4">
+            <div className="mb-2.5 text-sm font-semibold text-dark">
+              Deseja cobrar multa pelo cancelamento?
+            </div>
+            <SegmentedControl
+              options={[{ value: false, label: 'Não' }, { value: true, label: 'Sim' }]}
+              value={multaAtiva}
+              onChange={setMultaAtiva}
+              height="h-11"
+              optionWidth="w-20"
+              textSize="text-sm"
+              activeColors={['bg-line-soft text-body', 'bg-orange text-white']}
+              className="mb-3 w-fit"
+            />
+            {multaAtiva && (
+              <CampoMulta total={total} modo={modo} setModo={setModo} texto={multaTexto} setTexto={setMultaTexto} erro={erroMulta} />
+            )}
+          </div>
         </>
       )}
 
@@ -554,7 +662,7 @@ export function ModalCancelEstorno({
                 Recibo de Estorno
               </div>
               <div className="wrap-break-word text-[28px] font-bold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
-                {BRL(valorSinal)}
+                {BRL(valorEstorno)}
               </div>
             </div>
           </div>
@@ -562,7 +670,8 @@ export function ModalCancelEstorno({
           <div className="flex flex-col">
             {[
               ["Cliente", nomeCliente],
-              ["Valor do estorno", BRL(valorSinal)],
+              ...(multaAtiva ? [["Multa", BRL(multaBruta)]] : []),
+              ["Valor do estorno", BRL(valorEstorno)],
               ["Data do estorno", dataEstorno.split("-").reverse().join("/")],
               ["Orçamento", `#${orcamento.numero}`],
             ].map(([label, value]) => (
